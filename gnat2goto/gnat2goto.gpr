@@ -1,0 +1,24 @@
+with "gnat2goto_c";
+with "gnatcoll";
+
+project GNAT2GOTO is
+
+   for Object_Dir use "obj";
+   for Exec_Dir use "install/bin";
+
+   for Source_Dirs use ("driver", "obj");
+
+   for Main use ("gnat1drv.adb");
+
+   Common_Switches := ("-gnatg", "-g");
+
+   package Compiler is
+      --  for Local_Configuration_Pragmas use "gnat.adc";
+      for Switches ("Ada") use Common_Switches & ("-O0", "-gnata", "-gnatVa");
+   end Compiler;
+
+   package Builder is
+      for Executable ("gnat1drv.adb") use "gnat2goto";
+   end Builder;
+
+end GNAT2GOTO;

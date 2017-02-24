@@ -1,0 +1,4 @@
+project GNAT2Goto_C is
+   for Languages use ("C");
+   for Object_Dir use "obj";
+end GNAT2Goto_C;
