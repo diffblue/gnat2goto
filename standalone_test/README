@@ -1,0 +1,1 @@
+This directory will contain a standalone test that uses irep_utils to create simple GOTO programs (without using the GNAT frontend) for testing purposes.
