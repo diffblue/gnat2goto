@@ -1,13 +1,14 @@
-# Generic part of the backend Makefile.
-# This makefile assumes that it executed from the backend directory.
+#
+# gnat2goto
+#
+# This Makefile is heavily based on the SPARK 2014 makefile.
+#
+
 
 GPRBUILD=gprbuild
 
 # number of processors
 PROCS=0
-
-# Set to 1 to enable automated (as opposed to manual) builds
-AUTOMATED=0
 
 RM=rm -rf
 MV=mv -f
@@ -67,10 +68,8 @@ else
 	cd gnat_src && cp -p $(WORKAROUND_FILES) ../obj
 endif
 
-build: setup force
+build:
 	$(GPRBUILD) $(GPRARGS) -Pgnat2goto.gpr -j$(PROCS) -cargs ${CFLAGS} -largs $(LDFLAGS)
-
-force:
 
 clean:
 	-$(RM) obj obj-tools
