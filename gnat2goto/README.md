@@ -23,7 +23,6 @@ Install GNATCOLL GPL 2016:
 
   - `$ export PATH=/opt/gnat/bin:${PATH}`
   - `$ export GPR_PROJECT_PATH=/opt/gnat/lib/gnat`
-  - `$ make setup`
   - `$ make`
 
 This should build into install/bin. You can test if it works by calling:

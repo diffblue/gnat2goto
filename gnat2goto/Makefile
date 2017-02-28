@@ -4,7 +4,6 @@
 # This Makefile is heavily based on the SPARK 2014 makefile.
 #
 
-
 GPRBUILD=gprbuild
 
 # number of processors
@@ -20,55 +19,71 @@ gnat1dir:=$(shell echo $(adainclude) | sed -e 's^rts-.*^^' -e 's^adainclude^^')
 
 prefix:=@NOPREFIX@
 
-# symbolic linking of GNAT files is fast and that's how CodePeer is built too
-USE_LN=true
-uname:=$(shell uname)
+ALL_FRONTEND_FILES:=$(notdir $(wildcard gnat_src/*.ad[bs]))
 
-# Building with GPL 2016
+# Files part of the standard library. We don't want to copy these.
+STDLIB_FILES:=$(notdir $(wildcard gnat_src/?-*.ad?)) ada.ads gnat.ads interfac.ads text_io.ads unchconv.ads unchdeal.ads $(notdir $(wildcard gnat_src/system*.ad?)) $(notdir $(wildcard gnat_src/mlib*.ad?))
+
+# Code generator files we will deal with separately. We don't copy these.
+FE_CODEGEN_FILES:=$(notdir $(wildcard gnat_src/x*.ad?))
+
+# Files part of the compiler we wish to substitute with our own. Again, we
+# don't copy these.
+FE_REPLACED_FILES:=get_targ.adb gnatvsn.adb back_end.adb
+
+# Building with GPL 2016 requires these files from the standard library. We
+# normally would not copy them.
 WORKAROUND_FILES=s-rident.ads
 
-ifeq ($(filter-out CYGWIN%,$(uname)),)
-  LDFLAGS=-Wl,--stack=0x2000000
-  USE_LN=false
-endif
+FE_FILES_TO_COPY:=$(filter-out $(STDLIB_FILES) $(FE_REPLACED_FILES) $(FE_CODEGEN_FILES), $(ALL_FRONTEND_FILES)) $(WORKAROUND_FILES)
 
-.PHONY: setup force clean
+SINFO_CODEGEN:=xtreeprs.adb xnmake.adb xsnamest.adb xutil.ads xutil.adb sinfo.ads treeprs.adt nmake.adt $(notdir $(wildcard gnat_src/*-tmpl))
+
+GENERATED_FILES:=$(addprefix obj/, treeprs.ads nmake.ads nmake.adb snames.ads snames.adb sdefault.adb)
+
+.PHONY: clean
 
 all: build
 
-setup:
-	mkdir -p obj obj-tools install/bin
+obj-tools/%: gnat_src/%
+	@mkdir -p obj-tools
+	cp -p $< $@
+
+obj-tools/xtreeprs: $(addprefix obj-tools/, $(SINFO_CODEGEN))
+	cd obj-tools && gnatmake -q $(notdir $@)
+
+obj-tools/xnmake: $(addprefix obj-tools/, $(SINFO_CODEGEN))
+	cd obj-tools && gnatmake -q $(notdir $@)
+
+obj-tools/xsnamest: $(addprefix obj-tools/, $(SINFO_CODEGEN))
+	cd obj-tools && gnatmake -q $(notdir $@)
+
+obj/treeprs.ads: obj-tools/xtreeprs
+	@mkdir -p obj
+	cd obj-tools && ./xtreeprs && cp treeprs.ads ../obj
+
+obj/nmake%ads obj/nmake%adb: obj-tools/xnmake
+	@mkdir -p obj
+	cd obj-tools && ./xnmake && cp nmake.ad[bs] ../obj
+
+obj/snames%ads obj/snames%adb: obj-tools/xsnamest
+	@mkdir -p obj
+	cd obj-tools && ./xsnamest && cp snames.ns ../obj/snames.ads && cp snames.nb ../obj/snames.adb
+
+obj/sdefault.adb: driver/sdefault.adb.in
+	@mkdir -p obj
 	sed -e "s^@ADAINCLUDE@^$(adainclude)^" \
 	    -e "s^@ADALIB@^$(adalib)^" \
 	    -e "s^@PREFIX@^$(prefix)^" \
 	    -e "s^@GNAT1DIR@^$(gnat1dir)^" \
 	    driver/sdefault.adb.in > obj/sdefault.adb
-	for f in `cd gnat_src; ls xtreeprs.adb xnmake.adb xutil.ad? *-tmpl sinfo.ads treeprs.adt nmake.adt xsnamest.adb`; \
-	do \
-	  cp -p gnat_src/$$f obj-tools; \
-	done
-	cd obj-tools && gnatmake -q xtreeprs xnmake xsnamest && \
-	./xtreeprs && ./xnmake && mv nmake.ads nmake.adb treeprs.ads ../obj && \
-	./xsnamest && mv snames.ns ../obj/snames.ads && mv snames.nb ../obj/snames.adb
-ifeq ($(USE_LN),true)
-	cd obj && ln -sf ../gnat_src/*.ad[sb] .
-else
-	cd gnat_src && cp -p *.ads ../obj && cp -p *.adb ../obj
-endif
-	cd obj && $(RM) x*.ad? system* mlib* back_end.adb \
-	  ada.ads gnat.ads interfac.ads unch*.ads text_io.ads && \
-	$(RM) ?-*.ad? get_targ.adb gnatvsn.adb back_end.adb
-ifeq ($(USE_LN),true)
-	cd obj && \
-	for f in $(WORKAROUND_FILES); \
-	do \
-	  ln -sf ../gnat_src/$$f .; \
-	done
-else
-	cd gnat_src && cp -p $(WORKAROUND_FILES) ../obj
-endif
 
-build:
+obj/%: gnat_src/%
+	@mkdir -p obj
+	cp -p $< $@
+
+build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY))
+	@mkdir -p install/bin
 	$(GPRBUILD) $(GPRARGS) -Pgnat2goto.gpr -j$(PROCS) -cargs ${CFLAGS} -largs $(LDFLAGS)
 
 clean:
