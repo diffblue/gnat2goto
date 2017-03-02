@@ -21,15 +21,16 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Switch; use Switch;
-with Treepr; use Treepr;
+with Switch;    use Switch;
+with Tree_Walk; use Tree_Walk;
 
 package body Driver is
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
+      Unused : constant IRep := Do_Compilation_Unit (GNAT_Root);
    begin
-      Print_Node_Subtree (GNAT_Root);
+      null;  --  ??? dump to JSON file
    end GNAT_To_Goto;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
