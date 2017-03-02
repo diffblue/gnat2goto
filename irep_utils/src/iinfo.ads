@@ -1,7 +1,7 @@
 with GNATCOLL.JSON;         use GNATCOLL.JSON;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-package Irep is
+package Iinfo is
 
    type Irep is record
       Id        : Unbounded_String;
@@ -16,4 +16,4 @@ package Irep is
 
    function Irep_To_Json (Ir : Irep) return JSON_Value;
 
-end Irep;
+end Iinfo;

@@ -1,4 +1,4 @@
-package body Irep is
+package body Iinfo is
 
    function Trivial_Irep (Value : String) return Irep is
       ToRet : Irep;
@@ -12,7 +12,7 @@ package body Irep is
    begin
       --  'Image will leave a space for positive values
       ToRet.Id := Trim (Source => To_Unbounded_String (Integer'Image (Value)),
-                        Side   => Left);
+                        Side   => Ada.Strings.Left);
       return ToRet;
    end Trivial_Irep;
 
@@ -38,4 +38,4 @@ package body Irep is
       end return;
    end Irep_To_Json;
 
-end Irep;
+end Iinfo;

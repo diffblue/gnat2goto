@@ -1,12 +1,12 @@
 
-package body SymbolTable is
+package body Symbol_Table_Info is
    
    function Symbol2Json(Sym : Symbol) return JSON_Value is
-      JSON_Value Ret := Create_Object;
+      Ret : JSON_Value := Create_Object;
    begin
-      Ret.Set_Field("type", Irep.Irep2Json(Sym.SymType));
-      Ret.Set_Field("value", Irep.Irep2Json(Sym.Value));
-      Ret.Set_Field("location", Irep.Irep2Json(Sym.Locaton));
+      Ret.Set_Field("type", Iinfo.Irep_To_Json(Sym.SymType));
+      Ret.Set_Field("value", Iinfo.Irep_To_Json(Sym.Value));
+      Ret.Set_Field("location", Iinfo.Irep_To_Json(Sym.Location));
       Ret.Set_Field("name", To_String(Sym.Name));
       Ret.Set_Field("module", To_String(Sym.Module));
       Ret.Set_Field("basename", To_String(Sym.BaseName));
@@ -31,10 +31,15 @@ package body SymbolTable is
       return Ret;
    end;
      
-   function SymbolTable2Json(Symtab : SymbolTable) return JSON_Value is
-      JSON_Array Ret := Empty_Array;
+   function SymbolTable2Json(Symtab : Symbol_Table) return JSON_Array is
+      Ret : JSON_Array := Empty_Array;
+      Symbol_Json : JSON_Value;
    begin
-      
-	
+      for Symbol of Symtab loop
+	 Symbol_Json := Symbol2Json(Symbol);
+	 Append(Ret, Symbol_Json);
+      end loop;
+      return Ret;
+   end;
    
-end SymbolTable
+end Symbol_Table_Info;
