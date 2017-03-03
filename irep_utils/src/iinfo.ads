@@ -10,9 +10,12 @@ package Iinfo is
       Comment   : JSON_Value := Create_Object;
    end record;
 
-   function Trivial_Irep (Value : String) return Irep;
-   function Trivial_Irep (Value : Integer) return Irep;
-   function Trivial_Irep (Value : Boolean) return Irep;
+   package Trivial is
+      --  Prevent inheritence (these always make a plain Irep):
+      function Trivial_Irep (Value : String) return Irep;
+      function Trivial_Irep (Value : Integer) return Irep;
+      function Trivial_Irep (Value : Boolean) return Irep;
+   end Trivial;
 
    function Irep_To_Json (Ir : Irep) return JSON_Value;
 
