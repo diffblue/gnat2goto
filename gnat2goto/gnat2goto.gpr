@@ -1,5 +1,6 @@
 with "gnat2goto_c";
 with "gnatcoll";
+with "../irep_utils/irep_utils.gpr";
 
 project GNAT2GOTO is
 
@@ -10,7 +11,7 @@ project GNAT2GOTO is
 
    for Main use ("gnat1drv.adb");
 
-   Common_Switches := ("-gnatg", "-g");
+   Common_Switches := ("-gnatg", "-g", "-gnatyN");
 
    package Compiler is
       --  for Local_Configuration_Pragmas use "gnat.adc";
