@@ -85,8 +85,8 @@ def ada_argument_conversion_from_schema(schema, value):
     else:
         return value
 
-def write_mutator_method(property_name, irep_type, value_type, body):
-    subp_name = "Set_%s" % to_ada_identifier(property_name)
+def write_mutator_method(verb, property_name, irep_type, value_type, body):
+    subp_name = "%s_%s" % (verb, to_ada_identifier(property_name))
 
     signature = indent + "procedure %s\n" % subp_name
     signature += indent + "  ("
@@ -104,6 +104,9 @@ def write_mutator_method(property_name, irep_type, value_type, body):
         outbody.write(indent + indent + line.rstrip() + "\n")
     outbody.write(indent + "end %s;\n" % subp_name)
 
+def write_set_method(*pargs):
+    write_mutator_method("Set", *pargs)
+
 def ada_from_schema(schema_name, schema):
     if "sub" in schema:
         for (i, sub) in enumerate(schema["sub"]):
@@ -119,12 +122,15 @@ def ada_from_schema(schema_name, schema):
             for subname in subnames:
                 body = "Set_Element (Irep_To_Modify.Sub, %d, Irep_To_Json (%s));" % \
                        (i + 1, ada_argument_conversion_from_schema(sub, "Value"))
-                write_mutator_method(subname, schema_name, ada_type_from_schema(sub), body)
+                write_set_method(subname, schema_name, ada_type_from_schema(sub), body)
 
                 if "number" in sub:
                     assert sub["number"] == "*"
                     body = "Irep_To_Modify.Sub := Value;"
-                    write_mutator_method(subname + "s", schema_name, "JSON_Array", body)
+                    write_set_method(subname + "s", schema_name, "JSON_Array", body)
+                    add_body = "Append(Irep_To_Modify.Sub, Irep_To_Json (%s));" % \
+                               (ada_argument_conversion_from_schema(sub, "Value"))
+                    write_mutator_method("Add", subname, schema_name, ada_type_from_schema(sub), add_body)
 
     if "namedSub" in schema:
         for (propname, propschema) in schema["namedSub"].iteritems():
@@ -134,10 +140,10 @@ def ada_from_schema(schema_name, schema):
                 "Irep_To_Modify.Named_Sub",
                 propname,
                 ada_argument_conversion_from_schema(propschema, "Value"))
-            write_mutator_method(propname,
-                                 schema_name,
-                                 ada_type_from_schema(propschema),
-                                 body)
+            write_set_method(propname,
+                             schema_name,
+                             ada_type_from_schema(propschema),
+                             body)
     if "comment" in schema:
         for (propname, propschema) in schema["comment"].iteritems():
             if "constant" in propschema:
@@ -146,10 +152,10 @@ def ada_from_schema(schema_name, schema):
                 "Irep_To_Modify.Comment",
                 propname,
                 ada_argument_conversion_from_schema(propschema, "Value"))
-            write_mutator_method(propname,
-                                 schema_name,
-                                 ada_type_from_schema(propschema),
-                                 body)
+            write_set_method(propname,
+                             schema_name,
+                             ada_type_from_schema(propschema),
+                             body)
 
     if "parent" in schema:
         ada_from_schema(schema_name, schema["parent"])
