@@ -23,12 +23,13 @@
 
 with Switch;    use Switch;
 with Tree_Walk; use Tree_Walk;
+with Irep_Schemata; use Irep_Schemata;
 
 package body Driver is
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
-      Unused : constant IRep := Do_Compilation_Unit (GNAT_Root);
+      Unused : constant Irep_Code_Block := Do_Compilation_Unit (GNAT_Root);
    begin
       null;  --  ??? dump to JSON file
    end GNAT_To_Goto;
