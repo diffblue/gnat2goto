@@ -22,8 +22,15 @@ outbody.write("with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;\n")
 outbody.write("\n")
 outbody.write("package body Irep_Schemata is\n")
 
-def to_ada_identifier(s):
+def write_set_field(obj, field, value, indent_lvl=0):
+    rv = (indent * indent_lvl) + "Set_Field ("
+    offset = len(rv)
+    rv += obj + ",\n"
+    rv += (" " * offset) + '"%s",\n' % field
+    rv += (" " * offset) + 'Irep_To_Json (%s));\n' % value
+    return rv
 
+def to_ada_identifier(s):
     if any(c != "_" and not c.isalpha() and not c.isdigit() for c in s):
         if s == "<":
             return "LT"
@@ -44,14 +51,14 @@ def to_ada_identifier(s):
         elif s == "*":
             return "Mult"
         elif s == "**":
-            return "Exponentiate" 
+            return "Exponentiate"
         elif s == "/":
             return "Div"
         elif s == "unary-":
             return "UnaryMinus"
         else:
             raise Exception("Unhandled non-alphanum id '%s'" % s)
-    
+
     s = s[0].upper() + s[1:]
     idx = s.find("_")
     while idx != -1:
@@ -74,23 +81,29 @@ def ada_type_from_schema(schema):
 
 def ada_argument_conversion_from_schema(schema, value):
     if "type" in schema:
-        return "Trivial.Trivial_Irep(%s)" % value
+        return "Trivial.Trivial_Irep (%s)" % value
     else:
         return value
 
 def write_mutator_method(property_name, irep_type, value_type, body):
-    
-    signature = indent + \
-                ("procedure Set_%s (Irep_To_Modify : in out %s; Value : %s)" % \
-                 (to_ada_identifier(property_name), irep_type, value_type))
+    subp_name = "Set_%s" % to_ada_identifier(property_name)
+
+    signature = indent + "procedure %s\n" % subp_name
+    signature += indent + "  ("
+    param_offset = len(indent) + 3
+    params = ["Irep_To_Modify : in out %s" % irep_type,
+              "Value          : %s" % value_type]
+    signature += (";\n" + " " * param_offset).join(params) + ")"
 
     outspec.write("%s;\n" % signature)
 
-    outbody.write("\n%s is\n" % signature)
+    outbody.write("\n%s\n" % signature)
+    outbody.write(indent + "is\n")
     outbody.write(indent + "begin\n")
-    outbody.write(indent + indent + body + "\n")
-    outbody.write(indent + "end;\n")
-    
+    for line in body.splitlines():
+        outbody.write(indent + indent + line.rstrip() + "\n")
+    outbody.write(indent + "end %s;\n" % subp_name)
+
 def ada_from_schema(schema_name, schema):
     if "sub" in schema:
         for (i, sub) in enumerate(schema["sub"]):
@@ -117,16 +130,26 @@ def ada_from_schema(schema_name, schema):
         for (propname, propschema) in schema["namedSub"].iteritems():
             if "constant" in propschema:
                 continue
-            body = "Set_Field (Irep_To_Modify.Named_Sub, \"%s\", Irep_To_Json (%s));" % \
-                   (propname, ada_argument_conversion_from_schema(propschema, "Value"))
-            write_mutator_method(propname, schema_name, ada_type_from_schema(propschema), body)
+            body = write_set_field(
+                "Irep_To_Modify.Named_Sub",
+                propname,
+                ada_argument_conversion_from_schema(propschema, "Value"))
+            write_mutator_method(propname,
+                                 schema_name,
+                                 ada_type_from_schema(propschema),
+                                 body)
     if "comment" in schema:
         for (propname, propschema) in schema["comment"].iteritems():
             if "constant" in propschema:
                 continue
-            body = "Set_Field (Irep_To_Modify.Comment, \"%s\", Irep_To_Json (%s));" % \
-                   (propname, ada_argument_conversion_from_schema(propschema, "Value"))
-            write_mutator_method(propname, schema_name, ada_type_from_schema(propschema), body)
+            body = write_set_field(
+                "Irep_To_Modify.Comment",
+                propname,
+                ada_argument_conversion_from_schema(propschema, "Value"))
+            write_mutator_method(propname,
+                                 schema_name,
+                                 ada_type_from_schema(propschema),
+                                 body)
 
     if "parent" in schema:
         ada_from_schema(schema_name, schema["parent"])
@@ -137,48 +160,57 @@ def get_constant_assignments(schema):
     if "namedSub" in schema:
         for (propname, propschema) in schema["namedSub"].iteritems():
             if "constant" in propschema:
-                ret.append("Set_Field (Ret.Named_Sub, \"%s\", Irep_To_Json (Trivial.Trivial_Irep(%s)));\n" % \
-                           (propname, "\"%s\"" % propschema["constant"]))
+                ret.append(write_set_field(
+                    "Ret.Named_Sub",
+                    propname,
+                    'Trivial.Trivial_Irep ("%s")' % propschema["constant"]))
 
     if "comment" in schema:
         for (propname, propschema) in schema["comment"].iteritems():
             if "constant" in propschema:
-                ret.append("Set_Field (Ret.Comment, \"%s\", Irep_To_Json (Trivial.Trivial_Irep(%s)));\n" % \
-                           (propname, "\"%s\"" % propschema["constant"]))
-                           
+                ret.append(write_set_field(
+                    "Ret.Comment",
+                    propname,
+                    'Trivial.Trivial_Irep ("%s")' % propschema["constant"]))
+
     if "parent" in schema:
         ret.extend(get_constant_assignments(schema["parent"]))
+
     return ret
 
 for (schema_name, schema) in gj.schemata.iteritems():
-
     schema_name = "Irep_" + to_ada_identifier(schema_name)
+    subp_name = "Make_Irep_%s" % schema_name
 
     outspec.write("\n")
     outspec.write(indent + ("type %s is new Irep;\n" % schema_name))
-    outspec.write(indent + "function Make_%s return %s;\n" % (schema_name, schema_name))
+    outspec.write(indent + "function %s\n" % subp_name)
+    outspec.write(indent + "  return %s;\n" % schema_name)
 
     outbody.write("\n")
-    outbody.write(indent + ("function Make_%s return %s is\n" % (schema_name, schema_name)))
+    outbody.write(indent + ("function %s\n" % subp_name))
+    outbody.write(indent + ("  return %s\n" % schema_name))
+    outbody.write(indent + "is\n")
     outbody.write(indent + indent + "Ret : %s;\n" % schema_name)
     outbody.write(indent + "begin\n")
     schema_id = gj.find_schema_id(schema)
-    outbody.write(indent + indent + ("Ret.Id := To_Unbounded_String(\"%s\");\n" % schema_id))
+    outbody.write(indent + indent + ("Ret.Id := To_Unbounded_String (\"%s\");\n" % schema_id))
     n_required_operands = gj.count_required_positional_operands(schema)
-    
+
     if n_required_operands != 0:
         outbody.write(indent + indent + "--  Add null values for required operands\n")
     for i in range(n_required_operands):
-        outbody.write(indent + indent + "Append (Ret.Sub, Irep_To_Json (Trivial.Trivial_Irep(\"\")));\n")
+        outbody.write(indent + indent + "Append (Ret.Sub, Irep_To_Json (Trivial.Trivial_Irep (\"\")));\n")
     constant_assignments = get_constant_assignments(schema)
     if len(constant_assignments) != 0:
         outbody.write(indent + indent + "--  Set constant members:\n")
     for c in constant_assignments:
-        outbody.write(indent + indent + c)
+        for l in c.splitlines():
+            outbody.write(indent + indent + l + "\n")
     outbody.write(indent + indent + "return Ret;\n")
-        
-    outbody.write(indent + "end;\n")
-    
+
+    outbody.write(indent + "end %s;\n" % subp_name)
+
     ada_from_schema(schema_name, schema)
 
 outspec.write("\nend Irep_Schemata;")
