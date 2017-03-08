@@ -185,7 +185,7 @@ def get_constant_assignments(schema):
 
 for (schema_name, schema) in gj.schemata.iteritems():
     schema_name = "Irep_" + to_ada_identifier(schema_name)
-    subp_name = "Make_Irep_%s" % schema_name
+    subp_name = "Make_%s" % schema_name
 
     outspec.write("\n")
     outspec.write(indent + ("type %s is new Irep;\n" % schema_name))
