@@ -128,7 +128,7 @@ def ada_from_schema(schema_name, schema):
                     assert sub["number"] == "*"
                     body = "Irep_To_Modify.Sub := Value;"
                     write_set_method(subname + "s", schema_name, "JSON_Array", body)
-                    add_body = "Append(Irep_To_Modify.Sub, Irep_To_Json (%s));" % \
+                    add_body = "Append (Irep_To_Modify.Sub, Irep_To_Json (%s));" % \
                                (ada_argument_conversion_from_schema(sub, "Value"))
                     write_mutator_method("Add", subname, schema_name, ada_type_from_schema(sub), add_body)
 
