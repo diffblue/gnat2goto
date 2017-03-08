@@ -24,14 +24,18 @@
 with Switch;    use Switch;
 with Tree_Walk; use Tree_Walk;
 with Irep_Schemata; use Irep_Schemata;
+with Symbol_Table_Info; use Symbol_Table_Info;
+with Gather_Irep_Symbols;
+with Iinfo; use Iinfo;
 
 package body Driver is
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
-      Unused : constant Irep_Code_Block := Do_Compilation_Unit (GNAT_Root);
+      Program_Irep : constant Irep_Code_Block := Do_Compilation_Unit (GNAT_Root);
+      Local_Symbol_Table : Symbol_Table;
    begin
-      null;  --  ??? dump to JSON file
+      Gather_Irep_Symbols.Gather (Local_Symbol_Table, Irep (Program_Irep));
    end GNAT_To_Goto;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
