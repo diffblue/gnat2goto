@@ -14,11 +14,17 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep_Code_Assign
    with Pre => Nkind (N) = N_Assignment_Statement;
 
+   function Do_Object_Declaration (N  : Node_Id) return Irep_Code_Decl
+   with Pre => Nkind (N) = N_Object_Declaration;
+
    function Do_Expression (N : Node_Id) return Irep_Expr
    with Pre => Nkind (N) in N_Subexpr;
 
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep_Code_Block
    with Pre => Nkind (N) = N_Handled_Sequence_Of_Statements;
+
+   function Do_Defining_Identifier (N : Node_Id) return Irep_Symbol_Expr
+   with Pre => Nkind (N) = N_Defining_Identifier;
 
    function Do_Identifier (N : Node_Id) return Irep_Symbol_Expr
    with Pre => Nkind (N) = N_Identifier;
@@ -78,7 +84,20 @@ package body Tree_Walk is
             raise Program_Error;
       end case;
    end Do_Compilation_Unit;
-   
+
+   ----------------------------
+   -- Do_Defining_Identifier --
+   ----------------------------
+
+   function Do_Defining_Identifier (N : Node_Id) return Irep_Symbol_Expr is
+      Ret : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
+   begin
+      pragma Assert (Etype (N) = Standard_Integer);
+      Set_Identifier (Ret, Get_Name_String (Chars (N)));
+      Set_Type (Ret, Irep (Get_Int32_Type));
+      return Ret;
+   end Do_Defining_Identifier;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -113,13 +132,21 @@ package body Tree_Walk is
 
    function Do_Identifier (N : Node_Id) return Irep_Symbol_Expr is
       E : constant Entity_Id := Entity (N);
-      Ret : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
    begin
-      pragma Assert (Etype (E) = Standard_Integer);
-      Set_Identifier (Ret, Get_Name_String (Chars (E)));
-      Set_Type (Ret, Irep (Get_Int32_Type));
-      return Ret;
+      return Do_Defining_Identifier (E);
    end Do_Identifier;
+
+   ---------------------------
+   -- Do_Object_Declaration --
+   ---------------------------
+
+   function Do_Object_Declaration (N  : Node_Id) return Irep_Code_Decl is
+      Id : constant Irep_Symbol_Expr := Do_Defining_Identifier (Defining_Identifier(N));
+      Ret : Irep_Code_Decl := Make_Irep_Code_Decl;
+   begin
+      Set_Symbol (Ret, Irep (Id));
+      return Ret;
+   end Do_Object_Declaration;
 
    -----------------
    -- Do_Operator --
@@ -216,6 +243,9 @@ package body Tree_Walk is
       case Nkind (N) is
          when N_Assignment_Statement =>
             return Irep_Code (Do_Assignment_Statement (N));
+
+         when N_Object_Declaration =>
+            return Irep_Code (Do_Object_Declaration (N));
 
          when N_Handled_Sequence_Of_Statements =>
             return Irep_Code (Do_Handled_Sequence_Of_Statements (N));
