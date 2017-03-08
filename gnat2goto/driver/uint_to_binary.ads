@@ -11,6 +11,7 @@ package Uint_To_Binary is
       Width : Positive)
       return String
    with Pre => Input >= -(2 ** (Width - 1)) and then Input < 2 ** Width;
-   --  ???                                          "Input < 2 ** (Width - 1)"
+   -- This handles both signed and unsigned types, hence the bound
+   -- of 2 ** width not 2 ** (width - 1) as might be expected.
 
 end;
