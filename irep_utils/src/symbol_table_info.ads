@@ -1,10 +1,11 @@
-with Ada.Containers.Vectors;
-with Ada.Containers;        use Ada.Containers;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Containers.Hashed_Maps;
+with Ada.Containers;             use Ada.Containers;
+with Ada.Strings;                use Ada.Strings;
+with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
+with GNATCOLL.JSON;              use GNATCOLL.JSON;
 
-with GNATCOLL.JSON;         use GNATCOLL.JSON;
-
-with Iinfo;                 use Iinfo;
+with Iinfo;                      use Iinfo;
 
 package Symbol_Table_Info is
 
@@ -37,9 +38,13 @@ package Symbol_Table_Info is
 
    function Symbol2Json (Sym : Symbol) return JSON_Value;
 
-   package SymbolVectors is new Vectors (Index_Type   => Natural,
-                                         Element_Type => Symbol);
-   subtype Symbol_Table is SymbolVectors.Vector;
+   package Symbol_Maps is new Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => Symbol,
+      Hash            => Ada.Strings.Unbounded.Hash,
+      Equivalent_Keys => "=");
+
+   subtype Symbol_Table is Symbol_Maps.Map;
 
    function SymbolTable2Json(Symtab : Symbol_Table) return JSON_Array;
 
