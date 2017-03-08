@@ -32,15 +32,34 @@ package body Iinfo is
    end Trivial;
 
    function Irep_To_Json (Ir : Irep) return JSON_Value is
-      ToRet : JSON_Value := Create_Object;
-
+      Ret_Sub : JSON_Array := Empty_Array;
+      Ret_Named_Sub : JSON_Value := Create_Object;
+      Ret_Comment : JSON_Value := Create_Object;
    begin
+      for Sub of Ir.Sub loop
+         Append (Ret_Sub, Irep_To_Json (Sub.All));
+      end loop;
+      for C in Ir.Named_Sub.Iterate loop
+         Set_Field (Ret_Named_Sub, To_String (Irep_Maps.Key (C)), Irep_To_Json (Irep_Maps.Element (C).All));
+      end loop;
+      for C in Ir.Comment.Iterate loop
+         Set_Field (Ret_Comment, To_String (Irep_Maps.Key (C)), Irep_To_Json (Irep_Maps.Element (C).All));
+      end loop;
+
       return R : Json_Value := Create_Object do
         R.Set_Field ("id", Ir.Id);
-        R.Set_Field ("sub", Ir.Sub);
-        R.Set_Field ("namedSub", Ir.Named_Sub);
-        R.Set_Field ("comment", Ir.Comment);
+        R.Set_Field ("sub", Ret_Sub);
+        R.Set_Field ("namedSub", Ret_Named_Sub);
+        R.Set_Field ("comment", Ret_Comment);
       end return;
    end Irep_To_Json;
+
+   function Alloc_Clone (Ir : Irep) return Irep_Ptr is
+   begin
+      return new Irep'(Id =>        Ir.Id,
+                       Sub =>       Ir.Sub,
+                       Named_Sub => Ir.Named_Sub,
+                       Comment =>   Ir.Comment);
+   end Alloc_Clone;
 
 end Iinfo;

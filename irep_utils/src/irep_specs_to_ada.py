@@ -14,20 +14,19 @@ outspec = open(sys.argv[2] + ".ads", "w")
 outbody = open(sys.argv[2] + ".adb", "w")
 
 outspec.write("with Iinfo;         use Iinfo;\n")
-outspec.write("with GNATCOLL.JSON; use GNATCOLL.JSON;\n")
 outspec.write("\n")
 outspec.write("package Irep_Schemata is\n")
 
-outbody.write("with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;\n")
+outbody.write("with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;\n")
 outbody.write("\n")
 outbody.write("package body Irep_Schemata is\n")
 
 def write_set_field(obj, field, value, indent_lvl=0):
-    rv = (indent * indent_lvl) + "Set_Field ("
+    rv = (indent * indent_lvl) + "Irep_Maps.Insert ("
     offset = len(rv)
     rv += obj + ",\n"
-    rv += (" " * offset) + '"%s",\n' % field
-    rv += (" " * offset) + 'Irep_To_Json (%s));\n' % value
+    rv += (" " * offset) + 'To_Unbounded_String ("%s"),\n' % field
+    rv += (" " * offset) + 'Alloc_Clone (%s));\n' % value
     return rv
 
 def to_ada_identifier(s):
@@ -120,15 +119,15 @@ def ada_from_schema(schema_name, schema):
                 continue
 
             for subname in subnames:
-                body = "Set_Element (Irep_To_Modify.Sub, %d, Irep_To_Json (%s));" % \
+                body = "Irep_Vectors.Replace_Element (Irep_To_Modify.Sub, %d, Alloc_Clone (%s));" % \
                        (i + 1, ada_argument_conversion_from_schema(sub, "Value"))
                 write_set_method(subname, schema_name, ada_type_from_schema(sub), body)
 
                 if "number" in sub:
                     assert sub["number"] == "*"
                     body = "Irep_To_Modify.Sub := Value;"
-                    write_set_method(subname + "s", schema_name, "JSON_Array", body)
-                    add_body = "Append (Irep_To_Modify.Sub, Irep_To_Json (%s));" % \
+                    write_set_method(subname + "s", schema_name, "Irep_Vectors.Vector", body)
+                    add_body = "Irep_Vectors.Append (Irep_To_Modify.Sub, Alloc_Clone (%s));" % \
                                (ada_argument_conversion_from_schema(sub, "Value"))
                     write_mutator_method("Add", subname, schema_name, ada_type_from_schema(sub), add_body)
 
@@ -206,7 +205,7 @@ for (schema_name, schema) in gj.schemata.iteritems():
     if n_required_operands != 0:
         outbody.write(indent + indent + "--  Add null values for required operands\n")
     for i in range(n_required_operands):
-        outbody.write(indent + indent + "Append (Ret.Sub, Irep_To_Json (Trivial.Trivial_Irep (\"\")));\n")
+        outbody.write(indent + indent + "Irep_Vectors.Append (Ret.Sub, Alloc_Clone (Trivial.Trivial_Irep (\"\")));\n")
     constant_assignments = get_constant_assignments(schema)
     if len(constant_assignments) != 0:
         outbody.write(indent + indent + "--  Set constant members:\n")

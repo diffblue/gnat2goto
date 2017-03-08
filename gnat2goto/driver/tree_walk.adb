@@ -3,8 +3,6 @@ with Stand;  use Stand;
 with Treepr; use Treepr;
 with Namet;  use Namet;
 
-with GNATCOLL.JSON; use GNATCOLL.JSON;
-
 with Iinfo; use Iinfo;
 with Irep_Helpers; use Irep_Helpers;
 with Uint_To_Binary; use Uint_To_Binary;
@@ -227,9 +225,7 @@ package body Tree_Walk is
                   else Make_Irep_Code_Block);
 
       -- Append the HSS_Rep block to the Decls_Rep one:
-      for I in Integer range 1 .. Length (HSS_Rep.Sub) loop
-	 Append (Decls_Rep.Sub, Get (HSS_Rep.Sub, I));
-      end loop;
+      Irep_Vectors.Append (Decls_Rep.Sub, HSS_Rep.Sub);
       return Decls_Rep;
    end Do_Subprogram_Or_Block;
 
