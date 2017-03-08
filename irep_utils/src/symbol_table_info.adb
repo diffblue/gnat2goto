@@ -35,8 +35,8 @@ package body Symbol_Table_Info is
       Symbol_Json : JSON_Value;
    begin
       for Symbol of Symtab loop
-	 Symbol_Json := Symbol2Json (Symbol);
-	 Append (Ret, Symbol_Json);
+         Symbol_Json := Symbol2Json (Symbol);
+         Append (Ret, Symbol_Json);
       end loop;
       return Ret;
    end;
