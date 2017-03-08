@@ -25,7 +25,7 @@ package body Tree_Walk is
 
    function Do_Operator (N : Node_Id) return Irep_Expr
      with Pre => Nkind (N) in N_Op;
-   
+
    function Do_Constant (N : Node_Id) return Irep_Constant_Expr
      with Pre => Nkind (N) = N_Integer_Literal;
 
@@ -42,13 +42,13 @@ package body Tree_Walk is
    function Process_Statement_List (L : List_Id) return Irep_Code_Block;
    --  Process list of statements or declarations
 
-   function Get_Int32_Type return Irep_Signedbv_Type is 
+   function Get_Int32_Type return Irep_Signedbv_Type is
       Ret : Irep_Signedbv_Type := Make_Irep_Signedbv_Type;
    begin
       Set_Width (Ret, 32);
       return Ret;
    end Get_Int32_Type;
-   
+
    -----------------------------
    -- Do_Assignment_Statement --
    -----------------------------
@@ -166,10 +166,10 @@ package body Tree_Walk is
             raise Program_Error;
 
       end case;
-      
+
       return Irep_Expr (Ret);
    end Do_Operator;
-   
+
    function Do_Constant (N : Node_Id) return Irep_Constant_Expr is
       Ret : Irep_Constant_Expr := Make_Irep_Constant_Expr;
    begin
@@ -178,7 +178,7 @@ package body Tree_Walk is
       Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
       return Ret;
    end;
-   
+
    ----------------------------
    -- Do_Subprogram_Or_Block --
    ----------------------------
@@ -198,7 +198,7 @@ package body Tree_Walk is
       HSS_Rep := (if Present (HSS)
                   then To_Code_Block (Process_Statement (HSS))
                   else Make_Irep_Code_Block);
-		  
+
       -- Append the HSS_Rep block to the Decls_Rep one:
       for I in Integer range 1 .. Length (HSS_Rep.Sub) loop
 	 Append (Decls_Rep.Sub, Get (HSS_Rep.Sub, I));
