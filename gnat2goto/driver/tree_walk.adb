@@ -4,7 +4,7 @@ with Treepr; use Treepr;
 with Namet;  use Namet;
 
 with Iinfo; use Iinfo;
-with Irep_Helpers; use Irep_Helpers;
+--with Irep_Helpers; use Irep_Helpers;
 with Uint_To_Binary; use Uint_To_Binary;
 
 package body Tree_Walk is
@@ -12,7 +12,7 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep_Code_Assign
    with Pre => Nkind (N) = N_Assignment_Statement;
 
-   function Do_Object_Declaration (N  : Node_Id) return Irep_Code_Decl
+   procedure Do_Object_Declaration (N : Node_Id; Block : in out Irep_Code_Block)
    with Pre => Nkind (N) = N_Object_Declaration;
 
    function Do_Expression (N : Node_Id) return Irep_Expr
@@ -40,7 +40,7 @@ package body Tree_Walk is
                             N_Package_Body    |
                             N_Entry_Body;
 
-   function Process_Statement (N : Node_Id) return Irep_Code;
+   procedure Process_Statement (N : Node_Id; Block : in out Irep_Code_Block);
    --  Process statement or declaration
 
    function Process_Statement_List (L : List_Id) return Irep_Code_Block;
@@ -138,12 +138,22 @@ package body Tree_Walk is
    -- Do_Object_Declaration --
    ---------------------------
 
-   function Do_Object_Declaration (N  : Node_Id) return Irep_Code_Decl is
+   procedure Do_Object_Declaration (N : Node_Id; Block : in out Irep_Code_Block) is
       Id : constant Irep_Symbol_Expr := Do_Defining_Identifier (Defining_Identifier(N));
-      Ret : Irep_Code_Decl := Make_Irep_Code_Decl;
+      Decl : Irep_Code_Decl := Make_Irep_Code_Decl;
    begin
-      Set_Symbol (Ret, Irep (Id));
-      return Ret;
+      Set_Symbol (Decl, Irep (Id));
+      Add_Op (Block, Irep (Decl));
+      if Has_Init_Expression (N) then
+         declare
+            Init_Expr : constant Irep_Expr := Do_Expression (Expression (N));
+            Init_Statement : Irep_Code_Assign := Make_Irep_Code_Assign;
+         begin
+            Set_Lhs (Init_Statement, Irep (Id));
+            Set_Rhs (Init_Statement, Irep (Init_Expr));
+            Add_Op (Block, Irep (Init_Statement));
+         end;
+      end if;
    end Do_Object_Declaration;
 
    -----------------
@@ -213,19 +223,16 @@ package body Tree_Walk is
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
 
       Decls_Rep : Irep_Code_Block;
-      HSS_Rep   : Irep_Code_Block;
 
    begin
       Decls_Rep := (if Present (Decls)
                     then Process_Statement_List (Decls)
                     else Make_Irep_Code_Block);
 
-      HSS_Rep := (if Present (HSS)
-                  then To_Code_Block (Process_Statement (HSS))
-                  else Make_Irep_Code_Block);
+      if Present (HSS) then
+         Process_Statement (HSS, Decls_Rep);
+      end if;
 
-      -- Append the HSS_Rep block to the Decls_Rep one:
-      Irep_Vectors.Append (Decls_Rep.Sub, HSS_Rep.Sub);
       return Decls_Rep;
    end Do_Subprogram_Or_Block;
 
@@ -233,18 +240,18 @@ package body Tree_Walk is
    --  Process_Statement  --
    -------------------------
 
-   function Process_Statement (N : Node_Id) return Irep_Code is
+   procedure Process_Statement (N : Node_Id; Block : in out Irep_Code_Block) is
    begin
       --  Deal with the statement
       case Nkind (N) is
          when N_Assignment_Statement =>
-            return Irep_Code (Do_Assignment_Statement (N));
+            Add_Op (Block, Irep (Do_Assignment_Statement (N)));
 
          when N_Object_Declaration =>
-            return Irep_Code (Do_Object_Declaration (N));
+            Do_Object_Declaration (N, Block);
 
          when N_Handled_Sequence_Of_Statements =>
-            return Irep_Code (Do_Handled_Sequence_Of_Statements (N));
+            Add_Op (Block, Irep (Do_Handled_Sequence_Of_Statements (N)));
 
          when others =>
             pp (Union_Id (N));
@@ -264,7 +271,7 @@ package body Tree_Walk is
 
    begin
       while Present (Stmt) loop
-         Add_Op (Reps, Irep (Process_Statement (Stmt)));
+         Process_Statement (Stmt, Reps);
          Next (Stmt);
       end loop;
 
