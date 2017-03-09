@@ -15,6 +15,9 @@ package body Tree_Walk is
    procedure Do_Object_Declaration (N : Node_Id; Block : in out Irep_Code_Block)
    with Pre => Nkind (N) = N_Object_Declaration;
 
+   function Do_If_Statement (N : Node_Id) return Irep_Code_Ifthenelse
+   with Pre => Nkind (N) = N_If_Statement;
+
    function Do_Expression (N : Node_Id) return Irep_Expr
    with Pre => Nkind (N) in N_Subexpr;
 
@@ -134,6 +137,49 @@ package body Tree_Walk is
       return Do_Defining_Identifier (E);
    end Do_Identifier;
 
+   ---------------------
+   -- Do_If_Statement --
+   ---------------------
+
+   function Do_If_Statement (N : Node_Id) return Irep_Code_Ifthenelse is
+
+      function Do_If_Block (N : Node_Id) return Irep_Code_Ifthenelse is
+         Cond_Expr : constant Irep_Expr := Do_Expression (Condition (N));
+         If_Block : constant Irep_Code_Block := Process_Statement_List (Then_Statements (N));
+         Ret : Irep_Code_Ifthenelse := Make_Irep_Code_Ifthenelse;
+      begin
+         Set_Cond (Ret, Irep (Cond_Expr));
+         Set_Then_Case (Ret, Irep (If_Block));
+         return Ret;
+      end;
+
+      procedure Do_Elsifs (Else_Ifs : Node_Id;
+                           Else_List : List_Id;
+                           Ret : in out Irep_Code_Ifthenelse) is
+      begin
+         if not Present (Else_Ifs) then
+            if (Present (Else_List)) then
+               Set_Else_Case (Ret, Irep (Process_Statement_List (Else_List)));
+            end if;
+         else
+            declare
+               Sub_If : Irep_Code_Ifthenelse := Do_If_Block (Else_Ifs);
+               Next_Eif : Node_Id := Else_Ifs;
+            begin
+               Next (Next_Eif);
+               Do_Elsifs (Next_Eif, Else_List, Sub_If);
+               Set_Else_Case (Ret, Irep (Sub_If));
+            end;
+         end if;
+      end;
+
+      Ret : Irep_Code_Ifthenelse := Do_If_Block (N);
+
+   begin
+      Do_Elsifs (First (Elsif_Parts (N)), Else_Statements (N), Ret);
+      return Ret;
+   end;
+
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
@@ -252,6 +298,9 @@ package body Tree_Walk is
 
          when N_Handled_Sequence_Of_Statements =>
             Add_Op (Block, Irep (Do_Handled_Sequence_Of_Statements (N)));
+
+         when N_If_Statement =>
+            Add_Op (Block, Irep (Do_If_Statement (N)));
 
          when others =>
             pp (Union_Id (N));
