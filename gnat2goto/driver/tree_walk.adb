@@ -218,15 +218,17 @@ package body Tree_Walk is
          when N_Op_Divide =>
 	    Ret.Id := Make_Irep_Div.Id;
          when N_Op_Add =>
-	    Ret.Id := Make_Irep_Plus.Id;
+            Ret.Id := Make_Irep_Plus.Id;
+         when N_Op_Subtract =>
+            Ret.Id := Make_Irep_Minus.Id;
+         when N_Op_Eq =>
+            Ret.Id := Make_Irep_Equal.Id;
          when N_Op_Concat
             | N_Op_Expon
-            | N_Op_Subtract
             | N_Op_Mod
             | N_Op_Multiply
             | N_Op_Rem
             | N_Op_And
-            | N_Op_Eq
             | N_Op_Ge
             | N_Op_Gt
             | N_Op_Le
