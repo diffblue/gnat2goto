@@ -8,7 +8,7 @@ package body Symbol_Table_Info is
       Ret.Set_Field ("location",           Iinfo.Irep_To_Json (Sym.Location));
       Ret.Set_Field ("name",               To_String (Sym.Name));
       Ret.Set_Field ("module",             To_String (Sym.Module));
-      Ret.Set_Field ("basename",           To_String (Sym.BaseName));
+      Ret.Set_Field ("base_name",          To_String (Sym.BaseName));
       Ret.Set_Field ("mode",               To_String (Sym.Mode));
       Ret.Set_Field ("pretty_name",        To_String (Sym.PrettyName));
       Ret.Set_Field ("is_type",            Sym.IsType);
