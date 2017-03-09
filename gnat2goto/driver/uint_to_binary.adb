@@ -3,14 +3,12 @@ with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Strings; use Ada.Strings;
 with Ada.Text_IO; use Ada.Text_IO;
 
-with Types; use Types;
-
 package body Uint_To_Binary is
 
    -- TODO: handle negative numbers
    function Convert_Uint_To_Binary
      (Input : Uint;
-      Width : Positive)
+      Width : Pos)
       return String
    is
       function Hex_To_Binary (Input : String) return String is
@@ -57,16 +55,15 @@ package body Uint_To_Binary is
       Nonnegative_Input : constant Uint :=
         (if Input >= 0
          then Input
-         else Input + 2 ** Width);
+         else Input + (2 ** UI_From_Int (Width)));
 
    begin
       declare
 	 Unpadded_Hex : constant String := UI_Image (Nonnegative_Input, Hex);
-	 Padded_Hex   : String (1 .. Width / 4);
+	 Padded_Hex   : String (1 .. Integer (Width / 4));
       begin
-	 pragma Assert (Unpadded_Hex (Unpadded_Hex'First) = ' ');
-
-         Move (Source  => Unpadded_Hex (Unpadded_Hex'First + 1 .. Unpadded_Hex'Last),
+         -- Unpadded_Hex is in the form 16#val#
+         Move (Source  => Unpadded_Hex (Unpadded_Hex'First + 3 .. Unpadded_Hex'Last - 1),
 	       Target  => Padded_Hex,
 	       Justify => Right,
 	       Pad     => '0');

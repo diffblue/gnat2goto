@@ -1,16 +1,14 @@
-with Types;
+with Types; use Types;
 with Uintp; use Uintp;
 
 package Uint_To_Binary is
 
-   use type Types.Int;
-   --  For operators on Uint and Int
-
    function Convert_Uint_To_Binary
      (Input : Uint;
-      Width : Positive)
+      Width : Pos)
       return String
-   with Pre => Input >= -(2 ** (Width - 1)) and then Input < 2 ** Width;
+     with Pre => Input >= -(UI_From_Int (2) ** (UI_From_Int (Width) - UI_From_Int (1)))
+     and then Input < UI_From_Int (2) ** UI_From_Int (Width);
    -- This handles both signed and unsigned types, hence the bound
    -- of 2 ** width not 2 ** (width - 1) as might be expected.
 
