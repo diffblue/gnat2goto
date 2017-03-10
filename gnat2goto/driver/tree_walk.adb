@@ -1,3 +1,5 @@
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
 with Nlists; use Nlists;
 with Stand;  use Stand;
 with Treepr; use Treepr;
@@ -46,13 +48,24 @@ package body Tree_Walk is
                             N_Package_Body    |
                             N_Entry_Body;
 
+   procedure Do_Full_Type_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Full_Type_Declaration;
+
+   function Do_Record_Definition (N : Node_Id) return Irep_Struct_Type
+   with Pre => Nkind (N) = N_Record_Definition;
+
+   function Do_Type_Reference (N : Node_Id) return Irep_Type;
+
+   function Do_Selected_Component (N : Node_Id) return Irep_Member_Expr
+   with Pre => Nkind (N) = N_Selected_Component;
+
    procedure Process_Statement (N : Node_Id; Block : in out Irep_Code_Block);
    --  Process statement or declaration
 
    function Process_Statement_List (L : List_Id) return Irep_Code_Block;
    --  Process list of statements or declarations
 
-   function Get_Int_Type (Width : Integer) return Irep_Signedbv_Type is
+   function Get_Int_Type (Width : Positive) return Irep_Signedbv_Type is
       Ret : Irep_Signedbv_Type := Make_Irep_Signedbv_Type;
    begin
       Set_Width (Ret, Width);
@@ -64,7 +77,7 @@ package body Tree_Walk is
    -----------------------------
 
    function Do_Assignment_Statement (N : Node_Id) return Irep_Code_Assign is
-      LHS : constant Irep_Symbol_Expr := Do_Identifier (Name (N));
+      LHS : constant Irep_Expr := Do_Expression (Name (N));
       RHS : constant Irep_Expr := Do_Expression (Expression (N));
       Ret : Irep_Code_Assign := Make_Irep_Code_Assign;
    begin
@@ -94,11 +107,11 @@ package body Tree_Walk is
    ----------------------------
 
    function Do_Defining_Identifier (N : Node_Id) return Irep_Symbol_Expr is
+      Id_Type : constant Irep_Type := Do_Type_Reference (EType (N));
       Ret : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
    begin
-      pragma Assert (Etype (N) = Standard_Integer);
       Set_Identifier (Ret, Get_Name_String (Chars (N)));
-      Set_Type (Ret, Irep (Get_Int_Type (32)));
+      Set_Type (Ret, Irep (Id_Type));
       return Ret;
    end Do_Defining_Identifier;
 
@@ -111,14 +124,113 @@ package body Tree_Walk is
       case Nkind (N) is
          when N_Identifier =>
             return Irep_Expr (Do_Identifier (N));
+         when N_Selected_Component =>
+            return Irep_Expr (Do_Selected_Component (N));
          when N_Op =>
             return Do_Operator (N);
-	 when N_Integer_Literal =>
-	    return Irep_Expr (Do_Constant (N));
+         when N_Integer_Literal =>
+            return Irep_Expr (Do_Constant (N));
          when others =>
             raise Program_Error;
       end case;
    end Do_Expression;
+
+   --------------------------
+   -- Do_Record_Definition --
+   --------------------------
+
+   function Do_Record_Definition (N : Node_Id) return Irep_Struct_Type is
+      Ret : Irep_Struct_Type := Make_Irep_Struct_Type;
+      Components : Irep_Struct_Union_Components := Make_Irep_Struct_Union_Components;
+      Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
+      procedure Do_Record_Component (Comp : Node_Id) is
+         Comp_Name : constant String := Get_Name_String (Chars (Defining_Identifier (Comp)));
+         Comp_Defn : constant Node_Id := Component_Definition (Comp);
+         Comp_Irep : Irep_Struct_Union_Component := Make_Irep_Struct_Union_Component;
+      begin
+         if not Present (Subtype_Indication (Comp_Defn)) then
+            Pp (Union_Id (Comp_Defn));
+            raise Program_Error;
+         else
+            declare
+               Comp_Type : constant Irep_Type :=
+                 Do_Type_Reference (EType (Subtype_Indication (Comp_Defn)));
+            begin
+               Set_Name (Comp_Irep, Comp_Name);
+               Set_Pretty_Name (Comp_Irep, Comp_Name);
+               Set_Base_Name (Comp_Irep, Comp_Name);
+               Set_Type (Comp_Irep, Irep (Comp_Type));
+            end;
+         end if;
+         Add_Component (Components, Irep (Comp_Irep));
+      end;
+   begin
+      while Present (Component_Iter) loop
+         Do_Record_Component (Component_Iter);
+         Next (Component_Iter);
+      end loop;
+      Set_Components (Ret, Irep (Components));
+      return Ret;
+   end Do_Record_Definition;
+
+   ------------------------
+   -- Do_Type_Definition --
+   ------------------------
+
+   function Do_Type_Definition (N : Node_Id) return Irep_Type is
+   begin
+      case Nkind (N) is
+         when N_Record_Definition =>
+            return Irep_Type (Do_Record_Definition (N));
+         when others =>
+            Pp (Union_Id (N));
+            raise Program_Error;
+      end case;
+   end Do_Type_Definition;
+
+   ------------------------------
+   -- Do_Full_Type_Declaration --
+   ------------------------------
+
+   procedure Do_Full_Type_Declaration (N : Node_Id) is
+      New_Type : Irep_Type := Do_Type_Definition (Type_Definition (N));
+      New_Type_Name : constant Unbounded_String :=
+        To_Unbounded_String (Get_Name_String (Chars (Defining_Identifier (N))));
+      New_Type_Symbol : Symbol;
+   begin
+      if New_Type.Id = "struct" then
+         Set_Tag (Irep_Struct_Type (New_Type), To_String (New_Type_Name));
+      end if;
+      New_Type_Symbol.Name := New_Type_Name;
+      New_Type_Symbol.PrettyName := New_Type_Name;
+      New_Type_Symbol.BaseName := New_Type_Name;
+      New_Type_Symbol.SymType := Irep (New_Type);
+      New_Type_Symbol.Mode := To_Unbounded_String ("C");
+      New_Type_Symbol.IsType := True;
+      New_Type_Symbol.Value := Trivial.Trivial_Irep ("nil");
+      Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
+   end Do_Full_Type_Declaration;
+
+   -----------------------
+   -- Do_Type_Reference --
+   -----------------------
+
+   function Do_Type_Reference (N : Node_Id) return Irep_Type is
+   begin
+      if N = Standard_Integer then
+         return Irep_Type (Get_Int_Type (32));
+      elsif Nkind (N) = N_Defining_Identifier then
+         declare
+            Ret : Irep_Symbol_Type := Make_Irep_Symbol_Type;
+         begin
+            Set_Identifier (Ret, Get_Name_String (Chars (N)));
+            return Irep_Type (Ret);
+         end;
+      else
+         Pp (Union_Id (N));
+         raise Program_Error;
+      end if;
+   end;
 
    ---------------------------------------
    -- Do_Handled_Sequence_Of_Statements --
@@ -324,6 +436,21 @@ package body Tree_Walk is
       return Ret;
    end;
 
+   ---------------------------
+   -- Do_Selected_Component --
+   ---------------------------
+
+   function Do_Selected_Component (N : Node_Id) return Irep_Member_Expr is
+      Root : constant Irep_Expr := Do_Expression (Prefix (N));
+      Component_Type : constant Irep_Type := Do_Type_Reference (EType (Selector_Name (N)));
+      Ret : Irep_Member_Expr := Make_Irep_Member_Expr;
+   begin
+      Set_Compound (Ret, Irep (Root));
+      Set_Component_Name (Ret, Get_Name_String (Chars (Selector_Name (N))));
+      Set_Type (Ret, Irep (Component_Type));
+      return Ret;
+   end;
+
    ----------------------------
    -- Do_Subprogram_Or_Block --
    ----------------------------
@@ -372,6 +499,13 @@ package body Tree_Walk is
 
          when N_Loop_Statement =>
             Add_Op (Block, Irep (Do_Loop_Statement (N)));
+
+         when N_Full_Type_Declaration =>
+            Do_Full_Type_Declaration (N);
+
+         when N_Freeze_Entity =>
+            -- Ignore, nothing to generate
+            null;
 
          when others =>
             pp (Union_Id (N));
