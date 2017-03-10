@@ -303,8 +303,11 @@ package body Tree_Walk is
             | N_Op_Plus
          =>
             raise Program_Error;
-
       end case;
+
+      if Do_Overflow_Check (N) then
+         Set_Overflow_Check (Ret, True);
+      end if;
 
       return Irep_Expr (Ret);
    end Do_Operator;
