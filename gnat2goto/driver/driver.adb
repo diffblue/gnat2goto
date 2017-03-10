@@ -35,14 +35,14 @@ package body Driver is
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
-      Program_Irep : constant Irep_Code_Block := Do_Compilation_Unit (GNAT_Root);
+      Program_Irep : constant Irep_Code_Block :=
+        Do_Compilation_Unit (GNAT_Root);
       Void_Type : constant Irep_Void_Type := Make_Irep_Void_Type;
       Start_Name : constant Unbounded_String := To_Unbounded_String ("_start");
       Function_Type : Irep_Code_Type := Make_Irep_Code_Type;
-      Local_Symbol_Table : Symbol_Table;
       Function_Symbol : Symbol;
    begin
-      Gather_Irep_Symbols.Gather (Local_Symbol_Table, Irep (Program_Irep));
+      Gather_Irep_Symbols.Gather (Global_Symbol_Table, Irep (Program_Irep));
 
       -- For now, emit this as _start.
       Function_Symbol.Name := Start_Name;
@@ -52,9 +52,9 @@ package body Driver is
       Function_Symbol.SymType := Irep (Function_Type);
       Function_Symbol.Value := Irep (Program_Irep);
       Function_Symbol.Mode := To_Unbounded_String ("C");
-      Symbol_Maps.Insert (Local_Symbol_Table, Start_Name, Function_Symbol);
+      Symbol_Maps.Insert (Global_Symbol_Table, Start_Name, Function_Symbol);
 
-      Put_Line (Create (SymbolTable2Json (Local_Symbol_Table)).Write);
+      Put_Line (Create (SymbolTable2Json (Global_Symbol_Table)).Write);
    end GNAT_To_Goto;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
