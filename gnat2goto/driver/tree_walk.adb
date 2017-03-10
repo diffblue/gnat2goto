@@ -256,8 +256,11 @@ package body Tree_Walk is
    function Do_Constant (N : Node_Id) return Irep_Constant_Expr is
       Ret : Irep_Constant_Expr := Make_Irep_Constant_Expr;
    begin
-      pragma Assert (Etype (N) = Standard_Integer);
-      Set_Type (Ret, Irep(Get_Int32_Type));
+      if Etype (N) /= Standard_Integer then
+         Pp (Union_Id (N));
+         pragma Assert (Etype (N) = Standard_Integer);
+      end if;
+      Set_Type (Ret, Irep(Get_Int_Type (32)));
       Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
       return Ret;
    end;
