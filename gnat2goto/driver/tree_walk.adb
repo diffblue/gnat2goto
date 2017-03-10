@@ -49,12 +49,12 @@ package body Tree_Walk is
    function Process_Statement_List (L : List_Id) return Irep_Code_Block;
    --  Process list of statements or declarations
 
-   function Get_Int32_Type return Irep_Signedbv_Type is
+   function Get_Int_Type (Width : Integer) return Irep_Signedbv_Type is
       Ret : Irep_Signedbv_Type := Make_Irep_Signedbv_Type;
    begin
-      Set_Width (Ret, 32);
+      Set_Width (Ret, Width);
       return Ret;
-   end Get_Int32_Type;
+   end Get_Int_Type;
 
    -----------------------------
    -- Do_Assignment_Statement --
@@ -95,7 +95,7 @@ package body Tree_Walk is
    begin
       pragma Assert (Etype (N) = Standard_Integer);
       Set_Identifier (Ret, Get_Name_String (Chars (N)));
-      Set_Type (Ret, Irep (Get_Int32_Type));
+      Set_Type (Ret, Irep (Get_Int_Type (32)));
       return Ret;
    end Do_Defining_Identifier;
 
@@ -213,7 +213,7 @@ package body Tree_Walk is
    begin
       Set_Lhs (Ret, Irep (LHS));
       Set_Rhs (Ret, Irep (RHS));
-      Set_Type (Ret, Irep (Get_Int32_Type));
+      Set_Type (Ret, Irep (Get_Int_Type (32)));
       case N_Op (Nkind (N)) is
          when N_Op_Divide =>
 	    Ret.Id := Make_Irep_Div.Id;
