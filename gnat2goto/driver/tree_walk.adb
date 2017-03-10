@@ -216,25 +216,35 @@ package body Tree_Walk is
       Set_Type (Ret, Irep (Get_Int_Type (32)));
       case N_Op (Nkind (N)) is
          when N_Op_Divide =>
-	    Ret.Id := Make_Irep_Div.Id;
+            Ret.Id := Make_Irep_Div.Id;
          when N_Op_Add =>
             Ret.Id := Make_Irep_Plus.Id;
          when N_Op_Subtract =>
             Ret.Id := Make_Irep_Minus.Id;
+         when N_Op_Multiply =>
+            Ret.Id := Make_Irep_Mult.Id;
+         when N_Op_Rem =>
+            Ret.Id := Make_Irep_Rem.Id;
+         when N_Op_Mod =>
+            Ret.Id := Make_Irep_Mod.Id;
+         when N_Op_And =>
+            Ret.Id := Make_Irep_And.Id;
+         when N_Op_Or =>
+            Ret.Id := Make_Irep_Or.Id;
          when N_Op_Eq =>
             Ret.Id := Make_Irep_Equal.Id;
+         when N_Op_Ne =>
+            Ret.Id := Make_Irep_Notequal.Id;
+         when N_Op_Ge =>
+            Ret.Id := Make_Irep_Ge.Id;
+         when N_Op_Gt =>
+            Ret.Id := Make_Irep_Gt.Id;
+         when N_Op_Le =>
+            Ret.Id := Make_Irep_Le.Id;
+         when N_Op_Lt =>
+            Ret.Id := Make_Irep_Lt.Id;
          when N_Op_Concat
             | N_Op_Expon
-            | N_Op_Mod
-            | N_Op_Multiply
-            | N_Op_Rem
-            | N_Op_And
-            | N_Op_Ge
-            | N_Op_Gt
-            | N_Op_Le
-            | N_Op_Lt
-            | N_Op_Ne
-            | N_Op_Or
             | N_Op_Xor
             | N_Op_Rotate_Left
             | N_Op_Rotate_Right
