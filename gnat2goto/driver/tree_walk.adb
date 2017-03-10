@@ -18,6 +18,9 @@ package body Tree_Walk is
    function Do_If_Statement (N : Node_Id) return Irep_Code_Ifthenelse
    with Pre => Nkind (N) = N_If_Statement;
 
+   function Do_Loop_Statement (N : Node_Id) return Irep_Code
+   with Pre => NKind (N) = N_Loop_Statement;
+
    function Do_Expression (N : Node_Id) return Irep_Expr
    with Pre => Nkind (N) in N_Subexpr;
 
@@ -180,6 +183,49 @@ package body Tree_Walk is
       return Ret;
    end;
 
+   -----------------------
+   -- Do_Loop_Statement --
+   -----------------------
+
+   function Do_Loop_Statement (N : Node_Id) return Irep_Code is
+
+      Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
+      Body_Block : constant Irep_Code_Block := Process_Statement_List (Statements (N));
+
+      function Do_For_Statement return Irep_Code_For is begin
+         return Make_Irep_Code_For;
+      end;
+      function Do_While_Statement (Cond : Irep_Expr) return Irep_Code_While is
+         Ret : Irep_Code_While := Make_Irep_Code_While;
+      begin
+         Set_Cond (Ret, Irep (Cond));
+         Set_Body (Ret, Irep (Body_Block));
+         return Ret;
+      end;
+
+   begin
+
+      if not Present (Iter_Scheme) then
+         declare
+            Const_True : Irep_Constant_Expr := Make_Irep_Constant_Expr;
+         begin
+            -- mimic C-style 8-bit bool. This might also work with 1-bit type.
+            Set_Value (Const_True, "00000001");
+            Set_Type (Const_True, Irep (Get_Int_Type (8)));
+            return Irep_Code (Do_While_Statement (Irep_Expr (Const_True)));
+         end;
+      elsif Present (Condition (Iter_Scheme)) then
+         declare
+            Cond : constant Irep_Expr := Do_Expression (Condition (Iter_Scheme));
+         begin
+            return Irep_Code (Do_While_Statement (Cond));
+         end;
+      else
+         return Irep_Code (Do_For_Statement);
+      end if;
+
+   end;
+
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
@@ -316,6 +362,13 @@ package body Tree_Walk is
 
          when N_If_Statement =>
             Add_Op (Block, Irep (Do_If_Statement (N)));
+
+         when N_Implicit_Label_Declaration =>
+            -- Ignore for now, as I guess an implicit label can't be referenced
+            null;
+
+         when N_Loop_Statement =>
+            Add_Op (Block, Irep (Do_Loop_Statement (N)));
 
          when others =>
             pp (Union_Id (N));
