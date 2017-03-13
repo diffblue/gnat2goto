@@ -39,6 +39,9 @@ package body Tree_Walk is
    function Do_Operator (N : Node_Id) return Irep_Expr
      with Pre => Nkind (N) in N_Op;
 
+   function Do_Type_Conversion (N : Node_Id) return Irep_Expr
+   with Pre => Nkind (N) = N_Type_Conversion;
+
    function Do_Constant (N : Node_Id) return Irep_Constant_Expr
      with Pre => Nkind (N) = N_Integer_Literal;
 
@@ -98,7 +101,20 @@ package body Tree_Walk is
       Ret : Irep_Code_Assign := Make_Irep_Code_Assign;
    begin
       Set_Lhs(Ret, Irep(LHS));
-      Set_Rhs(Ret, Irep(RHS));
+      if Do_Range_Check (Expression (N)) then
+         -- Implicit typecast. Make it explicit.
+         declare
+            Cast_RHS : Irep_Typecast := Make_Irep_Typecast;
+         begin
+            Set_Op0 (Cast_RHS, Irep (RHS));
+            Set_Type (Cast_RHS,
+                      Irep_Maps.Element (LHS.Named_Sub, To_Unbounded_String ("type")).all);
+            Set_Range_Check (Cast_RHS, True);
+            Set_Rhs (Ret, Irep (Cast_RHS));
+         end;
+      else
+           Set_Rhs(Ret, Irep(RHS));
+      end if;
       return Ret;
    end Do_Assignment_Statement;
 
@@ -147,7 +163,7 @@ package body Tree_Walk is
          when N_Integer_Literal =>
             return Irep_Expr (Do_Constant (N));
          when N_Type_Conversion =>
-            return Do_Expression (Expression (N));
+            return Do_Type_Conversion (N);
          when others =>
             raise Program_Error;
       end case;
@@ -297,9 +313,9 @@ package body Tree_Walk is
       end case;
    end Do_Type_Definition;
 
-   ------------------------------
+   -------------------------
    -- Do_Type_Declaration --
-   ------------------------------
+   -------------------------
 
    procedure Do_Type_Declaration (New_Type_In : Irep_Type; N : Node_Id) is
       New_Type : Irep_Type := New_Type_In;
@@ -488,6 +504,23 @@ package body Tree_Walk is
          end;
       end if;
    end Do_Object_Declaration;
+
+   ------------------------
+   -- Do_Type_Conversion --
+   ------------------------
+
+   function Do_Type_Conversion (N : Node_Id) return Irep_Expr is
+      To_Convert : constant Irep_Expr := Do_Expression (Expression (N));
+      New_Type : constant Irep_Type := Do_Type_Reference (EType (N));
+      Ret : Irep_Typecast := Make_Irep_Typecast;
+   begin
+      if Do_Range_Check (Expression (N)) then
+         Set_Range_Check (Ret, True);
+      end if;
+      Set_Op0 (Ret, Irep (To_Convert));
+      Set_Type (Ret, Irep (New_Type));
+      return Irep_Expr (Ret);
+   end;
 
    -----------------
    -- Do_Operator --
