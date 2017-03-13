@@ -4,9 +4,10 @@ with Nlists; use Nlists;
 with Stand;  use Stand;
 with Treepr; use Treepr;
 with Namet;  use Namet;
+with Uintp; use Uintp;
 
 with Iinfo; use Iinfo;
---with Irep_Helpers; use Irep_Helpers;
+with Irep_Helpers; use Irep_Helpers;
 with Uint_To_Binary; use Uint_To_Binary;
 
 package body Tree_Walk is
@@ -48,11 +49,26 @@ package body Tree_Walk is
                             N_Package_Body    |
                             N_Entry_Body;
 
+   procedure Do_Type_Declaration (New_Type_In : Irep_Type; N : Node_Id)
+   with Pre => Nkind (N) in N_Full_Type_Declaration | N_Subtype_Declaration;
+
    procedure Do_Full_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
 
+   procedure Do_Subtype_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Subtype_Declaration;
+
+   function Do_Subtype_Indication (N : Node_Id) return Irep_Type
+   with Pre => Nkind (N) = N_Subtype_Indication;
+
    function Do_Record_Definition (N : Node_Id) return Irep_Struct_Type
    with Pre => Nkind (N) = N_Record_Definition;
+
+   function Do_Signed_Integer_Definition (N : Node_Id) return Irep_Bounded_Signedbv_Type
+   with Pre => Nkind (N) = N_Signed_Integer_Type_Definition;
+
+   function Do_Derived_Type_Definition (N : Node_Id) return Irep_Type
+   with Pre => Nkind (N) = N_Derived_Type_Definition;
 
    function Do_Type_Reference (N : Node_Id) return Irep_Type;
 
@@ -130,10 +146,51 @@ package body Tree_Walk is
             return Do_Operator (N);
          when N_Integer_Literal =>
             return Irep_Expr (Do_Constant (N));
+         when N_Type_Conversion =>
+            return Do_Expression (Expression (N));
          when others =>
             raise Program_Error;
       end case;
    end Do_Expression;
+
+   -------------------------
+   -- Do_Range_Constraint --
+   -------------------------
+
+   function Do_Range_Constraint (N : Node_Id; Underlying : Irep_Type) return Irep_Type is
+      Resolved_Underlying : constant Irep_Type :=
+        Follow_Symbol_Type (Underlying, Global_Symbol_Table);
+      Ret : Irep_Bounded_Signedbv_Type := Irep_Bounded_Signedbv_Type (Resolved_Underlying);
+      Lower : constant Irep_Constant_Expr := Do_Constant (Low_Bound (Range_Expression (N)));
+      Upper : constant Irep_Constant_Expr := Do_Constant (High_Bound (Range_Expression (N)));
+   begin
+      Irep_Maps.Exclude (Ret.Named_Sub, To_Unbounded_String ("lower_bound"));
+      Irep_Maps.Exclude (Ret.Named_Sub, To_Unbounded_String ("upper_bound"));
+      Set_Lower_Bound (Ret, Irep (Lower));
+      Set_Upper_Bound (Ret, Irep (Upper));
+      return Irep_Type (Ret);
+   end;
+
+   ---------------------------
+   -- Do_Subtype_Indication --
+   ---------------------------
+
+   function Do_Subtype_Indication (N : Node_Id) return Irep_Type is
+      Underlying : constant Irep_Type := Do_Type_Reference (EType (Subtype_Mark (N)));
+   begin
+      if not Present (Constraint (N))
+      then
+         return Underlying;
+      else
+         case Nkind (Constraint (N)) is
+            when N_Range_Constraint =>
+               return Do_Range_Constraint (Constraint (N), Underlying);
+            when others =>
+               Pp (Union_Id (N));
+               raise Program_Error;
+         end case;
+      end if;
+   end;
 
    --------------------------
    -- Do_Record_Definition --
@@ -153,8 +210,7 @@ package body Tree_Walk is
             raise Program_Error;
          else
             declare
-               Comp_Type : constant Irep_Type :=
-                 Do_Type_Reference (EType (Subtype_Indication (Comp_Defn)));
+               Comp_Type : constant Irep_Type := Do_Subtype_Indication (Comp_Defn);
             begin
                Set_Name (Comp_Irep, Comp_Name);
                Set_Pretty_Name (Comp_Irep, Comp_Name);
@@ -173,6 +229,55 @@ package body Tree_Walk is
       return Ret;
    end Do_Record_Definition;
 
+   function Pick_Underlying_Type_Width (Val : Uint) return Integer is
+      Ret : Integer := 8;
+   begin
+      while Val >= UI_From_Int (Int (2)) ** UI_From_Int (Int (Ret - 1)) or else
+        Val < -(UI_From_Int (Int (2)) ** UI_From_Int (Int (Ret - 1))) loop
+         Ret := Ret * 2;
+      end loop;
+      return Ret;
+   end Pick_Underlying_Type_Width;
+
+   ----------------------------------
+   -- Do_Signed_Integer_Definition --
+   ----------------------------------
+
+   function Do_Signed_Integer_Definition (N : Node_Id) return Irep_Bounded_Signedbv_Type is
+      Lower : constant Irep_Constant_Expr := Do_Constant (Low_Bound (N));
+      Upper : constant Irep_Constant_Expr := Do_Constant (High_Bound (N));
+      Ret : Irep_Bounded_Signedbv_Type := Make_Irep_Bounded_Signedbv_Type;
+   begin
+      Set_Lower_Bound (Ret, Irep (Lower));
+      Set_Upper_Bound (Ret, Irep (Upper));
+      Set_Width (Ret, Integer'Max (Pick_Underlying_Type_Width (Intval (Low_Bound (N))),
+                                   Pick_Underlying_Type_Width (Intval (High_Bound (N)))));
+      return  Ret;
+   end Do_Signed_Integer_Definition;
+
+   --------------------------------
+   -- Do_Derived_Type_Definition --
+   --------------------------------
+
+   function Do_Derived_Type_Definition (N : Node_Id) return Irep_Type is
+      Subtype_Irep : constant Irep_Type := Do_Subtype_Indication (Subtype_Indication (N));
+   begin
+      if Abstract_Present (N)
+        or else Null_Exclusion_Present (N)
+        or else Present (Record_Extension_Part (N))
+        or else Limited_Present (N)
+        or else Task_Present (N)
+        or else Protected_Present (N)
+        or else Synchronized_Present (N)
+        or else Present (Interface_List (N))
+        or else Interface_Present (N)
+      then
+         Pp (Union_Id (N));
+         raise Program_Error;
+      end if;
+      return Subtype_Irep;
+   end Do_Derived_Type_Definition;
+
    ------------------------
    -- Do_Type_Definition --
    ------------------------
@@ -182,6 +287,10 @@ package body Tree_Walk is
       case Nkind (N) is
          when N_Record_Definition =>
             return Irep_Type (Do_Record_Definition (N));
+         when N_Signed_Integer_Type_Definition =>
+            return Irep_Type (Do_Signed_Integer_Definition (N));
+         when N_Derived_Type_Definition =>
+            return Do_Derived_Type_Definition (N);
          when others =>
             Pp (Union_Id (N));
             raise Program_Error;
@@ -189,11 +298,11 @@ package body Tree_Walk is
    end Do_Type_Definition;
 
    ------------------------------
-   -- Do_Full_Type_Declaration --
+   -- Do_Type_Declaration --
    ------------------------------
 
-   procedure Do_Full_Type_Declaration (N : Node_Id) is
-      New_Type : Irep_Type := Do_Type_Definition (Type_Definition (N));
+   procedure Do_Type_Declaration (New_Type_In : Irep_Type; N : Node_Id) is
+      New_Type : Irep_Type := New_Type_In;
       New_Type_Name : constant Unbounded_String :=
         To_Unbounded_String (Get_Name_String (Chars (Defining_Identifier (N))));
       New_Type_Symbol : Symbol;
@@ -209,7 +318,27 @@ package body Tree_Walk is
       New_Type_Symbol.IsType := True;
       New_Type_Symbol.Value := Trivial.Trivial_Irep ("nil");
       Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
+   end;
+
+   ------------------------------
+   -- Do_Full_Type_Declaration --
+   ------------------------------
+
+   procedure Do_Full_Type_Declaration (N : Node_Id) is
+      New_Type : constant Irep_Type := Do_Type_Definition (Type_Definition (N));
+   begin
+      Do_Type_Declaration (New_Type, N);
    end Do_Full_Type_Declaration;
+
+   ----------------------------
+   -- Do_Subtype_Declaration --
+   ----------------------------
+
+   procedure Do_Subtype_Declaration (N : Node_Id) is
+      New_Type : constant Irep_Type := Do_Subtype_Indication (Subtype_Indication (N));
+   begin
+      Do_Type_Declaration (New_Type, N);
+   end Do_Subtype_Declaration;
 
    -----------------------
    -- Do_Type_Reference --
@@ -426,12 +555,10 @@ package body Tree_Walk is
 
    function Do_Constant (N : Node_Id) return Irep_Constant_Expr is
       Ret : Irep_Constant_Expr := Make_Irep_Constant_Expr;
+      Constant_Type : constant Irep_Type := Do_Type_Reference (EType (N));
    begin
-      if Etype (N) /= Standard_Integer then
-         Pp (Union_Id (N));
-         pragma Assert (Etype (N) = Standard_Integer);
-      end if;
-      Set_Type (Ret, Irep(Get_Int_Type (32)));
+      Set_Type (Ret, Irep (Constant_Type));
+      -- FIXME
       Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
       return Ret;
    end;
@@ -502,6 +629,9 @@ package body Tree_Walk is
 
          when N_Full_Type_Declaration =>
             Do_Full_Type_Declaration (N);
+
+         when N_Subtype_Declaration =>
+            Do_Subtype_Declaration (N);
 
          when N_Freeze_Entity =>
             -- Ignore, nothing to generate

@@ -1,5 +1,4 @@
 
-with GNATCOLL.JSON; use GNATCOLL.JSON;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Iinfo; use Iinfo;
 with Irep_Schemata; use Irep_Schemata;
@@ -22,6 +21,21 @@ package body Irep_Helpers is
 	    return Ret;
 	 end;
       end if;
+   end;
+
+   function Follow_Symbol_Type (Ty : Irep_Type; Symtab : Symbol_Table) return Irep_Type is
+   begin
+      if (Ty.Id /= To_Unbounded_String ("symbol")) then
+         return Ty;
+      end if;
+      declare
+         Sym_Name : constant Unbounded_String :=
+           Irep_Maps.Element (Ty.Named_Sub, To_Unbounded_String ("identifier")).all.Id;
+         Sym : constant Symbol :=
+           Symbol_Maps.Element (Symtab, Sym_Name);
+      begin
+         return Follow_Symbol_Type (Irep_Type (Sym.SymType), Symtab);
+      end;
    end;
 
 end Irep_Helpers;
