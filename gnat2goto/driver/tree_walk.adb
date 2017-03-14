@@ -52,8 +52,8 @@ package body Tree_Walk is
                             N_Package_Body    |
                             N_Entry_Body;
 
-   procedure Do_Type_Declaration (New_Type_In : Irep_Type; N : Node_Id)
-   with Pre => Nkind (N) in N_Full_Type_Declaration | N_Subtype_Declaration;
+   procedure Do_Type_Declaration (New_Type_In : Irep_Type; Name_Node : Node_Id)
+   with Pre => Nkind (Name_Node) = N_Defining_Identifier;
 
    procedure Do_Full_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
@@ -317,10 +317,10 @@ package body Tree_Walk is
    -- Do_Type_Declaration --
    -------------------------
 
-   procedure Do_Type_Declaration (New_Type_In : Irep_Type; N : Node_Id) is
+   procedure Do_Type_Declaration (New_Type_In : Irep_Type; Name_Node : Node_Id) is
       New_Type : Irep_Type := New_Type_In;
       New_Type_Name : constant Unbounded_String :=
-        To_Unbounded_String (Get_Name_String (Chars (Defining_Identifier (N))));
+        To_Unbounded_String (Get_Name_String (Chars (Name_Node)));
       New_Type_Symbol : Symbol;
    begin
       if New_Type.Id = "struct" then
@@ -343,7 +343,9 @@ package body Tree_Walk is
    procedure Do_Full_Type_Declaration (N : Node_Id) is
       New_Type : constant Irep_Type := Do_Type_Definition (Type_Definition (N));
    begin
-      Do_Type_Declaration (New_Type, N);
+      Do_Type_Declaration (New_Type, Defining_Identifier (N));
+      -- Declare the implicit initial subtype too:
+      Do_Type_Declaration (New_Type, Etype (Defining_Identifier (N)));
    end Do_Full_Type_Declaration;
 
    ----------------------------
@@ -353,7 +355,7 @@ package body Tree_Walk is
    procedure Do_Subtype_Declaration (N : Node_Id) is
       New_Type : constant Irep_Type := Do_Subtype_Indication (Subtype_Indication (N));
    begin
-      Do_Type_Declaration (New_Type, N);
+      Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
 
    -----------------------
