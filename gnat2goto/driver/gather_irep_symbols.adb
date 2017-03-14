@@ -34,7 +34,9 @@ package body Gather_Irep_Symbols is
             Gather (Table, Sub.all);
          end loop;
          for Sub_Pair in Ir.Named_Sub.Iterate loop
-            Gather (Table, Irep_Maps.Element (Sub_Pair).all);
+            if Irep_Maps.Key (Sub_Pair) /= To_Unbounded_String ("type") then
+               Gather (Table, Irep_Maps.Element (Sub_Pair).all);
+            end if;
          end loop;
          for Sub_Pair in Ir.Comment.Iterate loop
             Gather (Table, Irep_Maps.Element (Sub_Pair).all);
