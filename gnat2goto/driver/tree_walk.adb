@@ -369,8 +369,12 @@ package body Tree_Walk is
       elsif Nkind (N) = N_Defining_Identifier then
          declare
             Ret : Irep_Symbol_Type := Make_Irep_Symbol_Type;
+            Id : constant String := Get_Name_String (Chars (N));
          begin
-            Set_Identifier (Ret, Get_Name_String (Chars (N)));
+            if (Id = "integer") then
+               return Irep_Type (Get_Int_Type (32));
+            end if;
+            Set_Identifier (Ret, Id);
             return Irep_Type (Ret);
          end;
       else
