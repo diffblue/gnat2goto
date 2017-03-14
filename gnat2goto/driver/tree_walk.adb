@@ -539,7 +539,7 @@ package body Tree_Walk is
    begin
       Set_Lhs (Ret, Irep (LHS));
       Set_Rhs (Ret, Irep (RHS));
-      Set_Type (Ret, Irep (Get_Int_Type (32)));
+      Set_Type (Ret, Irep (Do_Type_Reference (EType (N))));
       case N_Op (Nkind (N)) is
          when N_Op_Divide =>
             Ret.Id := Make_Irep_Div.Id;
