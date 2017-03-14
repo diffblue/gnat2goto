@@ -373,7 +373,10 @@ package body Tree_Walk is
          begin
             if (Id = "integer") then
                return Irep_Type (Get_Int_Type (32));
+            elsif (Id = "boolean") then
+               return Irep_Type (Make_Irep_Bool_Type);
             end if;
+
             Set_Identifier (Ret, Id);
             return Irep_Type (Ret);
          end;
