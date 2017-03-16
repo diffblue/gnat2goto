@@ -18,6 +18,9 @@ package body Tree_Walk is
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep_Code_Function_Call
    with Pre => Nkind (N) = N_Procedure_Call_Statement;
 
+   function Do_Simple_Return_Statement (N : Node_Id) return Irep_Code_Return
+   with Pre => Nkind (N) = N_Simple_Return_Statement;
+
    procedure Do_Object_Declaration (N : Node_Id; Block : in out Irep_Code_Block)
    with Pre => Nkind (N) = N_Object_Declaration;
 
@@ -41,6 +44,9 @@ package body Tree_Walk is
 
    function Do_Operator (N : Node_Id) return Irep_Expr
      with Pre => Nkind (N) in N_Op;
+
+   function Do_Function_Call (N : Node_Id) return Irep_Expr
+   with Pre => Nkind (N) = N_Function_Call;
 
    function Do_Type_Conversion (N : Node_Id) return Irep_Expr
    with Pre => Nkind (N) = N_Type_Conversion;
@@ -84,8 +90,8 @@ package body Tree_Walk is
    procedure Do_Subprogram_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Subprogram_Declaration;
 
-   function Do_Procedure_Specification (N : Node_Id) return Irep_Code_Type
-   with Pre => Nkind (N) = N_Procedure_Specification;
+   function Do_Subprogram_Specification (N : Node_Id) return Irep_Code_Type
+     with Pre => Nkind (N) in N_Procedure_Specification | N_Function_Specification;
 
    procedure Do_Subprogram_Body (N : Node_Id)
    with Pre => Nkind (N) = N_Subprogram_Body;
@@ -147,6 +153,18 @@ package body Tree_Walk is
       return Ret;
    end;
 
+   --------------------------------
+   -- Do_Simple_Return_Statement --
+   --------------------------------
+
+   function Do_Simple_Return_Statement (N : Node_Id) return Irep_Code_Return is
+      Ret : Irep_Code_Return := Make_Irep_Code_Return;
+      Op : constant Irep_Expr := Do_Expression (Expression (N));
+   begin
+      Set_Return_Value (Ret, Irep (Op));
+      return Ret;
+   end;
+
    -------------------------
    -- Do_Compilation_Unit --
    -------------------------
@@ -176,6 +194,23 @@ package body Tree_Walk is
       return Ret;
    end Do_Defining_Identifier;
 
+   ----------------------
+   -- Do_Function_Call --
+   ----------------------
+
+   function Do_Function_Call (N : Node_Id) return Irep_Expr is
+      Ret : Irep_Side_Effect_Expr_Function_Call := Make_Irep_Side_Effect_Expr_Function_Call;
+      Func_Name : constant Unbounded_String :=
+        To_Unbounded_String (Get_Name_String (Chars (Name (N))));
+      Func_Symbol : constant Symbol := Symbol_Maps.Element (Global_Symbol_Table, Func_Name);
+      Func_Expr : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
+   begin
+      Set_Identifier (Func_Expr, To_String (Func_Name));
+      Set_Type (Func_Expr, Func_Symbol.SymType);
+      Set_Function (Ret, Irep (Func_Expr));
+      return Irep_Expr (Ret);
+   end Do_Function_Call;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -193,6 +228,8 @@ package body Tree_Walk is
             return Irep_Expr (Do_Constant (N));
          when N_Type_Conversion =>
             return Do_Type_Conversion (N);
+         when N_Function_Call =>
+            return Do_Function_Call (N);
          when others =>
             raise Program_Error;
       end case;
@@ -388,16 +425,19 @@ package body Tree_Walk is
    end Do_Subtype_Declaration;
 
    --------------------------------
-   -- Do_Procedure_Specification --
+   -- Do_Subprogram_Specification --
    --------------------------------
 
-   function Do_Procedure_Specification (N : Node_Id) return Irep_Code_Type is
+   function Do_Subprogram_Specification (N : Node_Id) return Irep_Code_Type is
       Ret : Irep_Code_Type := Make_Irep_Code_Type;
-      Void_Type : constant Irep_Void_Type := Make_Irep_Void_Type;
    begin
-      Set_Return_Type (Ret, Irep (Void_Type));
+      if Nkind(N) = N_Function_Specification then
+         Set_Return_Type (Ret, Irep (Do_Type_Reference (EType (Result_Definition (N)))));
+      else
+         Set_Return_Type (Ret, Irep (Make_Irep_Void_Type));
+      end if;
       return Ret;
-   end Do_Procedure_Specification;
+   end Do_Subprogram_Specification;
 
    -------------------------------
    -- Do_Subprogram_Declaration --
@@ -405,7 +445,7 @@ package body Tree_Walk is
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
       Proc_Symbol : Symbol;
-      Proc_Type : constant Irep_Code_Type := Do_Procedure_Specification (Specification (N));
+      Proc_Type : constant Irep_Code_Type := Do_Subprogram_Specification (Specification (N));
       Proc_Name : constant Unbounded_String :=
         To_Unbounded_String (Get_Name_String (Chars (Corresponding_Body (N))));
    begin
@@ -728,6 +768,9 @@ package body Tree_Walk is
 
          when N_Procedure_Call_Statement =>
             Add_Op (Block, Irep (Do_Procedure_Call_Statement (N)));
+
+         when N_Simple_Return_Statement =>
+            Add_Op (Block, Irep (Do_Simple_Return_Statement (N)));
 
          when N_Object_Declaration =>
             Do_Object_Declaration (N, Block);
