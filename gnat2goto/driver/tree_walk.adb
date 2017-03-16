@@ -15,6 +15,9 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep_Code_Assign
    with Pre => Nkind (N) = N_Assignment_Statement;
 
+   function Do_Procedure_Call_Statement (N : Node_Id) return Irep_Code_Function_Call
+   with Pre => Nkind (N) = N_Procedure_Call_Statement;
+
    procedure Do_Object_Declaration (N : Node_Id; Block : in out Irep_Code_Block)
    with Pre => Nkind (N) = N_Object_Declaration;
 
@@ -78,6 +81,15 @@ package body Tree_Walk is
    function Do_Selected_Component (N : Node_Id) return Irep_Member_Expr
    with Pre => Nkind (N) = N_Selected_Component;
 
+   procedure Do_Subprogram_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Subprogram_Declaration;
+
+   function Do_Procedure_Specification (N : Node_Id) return Irep_Code_Type
+   with Pre => Nkind (N) = N_Procedure_Specification;
+
+   procedure Do_Subprogram_Body (N : Node_Id)
+   with Pre => Nkind (N) = N_Subprogram_Body;
+
    procedure Process_Statement (N : Node_Id; Block : in out Irep_Code_Block);
    --  Process statement or declaration
 
@@ -117,6 +129,23 @@ package body Tree_Walk is
       end if;
       return Ret;
    end Do_Assignment_Statement;
+
+   ---------------------------------
+   -- Do_Procedure_Call_Statement --
+   ---------------------------------
+
+   function Do_Procedure_Call_Statement (N : Node_Id) return Irep_Code_Function_Call is
+      Proc_Name : constant Unbounded_String :=
+        To_Unbounded_String (Get_Name_String (Chars (Name (N))));
+      Proc_Expr : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
+      Ret : Irep_Code_Function_Call := Make_Irep_Code_Function_Call;
+   begin
+      Set_Identifier (Proc_Expr, To_String (Proc_Name));
+      Set_Type (Proc_Expr, Symbol_Maps.Element (Global_Symbol_Table, Proc_Name).SymType);
+      Set_Function (Ret, Irep (Proc_Expr));
+      Set_Lhs (Ret, Trivial.Trivial_Irep ("nil"));
+      return Ret;
+   end;
 
    -------------------------
    -- Do_Compilation_Unit --
@@ -357,6 +386,50 @@ package body Tree_Walk is
    begin
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
+
+   --------------------------------
+   -- Do_Procedure_Specification --
+   --------------------------------
+
+   function Do_Procedure_Specification (N : Node_Id) return Irep_Code_Type is
+      Ret : Irep_Code_Type := Make_Irep_Code_Type;
+      Void_Type : constant Irep_Void_Type := Make_Irep_Void_Type;
+   begin
+      Set_Return_Type (Ret, Irep (Void_Type));
+      return Ret;
+   end Do_Procedure_Specification;
+
+   -------------------------------
+   -- Do_Subprogram_Declaration --
+   -------------------------------
+
+   procedure Do_Subprogram_Declaration (N : Node_Id) is
+      Proc_Symbol : Symbol;
+      Proc_Type : constant Irep_Code_Type := Do_Procedure_Specification (Specification (N));
+      Proc_Name : constant Unbounded_String :=
+        To_Unbounded_String (Get_Name_String (Chars (Corresponding_Body (N))));
+   begin
+      Proc_Symbol.Name := Proc_Name;
+      Proc_Symbol.BaseName := Proc_Name;
+      Proc_Symbol.PrettyName := Proc_Name;
+      Proc_Symbol.SymType := Irep (Proc_Type);
+      Proc_Symbol.Mode := To_Unbounded_String ("C");
+      Symbol_Maps.Insert (Global_Symbol_Table, Proc_Name, Proc_Symbol);
+   end Do_Subprogram_Declaration;
+
+   -------------------------------
+   -- Do_Subprogram_Body --
+   -------------------------------
+
+   procedure Do_Subprogram_Body (N : Node_Id) is
+      Proc_Name : constant Unbounded_String :=
+        To_Unbounded_String (Get_Name_String (Chars (Corresponding_Spec (N))));
+      Proc_Symbol : Symbol := Symbol_Maps.Element (Global_Symbol_Table, Proc_Name);
+      Proc_Body : constant Irep_Code_Block := Do_Subprogram_Or_Block (N);
+   begin
+      Proc_Symbol.Value := Irep (Proc_Body);
+      Symbol_Maps.Replace (Global_Symbol_Table, Proc_Name, Proc_Symbol);
+   end Do_Subprogram_Body;
 
    -----------------------
    -- Do_Type_Reference --
@@ -653,6 +726,9 @@ package body Tree_Walk is
          when N_Assignment_Statement =>
             Add_Op (Block, Irep (Do_Assignment_Statement (N)));
 
+         when N_Procedure_Call_Statement =>
+            Add_Op (Block, Irep (Do_Procedure_Call_Statement (N)));
+
          when N_Object_Declaration =>
             Do_Object_Declaration (N, Block);
 
@@ -678,6 +754,12 @@ package body Tree_Walk is
          when N_Freeze_Entity =>
             -- Ignore, nothing to generate
             null;
+
+         when N_Subprogram_Declaration =>
+            Do_Subprogram_Declaration (N);
+
+         when N_Subprogram_Body =>
+            Do_Subprogram_Body (N);
 
          when others =>
             pp (Union_Id (N));
