@@ -15,6 +15,9 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep_Code_Assign
    with Pre => Nkind (N) = N_Assignment_Statement;
 
+   function Do_Argument_List (N : Node_Id) return Irep_Argument_List
+   with Pre => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call;
+
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep_Code_Function_Call
    with Pre => Nkind (N) = N_Procedure_Call_Statement;
 
@@ -144,11 +147,13 @@ package body Tree_Walk is
       Proc_Name : constant Unbounded_String :=
         To_Unbounded_String (Get_Name_String (Chars (Name (N))));
       Proc_Expr : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
+      Proc_Args : constant Irep_Argument_List := Do_Argument_List (N);
       Ret : Irep_Code_Function_Call := Make_Irep_Code_Function_Call;
    begin
       Set_Identifier (Proc_Expr, To_String (Proc_Name));
       Set_Type (Proc_Expr, Symbol_Maps.Element (Global_Symbol_Table, Proc_Name).SymType);
       Set_Function (Ret, Irep (Proc_Expr));
+      Set_Arguments (Ret, Irep (Proc_Args));
       Set_Lhs (Ret, Trivial.Trivial_Irep ("nil"));
       return Ret;
    end;
@@ -195,6 +200,21 @@ package body Tree_Walk is
    end Do_Defining_Identifier;
 
    ----------------------
+   -- Do_Argument_List --
+   ----------------------
+
+   function Do_Argument_List (N : Node_Id) return Irep_Argument_List is
+      Ret : Irep_Argument_List := Make_Irep_Argument_List;
+      Arg_Iter : Node_Id := First (Parameter_Associations (N));
+   begin
+      while Present (Arg_Iter) loop
+         Add_Argument (Ret, Irep (Do_Expression (Arg_Iter)));
+         Next (Arg_Iter);
+      end loop;
+      return Ret;
+   end Do_Argument_List;
+
+   ----------------------
    -- Do_Function_Call --
    ----------------------
 
@@ -204,10 +224,12 @@ package body Tree_Walk is
         To_Unbounded_String (Get_Name_String (Chars (Name (N))));
       Func_Symbol : constant Symbol := Symbol_Maps.Element (Global_Symbol_Table, Func_Name);
       Func_Expr : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
+      Func_Args : constant Irep_Argument_List := Do_Argument_List (N);
    begin
       Set_Identifier (Func_Expr, To_String (Func_Name));
       Set_Type (Func_Expr, Func_Symbol.SymType);
       Set_Function (Ret, Irep (Func_Expr));
+      Set_Arguments (Ret, Irep (Func_Args));
       return Irep_Expr (Ret);
    end Do_Function_Call;
 
@@ -430,12 +452,30 @@ package body Tree_Walk is
 
    function Do_Subprogram_Specification (N : Node_Id) return Irep_Code_Type is
       Ret : Irep_Code_Type := Make_Irep_Code_Type;
+      Param_List : Irep_Parameter_List := Make_Irep_Parameter_List;
+      Param_Iter : Node_Id := First (Parameter_Specifications (N));
    begin
+      while Present (Param_Iter) loop
+         declare
+            Param_Type : constant Irep_Type :=
+              Do_Type_Reference (EType (Parameter_Type (Param_Iter)));
+            Param_Name : constant String :=
+              Get_Name_String (Chars (Defining_Identifier (Param_Iter)));
+            Param_Irep : Irep_Code_Parameter := Make_Irep_Code_Parameter;
+         begin
+            Set_Type (Param_Irep, Irep (Param_Type));
+            Set_Identifier (Param_Irep, Param_Name);
+            Set_Base_Name (Param_Irep, Param_Name);
+            Add_Parameter (Param_List, Irep (Param_Irep));
+            Next (Param_Iter);
+         end;
+      end loop;
       if Nkind(N) = N_Function_Specification then
          Set_Return_Type (Ret, Irep (Do_Type_Reference (EType (Result_Definition (N)))));
       else
          Set_Return_Type (Ret, Irep (Make_Irep_Void_Type));
       end if;
+      Set_Parameters (Ret, Irep (Param_List));
       return Ret;
    end Do_Subprogram_Specification;
 
