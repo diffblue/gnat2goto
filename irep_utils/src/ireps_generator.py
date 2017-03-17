@@ -310,8 +310,6 @@ def main():
 
     # Collect and consolidate setters (subs, named and comment)
 
-    value_sub_setters = {} # kind -> op_id -> friendly_name
-    list_sub_setters  = {} # kind -> op_id -> friendly_name
     sub_setters = {} # setter_name -> value|list -> {schema: (op_id, type)}
     def register_sub_setter(root_schema,
                             op_id, friendly_name,
@@ -334,15 +332,6 @@ def main():
             sub_setters[friendly_name][setter_kind] = {}
         sub_setters[friendly_name][setter_kind][root_schema] = (op_id,
                                                                 value_schema)
-
-        if is_list:
-            if root_schema not in list_sub_setters:
-                list_sub_setters[root_schema] = {}
-            list_sub_setters[root_schema][op_id] = friendly_name
-        else:
-            if root_schema not in value_sub_setters:
-                value_sub_setters[root_schema] = {}
-            value_sub_setters[root_schema][op_id] = friendly_name
 
         # Also apply to all children
         for sc in schema.get("subclasses", None):
@@ -384,7 +373,7 @@ def main():
                                   is_comment)
 
     const = {}
-    # schema -> id|namedSub|comment -> {name: value}
+    # cnst ::= schema -> id|namedSub|comment -> {name: value}
     def register_constant(root_schema, kind, friendly_name, string_value):
         if root_schema not in const:
             const[str(root_schema)] = {}
@@ -392,6 +381,11 @@ def main():
             const[root_schema][kind] = {}
         const[root_schema][kind][friendly_name] = string_value
 
+        # Also apply to all children
+        for sc in schemata[root_schema].get("subclasses", None):
+            register_constant(sc,
+                              kind,
+                              friendly_name, string_value)
 
     def rec(sn):
         if sn == "source_location":
@@ -491,6 +485,17 @@ def main():
                 else:
                     assert False
 
+        # cnst ::= schema -> id|namedSub|comment -> {name: value}
+        # namd ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
+        # Delete setters for which we have a constant
+        for kind in ("namedSub", "comment"):
+            data = const.get(sn, {}).get(kind, {})
+            for friendly_name, const_value in data.iteritems():
+                if (friendly_name in named_setters and
+                    "trivial" in named_setters[friendly_name] and
+                    sn in named_setters[friendly_name]["trivial"]):
+                    del named_setters[friendly_name]["trivial"][sn]
+
         if len(tmp) > 0:
             print "error: unconsumed data for %s:" % sn
             for item, data in tmp.iteritems():
@@ -500,6 +505,29 @@ def main():
             rec(sc)
 
     rec("irep")
+
+    # Delete setters that only touch non-used classes (maybe we removed
+    # some because they are always constant)
+    setters_to_kill = []
+    for setter_name in named_setters:
+        kinds_to_kill = []
+        for kind in named_setters[setter_name]:
+            all_unused = True
+            for sn in named_setters[setter_name][kind]:
+                if schemata[sn]["used"]:
+                    all_unused = False
+                    break
+            if all_unused:
+                kinds_to_kill.append(kind)
+        for kind in kinds_to_kill:
+            del named_setters[setter_name][kind]
+        if len(named_setters[setter_name]) == 0:
+            setters_to_kill.append(setter_name)
+    for setter_name in setters_to_kill:
+        del named_setters[setter_name]
+
+    ##########################################################################
+    # Diagnostics after parsing schemata
 
     for setter_name, data in sub_setters.iteritems():
         if len(data) > 1:
@@ -558,14 +586,17 @@ def main():
 
         write(s, "--  %s" % schema["ada_name"])
 
+        # sub_setters ::= setter_name -> value|list -> {schema: (op_id, type)}
+        # subs        ::= op_id -> (setter_name, type)
         subs = {}
         for setter_name, data in sub_setters.iteritems():
             assert len(data) == 1
-            assert "value" in data or "list" in data
-            variants = list(data.itervalues())[0]
-            if sn in variants:
-                subs[variants[sn][0]] = (ada_casing(setter_name),
-                                         list(data)[0])
+            for typ, variants in data.iteritems():
+                actual_type = {"value" : "irep",
+                               "list"  : "list"}[typ]
+                if sn in variants:
+                    subs[variants[sn][0]] = (ada_casing(setter_name),
+                                             actual_type)
         if len(subs):
             write(s, "--  subs")
             for op in xrange(len(subs)):
@@ -595,6 +626,15 @@ def main():
             for setter_name in sorted(coms):
                 write(s, "--    %s (%s)" % (ada_casing(setter_name),
                                             coms[setter_name]))
+
+        # cnst ::= schema -> id|namedSub|comment -> {name: value}
+        cons = {}
+        for kind in const.get(sn, {}):
+            for const_name, const_value in const[sn][kind].iteritems():
+                tmp = "constant %s: %s" % (ada_casing(const_name), const_value)
+                if kind != "id":
+                    tmp += " (%s)" % kind
+                write(s, "--  %s" % tmp)
 
         write(s, "")
 
@@ -658,6 +698,7 @@ def main():
         name = ada_setter_name(setter_name, is_list)
 
         write(s, "procedure %s (I : Irep; Value : Irep)" % name)
+        write(b, "procedure %s (I : Irep; Value : Irep)" % name)
 
         precon = []
 
@@ -680,7 +721,11 @@ def main():
         if not all_the_same:
             write(s, "--  TODO: precondition for Value")
 
+        write(b, "is null;")
+
         write(s, "")
+        write(b, "")
+
 
     # Print all setters for 'named' and 'comment'
     # nam ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
