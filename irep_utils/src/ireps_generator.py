@@ -50,6 +50,12 @@ def ada_setter_name(name, is_list):
     else:
         return "Set_%s" % ada_casing(name)
 
+def ada_component_name(layout_kind, layout_id):
+    return "%s_%u" % ({"str" : "String",
+                       "int" : "Int",
+                       "bool" : "Bool"}[layout_kind],
+                      layout_id)
+
 def write_file(fn, instructions):
     indent = 0
     with open(fn, "w") as fd:
@@ -578,7 +584,7 @@ def main():
             for kind in setter_kinds:
                 if sn in setter_kinds[kind]:
                     is_comment, typ = setter_kinds[kind][sn]
-                    if kind in ("value", "list") or typ == "integer":
+                    if kind in ("irep", "list") or typ == "integer":
                         layout[sn][setter_name] = ("int", op_counts[sn]["int"])
                         op_counts[sn]["int"] += 1
                     elif typ == "string":
@@ -587,6 +593,11 @@ def main():
                     elif typ == "bool":
                         layout[sn][setter_name] = ("bool", op_counts[sn]["bool"])
                         op_counts[sn]["bool"] += 1
+                    elif typ == "gnat:sloc":
+                        pass
+                    else:
+                        print sn, setter_name, kind, typ
+                        assert False
 
     ##########################################################################
     # Documentation
@@ -654,29 +665,8 @@ def main():
     ##########################################################################
     # Datastructure
 
-    string_table = {}
-    reverse_string_table = {}
-    for sn in const:
-        for kind in const[sn]:
-            for the_string in const[sn][kind].itervalues():
-                if len(the_string) > 0 and the_string not in string_table:
-                    nam = "Str_%s" % ada_casing(special_names.get(the_string,
-                                                                  the_string))
-                    string_table[the_string] = nam
-                    reverse_string_table[nam] = the_string
-    all_names = sorted(string_table.itervalues())
-    max_name_len = max(map(len, all_names))
-    for nam in all_names:
-        write(b, "%-*s : String_Id; -- %s" % (max_name_len,
-                                              nam,
-                                              reverse_string_table[nam]))
-    write(b, "")
-
-    string_table[""] = "Null_String_Id"
-
     write(b, "type Irep_Node is record")
     components = [("Kind", "Valid_Irep_Kind", None),
-                  ("Id", "String_Id", "Null_String_Id"),
                   ("Sloc", "Source_Ptr", "No_Location")]
     for i in xrange(max(x["int"] for x in op_counts.itervalues())):
         components.append(("Int_%u" % i, "Integer", "0"))
@@ -718,7 +708,15 @@ def main():
     write(b, "is")
     write(b, "begin")
     indent(b)
+    write(b, "if I = Empty then")
+    indent(b)
     write(b, "return I_Empty;")
+    outdent(b)
+    write(b, "else")
+    indent(b)
+    write(b, "return Irep_Table.Table (I).Kind;")
+    outdent(b)
+    write(b, "end if;")
     outdent(b)
     write(b, "end Kind;")
     write(b, "")
@@ -734,26 +732,26 @@ def main():
     write(b, "begin")
     indent(b)
     write(b, "I.Kind := Kind;")
-    write(b, "case Kind is")
-    indent(b)
-    for sn in top_sorted_sn:
-        schema = schemata[sn]
-        assert schema["used"]
-        write(b, "when %s =>" % schema["ada_name"])
-        indent(b)
-        # Set Id string
-        if sn in const:
-            write(b, "I.Id := %s;" % string_table[const[sn]["id"]["id"]])
-        else:
-            write(b, "--  No Id defined in schema")
-        write(b, "null;")
-        outdent(b)
-    outdent(b)
-    write(b, "end case;")
+    # write(b, "case Kind is")
+    # indent(b)
+    # for sn in top_sorted_sn:
+    #     schema = schemata[sn]
+    #     assert schema["used"]
+    #     write(b, "when %s =>" % schema["ada_name"])
+    #     indent(b)
+    #     write(b, "null;")
+    #     outdent(b)
+    # outdent(b)
+    # write(b, "end case;")
     write(b, "Irep_Table.Append (I);")
     write(b, "return Irep_Table.Last;")
     outdent(b)
     write(b, "end New_Irep;")
+    write(b, "")
+
+    write(b, "-" * 70)
+    write(b, "--  sub setters")
+    write(b, "-" * 70)
     write(b, "")
 
     # Print all setters for 'subs'
@@ -770,7 +768,6 @@ def main():
         name = ada_setter_name(setter_name, is_list)
 
         write(s, "procedure %s (I : Irep; Value : Irep)" % name)
-        write(b, "procedure %s (I : Irep; Value : Irep)" % name)
 
         precon = []
 
@@ -793,11 +790,46 @@ def main():
         if not all_the_same:
             write(s, "--  TODO: precondition for Value")
 
-        write(b, "is null;")
+        # layout ::= schema -> friendly_name -> (str|int|bool|sloc, index)
+        write(b, "procedure %s (I : Irep; Value : Irep)" % name)
+        write(b, "is")
+        write(b, "begin")
+        indent(b)
+        write(b, "if I = Empty then")
+        indent(b)
+        write(b, "raise Program_Error;")
+        outdent(b)
+        write(b, "end if;")
+        write(b, "")
+        write(b, "case Irep_Table.Table (I).Kind is")
+        indent(b)
+        for sn in sorted(i_kinds):
+            write(b, "when %s =>" % ada_casing(schemata[sn]["ada_name"]))
+            indent(b)
+            layout_kind, layout_index = layout[sn][setter_name]
+            if is_list:
+                write(b, "--  TODO: setting of list")
+                write(b, "null;")
+            else:
+                write(b, "Irep_Table.Table (I).%s := Integer (Value);" %
+                         ada_component_name(layout_kind, layout_index))
+            outdent(b)
+        write(b, "when others =>")
+        indent(b)
+        write(b, "raise Program_Error;")
+        outdent(b)
+        outdent(b)
+        write(b, "end case;")
+        outdent(b)
+        write(b, "end %s;" % name)
 
         write(s, "")
         write(b, "")
 
+    write(b, "-" * 70)
+    write(b, "--  namedSub and comment setters")
+    write(b, "-" * 70)
+    write(b, "")
 
     # Print all setters for 'named' and 'comment'
     # nam ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
@@ -809,7 +841,8 @@ def main():
         for kind in named_setters[setter_name]:
             data = named_setters[setter_name][kind]
             all_the_same = len(set(x[1] for x in data.itervalues())) == 1
-            name = ada_setter_name(setter_name, kind == "list")
+            is_list = kind == "list"
+            name = ada_setter_name(setter_name, is_list)
             assert all_the_same
 
             if kind == "trivial":
@@ -822,8 +855,6 @@ def main():
                 value_ada_typ = "Irep"
 
             write(s, "procedure %s (I : Irep; Value : %s)" % (name,
-                                                              value_ada_typ))
-            write(b, "procedure %s (I : Irep; Value : %s)" % (name,
                                                               value_ada_typ))
 
             precon = []
@@ -847,7 +878,53 @@ def main():
             if not all_the_same:
                 write(s, "--  TODO: precondition for Value")
 
-            write(b, "is null;")
+            # layout ::= schema -> friendly_name -> (str|int|bool|sloc, index)
+            write(b, "procedure %s (I : Irep; Value : %s)" % (name,
+                                                              value_ada_typ))
+            write(b, "is")
+            write(b, "begin")
+            indent(b)
+            write(b, "if I = Empty then")
+            indent(b)
+            write(b, "raise Program_Error;")
+            outdent(b)
+            write(b, "end if;")
+            write(b, "")
+            if setter_name == "source_location":
+                write(b, "Irep_Table.Table (I).Sloc := Value;")
+            else:
+                write(b, "case Irep_Table.Table (I).Kind is")
+                indent(b)
+                for sn in sorted(i_kinds):
+                    write(b, "when %s =>" % ada_casing(schemata[sn]["ada_name"]))
+                    indent(b)
+                    layout_kind, layout_index = layout[sn][setter_name]
+                    if is_list:
+                        write(b, "--  TODO: setting of list")
+                        write(b, "null;")
+                    elif layout_kind == "str":
+                        write(b, "Start_String;")
+                        write(b, "Store_String_Chars (Value);")
+                        write(b, "Irep_Table.Table (I).%s := End_String;" %
+                              ada_component_name(layout_kind, layout_index))
+                    elif layout_kind == "sloc":
+                        write(b, "Irep_Table.Table (I).%s := Value;")
+                    elif kind == "trivial":
+                        write(b, "Irep_Table.Table (I).%s := Value;" %
+                              ada_component_name(layout_kind, layout_index))
+                    else:
+                        write(b, "Irep_Table.Table (I).%s := Integer (Value);" %
+                              ada_component_name(layout_kind, layout_index))
+                    outdent(b)
+                write(b, "when others =>")
+                indent(b)
+                write(b, "raise Program_Error;")
+                outdent(b)
+                outdent(b)
+                write(b, "end case;")
+            outdent(b)
+            write(b, "end %s;" % name)
+
 
             write(s, "")
             write(b, "")
@@ -855,22 +932,16 @@ def main():
     ##########################################################################
     # Initialisation
 
-    write(s, "procedure Init;")
-    write(s, "--  Must be called before this package is used")
-    write(s, "")
+    # write(s, "procedure Init;")
+    # write(s, "--  Must be called before this package is used")
+    # write(s, "")
 
-    write(b, "procedure Init is")
-    write(b, "begin")
-    indent(b)
-    for nam in all_names:
-        write(b, "Start_String;")
-        write(b, "Store_String_Chars (\"%s\");" % reverse_string_table[nam])
-        write(b, "%s := End_String;" % nam)
-        if nam != all_names[-1]:
-            write(b, "")
-    outdent(b)
-    write(b, "end Init;")
-    write(b, "")
+    # write(b, "procedure Init is")
+    # write(b, "begin")
+    # indent(b)
+    # outdent(b)
+    # write(b, "end Init;")
+    # write(b, "")
 
     outdent(s)
     write(s, "end Ireps;")
