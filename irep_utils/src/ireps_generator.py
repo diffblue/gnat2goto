@@ -44,6 +44,12 @@ def ada_casing(s):
             rv += c.lower()
     return rv
 
+def ada_setter_name(name, is_list):
+    if is_list:
+        return "%s_Append" % ada_casing(name)
+    else:
+        return "Set_%s" % ada_casing(name)
+
 def write_file(fn, instructions):
     indent = 0
     with open(fn, "w") as fd:
@@ -66,7 +72,7 @@ def outdent(f):
 
 def write(f, txt):
     f.append({"kind" : "text",
-              "text" : txt})
+              "text" : str(txt)})
 
 def current_indent(f):
     indent = 0
@@ -220,6 +226,7 @@ def main():
     write(s, "")
 
     write(b, "with Table;")
+    write(b, "with Alloc;   use Alloc;") # for Nodes_Initial
     write(b, "with Stringt; use Stringt;") # String_Id
     write(b, "")
 
@@ -255,6 +262,10 @@ def main():
             rec(sc, depth+1)
     rec("irep")
     s[-1]["text"] = s[-1]["text"].rstrip(",") + ");"
+    write(s, "")
+
+    write(s, "subtype Valid_Irep_Kind is Irep_Kind")
+    write(s, "  range Irep_Kind'Succ (Irep_Kind'First) .. Irep_Kind'Last;")
     write(s, "")
 
     # Emit subclasses for the enum
@@ -643,23 +654,59 @@ def main():
     ##########################################################################
     # Datastructure
 
+    string_table = {}
+    reverse_string_table = {}
+    for sn in const:
+        for kind in const[sn]:
+            for the_string in const[sn][kind].itervalues():
+                if len(the_string) > 0 and the_string not in string_table:
+                    nam = "Str_%s" % ada_casing(special_names.get(the_string,
+                                                                  the_string))
+                    string_table[the_string] = nam
+                    reverse_string_table[nam] = the_string
+    all_names = sorted(string_table.itervalues())
+    max_name_len = max(map(len, all_names))
+    for nam in all_names:
+        write(b, "%-*s : String_Id; -- %s" % (max_name_len,
+                                              nam,
+                                              reverse_string_table[nam]))
+    write(b, "")
+
+    string_table[""] = "Null_String_Id"
+
     write(b, "type Irep_Node is record")
-    components = [("Id", "String_Id"),
-                  ("Sloc", "Source_Ptr")]
+    components = [("Kind", "Valid_Irep_Kind", None),
+                  ("Id", "String_Id", "Null_String_Id"),
+                  ("Sloc", "Source_Ptr", "No_Location")]
     for i in xrange(max(x["int"] for x in op_counts.itervalues())):
-        components.append(("Int_%u" % i, "Integer"))
+        components.append(("Int_%u" % i, "Integer", "0"))
     for i in xrange(max(x["str"] for x in op_counts.itervalues())):
-        components.append(("String_%u" % i, "String_Id"))
+        components.append(("String_%u" % i, "String_Id", "Null_String_Id"))
     for i in xrange(max(x["bool"] for x in op_counts.itervalues())):
-        components.append(("Bool_%u" % i, "Boolean"))
+        components.append(("Bool_%u" % i, "Boolean", "False"))
     indent(b)
     max_len = max(map(len, (x[0] for x in components)))
-    for cname, ctyp in components:
-        write(b, "%-*s : %s;" % (max_len, cname, ctyp))
+    for cname, ctyp, default in components:
+        if default is None:
+            write(b, "%-*s : %-15s;" % (max_len, cname, ctyp))
+        else:
+            write(b, "%-*s : %-15s := %s;" % (max_len, cname, ctyp, default))
     outdent(b)
     write(b, "end record;")
     write(b, "pragma Pack (Irep_Node);")
     write(b, "")
+
+    # write(b, "subtype Valid_Irep is Irep range 1 .. Irep'Last")
+    # write(b, "")
+
+    write(b, "package Irep_Table is new Table.Table")
+    write(b, "  (Table_Component_Type => Irep_Node,")
+    write(b, "   Table_Index_Type     => Irep,")
+    write(b, "   Table_Low_Bound      => 1,")
+    write(b, "   Table_Initial        => Nodes_Initial, --  seems like a good guess")
+    write(b, "   Table_Name           => \"Irep_Table\");")
+    write(b, "")
+
 
     ##########################################################################
     # API
@@ -667,22 +714,47 @@ def main():
     write(s, "function Kind (I : Irep) return Irep_Kind;")
     write(s, "")
 
-    def ada_setter_name(name, is_list):
-        if is_list:
-            return "%s_Append" % ada_casing(name)
-        else:
-            return "Set_%s" % ada_casing(name)
+    write(b, "function Kind (I : Irep) return Irep_Kind")
+    write(b, "is")
+    write(b, "begin")
+    indent(b)
+    write(b, "return I_Empty;")
+    outdent(b)
+    write(b, "end Kind;")
+    write(b, "")
 
-    # Constructors
-    # for sn in top_sorted_sn:
-    #     schema = schemata[sn]
-    #     if not schema["used"]:
-    #         continue
-    #     write(s, "function New_%s return Irep;" %
-    #           schema["ada_name"].replace("I_", ""))
-    #     write(s, "")
-    write(s, "function New_Irep (Kind : Irep_Kind) return Irep;")
+    write(s, "function New_Irep (Kind : Valid_Irep_Kind) return Irep;")
     write(s, "")
+
+    write(b, "function New_Irep (Kind : Valid_Irep_Kind) return Irep")
+    write(b, "is")
+    indent(b)
+    write(b, "I : Irep_Node;")
+    outdent(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "I.Kind := Kind;")
+    write(b, "case Kind is")
+    indent(b)
+    for sn in top_sorted_sn:
+        schema = schemata[sn]
+        assert schema["used"]
+        write(b, "when %s =>" % schema["ada_name"])
+        indent(b)
+        # Set Id string
+        if sn in const:
+            write(b, "I.Id := %s;" % string_table[const[sn]["id"]["id"]])
+        else:
+            write(b, "--  No Id defined in schema")
+        write(b, "null;")
+        outdent(b)
+    outdent(b)
+    write(b, "end case;")
+    write(b, "Irep_Table.Append (I);")
+    write(b, "return Irep_Table.Last;")
+    outdent(b)
+    write(b, "end New_Irep;")
+    write(b, "")
 
     # Print all setters for 'subs'
     # sub ::= setter_name -> value|list         -> {schema: (op_id, type)}
@@ -751,6 +823,8 @@ def main():
 
             write(s, "procedure %s (I : Irep; Value : %s)" % (name,
                                                               value_ada_typ))
+            write(b, "procedure %s (I : Irep; Value : %s)" % (name,
+                                                              value_ada_typ))
 
             precon = []
 
@@ -773,8 +847,30 @@ def main():
             if not all_the_same:
                 write(s, "--  TODO: precondition for Value")
 
+            write(b, "is null;")
 
             write(s, "")
+            write(b, "")
+
+    ##########################################################################
+    # Initialisation
+
+    write(s, "procedure Init;")
+    write(s, "--  Must be called before this package is used")
+    write(s, "")
+
+    write(b, "procedure Init is")
+    write(b, "begin")
+    indent(b)
+    for nam in all_names:
+        write(b, "Start_String;")
+        write(b, "Store_String_Chars (\"%s\");" % reverse_string_table[nam])
+        write(b, "%s := End_String;" % nam)
+        if nam != all_names[-1]:
+            write(b, "")
+    outdent(b)
+    write(b, "end Init;")
+    write(b, "")
 
     outdent(s)
     write(s, "end Ireps;")
