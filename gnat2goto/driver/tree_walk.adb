@@ -165,9 +165,13 @@ package body Tree_Walk is
 
    function Do_Simple_Return_Statement (N : Node_Id) return Irep_Code_Return is
       Ret : Irep_Code_Return := Make_Irep_Code_Return;
-      Op : constant Irep_Expr := Do_Expression (Expression (N));
+      Op : constant Irep :=
+        (if (Present (Expression (N)))
+        then Irep (Do_Expression (Expression (N)))
+        else Trivial.Trivial_Irep ("nil"));
    begin
-      Set_Return_Value (Ret, Irep (Op));
+
+      Set_Return_Value (Ret, Op);
       return Ret;
    end;
 
