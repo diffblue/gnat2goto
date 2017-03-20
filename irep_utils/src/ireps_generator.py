@@ -697,6 +697,7 @@ def main():
     write(b, "   Table_Index_Type     => Irep,")
     write(b, "   Table_Low_Bound      => 1,")
     write(b, "   Table_Initial        => Nodes_Initial, --  seems like a good guess")
+    write(b, "   Table_Increment      => 100,")
     write(b, "   Table_Name           => \"Irep_Table\");")
     write(b, "")
 
