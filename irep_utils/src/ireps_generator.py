@@ -1279,17 +1279,19 @@ def main():
     outdent(b)
     write(b, "begin")
     indent(b)
+    write(b, "Indent;")
+    write(b, 'Write_Str ("Source_Location = ");')
+    write(b, 'Write_Int (Int (N.Sloc));')
+    write(b, 'Write_Eol;')
     write(b, "case N.Kind is")
     indent(b)
     for sn in top_sorted_sn:
         write(b, "when %s =>" % schemata[sn]["ada_name"])
         indent(b)
-        write(b, "Indent;")
-        write(b, 'Write_Str ("Source_Location = ");')
-        write(b, 'Write_Int (Int (N.Sloc));')
-        write(b, 'Write_Eol;')
+        needs_null = True
         post = []
         for friendly_name in sorted(layout[sn]):
+            needs_null = False
             layout_kind, layout_index, layout_typ = layout[sn][friendly_name]
             cn = ada_component_name(layout_kind, layout_index)
             write(b, 'Write_Str ("%s = ");' % ada_casing(friendly_name))
@@ -1317,12 +1319,14 @@ def main():
             write(b, "Write_Eol;")
             write(b, "PS_List (Irep_List (%s), \"%s\");" % (node_field,
                                                             friendly_name))
+        if needs_null:
+            write(b, "null;")
 
         pprint(layout[sn])
-        write(b, "Outdent;")
         outdent(b)
     outdent(b)
     write(b, "end case;")
+    write(b, "Outdent;")
     outdent(b)
     write(b, "end;")
 
