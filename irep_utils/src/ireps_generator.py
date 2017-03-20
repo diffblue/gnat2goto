@@ -236,6 +236,8 @@ def main():
 
     write(b, "with Table;")
     write(b, "with Alloc;   use Alloc;") # for Nodes_Initial
+    write(b, "with Namet;   use Namet;") # Name_Buffer
+    write(b, "with Output;  use Output;") # for Debug IO
     write(b, "with Stringt; use Stringt;") # String_Id
     write(b, "")
 
@@ -252,10 +254,6 @@ def main():
 
     write(s, "type Irep is range 0 .. Integer'Last;")
     write(s, "Empty : constant Irep := 0;")
-    write(s, "")
-
-    write(s, "type Irep_List is range Integer'First .. 0;");
-    # write(s, "Empty : constant Irep_List := 0;")
     write(s, "")
 
     # Emit kind enum
@@ -567,7 +565,7 @@ def main():
     #    where int includes irep, list, trivial integer
 
     layout = {}
-    # schema -> friendly_name -> (str|int|bool|sloc, index)
+    # schema -> friendly_name -> (str|int|bool|sloc, index, irep|list|trivial)
 
     for sn in top_sorted_sn:
         op_counts[sn] = {"int"  : 0,
@@ -578,9 +576,10 @@ def main():
         for setter_name, data in sub_setters.iteritems():
             assert len(data) == 1
             assert "value" in data or "list" in data
+            typ = "list" if "list" in data else "irep"
             for kind, variants in data.iteritems():
                 if sn in variants:
-                    layout[sn][setter_name] = ("int", op_counts[sn]["int"])
+                    layout[sn][setter_name] = ("int", op_counts[sn]["int"], typ)
                     op_counts[sn]["int"] += 1
 
         for setter_name, setter_kinds in named_setters.iteritems():
@@ -588,13 +587,20 @@ def main():
                 if sn in setter_kinds[kind]:
                     is_comment, typ = setter_kinds[kind][sn]
                     if kind in ("irep", "list") or typ == "integer":
-                        layout[sn][setter_name] = ("int", op_counts[sn]["int"])
+                        l_typ = "trivial" if typ == "integer" else kind
+                        layout[sn][setter_name] = ("int",
+                                                   op_counts[sn]["int"],
+                                                   l_typ)
                         op_counts[sn]["int"] += 1
                     elif typ == "string":
-                        layout[sn][setter_name] = ("str", op_counts[sn]["str"])
+                        layout[sn][setter_name] = ("str",
+                                                   op_counts[sn]["str"],
+                                                   "trivial")
                         op_counts[sn]["str"] += 1
                     elif typ == "bool":
-                        layout[sn][setter_name] = ("bool", op_counts[sn]["bool"])
+                        layout[sn][setter_name] = ("bool",
+                                                   op_counts[sn]["bool"],
+                                                   "trivial")
                         op_counts[sn]["bool"] += 1
                     elif typ == "gnat:sloc":
                         pass
@@ -663,10 +669,34 @@ def main():
 
         write(s, "")
 
-    write(s, "")
-
     ##########################################################################
     # Datastructure
+
+    write(b, "type Irep_List is range Integer'First + 1 .. 0;")
+    write(b, "")
+
+    write(b, "type Internal_Irep_List is range 0 .. -Irep_List'First;")
+    write(b, "")
+
+    write(b, "function Is_Irep (I : Integer) return Boolean")
+    write(b, "is (I >= Integer (Irep'First));")
+    continuation(b)
+    write(b, "")
+
+    write(b, "function Is_List (I : Integer) return Boolean")
+    write(b, "is (I <= Integer (Irep_List'Last));")
+    continuation(b)
+    write(b, "")
+
+    write(b, "function To_Internal_List (L : Irep_List) return Internal_Irep_List")
+    write(b, "is (Internal_Irep_List (-L));")
+    continuation(b)
+    write(b, "")
+
+    write(b, "function To_List (L : Internal_Irep_List) return Irep_List")
+    write(b, "is (Irep_List (-L));")
+    continuation(b)
+    write(b, "")
 
     write(b, "type Irep_Node is record")
     components = [("Kind", "Valid_Irep_Kind", None),
@@ -689,18 +719,75 @@ def main():
     write(b, "pragma Pack (Irep_Node);")
     write(b, "")
 
-    # write(b, "subtype Valid_Irep is Irep range 1 .. Irep'Last")
-    # write(b, "")
+    write(b, "type Irep_List_Node is record")
+    indent(b)
+    write(b, "A       : Integer;")
+    write(b, "B       : Irep_List;")
+    write(b, "Is_Node : Boolean;")
+    outdent(b)
+    write(b, "end record with Dynamic_Predicate =>")
+    indent(b)
+    write(b, "(if Is_Node")
+    write(b, " then Is_Irep (A)")
+    continuation(b)
+    write(b, " else Is_List (A));")
+    continuation(b)
+    outdent(b)
+    write(b, "pragma Pack (Irep_List_Node);")
+    write(b, "")
 
     write(b, "package Irep_Table is new Table.Table")
     write(b, "  (Table_Component_Type => Irep_Node,")
     write(b, "   Table_Index_Type     => Irep,")
     write(b, "   Table_Low_Bound      => 1,")
     write(b, "   Table_Initial        => Nodes_Initial, --  seems like a good guess")
-    write(b, "   Table_Increment      => 100,")
+    write(b, "   Table_Increment      => Nodes_Increment,")
     write(b, "   Table_Name           => \"Irep_Table\");")
     write(b, "")
 
+    write(b, "package Irep_List_Table is new Table.Table")
+    write(b, "  (Table_Component_Type => Irep_List_Node,")
+    write(b, "   Table_Index_Type     => Internal_Irep_List,")
+    write(b, "   Table_Low_Bound      => 1,")
+    write(b, "   Table_Initial        => Elists_Initial, --  seems like a good guess")
+    write(b, "   Table_Increment      => Elists_Increment,")
+    write(b, "   Table_Name           => \"Irep_List_Table\");")
+    write(b, "")
+
+    ##########################################################################
+    # List API
+
+    write(b, "function New_List return Irep_List;")
+    write(b, "")
+
+    write(b, "procedure Append (L : Irep_List; I : Irep);")
+    write(b, "")
+
+    write(b, "function New_List return Irep_List")
+    write(b, "is")
+    continuation(b)
+    indent(b)
+    write(b, "N : constant Irep_List_Node := (Is_Node => False,")
+    write(b, "                                A       => 0,")
+    write(b, "                                B       => 0);")
+    outdent(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "Irep_List_Table.Append (N);")
+    write(b, "return To_List (Irep_List_Table.Last);")
+    outdent(b)
+    write(b, "end New_List;")
+    write(b, "")
+
+    write(b, "procedure Append (L : Irep_List; I : Irep)")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "null;")
+    outdent(b)
+    write(b, "end Append;")
+    write(b, "")
 
     ##########################################################################
     # API
@@ -710,6 +797,7 @@ def main():
 
     write(b, "function Kind (I : Irep) return Irep_Kind")
     write(b, "is")
+    continuation(b)
     write(b, "begin")
     indent(b)
     write(b, "if I = Empty then")
@@ -725,11 +813,41 @@ def main():
     write(b, "end Kind;")
     write(b, "")
 
+    write(s, "function Id (I : Irep) return String;")
+    write(s, "")
+
+    write(b, "function Id (I : Irep) return String")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "if I not in 1 .. Irep_Table.Last then")
+    indent(b)
+    write(b, 'return "";')
+    outdent(b)
+    write(b, "end if;")
+    write(b, "")
+    write(b, "case Irep_Table.Table (I).Kind is")
+    indent(b)
+    for sn in top_sorted_sn:
+        if sn in const and "id" in const[sn]:
+            write(b, "when %s =>" % schemata[sn]["ada_name"])
+            write(b, '   return "%s";' % const[sn]["id"]["id"])
+            continuation(b)
+    write(b, 'when others => return "";')
+    outdent(b)
+    write(b, "end case;")
+    outdent(b)
+    write(b, "end Id;")
+    write(b, "")
+
+
     write(s, "function New_Irep (Kind : Valid_Irep_Kind) return Irep;")
     write(s, "")
 
     write(b, "function New_Irep (Kind : Valid_Irep_Kind) return Irep")
     write(b, "is")
+    continuation(b)
     indent(b)
     write(b, "I : Irep_Node;")
     outdent(b)
@@ -794,9 +912,10 @@ def main():
         if not all_the_same:
             write(s, "--  TODO: precondition for Value")
 
-        # layout ::= schema -> friendly_name -> (str|int|bool|sloc, index)
+        # lo ::= schema -> friendly_name -> (str|int|bool|sloc, index, i|l|t)
         write(b, "procedure %s (I : Irep; Value : Irep)" % name)
         write(b, "is")
+        continuation(b)
         write(b, "begin")
         indent(b)
         write(b, "if I = Empty then")
@@ -808,48 +927,88 @@ def main():
 
         kind_slot_map = {}
         for sn in sorted(i_kinds):
-            layout_kind, layout_index = layout[sn][setter_name]
+            layout_kind, layout_index, layout_typ = layout[sn][setter_name]
             if layout_index not in kind_slot_map:
                 kind_slot_map[layout_index] = []
             kind_slot_map[layout_index].append(sn)
         asn_lhs = "Irep_Table.Table (I).%s" % \
                   ada_component_name(layout_kind)
+
         if is_list:
-            write(b, "--  TODO: setting of list")
-            asn_rhs = "0"
+            if len(kind_slot_map) == 1:
+                the_slot = list(kind_slot_map)[0]
+                asn_lhs = asn_lhs % the_slot
+                write(b, "if %s = 0 then" % asn_lhs)
+                indent(b)
+                write(b, "%s := Integer (New_List);" % asn_lhs)
+                outdent(b)
+                write(b, "end if;")
+                write(b, "Append (Irep_List (%s), Value);" % asn_lhs)
+            else:
+                write(b, "case Irep_Table.Table (I).Kind is")
+                indent(b)
+                for layout_index, i_kinds in kind_slot_map.iteritems():
+                    if len(i_kinds) == 1:
+                        write(b, "when %s =>" %
+                              ada_casing(schemata[i_kinds[0]]["ada_name"]))
+                    else:
+                        for l in mk_prefixed_lines("when ",
+                                                   [schemata[x]["ada_name"]
+                                                    for x in i_kinds],
+                                                   "| "):
+                            write(b, l)
+                        write(b, "=>")
+
+                    indent(b)
+                    write(b, "if %s = 0 then" % (asn_lhs % layout_index))
+                    indent(b)
+                    write(b, "%s := Integer (New_List);" % (asn_lhs %
+                                                            layout_index))
+                    outdent(b)
+                    write(b, "end if;")
+                    write(b, "Append (Irep_List (%s), Value);" % (asn_lhs %
+                                                                  layout_index))
+                    outdent(b)
+                    write(b, "")
+                write(b, "when others =>")
+                indent(b)
+                write(b, "raise Program_Error;")
+                outdent(b)
+                outdent(b)
+                write(b, "end case;")
+
         else:
             asn_rhs = "Integer (Value)"
-
-        if len(kind_slot_map) == 1:
-            the_slot = list(kind_slot_map)[0]
-            write(b,
-                  asn_lhs % the_slot + " := " + asn_rhs + ";")
-        else:
-            write(b, "case Irep_Table.Table (I).Kind is")
-            indent(b)
-            for layout_index, i_kinds in kind_slot_map.iteritems():
-                if len(i_kinds) == 1:
-                    write(b, "when %s =>" %
-                          ada_casing(schemata[i_kinds[0]]["ada_name"]))
-                else:
-                    for l in mk_prefixed_lines("when ",
-                                               [schemata[x]["ada_name"]
-                                                for x in i_kinds],
-                                               "| "):
-                        write(b, l)
-                    write(b, "=>")
-
-                indent(b)
+            if len(kind_slot_map) == 1:
+                the_slot = list(kind_slot_map)[0]
                 write(b,
-                      asn_lhs % layout_index + " := " + asn_rhs + ";")
+                      asn_lhs % the_slot + " := " + asn_rhs + ";")
+            else:
+                write(b, "case Irep_Table.Table (I).Kind is")
+                indent(b)
+                for layout_index, i_kinds in kind_slot_map.iteritems():
+                    if len(i_kinds) == 1:
+                        write(b, "when %s =>" %
+                              ada_casing(schemata[i_kinds[0]]["ada_name"]))
+                    else:
+                        for l in mk_prefixed_lines("when ",
+                                                   [schemata[x]["ada_name"]
+                                                    for x in i_kinds],
+                                                   "| "):
+                            write(b, l)
+                        write(b, "=>")
+
+                    indent(b)
+                    write(b,
+                          asn_lhs % layout_index + " := " + asn_rhs + ";")
+                    outdent(b)
+                    write(b, "")
+                write(b, "when others =>")
+                indent(b)
+                write(b, "raise Program_Error;")
                 outdent(b)
-                write(b, "")
-            write(b, "when others =>")
-            indent(b)
-            write(b, "raise Program_Error;")
-            outdent(b)
-            outdent(b)
-            write(b, "end case;")
+                outdent(b)
+                write(b, "end case;")
 
         outdent(b)
         write(b, "end %s;" % name)
@@ -909,10 +1068,17 @@ def main():
             if not all_the_same:
                 write(s, "--  TODO: precondition for Value")
 
-            # layout ::= schema -> friendly_name -> (str|int|bool|sloc, index)
+            # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+            #                                    index,
+            #                                    i|l|t)
             write(b, "procedure %s (I : Irep; Value : %s)" % (name,
                                                               value_ada_typ))
             write(b, "is")
+            continuation(b)
+            indent(b)
+            if is_list:
+                write(b, "pragma Unreferenced (Value);")
+            outdent(b)
             write(b, "begin")
             indent(b)
             write(b, "if I = Empty then")
@@ -930,7 +1096,8 @@ def main():
 
                 kind_slot_map = {}
                 for sn in sorted(i_kinds):
-                    layout_kind, layout_index = layout[sn][setter_name]
+                    layout_kind, layout_index, layout_typ =\
+                      layout[sn][setter_name]
                     if layout_index not in kind_slot_map:
                         kind_slot_map[layout_index] = []
                     kind_slot_map[layout_index].append(sn)
@@ -984,6 +1151,174 @@ def main():
 
             write(s, "")
             write(b, "")
+
+    ##########################################################################
+    # Debug output
+
+    write(s, "procedure Print_Irep (I : Irep);")
+    write(s, "--  Debug procedure to print the given Irep to standard output")
+    write(s, "")
+
+    write(b, "function To_String (K : Irep_Kind) return String;")
+    write(b, "")
+    write(b, "procedure PI_Irep (I : Irep);")
+    write(b, "")
+    write(b, "procedure PI_String (S : String_Id);")
+    write(b, "")
+    write(b, "procedure PI_Bool (B : Boolean);")
+    write(b, "")
+
+    write(b, "function To_String (K : Irep_Kind) return String")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "case K is")
+    indent(b)
+    write(b, "when I_Empty => return \"I_Empty\";")
+    for sn in top_sorted_sn:
+        write(b, "when %s =>" % schemata[sn]["ada_name"])
+        write(b, "   return \"%s\";" % schemata[sn]["ada_name"])
+        continuation(b)
+    outdent(b)
+    write(b, "end case;")
+    outdent(b)
+    write(b, "end To_String;")
+    write(b, "")
+
+    write(b, "procedure PI_Irep (I : Irep)")
+    write(b, "is")
+    continuation(b)
+    indent(b)
+    write(b, "Iid : constant String := Id (I);")
+    outdent(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "if I = Empty then")
+    indent(b)
+    write(b, 'Write_Str ("<Empty>");')
+    outdent(b)
+    write(b, "elsif I > Irep_Table.Last then")
+    indent(b)
+    write(b, 'Write_Str ("<Invalid>");')
+    outdent(b)
+    write(b, "else")
+    indent(b)
+    write(b, 'Write_Str (To_String (Irep_Table.Table (I).Kind) & " (Irep=");')
+    write(b, "Write_Int (Int (I));")
+    write(b, "Write_Char (')');")
+    write(b, "if Iid'Length > 0 then")
+    indent(b)
+    write(b, 'Write_Str (" (Id=" & Iid & ")");')
+    outdent(b)
+    write(b, "end if;")
+    outdent(b)
+    write(b, "end if;")
+    write(b, "Write_Eol;")
+    outdent(b)
+    write(b, "end PI_Irep;")
+    write(b, "")
+
+    write(b, "procedure PI_String (S : String_Id)")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "String_To_Name_Buffer (S);")
+    write(b, "Write_Char ('\"');")
+    write(b, "Write_Str (Name_Buffer (1 .. Name_Len));")
+    write(b, "Write_Char ('\"');")
+    write(b, 'Write_Str (" (String_Id=");')
+    write(b, "Write_Int (Int (S));")
+    write(b, "Write_Char (')');")
+    write(b, "Write_Eol;")
+    outdent(b)
+    write(b, "end PI_String;")
+    write(b, "")
+
+    write(b, "procedure PI_Bool (B : Boolean)")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "if B then")
+    indent(b)
+    write(b, 'Write_Line ("True");')
+    outdent(b)
+    write(b, "else")
+    indent(b)
+    write(b, 'Write_Line ("False");')
+    outdent(b)
+    write(b, "end if;")
+    outdent(b)
+    write(b, "end PI_Bool;")
+    write(b, "")
+
+    write(b, "procedure Print_Irep (I : Irep)")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    indent(b)
+
+    write(b, "PI_Irep (I);")
+    write(b, "")
+
+    write(b, "if I not in 1 .. Irep_Table.Last then")
+    indent(b)
+    write(b, "return;")
+    outdent(b)
+    write(b, "end if;")
+    write(b, "")
+
+    write(b, "declare")
+    indent(b)
+    write(b, "N : Irep_Node renames Irep_Table.Table (I);")
+    outdent(b)
+    write(b, "begin")
+    indent(b)
+    write(b, "case N.Kind is")
+    indent(b)
+    for sn in top_sorted_sn:
+        write(b, "when %s =>" % schemata[sn]["ada_name"])
+        indent(b)
+        write(b, "Indent;")
+        write(b, 'Write_Str ("Source_Location = ");')
+        write(b, 'Write_Int (Int (N.Sloc));')
+        write(b, 'Write_Eol;')
+        for friendly_name in sorted(layout[sn]):
+            layout_kind, layout_index, layout_typ = layout[sn][friendly_name]
+            cn = ada_component_name(layout_kind, layout_index)
+            write(b, 'Write_Str ("%s = ");' % ada_casing(friendly_name))
+            if layout_kind == "str":
+                assert layout_typ == "trivial"
+                write(b, "PI_String (N.%s);" % cn)
+            elif layout_kind == "bool":
+                assert layout_typ == "trivial"
+                write(b, 'PI_Bool (N.%s);' % cn)
+            else:
+                assert layout_kind == "int"
+                if layout_typ == "irep":
+                    write(b, "PI_Irep (Irep (N.%s));" % cn)
+                elif layout_typ == "trivial":
+                    write(b, 'Write_Int (Int (N.%s));' % cn)
+                    write(b, "Write_Eol;")
+                else:
+                    assert layout_typ == "list"
+                    write(b, 'Write_Str ("List (Irep_List=");')
+                    write(b, 'Write_Int (Int (N.%s));' % cn)
+                    write(b, "Write_Char (')');")
+                    write(b, "Write_Eol;")
+
+        pprint(layout[sn])
+        write(b, "Outdent;")
+        outdent(b)
+    outdent(b)
+    write(b, "end case;")
+    outdent(b)
+    write(b, "end;")
+
+    outdent(b)
+    write(b, "end Print_Irep;")
 
     ##########################################################################
     # Initialisation

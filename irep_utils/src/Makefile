@@ -12,9 +12,11 @@ gnatvsn.adb: ../../gnat2goto/driver/gnatvsn.adb
 %.adb: ../../gnat2goto/gnat_src/%.adb
 	ln -s ../../gnat2goto/gnat_src/$@
 
-unit_test: unit_test.adb $(SYMLINKS)
+ireps.ads: ireps_generator.py
 	./ireps_generator.py $(CBMC)
-	gnatmake unit_test.adb
+
+unit_test: unit_test.adb $(SYMLINKS) ireps.ads
+	gnatmake -g -gnata unit_test.adb
 
 clean:
 	find . -type l -delete
