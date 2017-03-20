@@ -185,7 +185,6 @@ package body Tree_Walk is
       case Nkind (U) is
          when N_Subprogram_Body =>
             declare
-               Unit_Body : constant Irep_Code_Block := Do_Subprogram_Or_Block (U);
                Unit_Type : constant Irep_Code_Type :=
                  Do_Subprogram_Specification (Specification (U));
                Unit_Name : constant Unbounded_String :=
@@ -196,14 +195,21 @@ package body Tree_Walk is
                              Specification (U)))));
                Unit_Symbol : Symbol;
             begin
+               -- Register the symbol *before* we compile the body, for
+               -- recursive calls.
                Unit_Symbol.Name := Unit_Name;
                Unit_Symbol.PrettyName := Unit_Name;
                Unit_Symbol.BaseName := Unit_Name;
                Unit_Symbol.Mode := To_Unbounded_String ("C");
                Unit_Symbol.SymType := Irep (Unit_Type);
-               Unit_Symbol.Value := Irep (Unit_Body);
                Symbol_Maps.Insert (Global_Symbol_Table, Unit_Name, Unit_Symbol);
-               return Unit_Symbol;
+               declare
+                  Unit_Body : constant Irep_Code_Block := Do_Subprogram_Or_Block (U);
+               begin
+                  Unit_Symbol.Value := Irep (Unit_Body);
+                  Symbol_Maps.Replace (Global_Symbol_Table, Unit_Name, Unit_Symbol);
+                  return Unit_Symbol;
+               end;
             end;
          when others =>
             pp (Union_Id (U));
