@@ -94,7 +94,7 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Subprogram_Declaration;
 
    function Do_Subprogram_Specification (N : Node_Id) return Irep_Code_Type
-     with Pre => Nkind (N) in N_Procedure_Specification | N_Function_Specification;
+     with Pre => Nkind (N) in N_Subprogram_Specification;
 
    procedure Do_Subprogram_Body (N : Node_Id)
    with Pre => Nkind (N) = N_Subprogram_Body;
@@ -151,7 +151,7 @@ package body Tree_Walk is
       Ret : Irep_Code_Function_Call := Make_Irep_Code_Function_Call;
    begin
       Set_Identifier (Proc_Expr, To_String (Proc_Name));
-      Set_Type (Proc_Expr, Symbol_Maps.Element (Global_Symbol_Table, Proc_Name).SymType);
+      Set_Type (Proc_Expr, Global_Symbol_Table (Proc_Name).SymType);
       Set_Function (Ret, Irep (Proc_Expr));
       Set_Arguments (Ret, Irep (Proc_Args));
       Set_Lhs (Ret, Trivial.Trivial_Irep ("nil"));
@@ -222,7 +222,7 @@ package body Tree_Walk is
       Ret : Irep_Side_Effect_Expr_Function_Call := Make_Irep_Side_Effect_Expr_Function_Call;
       Func_Name : constant Unbounded_String :=
         To_Unbounded_String (Get_Name_String (Chars (Name (N))));
-      Func_Symbol : constant Symbol := Symbol_Maps.Element (Global_Symbol_Table, Func_Name);
+      Func_Symbol : constant Symbol := Global_Symbol_Table (Func_Name);
       Func_Expr : Irep_Symbol_Expr := Make_Irep_Symbol_Expr;
       Func_Args : constant Irep_Argument_List := Do_Argument_List (N);
    begin
@@ -504,7 +504,7 @@ package body Tree_Walk is
    procedure Do_Subprogram_Body (N : Node_Id) is
       Proc_Name : constant Unbounded_String :=
         To_Unbounded_String (Get_Name_String (Chars (Corresponding_Spec (N))));
-      Proc_Symbol : Symbol := Symbol_Maps.Element (Global_Symbol_Table, Proc_Name);
+      Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
       Proc_Body : constant Irep_Code_Block := Do_Subprogram_Or_Block (N);
    begin
       Proc_Symbol.Value := Irep (Proc_Body);
