@@ -722,7 +722,7 @@ def main():
     write(b, "type Irep_List_Node is record")
     indent(b)
     write(b, "A       : Integer;")
-    write(b, "B       : Irep_List;")
+    write(b, "B       : Internal_Irep_List;")
     write(b, "Is_Node : Boolean;")
     outdent(b)
     write(b, "end record with Dynamic_Predicate =>")
@@ -760,7 +760,8 @@ def main():
     write(b, "function New_List return Irep_List;")
     write(b, "")
 
-    write(b, "procedure Append (L : Irep_List; I : Irep);")
+    write(b, "procedure Append (L : Irep_List; I : Irep)")
+    write(b, "with Pre => L /= 0;")
     write(b, "")
 
     write(b, "function New_List return Irep_List")
@@ -780,13 +781,8 @@ def main():
     write(b, "")
 
     write(b, "procedure Append (L : Irep_List; I : Irep)")
-    write(b, "is")
+    write(b, "is separate;")
     continuation(b)
-    write(b, "begin")
-    indent(b)
-    write(b, "null;")
-    outdent(b)
-    write(b, "end Append;")
     write(b, "")
 
     ##########################################################################
@@ -1167,6 +1163,8 @@ def main():
     write(b, "")
     write(b, "procedure PI_Bool (B : Boolean);")
     write(b, "")
+    write(b, "procedure PS_List (L : Irep_List; Name : String);")
+    write(b, "")
 
     write(b, "function To_String (K : Irep_Kind) return String")
     write(b, "is")
@@ -1254,6 +1252,11 @@ def main():
     write(b, "end PI_Bool;")
     write(b, "")
 
+    write(b, "procedure PS_List (L : Irep_List; Name : String)")
+    write(b, "is separate;")
+    continuation(b)
+    write(b, "")
+
     write(b, "procedure Print_Irep (I : Irep)")
     write(b, "is")
     continuation(b)
@@ -1285,6 +1288,7 @@ def main():
         write(b, 'Write_Str ("Source_Location = ");')
         write(b, 'Write_Int (Int (N.Sloc));')
         write(b, 'Write_Eol;')
+        post = []
         for friendly_name in sorted(layout[sn]):
             layout_kind, layout_index, layout_typ = layout[sn][friendly_name]
             cn = ada_component_name(layout_kind, layout_index)
@@ -1304,10 +1308,15 @@ def main():
                     write(b, "Write_Eol;")
                 else:
                     assert layout_typ == "list"
-                    write(b, 'Write_Str ("List (Irep_List=");')
+                    write(b, 'Write_Str ("List #%s (Irep_List=");' % friendly_name)
                     write(b, 'Write_Int (Int (N.%s));' % cn)
                     write(b, "Write_Char (')');")
                     write(b, "Write_Eol;")
+                    post.append((friendly_name, "N.%s" % cn))
+        for friendly_name, node_field in post:
+            write(b, "Write_Eol;")
+            write(b, "PS_List (Irep_List (%s), \"%s\");" % (node_field,
+                                                            friendly_name))
 
         pprint(layout[sn])
         write(b, "Outdent;")

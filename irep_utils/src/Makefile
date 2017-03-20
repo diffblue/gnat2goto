@@ -15,7 +15,7 @@ gnatvsn.adb: ../../gnat2goto/driver/gnatvsn.adb
 ireps.ads: ireps_generator.py
 	./ireps_generator.py $(CBMC)
 
-unit_test: unit_test.adb $(SYMLINKS) ireps.ads
+unit_test: unit_test.adb $(SYMLINKS) ireps.ads ireps-*.adb
 	gnatmake -g -gnata unit_test.adb
 
 clean:
