@@ -8,6 +8,7 @@ with Uintp; use Uintp;
 
 with Iinfo; use Iinfo;
 with Irep_Helpers; use Irep_Helpers;
+with Irep_Schemata; use Irep_Schemata;
 with Uint_To_Binary; use Uint_To_Binary;
 
 package body Tree_Walk is
@@ -174,12 +175,32 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id) return Irep_Code_Block is
+   function Do_Compilation_Unit (N : Node_Id) return Symbol is
       U : constant Node_Id := Unit (N);
    begin
       case Nkind (U) is
          when N_Subprogram_Body =>
-            return Do_Subprogram_Or_Block (U);
+            declare
+               Unit_Body : constant Irep_Code_Block := Do_Subprogram_Or_Block (U);
+               Unit_Type : constant Irep_Code_Type :=
+                 Do_Subprogram_Specification (Specification (U));
+               Unit_Name : constant Unbounded_String :=
+                 To_Unbounded_String (
+                    Get_Name_String (
+                       Chars (
+                          Defining_Unit_Name (
+                             Specification (U)))));
+               Unit_Symbol : Symbol;
+            begin
+               Unit_Symbol.Name := Unit_Name;
+               Unit_Symbol.PrettyName := Unit_Name;
+               Unit_Symbol.BaseName := Unit_Name;
+               Unit_Symbol.Mode := To_Unbounded_String ("C");
+               Unit_Symbol.SymType := Irep (Unit_Type);
+               Unit_Symbol.Value := Irep (Unit_Body);
+               Symbol_Maps.Insert (Global_Symbol_Table, Unit_Name, Unit_Symbol);
+               return Unit_Symbol;
+            end;
          when others =>
             pp (Union_Id (U));
             raise Program_Error;
