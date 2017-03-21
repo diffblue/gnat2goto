@@ -55,16 +55,22 @@ package body Driver is
          Local_Symbols : Symbol_Table;
       begin
          for Sym_Iter in Global_Symbol_Table.Iterate loop
-            if Symbol_Maps.Element (Sym_Iter).SymType.Id = To_Unbounded_String("code") then
-               Gather_Irep_Symbols.Gather (Local_Symbols, Symbol_Maps.Element (Sym_Iter).Value);
+            if Global_Symbol_Table (Sym_Iter).SymType.Id = To_Unbounded_String("code") then
+               Gather_Irep_Symbols.Gather (Local_Symbols, Global_Symbol_Table (Sym_Iter).Value);
             end if;
          end loop;
          for Sym_Iter in Local_Symbols.Iterate loop
-            if not Global_Symbol_Table.Contains (Symbol_Maps.Key (Sym_Iter)) then
+            declare
+               Ignored1 : Boolean;
+               Ignored2 : Symbol_Maps.Cursor;
+            begin
+               -- Insert new symbol if not present already.
                Symbol_Maps.Insert (Global_Symbol_Table,
                                    Symbol_Maps.Key (Sym_Iter),
-                                   Symbol_Maps.Element (Sym_Iter));
-            end if;
+                                   Symbol_Maps.Element (Sym_Iter),
+                                   Ignored2,
+                                   Ignored1);
+            end;
          end loop;
       end;
 

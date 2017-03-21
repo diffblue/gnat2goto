@@ -5,6 +5,7 @@ with Stand;  use Stand;
 with Treepr; use Treepr;
 with Namet;  use Namet;
 with Uintp; use Uintp;
+with Sem_util; use Sem_Util;
 
 with Iinfo; use Iinfo;
 with Irep_Helpers; use Irep_Helpers;
@@ -191,8 +192,7 @@ package body Tree_Walk is
                  To_Unbounded_String (
                     Get_Name_String (
                        Chars (
-                          Defining_Unit_Name (
-                             Specification (U)))));
+                          Unique_Defining_Entity (U))));
                Unit_Symbol : Symbol;
             begin
                -- Register the symbol *before* we compile the body, for
