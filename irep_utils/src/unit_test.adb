@@ -22,7 +22,7 @@ begin
    Print_Irep (C);
 
    for I in 1 .. 3 loop
-      Argument_Append (C, A);
+      Append_Argument (C, A);
       Print_Irep (C);
    end loop;
 

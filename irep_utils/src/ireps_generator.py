@@ -46,7 +46,7 @@ def ada_casing(s):
 
 def ada_setter_name(name, is_list):
     if is_list:
-        return "%s_Append" % ada_casing(name)
+        return "Append_%s" % ada_casing(name)
     else:
         return "Set_%s" % ada_casing(name)
 
