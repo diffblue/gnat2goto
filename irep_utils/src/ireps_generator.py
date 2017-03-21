@@ -739,8 +739,10 @@ def main():
 
     write(b, "type Irep_List_Node is record")
     with indent(b):
-        write(b, "A       : Integer;")
-        write(b, "B       : Internal_Irep_List;")
+        write(b, "A       : Integer;            "
+              "--  Element [or pointer to first list link]")
+        write(b, "B       : Internal_Irep_List; "
+              "--  Next [or pointer to last list link]")
         write(b, "Is_Node : Boolean;")
     write(b, "end record with Dynamic_Predicate =>")
     with indent(b):
