@@ -3,20 +3,20 @@ SYMLINKS=table.ads table.adb types.ads types.adb alloc.ads stringt.ads stringt.a
 
 all: unit_test
 
-gnatvsn.adb: ../../gnat2goto/driver/gnatvsn.adb
-	ln -s ../../gnat2goto/driver/$@
+gnatvsn.adb: ../driver/gnatvsn.adb
+	ln -s ../driver/$@
 
-%.ads: ../../gnat2goto/gnat_src/%.ads
-	ln -s ../../gnat2goto/gnat_src/$@
+%.ads:
+	ln -s ../gnat_src/$@
 
-%.adb: ../../gnat2goto/gnat_src/%.adb
-	ln -s ../../gnat2goto/gnat_src/$@
+%.adb:
+	ln -s ../gnat_src/$@
 
 ireps.ads: ireps_generator.py
 	./ireps_generator.py $(CBMC)
 
 unit_test: unit_test.adb $(SYMLINKS) ireps.ads ireps-*.adb
-	gnatmake -g -gnata unit_test.adb
+	gnatmake -gnatg -g -gnata unit_test.adb
 
 clean:
 	find . -type l -delete
