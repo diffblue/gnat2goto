@@ -247,7 +247,9 @@ def main():
     # Emit spec and body file
     s = []
     b = []
-    write(s, "with Types; use Types;")  # Source_Ptr
+    write(s, "with Types;         use Types;")  # Source_Ptr
+    write(s, "")
+    write(s, "with GNATCOLL.JSON; use GNATCOLL.JSON;")  # JSON
     write(s, "")
 
     write(b, "with Table;")
@@ -1003,8 +1005,6 @@ def main():
         write(b, "end %s;" % name)
         write(b, "")
 
-
-
     write(b, "-" * 70)
     write(b, "--  sub setters")
     write(b, "-" * 70)
@@ -1054,7 +1054,37 @@ def main():
                         inputs      = inputs)
 
     ##########################################################################
+    # Serialisation to JSON
+
+    write(b, "-" * 70)
+    write(b, "--  Serialisation to JSON")
+    write(b, "-" * 70)
+    write(b, "")
+
+    write(s, "function To_JSON (I : Irep) return JSON_Value")
+    write(s, "with Pre => I /= Empty;")
+    write(s, "--  Serialise to JSON")
+
+    write_comment_block(b, "To_JSON")
+    write(b, "function To_JSON (I : Irep) return JSON_Value")
+    write(b, "is")
+    continuation(b)
+    with indent(b):
+        write(b, "pragma Unreferenced (I);")
+    write(b, "begin")
+    with indent(b):
+        write(b, "return JSON_Null;")
+    write(b, "end To_JSON;")
+    write(b, "")
+
+
+    ##########################################################################
     # Debug output
+
+    write(b, "-" * 70)
+    write(b, "--  Debug")
+    write(b, "-" * 70)
+    write(b, "")
 
     write(s, "procedure Print_Irep (I : Irep);")
     write(s, "--  Debug procedure to print the given Irep to standard output")

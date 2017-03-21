@@ -16,12 +16,13 @@ ireps.ads: ireps_generator.py
 	./ireps_generator.py $(CBMC)
 
 unit_test: unit_test.adb $(SYMLINKS) ireps.ads ireps-*.adb
-	gnatmake -gnatg -g -gnata unit_test.adb
+	gprbuild -P unit_test.gpr -j0 -gnatg -g -gnata
 
 clean:
 	find . -type l -delete
 	rm -f *.o *.ali
-	rm -f b~*.ad[bs]
-	rm -f unit_test
+	rm -f *.stderr *.stdout
+	rm -f b__*.ad[bs]
+	rm -f unit_test unit_test.bexch
 	rm -f tree.*
 	rm -rf ireps.ad[bs]

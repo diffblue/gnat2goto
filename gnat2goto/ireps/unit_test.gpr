@@ -1,0 +1,7 @@
+with "gnatcoll";
+
+project unit_test is
+
+   for Main use ("unit_test.adb");
+
+end unit_test;
