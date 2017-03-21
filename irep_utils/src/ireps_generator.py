@@ -58,6 +58,16 @@ def ada_component_name(layout_kind, layout_id=None):
         rv = rv % layout_id
     return rv
 
+class indent(object):
+    def __init__(self, the_file):
+        self.the_file = the_file
+
+    def __exit__(self, type, value, traceback):
+        self.the_file.append({"kind" : "outdent"})
+
+    def __enter__(self):
+        self.the_file.append({"kind" : "indent"})
+
 def write_file(fn, instructions):
     indent = 0
     with open(fn, "w") as fd:
@@ -72,10 +82,10 @@ def write_file(fn, instructions):
                 fd.write(txt.rstrip() + "\n")
     assert indent == 0
 
-def indent(f):
+def manual_indent(f):
     f.append({"kind" : "indent"})
 
-def outdent(f):
+def manual_outdent(f):
     f.append({"kind" : "outdent"})
 
 def write(f, txt):
@@ -243,11 +253,11 @@ def main():
 
     write(s, "package Ireps is")
     write(s, "")
-    indent(s)
+    manual_indent(s)
 
     write(b, "package body Ireps is")
     write(b, "")
-    indent(b)
+    manual_indent(b)
 
     ##########################################################################
     # Types and subtypes
@@ -707,32 +717,32 @@ def main():
         components.append(("String_%u" % i, "String_Id", "Null_String_Id"))
     for i in xrange(max(x["bool"] for x in op_counts.itervalues())):
         components.append(("Bool_%u" % i, "Boolean", "False"))
-    indent(b)
-    max_len = max(map(len, (x[0] for x in components)))
-    for cname, ctyp, default in components:
-        if default is None:
-            write(b, "%-*s : %-15s;" % (max_len, cname, ctyp))
-        else:
-            write(b, "%-*s : %-15s := %s;" % (max_len, cname, ctyp, default))
-    outdent(b)
+    with indent(b):
+        max_len = max(map(len, (x[0] for x in components)))
+        for cname, ctyp, default in components:
+            if default is None:
+                write(b, "%-*s : %-15s;" % (max_len, cname, ctyp))
+            else:
+                write(b, "%-*s : %-15s := %s;" % (max_len,
+                                                  cname,
+                                                  ctyp,
+                                                  default))
     write(b, "end record;")
     write(b, "pragma Pack (Irep_Node);")
     write(b, "")
 
     write(b, "type Irep_List_Node is record")
-    indent(b)
-    write(b, "A       : Integer;")
-    write(b, "B       : Internal_Irep_List;")
-    write(b, "Is_Node : Boolean;")
-    outdent(b)
+    with indent(b):
+        write(b, "A       : Integer;")
+        write(b, "B       : Internal_Irep_List;")
+        write(b, "Is_Node : Boolean;")
     write(b, "end record with Dynamic_Predicate =>")
-    indent(b)
-    write(b, "(if Is_Node")
-    write(b, " then Is_Irep (A)")
-    continuation(b)
-    write(b, " else Is_List (A));")
-    continuation(b)
-    outdent(b)
+    with indent(b):
+        write(b, "(if Is_Node")
+        write(b, " then Is_Irep (A)")
+        continuation(b)
+        write(b, " else Is_List (A));")
+        continuation(b)
     write(b, "pragma Pack (Irep_List_Node);")
     write(b, "")
 
@@ -767,16 +777,14 @@ def main():
     write(b, "function New_List return Irep_List")
     write(b, "is")
     continuation(b)
-    indent(b)
-    write(b, "N : constant Irep_List_Node := (Is_Node => False,")
-    write(b, "                                A       => 0,")
-    write(b, "                                B       => 0);")
-    outdent(b)
+    with indent(b):
+        write(b, "N : constant Irep_List_Node := (Is_Node => False,")
+        write(b, "                                A       => 0,")
+        write(b, "                                B       => 0);")
     write(b, "begin")
-    indent(b)
-    write(b, "Irep_List_Table.Append (N);")
-    write(b, "return To_List (Irep_List_Table.Last);")
-    outdent(b)
+    with indent(b):
+        write(b, "Irep_List_Table.Append (N);")
+        write(b, "return To_List (Irep_List_Table.Last);")
     write(b, "end New_List;")
     write(b, "")
 
@@ -795,17 +803,14 @@ def main():
     write(b, "is")
     continuation(b)
     write(b, "begin")
-    indent(b)
-    write(b, "if I = Empty then")
-    indent(b)
-    write(b, "return I_Empty;")
-    outdent(b)
-    write(b, "else")
-    indent(b)
-    write(b, "return Irep_Table.Table (I).Kind;")
-    outdent(b)
-    write(b, "end if;")
-    outdent(b)
+    with indent(b):
+        write(b, "if I = Empty then")
+        with indent(b):
+            write(b, "return I_Empty;")
+        write(b, "else")
+        with indent(b):
+            write(b, "return Irep_Table.Table (I).Kind;")
+        write(b, "end if;")
     write(b, "end Kind;")
     write(b, "")
 
@@ -816,24 +821,21 @@ def main():
     write(b, "is")
     continuation(b)
     write(b, "begin")
-    indent(b)
-    write(b, "if I not in 1 .. Irep_Table.Last then")
-    indent(b)
-    write(b, 'return "";')
-    outdent(b)
-    write(b, "end if;")
-    write(b, "")
-    write(b, "case Irep_Table.Table (I).Kind is")
-    indent(b)
-    for sn in top_sorted_sn:
-        if sn in const and "id" in const[sn]:
-            write(b, "when %s =>" % schemata[sn]["ada_name"])
-            write(b, '   return "%s";' % const[sn]["id"]["id"])
-            continuation(b)
-    write(b, 'when others => return "";')
-    outdent(b)
-    write(b, "end case;")
-    outdent(b)
+    with indent(b):
+        write(b, "if I not in 1 .. Irep_Table.Last then")
+        with indent(b):
+            write(b, 'return "";')
+        write(b, "end if;")
+        write(b, "")
+        write(b, "case Irep_Table.Table (I).Kind is")
+        with indent(b):
+            for sn in top_sorted_sn:
+                if sn in const and "id" in const[sn]:
+                    write(b, "when %s =>" % schemata[sn]["ada_name"])
+                    write(b, '   return "%s";' % const[sn]["id"]["id"])
+                    continuation(b)
+            write(b, 'when others => return "";')
+        write(b, "end case;")
     write(b, "end Id;")
     write(b, "")
 
@@ -844,26 +846,13 @@ def main():
     write(b, "function New_Irep (Kind : Valid_Irep_Kind) return Irep")
     write(b, "is")
     continuation(b)
-    indent(b)
-    write(b, "I : Irep_Node;")
-    outdent(b)
+    with indent(b):
+        write(b, "I : Irep_Node;")
     write(b, "begin")
-    indent(b)
-    write(b, "I.Kind := Kind;")
-    # write(b, "case Kind is")
-    # indent(b)
-    # for sn in top_sorted_sn:
-    #     schema = schemata[sn]
-    #     assert schema["used"]
-    #     write(b, "when %s =>" % schema["ada_name"])
-    #     indent(b)
-    #     write(b, "null;")
-    #     outdent(b)
-    # outdent(b)
-    # write(b, "end case;")
-    write(b, "Irep_Table.Append (I);")
-    write(b, "return Irep_Table.Last;")
-    outdent(b)
+    with indent(b):
+        write(b, "I.Kind := Kind;")
+        write(b, "Irep_Table.Append (I);")
+        write(b, "return Irep_Table.Last;")
     write(b, "end New_Irep;")
     write(b, "")
 
@@ -913,11 +902,10 @@ def main():
         write(b, "is")
         continuation(b)
         write(b, "begin")
-        indent(b)
+        manual_indent(b)
         write(b, "if I = Empty then")
-        indent(b)
-        write(b, "raise Program_Error;")
-        outdent(b)
+        with indent(b):
+            write(b, "raise Program_Error;")
         write(b, "end if;")
         write(b, "")
 
@@ -935,14 +923,13 @@ def main():
                 the_slot = list(kind_slot_map)[0]
                 asn_lhs = asn_lhs % the_slot
                 write(b, "if %s = 0 then" % asn_lhs)
-                indent(b)
-                write(b, "%s := Integer (New_List);" % asn_lhs)
-                outdent(b)
+                with indent(b):
+                    write(b, "%s := Integer (New_List);" % asn_lhs)
                 write(b, "end if;")
                 write(b, "Append (Irep_List (%s), Value);" % asn_lhs)
             else:
                 write(b, "case Irep_Table.Table (I).Kind is")
-                indent(b)
+                manual_indent(b)
                 for layout_index, i_kinds in kind_slot_map.iteritems():
                     if len(i_kinds) == 1:
                         write(b, "when %s =>" %
@@ -955,22 +942,19 @@ def main():
                             write(b, l)
                         write(b, "=>")
 
-                    indent(b)
-                    write(b, "if %s = 0 then" % (asn_lhs % layout_index))
-                    indent(b)
-                    write(b, "%s := Integer (New_List);" % (asn_lhs %
-                                                            layout_index))
-                    outdent(b)
-                    write(b, "end if;")
-                    write(b, "Append (Irep_List (%s), Value);" % (asn_lhs %
-                                                                  layout_index))
-                    outdent(b)
+                    with indent(b):
+                        write(b, "if %s = 0 then" % (asn_lhs % layout_index))
+                        with indent(b):
+                            write(b, "%s := Integer (New_List);" %
+                                  (asn_lhs % layout_index))
+                        write(b, "end if;")
+                        write(b, "Append (Irep_List (%s), Value);" %
+                              (asn_lhs % layout_index))
                     write(b, "")
                 write(b, "when others =>")
-                indent(b)
-                write(b, "raise Program_Error;")
-                outdent(b)
-                outdent(b)
+                with indent(b):
+                    write(b, "raise Program_Error;")
+                manual_outdent(b)
                 write(b, "end case;")
 
         else:
@@ -981,7 +965,7 @@ def main():
                       asn_lhs % the_slot + " := " + asn_rhs + ";")
             else:
                 write(b, "case Irep_Table.Table (I).Kind is")
-                indent(b)
+                manual_indent(b)
                 for layout_index, i_kinds in kind_slot_map.iteritems():
                     if len(i_kinds) == 1:
                         write(b, "when %s =>" %
@@ -994,19 +978,17 @@ def main():
                             write(b, l)
                         write(b, "=>")
 
-                    indent(b)
-                    write(b,
-                          asn_lhs % layout_index + " := " + asn_rhs + ";")
-                    outdent(b)
+                    with indent(b):
+                        write(b,
+                              asn_lhs % layout_index + " := " + asn_rhs + ";")
                     write(b, "")
                 write(b, "when others =>")
-                indent(b)
-                write(b, "raise Program_Error;")
-                outdent(b)
-                outdent(b)
+                with indent(b):
+                    write(b, "raise Program_Error;")
+                manual_outdent(b)
                 write(b, "end case;")
 
-        outdent(b)
+        manual_outdent(b)
         write(b, "end %s;" % name)
 
         write(s, "")
@@ -1071,16 +1053,14 @@ def main():
                                                               value_ada_typ))
             write(b, "is")
             continuation(b)
-            indent(b)
-            if is_list:
-                write(b, "pragma Unreferenced (Value);")
-            outdent(b)
+            with indent(b):
+                if is_list:
+                    write(b, "pragma Unreferenced (Value);")
             write(b, "begin")
-            indent(b)
+            manual_indent(b)
             write(b, "if I = Empty then")
-            indent(b)
-            write(b, "raise Program_Error;")
-            outdent(b)
+            with indent(b):
+                write(b, "raise Program_Error;")
             write(b, "end if;")
             write(b, "")
             if setter_name == "source_location":
@@ -1117,7 +1097,7 @@ def main():
                           asn_lhs % the_slot + " := " + asn_rhs + ";")
                 else:
                     write(b, "case Irep_Table.Table (I).Kind is")
-                    indent(b)
+                    manual_indent(b)
                     for layout_index, i_kinds in kind_slot_map.iteritems():
                         if len(i_kinds) == 1:
                             write(b, "when %s =>" %
@@ -1130,18 +1110,17 @@ def main():
                                 write(b, l)
                             write(b, "=>")
 
-                        indent(b)
-                        write(b,
-                              asn_lhs % layout_index + " := " + asn_rhs + ";")
-                        outdent(b)
+                        with indent(b):
+                            write(b,
+                                  asn_lhs % layout_index
+                                  + " := " + asn_rhs + ";")
                         write(b, "")
                     write(b, "when others =>")
-                    indent(b)
-                    write(b, "raise Program_Error;")
-                    outdent(b)
-                    outdent(b)
+                    with indent(b):
+                        write(b, "raise Program_Error;")
+                    manual_outdent(b)
                     write(b, "end case;")
-            outdent(b)
+            manual_outdent(b)
             write(b, "end %s;" % name)
 
 
@@ -1170,50 +1149,43 @@ def main():
     write(b, "is")
     continuation(b)
     write(b, "begin")
-    indent(b)
-    write(b, "case K is")
-    indent(b)
-    write(b, "when I_Empty => return \"I_Empty\";")
-    for sn in top_sorted_sn:
-        write(b, "when %s =>" % schemata[sn]["ada_name"])
-        write(b, "   return \"%s\";" % schemata[sn]["ada_name"])
-        continuation(b)
-    outdent(b)
-    write(b, "end case;")
-    outdent(b)
+    with indent(b):
+        write(b, "case K is")
+        with indent(b):
+            write(b, "when I_Empty => return \"I_Empty\";")
+            for sn in top_sorted_sn:
+                write(b, "when %s =>" % schemata[sn]["ada_name"])
+                write(b, "   return \"%s\";" % schemata[sn]["ada_name"])
+                continuation(b)
+        write(b, "end case;")
     write(b, "end To_String;")
     write(b, "")
 
     write(b, "procedure PI_Irep (I : Irep)")
     write(b, "is")
     continuation(b)
-    indent(b)
-    write(b, "Iid : constant String := Id (I);")
-    outdent(b)
+    with indent(b):
+        write(b, "Iid : constant String := Id (I);")
     write(b, "begin")
-    indent(b)
-    write(b, "if I = Empty then")
-    indent(b)
-    write(b, 'Write_Str ("<Empty>");')
-    outdent(b)
-    write(b, "elsif I > Irep_Table.Last then")
-    indent(b)
-    write(b, 'Write_Str ("<Invalid>");')
-    outdent(b)
-    write(b, "else")
-    indent(b)
-    write(b, 'Write_Str (To_String (Irep_Table.Table (I).Kind) & " (Irep=");')
-    write(b, "Write_Int (Int (I));")
-    write(b, "Write_Char (')');")
-    write(b, "if Iid'Length > 0 then")
-    indent(b)
-    write(b, 'Write_Str (" (Id=" & Iid & ")");')
-    outdent(b)
-    write(b, "end if;")
-    outdent(b)
-    write(b, "end if;")
-    write(b, "Write_Eol;")
-    outdent(b)
+    with indent(b):
+        write(b, "if I = Empty then")
+        with indent(b):
+            write(b, 'Write_Str ("<Empty>");')
+        write(b, "elsif I > Irep_Table.Last then")
+        with indent(b):
+            write(b, 'Write_Str ("<Invalid>");')
+        write(b, "else")
+        with indent(b):
+            write(b, 'Write_Str (To_String (Irep_Table.Table (I).Kind) '
+                  '& " (Irep=");')
+            write(b, "Write_Int (Int (I));")
+            write(b, "Write_Char (')');")
+            write(b, "if Iid'Length > 0 then")
+            with indent(b):
+                write(b, 'Write_Str (" (Id=" & Iid & ")");')
+            write(b, "end if;")
+        write(b, "end if;")
+        write(b, "Write_Eol;")
     write(b, "end PI_Irep;")
     write(b, "")
 
@@ -1221,16 +1193,15 @@ def main():
     write(b, "is")
     continuation(b)
     write(b, "begin")
-    indent(b)
-    write(b, "String_To_Name_Buffer (S);")
-    write(b, "Write_Char ('\"');")
-    write(b, "Write_Str (Name_Buffer (1 .. Name_Len));")
-    write(b, "Write_Char ('\"');")
-    write(b, 'Write_Str (" (String_Id=");')
-    write(b, "Write_Int (Int (S));")
-    write(b, "Write_Char (')');")
-    write(b, "Write_Eol;")
-    outdent(b)
+    with indent(b):
+        write(b, "String_To_Name_Buffer (S);")
+        write(b, "Write_Char ('\"');")
+        write(b, "Write_Str (Name_Buffer (1 .. Name_Len));")
+        write(b, "Write_Char ('\"');")
+        write(b, 'Write_Str (" (String_Id=");')
+        write(b, "Write_Int (Int (S));")
+        write(b, "Write_Char (')');")
+        write(b, "Write_Eol;")
     write(b, "end PI_String;")
     write(b, "")
 
@@ -1238,17 +1209,14 @@ def main():
     write(b, "is")
     continuation(b)
     write(b, "begin")
-    indent(b)
-    write(b, "if B then")
-    indent(b)
-    write(b, 'Write_Line ("True");')
-    outdent(b)
-    write(b, "else")
-    indent(b)
-    write(b, 'Write_Line ("False");')
-    outdent(b)
-    write(b, "end if;")
-    outdent(b)
+    with indent(b):
+        write(b, "if B then")
+        with indent(b):
+            write(b, 'Write_Line ("True");')
+        write(b, "else")
+        with indent(b):
+            write(b, 'Write_Line ("False");')
+        write(b, "end if;")
     write(b, "end PI_Bool;")
     write(b, "")
 
@@ -1261,33 +1229,31 @@ def main():
     write(b, "is")
     continuation(b)
     write(b, "begin")
-    indent(b)
+    manual_indent(b)
 
     write(b, "PI_Irep (I);")
     write(b, "")
 
     write(b, "if I not in 1 .. Irep_Table.Last then")
-    indent(b)
-    write(b, "return;")
-    outdent(b)
+    with indent(b):
+        write(b, "return;")
     write(b, "end if;")
     write(b, "")
 
     write(b, "declare")
-    indent(b)
-    write(b, "N : Irep_Node renames Irep_Table.Table (I);")
-    outdent(b)
+    with indent(b):
+        write(b, "N : Irep_Node renames Irep_Table.Table (I);")
     write(b, "begin")
-    indent(b)
+    manual_indent(b)
     write(b, "Indent;")
     write(b, 'Write_Str ("Source_Location = ");')
     write(b, 'Write_Int (Int (N.Sloc));')
     write(b, 'Write_Eol;')
     write(b, "case N.Kind is")
-    indent(b)
+    manual_indent(b)
     for sn in top_sorted_sn:
         write(b, "when %s =>" % schemata[sn]["ada_name"])
-        indent(b)
+        manual_indent(b)
         needs_null = True
         post = []
         for friendly_name in sorted(layout[sn]):
@@ -1322,15 +1288,14 @@ def main():
         if needs_null:
             write(b, "null;")
 
-        pprint(layout[sn])
-        outdent(b)
-    outdent(b)
+        manual_outdent(b)
+    manual_outdent(b)
     write(b, "end case;")
     write(b, "Outdent;")
-    outdent(b)
+    manual_outdent(b)
     write(b, "end;")
 
-    outdent(b)
+    manual_outdent(b)
     write(b, "end Print_Irep;")
 
     ##########################################################################
@@ -1347,11 +1312,11 @@ def main():
     # write(b, "end Init;")
     # write(b, "")
 
-    outdent(s)
+    manual_outdent(s)
     write(s, "end Ireps;")
     write_file("ireps.ads", s)
 
-    outdent(b)
+    manual_outdent(b)
     write(b, "end Ireps;")
     write_file("ireps.adb", b)
 
