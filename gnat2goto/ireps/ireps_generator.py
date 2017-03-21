@@ -58,19 +58,10 @@ def ada_component_name(layout_kind, layout_id=None):
         rv = rv % layout_id
     return rv
 
-class indent(object):
-    def __init__(self, the_file):
-        self.the_file = the_file
-
-    def __exit__(self, type, value, traceback):
-        self.the_file.append({"kind" : "outdent"})
-
-    def __enter__(self):
-        self.the_file.append({"kind" : "indent"})
-
-def write_file(fn, instructions):
+def write_file(f):
     indent = 0
-    with open(fn, "w") as fd:
+    instructions = f["content"]
+    with open(f["name"], "w") as fd:
         for i in instructions:
             if i["kind"] == "indent":
                 indent += 1
@@ -83,37 +74,81 @@ def write_file(fn, instructions):
     assert indent == 0
 
 def manual_indent(f):
-    f.append({"kind" : "indent"})
+    f["content"].append({"kind" : "indent"})
+    f["indent"] += 1
 
 def manual_outdent(f):
-    f.append({"kind" : "outdent"})
+    f["content"].append({"kind" : "outdent"})
+    f["indent"] -= 1
 
 def write(f, txt):
-    f.append({"kind" : "text",
-              "text" : str(txt)})
+    if len(txt) + 3*f["indent"] < 80:
+        f["content"].append({"kind" : "text",
+                             "text" : str(txt)})
+    else:
+        bs = []
+        last_space = None
+        for pos, c in enumerate(str(txt)):
+            actual_pos = 3 * f["indent"] + pos
+            if actual_pos < 80:
+                if c == '(':
+                    bs.append(pos)
+                elif c == ')':
+                    del bs[-1]
+                elif c == ' ':
+                    last_space = pos
+            else:
+                assert len(bs) > 0
+                assert last_space is not None
+                break
+        a = txt[:last_space].rstrip()
+        b = " " * bs[-1] + txt[last_space:].strip()
+        assert len(a) + f["indent"] * 3 < 80
+        assert len(b) + f["indent"] * 3 < 80
+        f["content"].append({"kind" : "text",
+                             "text" : a})
+        f["content"].append({"kind" : "text",
+                             "text" : b})
+
+    # Finally, we update the bracketing
+    for pos, c in enumerate(str(txt)):
+        if c == '(':
+            f["bracket_stack"].append(pos)
+        elif c == ")":
+            del f["bracket_stack"][-1]
+
+
+
+
+def continuation(f):
+    # Merge the last two lines if it doesn't make them too long
+    tmp = f["content"][-2]["text"] + " " + f["content"][-1]["text"].strip()
+    if 3 * f["indent"] + len(tmp) < 80:
+        del f["content"][-1]
+        f["content"][-1]["text"] = tmp
+
+def new_file(name):
+    return {"name"          : name,
+            "indent"        : 0,
+            "bracket_stack" : [],
+            "content"       : []}
+
+class indent(object):
+    def __init__(self, the_file):
+        self.the_file = the_file
+
+    def __exit__(self, type, value, traceback):
+        manual_outdent(self.the_file)
+
+    def __enter__(self):
+        manual_indent(self.the_file)
+
 
 def write_comment_block(f, txt):
     write(f, "-" * (len(txt) + 6))
     write(f, "-- " + txt + " --")
     write(f, "-" * (len(txt) + 6))
     write(f, "")
-
-def current_indent(f):
-    indent = 0
-    for v in f:
-        if v["kind"] == "indent":
-            indent += 1
-        elif v["kind"] == "outdent":
-            indent -= 1
-    return indent
-
-def continuation(f):
-    # Merge the last two lines if it doesn't make them too long
-    indent = current_indent(f)
-    tmp = f[-2]["text"] + " " + f[-1]["text"].strip()
-    if 3 * indent + len(tmp) < 80:
-        del f[-1]
-        f[-1]["text"] = tmp
 
 def mk_prefixed_lines(prefix, lines, join=""):
     # Prefix the first line with prefix, and everything else by a suitable
@@ -245,8 +280,8 @@ def main():
     os.system("dot tree.dot -Tpdf > tree.pdf")
 
     # Emit spec and body file
-    s = []
-    b = []
+    s = new_file("ireps.ads")
+    b = new_file("ireps.adb")
     write(s, "with Types;         use Types;")  # Source_Ptr
     write(s, "")
     write(s, "with GNATCOLL.JSON; use GNATCOLL.JSON;")  # JSON
@@ -286,7 +321,7 @@ def main():
         for sc in sorted(schemata[sn]["subclasses"]):
             rec(sc, depth+1)
     rec("irep")
-    s[-1]["text"] = s[-1]["text"].rstrip(",") + ");"
+    s["content"][-1]["text"] = s["content"][-1]["text"].rstrip(",") + ");"
     write(s, "")
 
     write(s, "subtype Valid_Irep_Kind is Irep_Kind")
@@ -1061,19 +1096,280 @@ def main():
     write(b, "-" * 70)
     write(b, "")
 
-    write(s, "function To_JSON (I : Irep) return JSON_Value")
-    write(s, "with Pre => I /= Empty;")
+    write(s, "function To_JSON (I : Irep) return JSON_Value;")
     write(s, "--  Serialise to JSON")
+    write(s, "")
+
+    write(b, "function To_JSON (L : Irep_List) return JSON_Array;")
+    write(b, "--  Serialise list to JSON")
+    write(b, "")
+
+    write(b, "function Trivial_Boolean (B : Boolean) return JSON_Value;")
+    write(b, "--  Create a trivial irep with id = B")
+    write(b, "")
+
+    write(b, "function Trivial_Integer (I : Integer) return JSON_Value;")
+    write(b, "--  Create a trivial irep with id = I (base 10)")
+    write(b, "")
+
+    write(b, "function Trivial_String (S : String) return JSON_Value;")
+    write(b, "--  Create a trivial irep with id = S")
+    write(b, "")
+
+    write(b, "function Trivial_String (S : String_Id) return JSON_Value;")
+    write(b, "--  Create a trivial irep with id = S")
+    write(b, "")
+
+    write(b, "function Trivial_Sloc (S : Source_Ptr) return JSON_Value;")
+    write(b, "--  Create a source_location from S")
+    write(b, "")
+
+    write(b, "function Trivial_List (L : Irep_List; Name : String)")
+    write(b, "                      return JSON_Value;")
+    continuation(b)
+    write(b, "--  Create naked irep with id = Name and subs containing L")
+    write(b, "")
+
+    # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+    #                                    index,
+    #                                    irep|list|trivial)
+    # subs ::= setter_name -> value|list -> {schema: (op_id, type)}
+    # nams ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
+    # cnst ::= schema -> id|namedSub|comment -> {name: value}
+
+    write(b, "function To_JSON (L : Irep_List) return JSON_Array")
+    write(b, "is separate;")
+    continuation(b)
+    write(b, "")
+
+    write_comment_block(b, "Trivial_Boolean")
+    write(b, "function Trivial_Boolean (B : Boolean) return JSON_Value")
+    write(b, "is")
+    continuation(b)
+    with indent(b):
+        write(b, "As_String : constant array (Boolean) of String (1 .. 1) :=")
+        write(b, '  (False => "0", True => "1");')
+    write(b, "begin")
+    with indent(b):
+        write(b, "return V : constant JSON_Value := Create_Object do")
+        with indent(b):
+            write(b, 'V.Set_Field ("id",       As_String (B));')
+            write(b, 'V.Set_Field ("sub",      Empty_Array);')
+            write(b, 'V.Set_Field ("namedSub", Create_Object);')
+            write(b, 'V.Set_Field ("comment",  Create_Object);')
+        write(b, "end return;")
+    write(b, "end Trivial_Boolean;")
+    write(b, "")
+
+    write_comment_block(b, "Trivial_Integer")
+    write(b, "function Trivial_Integer (I : Integer) return JSON_Value")
+    write(b, "is")
+    continuation(b)
+    with indent(b):
+        write(b, "S : constant String := Integer'Image (I);")
+    write(b, "begin")
+    with indent(b):
+        write(b, "return V : constant JSON_Value := Create_Object do")
+        with indent(b):
+            write(b, "if I >= 0 then")
+            with indent(b):
+                write(b, 'V.Set_Field ("id", S (2 .. S\'Last));')
+            write(b, "else")
+            with indent(b):
+                write(b, 'V.Set_Field ("id", S);')
+            write(b, "end if;")
+            write(b, 'V.Set_Field ("sub",      Empty_Array);')
+            write(b, 'V.Set_Field ("namedSub", Create_Object);')
+            write(b, 'V.Set_Field ("comment",  Create_Object);')
+        write(b, "end return;")
+    write(b, "end Trivial_Integer;")
+    write(b, "")
+
+    write_comment_block(b, "Trivial_String")
+    write(b, "function Trivial_String (S : String_Id) return JSON_Value")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "String_To_Name_Buffer (S);")
+        write(b, "return V : constant JSON_Value := Create_Object do")
+        with indent(b):
+            write(b, 'V.Set_Field ("id",       Name_Buffer (1 .. Name_Len));')
+            write(b, 'V.Set_Field ("sub",      Empty_Array);')
+            write(b, 'V.Set_Field ("namedSub", Create_Object);')
+            write(b, 'V.Set_Field ("comment",  Create_Object);')
+        write(b, "end return;")
+    write(b, "end Trivial_String;")
+    write(b, "")
+
+    write(b, "function Trivial_String (S : String) return JSON_Value")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "return V : constant JSON_Value := Create_Object do")
+        with indent(b):
+            write(b, 'V.Set_Field ("id",       S);')
+            write(b, 'V.Set_Field ("sub",      Empty_Array);')
+            write(b, 'V.Set_Field ("namedSub", Create_Object);')
+            write(b, 'V.Set_Field ("comment",  Create_Object);')
+        write(b, "end return;")
+    write(b, "end Trivial_String;")
+    write(b, "")
+
+    write_comment_block(b, "Trivial_Sloc")
+    write(b, "function Trivial_Sloc (S : Source_Ptr) return JSON_Value")
+    write(b, "is separate;")
+    continuation(b)
+    write(b, "")
+
+    write_comment_block(b, "Trivial_List")
+    write(b, "function Trivial_List (L : Irep_List; Name : String)")
+    write(b, "                      return JSON_Value")
+    continuation(b)
+    write(b, "is")
+    write(b, "begin")
+    with indent(b):
+        write(b, "return Naked_Irep : constant JSON_Value := Create_Object do")
+        with indent(b):
+            write(b, 'Naked_Irep.Set_Field ("id",       Name);')
+            write(b, 'Naked_Irep.Set_Field ("sub",      To_JSON (L));')
+            write(b, 'Naked_Irep.Set_Field ("namedSub", Create_Object);')
+            write(b, 'Naked_Irep.Set_Field ("comment",  Create_Object);')
+        write(b, "end return;")
+    write(b, "end Trivial_List;")
+    write(b, "")
 
     write_comment_block(b, "To_JSON")
     write(b, "function To_JSON (I : Irep) return JSON_Value")
     write(b, "is")
     continuation(b)
-    with indent(b):
-        write(b, "pragma Unreferenced (I);")
     write(b, "begin")
+    manual_indent(b)
+    write(b, "if I = 0 then")
     with indent(b):
         write(b, "return JSON_Null;")
+    write(b, "end if;")
+    write(b, "")
+    write(b, "declare")
+    with indent(b):
+        write(b, "N : Irep_Node renames Irep_Table.Table (I);")
+        write(b, "")
+        write(b, "Sub       :          JSON_Array := Empty_Array;")
+        write(b, "Named_Sub : constant JSON_Value := Create_Object;")
+        write(b, "Comment   : constant JSON_Value := Create_Object;")
+    write(b, "begin")
+    manual_indent(b)
+    write(b, "return V : constant JSON_Value := Create_Object do")
+    manual_indent(b)
+    write(b, 'V.Set_Field ("id", Id (I));')
+    write(b, "case N.Kind is")
+    for sn in top_sorted_sn:
+        schema = schemata[sn]
+        with indent(b):
+            write(b, "when %s =>" % schema["ada_name"])
+            with indent(b):
+                needs_null = True
+                needs_sloc = False
+
+                # Set all subs
+                subs = {}
+                for setter_name in sub_setters:
+                    for kind in sub_setters[setter_name]:
+                        assert kind in ("value", "list")
+                        if sn in sub_setters[setter_name][kind]:
+                            op_id = sub_setters[setter_name][kind][sn][0]
+                            subs[op_id] = (setter_name, kind == "list")
+                for i in xrange(len(subs)):
+                    needs_null = False
+                    setter_name, is_list = subs[i]
+                    layout_kind, layout_index, layout_typ =\
+                      layout[sn][setter_name]
+                    tbl_field = "N." + ada_component_name(layout_kind,
+                                                          layout_index)
+                    if is_list:
+                        write(b, "Append (Sub, Trivial_List (Irep_List (%s)," % tbl_field)
+                        write(b, "                           \"%s\"));" % setter_name)
+                        continuation(b)
+                    else:
+                        write(b, "Append (Sub, To_JSON (Irep (%s)));" %
+                              tbl_field)
+
+                # Set all namedSub and comments
+                for setter_name in named_setters:
+                    for kind in named_setters[setter_name]:
+                        assert kind in ("irep", "list", "trivial")
+                        if sn in named_setters[setter_name][kind]:
+                            needs_null = False
+                            if setter_name == "source_location":
+                                needs_sloc = True
+                                continue
+                            is_comment, value_type =\
+                              named_setters[setter_name][kind][sn]
+                            layout_kind, layout_index, layout_typ =\
+                              layout[sn][setter_name]
+                            tbl_field = "N." + ada_component_name(layout_kind,
+                                                                  layout_index)
+
+                            obj = "Comment" if is_comment else "Named_Sub"
+                            if kind == "irep":
+                                val = "To_JSON (Irep (%s))" % tbl_field
+                            elif kind == "list":
+                                val = "Trivial_List (Irep_List (%s), \"%s\")" \
+                                      % (tbl_field, setter_name)
+                            elif layout_kind == "str":
+                                val = "Trivial_String (%s)" % tbl_field
+                            elif layout_kind == "int":
+                                val = "Trivial_Integer (%s)" % tbl_field
+                            elif layout_kind == "bool":
+                                val = "Trivial_Boolean (%s)" % tbl_field
+                            else:
+                                assert False
+
+                            tmp = "%s.Set_Field (" % obj
+                            write(b, tmp + '"' + setter_name + '",')
+                            write(b, " " * len(tmp) + val + ");")
+                            continuation(b)
+
+
+                # Set all constants
+                for kind, data in const.get(sn, {}).iteritems():
+                    if kind == "id":
+                        continue
+                    elif kind == "namedSub":
+                        obj = "Named_Sub"
+                    elif kind == "comment":
+                        obj = "Comment"
+                    else:
+                        print sn, kind, const[sn]
+                        assert False
+                    for const_name, const_value in data.iteritems():
+                        needs_null = False
+                        tmp = "%s.Set_Field (" % obj
+                        write(b, tmp + '"%s"' % const_name + ",")
+                        write(b, " " * len(tmp) + 'Trivial_String ("%s"));'
+                              % const_value)
+                        continuation(b)
+
+                # Set SLOC
+                if needs_sloc:
+                    write(b, 'Comment.Set_Field ("source_location",')
+                    write(b, '                   Trivial_Sloc (N.Sloc));')
+                    continuation(b)
+
+                if needs_null:
+                    write(b, "null;")
+                write(b, "")
+    write(b, "end case;")
+    write(b, "")
+    write(b, 'V.Set_Field ("sub",      Sub);')
+    write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+    write(b, 'V.Set_Field ("comment",  Comment);')
+    manual_outdent(b)
+    write(b, "end return;")
+    manual_outdent(b)
+    write(b, "end;")
+    manual_outdent(b)
     write(b, "end To_JSON;")
     write(b, "")
 
@@ -1312,11 +1608,11 @@ def main():
 
     manual_outdent(s)
     write(s, "end Ireps;")
-    write_file("ireps.ads", s)
+    write_file(s)
 
     manual_outdent(b)
     write(b, "end Ireps;")
-    write_file("ireps.adb", b)
+    write_file(b)
 
     #pprint(schemata)
 

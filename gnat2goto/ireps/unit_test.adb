@@ -1,4 +1,7 @@
-with Ireps; use Ireps;
+with Ireps;         use Ireps;
+with Output;        use Output;
+
+with GNATCOLL.JSON; use GNATCOLL.JSON;
 
 procedure Unit_Test is
    A : Irep;
@@ -25,5 +28,8 @@ begin
       Append_Argument (C, A);
       Print_Irep (C);
    end loop;
+
+   Write_Eol;
+   Write_Line (Write (To_JSON (C), False));
 
 end Unit_Test;
