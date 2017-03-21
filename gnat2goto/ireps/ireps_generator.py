@@ -869,6 +869,142 @@ def main():
     write(b, "end New_Irep;")
     write(b, "")
 
+    def emit_setter(setter_name,
+                    setter_kind,  # irep|trivial|list
+                    value_type,   # irep|bool|integer|string|gnat:sloc
+                    inputs):      # map sn -> sn|None (if value_type != irep)
+        assert setter_kind in ("irep", "trivial", "list")
+        assert setter_kind != "irep" or value_type == "irep"
+        assert setter_kind != "trivial" or value_type in ("bool",
+                                                          "integer",
+                                                          "string",
+                                                          "gnat:sloc")
+        assert setter_kind != "list" or value_type == "irep"
+        is_list = setter_kind == "list"
+        name = ada_setter_name(setter_name, is_list)
+        all_the_same = len(set(x for x in inputs.itervalues())) == 1
+
+        ada_value_type = {"irep"      : "Irep",
+                          "bool"      : "Boolean",
+                          "integer"   : "Integer",
+                          "string"    : "String",
+                          "gnat:sloc" : "Source_Ptr"}[value_type]
+
+        precon = []
+        i_kinds = set()
+        for kind in inputs:
+            i_kinds |= all_used_subclasses(kind)
+        precon += mk_precondition_in("I", i_kinds)
+        if all_the_same:
+            v_kinds = set()
+            for kind in inputs.itervalues():
+                if kind is not None:
+                    v_kinds |= all_used_subclasses(kind)
+            if len(v_kinds) > 0:
+                precon[-1] += " and then"
+                precon += mk_precondition_in("Value", v_kinds)
+        precon[-1] += ";"
+
+        write(s, "procedure %s (I : Irep; Value : %s)" % (name,
+                                                          ada_value_type))
+        for l in mk_prefixed_lines("with Pre => ", precon):
+            write(s, l)
+        if not all_the_same:
+            write(s, "--  TODO: precondition for Value")
+        write(s, "")
+
+        kind_slot_map = {}
+        if setter_name == "source_location":
+            asn_lhs = "Irep_Table.Table (I).Sloc"
+        else:
+            for sn in sorted(i_kinds):
+                layout_kind, layout_index, layout_typ = layout[sn][setter_name]
+                if layout_index not in kind_slot_map:
+                    kind_slot_map[layout_index] = []
+                kind_slot_map[layout_index].append(sn)
+            asn_lhs = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
+
+        write_comment_block(b, name)
+        write(b, "procedure %s (I : Irep; Value : %s)" % (name,
+                                                          ada_value_type))
+        write(b, "is")
+        continuation(b)
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "if I = Empty then")
+        with indent(b):
+            write(b, "raise Program_Error;")
+        write(b, "end if;")
+        write(b, "")
+
+        if setter_kind in ("irep", "list"):
+            assert value_type == "irep"
+            asn_rhs = "Integer (Value)"
+        elif value_type in ("bool", "integer", "gnat:sloc"):
+            asn_rhs = "Value"
+        elif value_type == "string":
+            write(b, "Start_String;")
+            write(b, "Store_String_Chars (Value);")
+            asn_rhs = "End_String"
+        else:
+            assert False
+
+        if len(kind_slot_map) == 0:
+            assert setter_name == "source_location"
+            write(b, asn_lhs + " := " + asn_rhs + ";")
+        elif len(kind_slot_map) == 1:
+            the_slot = list(kind_slot_map)[0]
+            if is_list:
+                write(b, "if %s = 0 then" % (asn_lhs % the_slot))
+                with indent(b):
+                    write(b, "%s := Integer (New_List);" % (asn_lhs % the_slot))
+                write(b, "end if;")
+                write(b, "Append (Irep_List (%s), Value);" % (asn_lhs %
+                                                              the_slot))
+            else:
+                write(b,
+                      asn_lhs % the_slot + " := " + asn_rhs + ";")
+        else:
+            write(b, "case Irep_Table.Table (I).Kind is")
+            manual_indent(b)
+            for layout_index, i_kinds in kind_slot_map.iteritems():
+                if len(i_kinds) == 1:
+                    write(b, "when %s =>" %
+                          ada_casing(schemata[i_kinds[0]]["ada_name"]))
+                else:
+                    for l in mk_prefixed_lines("when ",
+                                               [schemata[x]["ada_name"]
+                                                for x in i_kinds],
+                                               "| "):
+                        write(b, l)
+                    write(b, "=>")
+
+                with indent(b):
+                    if is_list:
+                        write(b, "if %s = 0 then" % (asn_lhs % layout_index))
+                        with indent(b):
+                            write(b, "%s := Integer (New_List);" %
+                                  (asn_lhs % layout_index))
+                        write(b, "end if;")
+                        write(b, "Append (Irep_List (%s), Value);" %
+                              (asn_lhs % layout_index))
+                    else:
+                        write(b,
+                              asn_lhs % layout_index + " := " + asn_rhs + ";")
+
+                write(b, "")
+            write(b, "when others =>")
+            with indent(b):
+                write(b, "raise Program_Error;")
+            manual_outdent(b)
+            write(b, "end case;")
+
+        manual_outdent(b)
+        write(b, "end %s;" % name)
+        write(b, "")
+
+
+
     write(b, "-" * 70)
     write(b, "--  sub setters")
     write(b, "-" * 70)
@@ -883,130 +1019,13 @@ def main():
         is_list = "list" in sub_setters[setter_name]
         data    = list(sub_setters[setter_name].itervalues())[0]
 
-        all_the_same = len(set(x[1] for x in data.itervalues())) == 1
-
-        name = ada_setter_name(setter_name, is_list)
-
-        write(s, "procedure %s (I : Irep; Value : Irep)" % name)
-
-        precon = []
-
-        i_kinds = set()
-        for kind in data:
-            i_kinds |= all_used_subclasses(kind)
-        precon += mk_precondition_in("I", i_kinds)
-
-        if all_the_same:
-            v_kinds = set()
-            for op_id, kind in data.itervalues():
-                v_kinds |= all_used_subclasses(kind)
-            precon[-1] += " and then"
-            precon += mk_precondition_in("Value", v_kinds)
-
-        precon[-1] += ";"
-        for l in mk_prefixed_lines("with Pre => ", precon):
-            write(s, l)
-
-        if not all_the_same:
-            write(s, "--  TODO: precondition for Value")
-
-        # lo ::= schema -> friendly_name -> (str|int|bool|sloc, index, i|l|t)
-        write_comment_block(b, name)
-        write(b, "procedure %s (I : Irep; Value : Irep)" % name)
-        write(b, "is")
-        continuation(b)
-        write(b, "begin")
-        manual_indent(b)
-        write(b, "if I = Empty then")
-        with indent(b):
-            write(b, "raise Program_Error;")
-        write(b, "end if;")
-        write(b, "")
-
-        kind_slot_map = {}
-        for sn in sorted(i_kinds):
-            layout_kind, layout_index, layout_typ = layout[sn][setter_name]
-            if layout_index not in kind_slot_map:
-                kind_slot_map[layout_index] = []
-            kind_slot_map[layout_index].append(sn)
-        asn_lhs = "Irep_Table.Table (I).%s" % \
-                  ada_component_name(layout_kind)
-
-        if is_list:
-            if len(kind_slot_map) == 1:
-                the_slot = list(kind_slot_map)[0]
-                asn_lhs = asn_lhs % the_slot
-                write(b, "if %s = 0 then" % asn_lhs)
-                with indent(b):
-                    write(b, "%s := Integer (New_List);" % asn_lhs)
-                write(b, "end if;")
-                write(b, "Append (Irep_List (%s), Value);" % asn_lhs)
-            else:
-                write(b, "case Irep_Table.Table (I).Kind is")
-                manual_indent(b)
-                for layout_index, i_kinds in kind_slot_map.iteritems():
-                    if len(i_kinds) == 1:
-                        write(b, "when %s =>" %
-                              ada_casing(schemata[i_kinds[0]]["ada_name"]))
-                    else:
-                        for l in mk_prefixed_lines("when ",
-                                                   [schemata[x]["ada_name"]
-                                                    for x in i_kinds],
-                                                   "| "):
-                            write(b, l)
-                        write(b, "=>")
-
-                    with indent(b):
-                        write(b, "if %s = 0 then" % (asn_lhs % layout_index))
-                        with indent(b):
-                            write(b, "%s := Integer (New_List);" %
-                                  (asn_lhs % layout_index))
-                        write(b, "end if;")
-                        write(b, "Append (Irep_List (%s), Value);" %
-                              (asn_lhs % layout_index))
-                    write(b, "")
-                write(b, "when others =>")
-                with indent(b):
-                    write(b, "raise Program_Error;")
-                manual_outdent(b)
-                write(b, "end case;")
-
-        else:
-            asn_rhs = "Integer (Value)"
-            if len(kind_slot_map) == 1:
-                the_slot = list(kind_slot_map)[0]
-                write(b,
-                      asn_lhs % the_slot + " := " + asn_rhs + ";")
-            else:
-                write(b, "case Irep_Table.Table (I).Kind is")
-                manual_indent(b)
-                for layout_index, i_kinds in kind_slot_map.iteritems():
-                    if len(i_kinds) == 1:
-                        write(b, "when %s =>" %
-                              ada_casing(schemata[i_kinds[0]]["ada_name"]))
-                    else:
-                        for l in mk_prefixed_lines("when ",
-                                                   [schemata[x]["ada_name"]
-                                                    for x in i_kinds],
-                                                   "| "):
-                            write(b, l)
-                        write(b, "=>")
-
-                    with indent(b):
-                        write(b,
-                              asn_lhs % layout_index + " := " + asn_rhs + ";")
-                    write(b, "")
-                write(b, "when others =>")
-                with indent(b):
-                    write(b, "raise Program_Error;")
-                manual_outdent(b)
-                write(b, "end case;")
-
-        manual_outdent(b)
-        write(b, "end %s;" % name)
-
-        write(s, "")
-        write(b, "")
+        emit_setter(setter_name = setter_name,
+                    setter_kind = ("irep"
+                                   if "value" in sub_setters[setter_name]
+                                   else "list"),
+                    value_type  = "irep",
+                    inputs      = dict((sn, data[sn][1])
+                                       for sn in data))
 
     write(b, "-" * 70)
     write(b, "--  namedSub and comment setters")
@@ -1022,125 +1041,17 @@ def main():
                                                        "list"])
         for kind in named_setters[setter_name]:
             data = named_setters[setter_name][kind]
-            all_the_same = len(set(x[1] for x in data.itervalues())) == 1
-            is_list = kind == "list"
-            name = ada_setter_name(setter_name, is_list)
-            assert all_the_same
 
             if kind == "trivial":
-                tmp = list(x[1] for x in data.itervalues())[0]
-                value_ada_typ = {"integer"   : "Integer",
-                                 "bool"      : "Boolean",
-                                 "string"    : "String",
-                                 "gnat:sloc" : "Source_Ptr"}[tmp]
+                vt = list(x[1] for x in data.itervalues())[0]
+                inputs = dict((cls, None) for cls in data)
             else:
-                value_ada_typ = "Irep"
-
-            write(s, "procedure %s (I : Irep; Value : %s)" % (name,
-                                                              value_ada_typ))
-
-            precon = []
-
-            i_kinds = set()
-            for cls in data:
-                i_kinds |= all_used_subclasses(cls)
-            precon += mk_precondition_in("I", i_kinds)
-
-            if all_the_same and value_ada_typ == "Irep":
-                v_kinds = set()
-                for is_constant, cls in data.itervalues():
-                    v_kinds |= all_used_subclasses(cls)
-                precon[-1] += " and then"
-                precon += mk_precondition_in("Value", v_kinds)
-
-            precon[-1] += ";"
-            for l in mk_prefixed_lines("with Pre => ", precon):
-                write(s, l)
-
-            if not all_the_same:
-                write(s, "--  TODO: precondition for Value")
-
-            # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
-            #                                    index,
-            #                                    i|l|t)
-            write_comment_block(b, name)
-            write(b, "procedure %s (I : Irep; Value : %s)" % (name,
-                                                              value_ada_typ))
-            write(b, "is")
-            continuation(b)
-            with indent(b):
-                if is_list:
-                    write(b, "pragma Unreferenced (Value);")
-            write(b, "begin")
-            manual_indent(b)
-            write(b, "if I = Empty then")
-            with indent(b):
-                write(b, "raise Program_Error;")
-            write(b, "end if;")
-            write(b, "")
-            if setter_name == "source_location":
-                write(b, "Irep_Table.Table (I).Sloc := Value;")
-            else:
-                if value_ada_typ == "String":
-                    write(b, "Start_String;")
-                    write(b, "Store_String_Chars (Value);")
-
-                kind_slot_map = {}
-                for sn in sorted(i_kinds):
-                    layout_kind, layout_index, layout_typ =\
-                      layout[sn][setter_name]
-                    if layout_index not in kind_slot_map:
-                        kind_slot_map[layout_index] = []
-                    kind_slot_map[layout_index].append(sn)
-                asn_lhs = "Irep_Table.Table (I).%s" % \
-                          ada_component_name(layout_kind)
-                if is_list:
-                    write(b, "--  TODO: setting of list")
-                    asn_rhs = "0"
-                elif layout_kind == "str":
-                    asn_rhs = "End_String"
-                elif layout_kind == "sloc":
-                    asn_rhs = "Value"
-                elif kind == "trivial":
-                    asn_rhs = "Value"
-                else:
-                    asn_rhs = "Integer (Value)"
-
-                if len(kind_slot_map) == 1:
-                    the_slot = list(kind_slot_map)[0]
-                    write(b,
-                          asn_lhs % the_slot + " := " + asn_rhs + ";")
-                else:
-                    write(b, "case Irep_Table.Table (I).Kind is")
-                    manual_indent(b)
-                    for layout_index, i_kinds in kind_slot_map.iteritems():
-                        if len(i_kinds) == 1:
-                            write(b, "when %s =>" %
-                                  ada_casing(schemata[i_kinds[0]]["ada_name"]))
-                        else:
-                            for l in mk_prefixed_lines("when ",
-                                                       [schemata[x]["ada_name"]
-                                                        for x in i_kinds],
-                                                       "| "):
-                                write(b, l)
-                            write(b, "=>")
-
-                        with indent(b):
-                            write(b,
-                                  asn_lhs % layout_index
-                                  + " := " + asn_rhs + ";")
-                        write(b, "")
-                    write(b, "when others =>")
-                    with indent(b):
-                        write(b, "raise Program_Error;")
-                    manual_outdent(b)
-                    write(b, "end case;")
-            manual_outdent(b)
-            write(b, "end %s;" % name)
-
-
-            write(s, "")
-            write(b, "")
+                vt = "irep"
+                inputs = dict((cls, data[cls][1]) for cls in data)
+            emit_setter(setter_name = setter_name,
+                        setter_kind = kind,
+                        value_type  = vt,
+                        inputs      = inputs)
 
     ##########################################################################
     # Debug output
