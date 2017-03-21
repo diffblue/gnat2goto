@@ -92,6 +92,12 @@ def write(f, txt):
     f.append({"kind" : "text",
               "text" : str(txt)})
 
+def write_comment_block(f, txt):
+    write(f, "-" * (len(txt) + 6))
+    write(f, "-- " + txt + " --")
+    write(f, "-" * (len(txt) + 6))
+    write(f, "")
+
 def current_indent(f):
     indent = 0
     for v in f:
@@ -774,6 +780,7 @@ def main():
     write(b, "with Pre => L /= 0;")
     write(b, "")
 
+    write_comment_block(b, "New_List")
     write(b, "function New_List return Irep_List")
     write(b, "is")
     continuation(b)
@@ -788,6 +795,7 @@ def main():
     write(b, "end New_List;")
     write(b, "")
 
+    write_comment_block(b, "Append")
     write(b, "procedure Append (L : Irep_List; I : Irep)")
     write(b, "is separate;")
     continuation(b)
@@ -799,6 +807,7 @@ def main():
     write(s, "function Kind (I : Irep) return Irep_Kind;")
     write(s, "")
 
+    write_comment_block(b, "Kind")
     write(b, "function Kind (I : Irep) return Irep_Kind")
     write(b, "is")
     continuation(b)
@@ -817,6 +826,7 @@ def main():
     write(s, "function Id (I : Irep) return String;")
     write(s, "")
 
+    write_comment_block(b, "Id")
     write(b, "function Id (I : Irep) return String")
     write(b, "is")
     continuation(b)
@@ -843,6 +853,7 @@ def main():
     write(s, "function New_Irep (Kind : Valid_Irep_Kind) return Irep;")
     write(s, "")
 
+    write_comment_block(b, "New_Irep")
     write(b, "function New_Irep (Kind : Valid_Irep_Kind) return Irep")
     write(b, "is")
     continuation(b)
@@ -898,6 +909,7 @@ def main():
             write(s, "--  TODO: precondition for Value")
 
         # lo ::= schema -> friendly_name -> (str|int|bool|sloc, index, i|l|t)
+        write_comment_block(b, name)
         write(b, "procedure %s (I : Irep; Value : Irep)" % name)
         write(b, "is")
         continuation(b)
@@ -1049,6 +1061,7 @@ def main():
             # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
             #                                    index,
             #                                    i|l|t)
+            write_comment_block(b, name)
             write(b, "procedure %s (I : Irep; Value : %s)" % (name,
                                                               value_ada_typ))
             write(b, "is")
@@ -1138,6 +1151,8 @@ def main():
     write(b, "")
     write(b, "procedure PI_Irep (I : Irep);")
     write(b, "")
+    write(b, "procedure PI_List (L : Irep_List; Name : String);")
+    write(b, "")
     write(b, "procedure PI_String (S : String_Id);")
     write(b, "")
     write(b, "procedure PI_Bool (B : Boolean);")
@@ -1145,6 +1160,7 @@ def main():
     write(b, "procedure PS_List (L : Irep_List; Name : String);")
     write(b, "")
 
+    write_comment_block(b, "To_String")
     write(b, "function To_String (K : Irep_Kind) return String")
     write(b, "is")
     continuation(b)
@@ -1161,6 +1177,7 @@ def main():
     write(b, "end To_String;")
     write(b, "")
 
+    write_comment_block(b, "PI_Irep")
     write(b, "procedure PI_Irep (I : Irep)")
     write(b, "is")
     continuation(b)
@@ -1189,6 +1206,29 @@ def main():
     write(b, "end PI_Irep;")
     write(b, "")
 
+
+    write_comment_block(b, "PI_List")
+    write(b, "procedure PI_List (L : Irep_List; Name : String)")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "if L = 0 then")
+        with indent(b):
+            write(b, 'Write_Str ("<Empty_List>");')
+        write(b, "else")
+        with indent(b):
+            write(b, 'Write_Str ("List #" & Name);')
+        write(b, "end if;")
+        write(b, 'Write_Str (" (Irep_List=");')
+        write(b, 'Write_Int (Int (L));')
+        write(b, "Write_Char (')');")
+        write(b, "Write_Eol;")
+    write(b, "end PI_List;")
+    write(b, "")
+
+
+    write_comment_block(b, "PI_String")
     write(b, "procedure PI_String (S : String_Id)")
     write(b, "is")
     continuation(b)
@@ -1205,6 +1245,7 @@ def main():
     write(b, "end PI_String;")
     write(b, "")
 
+    write_comment_block(b, "PI_Bool")
     write(b, "procedure PI_Bool (B : Boolean)")
     write(b, "is")
     continuation(b)
@@ -1220,11 +1261,13 @@ def main():
     write(b, "end PI_Bool;")
     write(b, "")
 
+    write_comment_block(b, "PS_List")
     write(b, "procedure PS_List (L : Irep_List; Name : String)")
     write(b, "is separate;")
     continuation(b)
     write(b, "")
 
+    write_comment_block(b, "Print_Irep")
     write(b, "procedure Print_Irep (I : Irep)")
     write(b, "is")
     continuation(b)
@@ -1276,15 +1319,16 @@ def main():
                     write(b, "Write_Eol;")
                 else:
                     assert layout_typ == "list"
-                    write(b, 'Write_Str ("List #%s (Irep_List=");' % friendly_name)
-                    write(b, 'Write_Int (Int (N.%s));' % cn)
-                    write(b, "Write_Char (')');")
-                    write(b, "Write_Eol;")
+                    write(b, "PI_List (Irep_List (N.%s), \"%s\");" %
+                          (cn, friendly_name))
                     post.append((friendly_name, "N.%s" % cn))
         for friendly_name, node_field in post:
-            write(b, "Write_Eol;")
-            write(b, "PS_List (Irep_List (%s), \"%s\");" % (node_field,
-                                                            friendly_name))
+            write(b, "if %s /= 0 then" % node_field)
+            with indent(b):
+                write(b, "Write_Eol;")
+                write(b, "PS_List (Irep_List (%s), \"%s\");" % (node_field,
+                                                                friendly_name))
+            write(b, "end if;")
         if needs_null:
             write(b, "null;")
 
