@@ -1,13 +1,12 @@
 with "gnat2goto_c";
 with "gnatcoll";
-with "../irep_utils/irep_utils.gpr";
 
 project GNAT2GOTO is
 
    for Object_Dir use "obj";
    for Exec_Dir use "install/bin";
 
-   for Source_Dirs use ("driver", "obj");
+   for Source_Dirs use ("driver", "ireps", "obj");
 
    for Main use ("gnat1drv.adb");
 

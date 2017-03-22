@@ -1,5 +1,5 @@
 with Symbol_Table_Info; use Symbol_Table_Info;
-with Iinfo;             use Iinfo;
+with Ireps;             use Ireps;
 
 package Gather_Irep_Symbols is
 

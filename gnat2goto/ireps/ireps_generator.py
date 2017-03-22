@@ -242,7 +242,9 @@ def main():
     # Flag nodes that will be supported
     for sn, schema in schemata.iteritems():
         schema["used"] = (len(schema["subclasses"]) == 0 or
-                          sn in ("struct_type", "pointer_type"))
+                          sn in ("struct_type",
+                                 "pointer_type",
+                                 "signedbv_type"))
         if sn == "source_location":
             # We will be using the GNAT ones instead
             schema["used"] = False

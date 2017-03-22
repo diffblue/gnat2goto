@@ -21,14 +21,17 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Switch;    use Switch;
-with Tree_Walk; use Tree_Walk;
-with Irep_Schemata; use Irep_Schemata;
-with Symbol_Table_Info; use Symbol_Table_Info;
-with Gather_Irep_Symbols;
-with Iinfo; use Iinfo;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;           use Ada.Text_IO;
+
+with Switch;                use Switch;
+
+with Ireps;                 use Ireps;
+with Symbol_Table_Info;     use Symbol_Table_Info;
+
+with Tree_Walk;             use Tree_Walk;
+with Gather_Irep_Symbols;
+
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
 package body Driver is
