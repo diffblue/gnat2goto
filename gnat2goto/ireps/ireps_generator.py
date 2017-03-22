@@ -1207,6 +1207,158 @@ def main():
                    inputs     = inputs)
 
     ##########################################################################
+    # Traversal
+
+    write(b, "-" * 70)
+    write(b, "--  Traversal")
+    write(b, "-" * 70)
+    write(b, "")
+
+    write(s, "type Irep_Traversal is (T_Continue, T_Skip, T_Abort);")
+    write(s, "--  T_Continue : continue")
+    write(s, "--  T_Skip     : skip all children of this node")
+    write(s, "--  T_Abort    : abort traversal")
+    write(s, "")
+
+    write(s, "procedure Walk_Irep_Tree")
+    write(s, "  (Root    : Irep;")
+    write(s, "   Visitor : not null access")
+    write(s, "     function (I : Irep) return Irep_Traversal);")
+    write(s, "")
+
+    write(s, "procedure Walk_Irep_Tree")
+    write(s, "  (Root    : Irep;")
+    write(s, "   Visitor : not null access")
+    write(s, "     procedure (I : Irep));")
+    write(s, "")
+
+    write_comment_block(b, "Walk_Irep_Tree")
+
+    write(b, "procedure Walk_Irep_Tree")
+    write(b, "  (Root    : Irep;")
+    write(b, "   Visitor : not null access")
+    write(b, "     function (I : Irep) return Irep_Traversal)")
+    write(b, "is")
+    manual_indent(b)
+    write(b, "Abort_Issued : Boolean := False;")
+    write(b, "--  Set to True if we are instructed to abort.")
+    write(b, "")
+
+    write(b, "procedure Recurse (L : Irep_List);")
+    write(b, "")
+
+    write(b, "procedure Recurse (I : Irep);")
+    write(b, "")
+
+    write_comment_block(b, "Recurse")
+
+    write(b, "procedure Recurse (L : Irep_List)")
+    write(b, "is")
+    with indent(b):
+        write(b, "Cursor : List_Cursor;")
+    write(b, "begin")
+    with indent(b):
+        write(b, "--  Check if we should do nothing.")
+        write(b, "if Abort_Issued or else L = 0 then")
+        with indent(b):
+            write(b, "return;")
+        write(b, "end if;")
+        write(b, "")
+
+        write(b, "Cursor := List_First (L);")
+        write(b, "while not Abort_Issued and then List_Has_Element (L, Cursor) loop")
+        with indent(b):
+            write(b, "Recurse (List_Element (L, Cursor));")
+            write(b, "Cursor := List_Next (L, Cursor);")
+        write(b, "end loop;")
+    write(b, "end Recurse;")
+    write(b, "")
+
+    write(b, "procedure Recurse (I : Irep)")
+    write(b, "is")
+    write(b, "begin")
+    with indent(b):
+        write(b, "--  Check if we should do nothing.")
+        write(b, "if Abort_Issued or else I = 0 then")
+        with indent(b):
+            write(b, "return;")
+        write(b, "end if;")
+        write(b, "")
+
+        write(b, "--  Visit this node to see if we should continue")
+        write(b, "case Visitor (I) is")
+        with indent(b):
+            write(b, "when T_Continue =>")
+            with indent(b):
+                write(b, "null;")
+            write(b, "when T_Skip =>")
+            with indent(b):
+                write(b, "return;")
+            write(b, "when T_Abort =>")
+            with indent(b):
+                write(b, "Abort_Issued := True;")
+                write(b, "return;")
+        write(b, "end case;")
+        write(b, "")
+
+        # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+        #                                    index,
+        #                                    irep|list|trivial)
+
+        write(b, "--  Visit children")
+        write(b, "case Irep_Table.Table (I).Kind is")
+        manual_indent(b)
+        for sn in top_sorted_sn:
+            write(b, "when %s =>" % schemata[sn]["ada_name"])
+            with indent(b):
+                null_required = True
+                for friendly_name in layout[sn]:
+                    lo_kind, lo_idx, lo_typ = layout[sn][friendly_name]
+                    fld = "Irep_Table.Table (I).%s" %\
+                          ada_component_name(lo_kind, lo_idx)
+                    if lo_typ == "irep":
+                        null_required = False
+                        write(b, "Recurse (Irep (%s));" % fld)
+                    elif lo_typ == "list":
+                        null_required = False
+                        write(b, "Recurse (Irep_List (%s));" % fld)
+                if null_required:
+                    write(b, "null;")
+        manual_outdent(b)
+        write(b, "end case;")
+    write(b, "end Recurse;")
+    manual_outdent(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "Recurse (Root);")
+    write(b, "end Walk_Irep_Tree;")
+    write(b, "")
+
+    write(b, "procedure Walk_Irep_Tree")
+    write(b, "  (Root    : Irep;")
+    write(b, "   Visitor : not null access")
+    write(b, "     procedure (I : Irep))")
+    write(b, "is")
+    with indent(b):
+        write(b, "function F (I : Irep) return Irep_Traversal;")
+        write(b, "")
+        write_comment_block(b, "Visitor")
+        write(b, "function F (I : Irep) return Irep_Traversal")
+        write(b, "is")
+        continuation(b)
+        write(b, "begin")
+        with indent(b):
+            write(b, "Visitor (I);")
+            write(b, "return T_Continue;")
+        write(b, "end F;")
+        write(b, "")
+    write(b, "begin")
+    with indent(b):
+        write(b, "Walk_Irep_Tree (Root, F'Access);")
+    write(b, "end Walk_Irep_Tree;")
+    write(b, "")
+
+    ##########################################################################
     # Serialisation to JSON
 
     write(b, "-" * 70)
