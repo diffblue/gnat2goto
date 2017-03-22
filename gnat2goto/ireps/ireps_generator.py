@@ -309,6 +309,16 @@ def main():
     write(s, "Empty : constant Irep := 0;")
     write(s, "")
 
+    write(s, "type Irep_List is private")
+    write(s, "with Iterable => (First       => List_First,")
+    write(s, "                  Next        => List_Next,")
+    write(s, "                  Has_Element => List_Has_Element,")
+    write(s, "                  Element     => List_Element);")
+    write(s, "")
+
+    write(s, "type List_Cursor is private;")
+    write(s, "")
+
     # Emit kind enum
     top_sorted_sn = []
     prefix = "type Irep_Kind is ("
@@ -725,10 +735,7 @@ def main():
     ##########################################################################
     # Datastructure
 
-    write(b, "type Irep_List is range Integer'First + 1 .. 0;")
-    write(b, "")
-
-    write(b, "type Internal_Irep_List is range 0 .. -Irep_List'First;")
+    write(b, "function To_String (S : String_Id) return String;")
     write(b, "")
 
     write(b, "function Is_Irep (I : Integer) return Boolean")
@@ -906,19 +913,127 @@ def main():
     write(b, "end New_Irep;")
     write(b, "")
 
-    def emit_setter(setter_name,
-                    setter_kind,  # irep|trivial|list
-                    value_type,   # irep|bool|integer|string|gnat:sloc
-                    inputs):      # map sn -> sn|None (if value_type != irep)
-        assert setter_kind in ("irep", "trivial", "list")
-        assert setter_kind != "irep" or value_type == "irep"
-        assert setter_kind != "trivial" or value_type in ("bool",
+    def emit_getter(fn_name,
+                    fn_kind,    # irep|trivial|list
+                    value_type, # irep|bool|integer|string|gnat:sloc
+                    inputs):    # map sn -> sn|None (if value_type != irep)
+        assert fn_kind in ("irep", "trivial", "list")
+        assert fn_kind != "irep" or value_type == "irep"
+        assert fn_kind != "trivial" or value_type in ("bool",
                                                           "integer",
                                                           "string",
                                                           "gnat:sloc")
-        assert setter_kind != "list" or value_type == "irep"
-        is_list = setter_kind == "list"
-        name = ada_setter_name(setter_name, is_list)
+        assert fn_kind != "list" or value_type == "irep"
+        is_list = fn_kind == "list"
+        name = "Get_" + ada_casing(fn_name)
+        all_the_same = len(set(x for x in inputs.itervalues())) == 1
+
+        if is_list:
+            ada_value_type = "Irep_List"
+        else:
+            ada_value_type = {"irep"      : "Irep",
+                              "bool"      : "Boolean",
+                              "integer"   : "Integer",
+                              "string"    : "String",
+                              "gnat:sloc" : "Source_Ptr"}[value_type]
+
+        precon = []
+        i_kinds = set()
+        for kind in inputs:
+            i_kinds |= all_used_subclasses(kind)
+        precon += mk_precondition_in("I", i_kinds)
+        precon[-1] += ";"
+
+        write(s, "function %s (I : Irep) return %s " % (name,
+                                                        ada_value_type))
+        for l in mk_prefixed_lines("with Pre => ", precon):
+            write(s, l)
+        write(s, "")
+
+        kind_slot_map = {}
+        if fn_name == "source_location":
+            field = "Irep_Table.Table (I).Sloc"
+        else:
+            for sn in sorted(i_kinds):
+                layout_kind, layout_index, layout_typ = layout[sn][fn_name]
+                if layout_index not in kind_slot_map:
+                    kind_slot_map[layout_index] = []
+                kind_slot_map[layout_index].append(sn)
+            field = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
+
+        write_comment_block(b, name)
+        write(b, "function %s (I : Irep) return %s" % (name,
+                                                       ada_value_type))
+        write(b, "is")
+        continuation(b)
+        write(b, "begin")
+        manual_indent(b)
+
+        write(b, "if I = Empty then")
+        with indent(b):
+            write(b, "raise Program_Error;")
+        write(b, "end if;")
+        write(b, "")
+
+        if fn_kind == "irep":
+            get_conversion = "Irep (%s)"
+        elif fn_kind == "list":
+            get_conversion = "Irep_List (%s)"
+        elif value_type in ("bool", "integer", "gnat:sloc"):
+            get_conversion = "%s"
+        elif value_type == "string":
+            get_conversion = "To_String (%s)"
+        else:
+            assert False
+
+        retval = get_conversion % field
+
+        if len(kind_slot_map) == 0:
+            assert fn_name == "source_location"
+            write(b, "return %s;" % retval)
+        elif len(kind_slot_map) == 1:
+            the_slot = list(kind_slot_map)[0]
+            write(b, "return %s;" % (retval % the_slot))
+        else:
+            write(b, "case Irep_Table.Table (I).Kind is")
+            manual_indent(b)
+            for layout_index, i_kinds in kind_slot_map.iteritems():
+                if len(i_kinds) == 1:
+                    write(b, "when %s =>" %
+                          ada_casing(schemata[i_kinds[0]]["ada_name"]))
+                else:
+                    for l in mk_prefixed_lines("when ",
+                                               [schemata[x]["ada_name"]
+                                                for x in i_kinds],
+                                               "| "):
+                        write(b, l)
+                    write(b, "=>")
+                with indent(b):
+                    write(b, "return %s;" % (retval % layout_index))
+                write(b, "")
+            write(b, "when others =>")
+            with indent(b):
+                write(b, "raise Program_Error;")
+            manual_outdent(b)
+            write(b, "end case;")
+
+        manual_outdent(b)
+        write(b, "end %s;" % name)
+        write(b, "")
+
+    def emit_setter(fn_name,
+                    fn_kind,    # irep|trivial|list
+                    value_type, # irep|bool|integer|string|gnat:sloc
+                    inputs):    # map sn -> sn|None (if value_type != irep)
+        assert fn_kind in ("irep", "trivial", "list")
+        assert fn_kind != "irep" or value_type == "irep"
+        assert fn_kind != "trivial" or value_type in ("bool",
+                                                          "integer",
+                                                          "string",
+                                                          "gnat:sloc")
+        assert fn_kind != "list" or value_type == "irep"
+        is_list = fn_kind == "list"
+        name = ada_setter_name(fn_name, is_list)
         all_the_same = len(set(x for x in inputs.itervalues())) == 1
 
         ada_value_type = {"irep"      : "Irep",
@@ -951,11 +1066,11 @@ def main():
         write(s, "")
 
         kind_slot_map = {}
-        if setter_name == "source_location":
+        if fn_name == "source_location":
             asn_lhs = "Irep_Table.Table (I).Sloc"
         else:
             for sn in sorted(i_kinds):
-                layout_kind, layout_index, layout_typ = layout[sn][setter_name]
+                layout_kind, layout_index, layout_typ = layout[sn][fn_name]
                 if layout_index not in kind_slot_map:
                     kind_slot_map[layout_index] = []
                 kind_slot_map[layout_index].append(sn)
@@ -974,7 +1089,7 @@ def main():
         write(b, "end if;")
         write(b, "")
 
-        if setter_kind in ("irep", "list"):
+        if fn_kind in ("irep", "list"):
             assert value_type == "irep"
             asn_rhs = "Integer (Value)"
         elif value_type in ("bool", "integer", "gnat:sloc"):
@@ -987,7 +1102,7 @@ def main():
             assert False
 
         if len(kind_slot_map) == 0:
-            assert setter_name == "source_location"
+            assert fn_name == "source_location"
             write(b, asn_lhs + " := " + asn_rhs + ";")
         elif len(kind_slot_map) == 1:
             the_slot = list(kind_slot_map)[0]
@@ -1040,53 +1155,55 @@ def main():
         write(b, "end %s;" % name)
         write(b, "")
 
-    write(b, "-" * 70)
-    write(b, "--  sub setters")
-    write(b, "-" * 70)
-    write(b, "")
+    for fn, category in [(emit_getter, "getters"),
+                         (emit_setter, "setters")]:
+        write(b, "-" * 70)
+        write(b, "--  sub %s" % category)
+        write(b, "-" * 70)
+        write(b, "")
 
-    # Print all setters for 'subs'
-    # sub ::= setter_name -> value|list         -> {schema: (op_id, type)}
-    for setter_name in sorted(sub_setters):
-        assert len(sub_setters[setter_name]) == 1
-        assert ("value" in sub_setters[setter_name] or
-                "list"  in sub_setters[setter_name])
-        is_list = "list" in sub_setters[setter_name]
-        data    = list(sub_setters[setter_name].itervalues())[0]
+        # Print all setters for 'subs'
+        # sub ::= setter_name -> value|list         -> {schema: (op_id, type)}
+        for fn_name in sorted(sub_setters):
+            assert len(sub_setters[fn_name]) == 1
+            assert ("value" in sub_setters[fn_name] or
+                    "list"  in sub_setters[fn_name])
+            is_list = "list" in sub_setters[fn_name]
+            data    = list(sub_setters[fn_name].itervalues())[0]
 
-        emit_setter(setter_name = setter_name,
-                    setter_kind = ("irep"
-                                   if "value" in sub_setters[setter_name]
-                                   else "list"),
-                    value_type  = "irep",
-                    inputs      = dict((sn, data[sn][1])
-                                       for sn in data))
+            fn(fn_name    = fn_name,
+               fn_kind    = ("irep"
+                             if "value" in sub_setters[fn_name]
+                             else "list"),
+               value_type = "irep",
+               inputs     = dict((sn, data[sn][1]) for sn in data))
 
-    write(b, "-" * 70)
-    write(b, "--  namedSub and comment setters")
-    write(b, "-" * 70)
-    write(b, "")
+        write(b, "-" * 70)
+        write(b, "--  namedSub and comment %s" % category)
+        write(b, "-" * 70)
+        write(b, "")
 
-    # Print all setters for 'named' and 'comment'
-    # nam ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
-    for setter_name in sorted(named_setters):
-        assert len(named_setters[setter_name]) >= 1
-        assert set(named_setters[setter_name]) <= set(["trivial",
-                                                       "irep",
-                                                       "list"])
-        for kind in named_setters[setter_name]:
-            data = named_setters[setter_name][kind]
+        # Print all setters for 'named' and 'comment'
+        # nam ::= setter_name -> value|list|trivial ->
+        #           {schema: (is_comment, type)}
+        for fn_name in sorted(named_setters):
+            assert len(named_setters[fn_name]) >= 1
+            assert set(named_setters[fn_name]) <= set(["trivial",
+                                                           "irep",
+                                                           "list"])
+            for kind in named_setters[fn_name]:
+                data = named_setters[fn_name][kind]
 
-            if kind == "trivial":
-                vt = list(x[1] for x in data.itervalues())[0]
-                inputs = dict((cls, None) for cls in data)
-            else:
-                vt = "irep"
-                inputs = dict((cls, data[cls][1]) for cls in data)
-            emit_setter(setter_name = setter_name,
-                        setter_kind = kind,
-                        value_type  = vt,
-                        inputs      = inputs)
+                if kind == "trivial":
+                    vt = list(x[1] for x in data.itervalues())[0]
+                    inputs = dict((cls, None) for cls in data)
+                else:
+                    vt = "irep"
+                    inputs = dict((cls, data[cls][1]) for cls in data)
+                fn(fn_name    = fn_name,
+                   fn_kind    = kind,
+                   value_type = vt,
+                   inputs     = inputs)
 
     ##########################################################################
     # Serialisation to JSON
@@ -1427,6 +1544,16 @@ def main():
     write(b, "end To_String;")
     write(b, "")
 
+    write(b, "function To_String (S : String_Id) return String")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "String_To_Name_Buffer (S);")
+        write(b, "return Name_Buffer (1 .. Name_Len);")
+    write(b, "end To_String;")
+    write(b, "")
+
     write_comment_block(b, "PI_Irep")
     write(b, "procedure PI_Irep (I : Irep)")
     write(b, "is")
@@ -1591,6 +1718,7 @@ def main():
 
     manual_outdent(b)
     write(b, "end Print_Irep;")
+    write(b, "")
 
     ##########################################################################
     # Initialisation
@@ -1605,6 +1733,113 @@ def main():
     # outdent(b)
     # write(b, "end Init;")
     # write(b, "")
+
+    ##########################################################################
+    # List Iteration
+
+    write(s, "function List_First (L : Irep_List) return List_Cursor;")
+    write(s, "")
+
+    write_comment_block(b, "List_First")
+    write(b, "function List_First (L : Irep_List) return List_Cursor")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "return C : List_Cursor do")
+        with indent(b):
+            write(b, "C.L := L;")
+            write(b, "if L = 0 then")
+            with indent(b):
+                write(b, "C.Pos := 0;")
+            write(b, "else")
+            with indent(b):
+                write(b, "C.Pos := To_Internal_List (Irep_List")
+                write(b, "           (Irep_List_Table.Table (To_Internal_List (L)).A));")
+            write(b, "end if;")
+        write(b, "end return;")
+    write(b, "end List_First;")
+    write(b, "")
+
+    write(s, "function List_Next (L : Irep_List; C : List_Cursor)")
+    write(s, "                   return List_Cursor;")
+    continuation(s)
+    write(s, "")
+
+    write_comment_block(b, "List_Next")
+    write(b, "function List_Next (L : Irep_List; C : List_Cursor)")
+    write(b, "                   return List_Cursor")
+    continuation(s)
+    write(b, "is")
+    with indent(b):
+        write(b, "pragma Assert (L /= 0 and L = C.L);")
+        write(b, "pragma Assert (C.Pos /= 0);")
+    write(b, "begin")
+    with indent(b):
+        write(b, "return Next : List_Cursor := C do")
+        with indent(b):
+            write(b, "Next.Pos := Irep_List_Table.Table (C.Pos).B;")
+        write(b, "end return;")
+    write(b, "end List_Next;")
+    write(b, "")
+
+    write(s, "function List_Has_Element (L : Irep_List; C : List_Cursor)")
+    write(s, "                          return Boolean;")
+    continuation(s)
+    write(s, "")
+
+    write_comment_block(b, "List_Has_Element")
+    write(b, "function List_Has_Element (L : Irep_List; C : List_Cursor)")
+    write(b, "                          return Boolean")
+    continuation(s)
+    write(b, "is")
+    with indent(b):
+        write(b, "pragma Assert (L = C.L);")
+    write(b, "begin")
+    with indent(b):
+        write(b, "return C.L /= 0 and then C.Pos /= 0;")
+    write(b, "end List_Has_Element;")
+    write(b, "")
+
+    write(s, "function List_Element (L : Irep_List; C : List_Cursor)")
+    write(s, "                      return Irep;")
+    continuation(s)
+    write(s, "")
+
+    write_comment_block(b, "List_Element")
+    write(b, "function List_Element (L : Irep_List; C : List_Cursor)")
+    write(b, "                      return Irep")
+    continuation(s)
+    write(b, "is")
+    with indent(b):
+        write(b, "pragma Assert (L /= 0 and L = C.L);")
+        write(b, "pragma Assert (C.Pos /= 0);")
+    write(b, "begin")
+    with indent(b):
+        write(b, "return Irep (Irep_List_Table.Table (C.Pos).A);")
+    write(b, "end List_Element;")
+    write(b, "")
+
+    ##########################################################################
+    # Private part
+
+    manual_outdent(s)
+    write(s, "private")
+    write(s, "")
+    manual_indent(s)
+
+    write(s, "type Irep_List is range Integer'First + 1 .. 0;")
+    write(s, "")
+
+    write(s, "type Internal_Irep_List is range 0 .. -Irep_List'First;")
+    write(s, "")
+
+    write(s, "type List_Cursor is record")
+    with indent(s):
+        write(s, "L   : Irep_List;")
+        write(s, "Pos : Internal_Irep_List;")
+    write(s, "end record;")
+    write(s, "")
 
     manual_outdent(s)
     write(s, "end Ireps;")

@@ -1,8 +1,7 @@
 separate (Ireps)
 procedure PS_List (L : Irep_List; Name : String)
 is
-   The_List : Irep_List_Node;
-   Ptr      : Internal_Irep_List;
+   C : List_Cursor := List_First (L);
 begin
    if L = 0 then
       return;
@@ -13,12 +12,10 @@ begin
    Write_Char (')');
    Write_Eol;
 
-   The_List := Irep_List_Table.Table (To_Internal_List (L));
-   Ptr      := To_Internal_List (Irep_List (The_List.A));
    Indent;
-   while Ptr /= 0 loop
-      PI_Irep (Irep (Irep_List_Table.Table (Ptr).A));
-      Ptr := Irep_List_Table.Table (Ptr).B;
+   while List_Has_Element (L, C) loop
+      PI_Irep (List_Element (L, C));
+      C := List_Next (L, C);
    end loop;
    Outdent;
 end PS_List;

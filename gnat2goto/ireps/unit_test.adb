@@ -29,6 +29,10 @@ begin
       Print_Irep (C);
    end loop;
 
+   for Arg of Get_Argument (C) loop
+      Print_Irep (Arg);
+   end loop;
+
    Write_Eol;
    Write_Line (Write (To_JSON (C), False));
 
