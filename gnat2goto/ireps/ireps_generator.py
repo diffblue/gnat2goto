@@ -117,15 +117,16 @@ def write(f, txt):
         elif c == ")":
             del f["bracket_stack"][-1]
 
-
-
-
 def continuation(f):
+    assert f["content"][-2]["kind"] == "text"
+    assert f["content"][-1]["kind"] == "text"
+    len_before = len(f["content"])
     # Merge the last two lines if it doesn't make them too long
-    tmp = f["content"][-2]["text"] + " " + f["content"][-1]["text"].strip()
+    tmp = f["content"][-2]["text"].rstrip() + " " + f["content"][-1]["text"].strip()
     if 3 * f["indent"] + len(tmp) < 80:
         del f["content"][-1]
         f["content"][-1]["text"] = tmp
+    assert len(f["content"]) in (len_before, len_before - 1)
 
 def new_file(name):
     return {"name"          : name,
@@ -1769,7 +1770,7 @@ def main():
     write_comment_block(b, "List_Next")
     write(b, "function List_Next (L : Irep_List; C : List_Cursor)")
     write(b, "                   return List_Cursor")
-    continuation(s)
+    continuation(b)
     write(b, "is")
     with indent(b):
         write(b, "pragma Assert (L /= 0 and L = C.L);")
@@ -1791,7 +1792,7 @@ def main():
     write_comment_block(b, "List_Has_Element")
     write(b, "function List_Has_Element (L : Irep_List; C : List_Cursor)")
     write(b, "                          return Boolean")
-    continuation(s)
+    continuation(b)
     write(b, "is")
     with indent(b):
         write(b, "pragma Assert (L = C.L);")
@@ -1809,7 +1810,7 @@ def main():
     write_comment_block(b, "List_Element")
     write(b, "function List_Element (L : Irep_List; C : List_Cursor)")
     write(b, "                      return Irep")
-    continuation(s)
+    continuation(b)
     write(b, "is")
     with indent(b):
         write(b, "pragma Assert (L /= 0 and L = C.L);")
