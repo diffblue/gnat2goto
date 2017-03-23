@@ -51,8 +51,9 @@ def ada_setter_name(name, is_list):
         return "Set_%s" % ada_casing(name)
 
 def ada_component_name(layout_kind, layout_id=None):
-    rv = "%s_%%u" % ({"str" : "String",
-                      "int" : "Int",
+    rv = "%s_%%u" % ({"str"  : "Int",
+                      "int"  : "Int",
+                      "sloc" : "Int",
                       "bool" : "Bool"}[layout_kind])
     if layout_id is not None:
         rv = rv % layout_id
@@ -635,7 +636,6 @@ def main():
 
     for sn in top_sorted_sn:
         op_counts[sn] = {"int"  : 0,
-                         "str"  : 0,
                          "bool" : 0}
         layout[sn] = {}
 
@@ -660,16 +660,19 @@ def main():
                         op_counts[sn]["int"] += 1
                     elif typ == "string":
                         layout[sn][setter_name] = ("str",
-                                                   op_counts[sn]["str"],
+                                                   op_counts[sn]["int"],
                                                    "trivial")
-                        op_counts[sn]["str"] += 1
+                        op_counts[sn]["int"] += 1
                     elif typ == "bool":
                         layout[sn][setter_name] = ("bool",
                                                    op_counts[sn]["bool"],
                                                    "trivial")
                         op_counts[sn]["bool"] += 1
                     elif typ == "gnat:sloc":
-                        pass
+                        layout[sn][setter_name] = ("sloc",
+                                                   op_counts[sn]["int"],
+                                                   "trivial")
+                        op_counts[sn]["int"] += 1
                     else:
                         print sn, setter_name, kind, typ
                         assert False
@@ -762,12 +765,9 @@ def main():
     write(b, "")
 
     write(b, "type Irep_Node is record")
-    components = [("Kind", "Valid_Irep_Kind", None),
-                  ("Sloc", "Source_Ptr", "No_Location")]
+    components = [("Kind", "Valid_Irep_Kind", None)]
     for i in xrange(max(x["int"] for x in op_counts.itervalues())):
         components.append(("Int_%u" % i, "Integer", "0"))
-    for i in xrange(max(x["str"] for x in op_counts.itervalues())):
-        components.append(("String_%u" % i, "String_Id", "Null_String_Id"))
     for i in xrange(max(x["bool"] for x in op_counts.itervalues())):
         components.append(("Bool_%u" % i, "Boolean", "False"))
     with indent(b):
@@ -923,9 +923,9 @@ def main():
         assert fn_kind in ("irep", "trivial", "list")
         assert fn_kind != "irep" or value_type == "irep"
         assert fn_kind != "trivial" or value_type in ("bool",
-                                                          "integer",
-                                                          "string",
-                                                          "gnat:sloc")
+                                                      "integer",
+                                                      "string",
+                                                      "gnat:sloc")
         assert fn_kind != "list" or value_type == "irep"
         is_list = fn_kind == "list"
         name = "Get_" + ada_casing(fn_name)
@@ -954,15 +954,12 @@ def main():
         write(s, "")
 
         kind_slot_map = {}
-        if fn_name == "source_location":
-            field = "Irep_Table.Table (I).Sloc"
-        else:
-            for sn in sorted(i_kinds):
-                layout_kind, layout_index, layout_typ = layout[sn][fn_name]
-                if layout_index not in kind_slot_map:
-                    kind_slot_map[layout_index] = []
-                kind_slot_map[layout_index].append(sn)
-            field = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
+        for sn in sorted(i_kinds):
+            layout_kind, layout_index, layout_typ = layout[sn][fn_name]
+            if layout_index not in kind_slot_map:
+                kind_slot_map[layout_index] = []
+            kind_slot_map[layout_index].append(sn)
+        field = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
 
         write_comment_block(b, name)
         write(b, "function %s (I : Irep) return %s" % (name,
@@ -982,18 +979,19 @@ def main():
             get_conversion = "Irep (%s)"
         elif fn_kind == "list":
             get_conversion = "Irep_List (%s)"
-        elif value_type in ("bool", "integer", "gnat:sloc"):
+        elif value_type in ("bool", "integer"):
             get_conversion = "%s"
         elif value_type == "string":
-            get_conversion = "To_String (%s)"
+            get_conversion = "To_String (String_Id (%s))"
+        elif value_type == "gnat:sloc":
+            get_conversion = "Source_Ptr (%s)"
         else:
             assert False
 
         retval = get_conversion % field
 
         if len(kind_slot_map) == 0:
-            assert fn_name == "source_location"
-            write(b, "return %s;" % retval)
+            assert False
         elif len(kind_slot_map) == 1:
             the_slot = list(kind_slot_map)[0]
             write(b, "return %s;" % (retval % the_slot))
@@ -1031,9 +1029,9 @@ def main():
         assert fn_kind in ("irep", "trivial", "list")
         assert fn_kind != "irep" or value_type == "irep"
         assert fn_kind != "trivial" or value_type in ("bool",
-                                                          "integer",
-                                                          "string",
-                                                          "gnat:sloc")
+                                                      "integer",
+                                                      "string",
+                                                      "gnat:sloc")
         assert fn_kind != "list" or value_type == "irep"
         is_list = fn_kind == "list"
         name = ada_setter_name(fn_name, is_list)
@@ -1069,15 +1067,12 @@ def main():
         write(s, "")
 
         kind_slot_map = {}
-        if fn_name == "source_location":
-            asn_lhs = "Irep_Table.Table (I).Sloc"
-        else:
-            for sn in sorted(i_kinds):
-                layout_kind, layout_index, layout_typ = layout[sn][fn_name]
-                if layout_index not in kind_slot_map:
-                    kind_slot_map[layout_index] = []
-                kind_slot_map[layout_index].append(sn)
-            asn_lhs = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
+        for sn in sorted(i_kinds):
+            layout_kind, layout_index, layout_typ = layout[sn][fn_name]
+            if layout_index not in kind_slot_map:
+                kind_slot_map[layout_index] = []
+            kind_slot_map[layout_index].append(sn)
+        asn_lhs = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
 
         write_comment_block(b, name)
         write(b, "procedure %s (I : Irep; Value : %s)" % (name,
@@ -1095,18 +1090,19 @@ def main():
         if fn_kind in ("irep", "list"):
             assert value_type == "irep"
             asn_rhs = "Integer (Value)"
-        elif value_type in ("bool", "integer", "gnat:sloc"):
+        elif value_type in ("bool", "integer"):
             asn_rhs = "Value"
+        elif value_type == "gnat:sloc":
+            asn_rhs = "Integer (Value)"
         elif value_type == "string":
             write(b, "Start_String;")
             write(b, "Store_String_Chars (Value);")
-            asn_rhs = "End_String"
+            asn_rhs = "Integer (End_String)"
         else:
             assert False
 
         if len(kind_slot_map) == 0:
-            assert fn_name == "source_location"
-            write(b, asn_lhs + " := " + asn_rhs + ";")
+            assert False
         elif len(kind_slot_map) == 1:
             the_slot = list(kind_slot_map)[0]
             if is_list:
@@ -1542,7 +1538,6 @@ def main():
             write(b, "when %s =>" % schema["ada_name"])
             with indent(b):
                 needs_null = True
-                needs_sloc = False
 
                 # Set all subs
                 subs = {}
@@ -1573,9 +1568,6 @@ def main():
                         assert kind in ("irep", "list", "trivial")
                         if sn in named_setters[setter_name][kind]:
                             needs_null = False
-                            if setter_name == "source_location":
-                                needs_sloc = True
-                                continue
                             is_comment, value_type =\
                               named_setters[setter_name][kind][sn]
                             layout_kind, layout_index, layout_typ =\
@@ -1590,11 +1582,13 @@ def main():
                                 val = "Trivial_List (Irep_List (%s), \"%s\")" \
                                       % (tbl_field, setter_name)
                             elif layout_kind == "str":
-                                val = "Trivial_String (%s)" % tbl_field
+                                val = "Trivial_String (String_Id (%s))" % tbl_field
                             elif layout_kind == "int":
                                 val = "Trivial_Integer (%s)" % tbl_field
                             elif layout_kind == "bool":
                                 val = "Trivial_Boolean (%s)" % tbl_field
+                            elif layout_kind == "sloc":
+                                val = "Trivial_Sloc (Source_Ptr (%s))" % tbl_field
                             else:
                                 assert False
 
@@ -1622,12 +1616,6 @@ def main():
                         write(b, " " * len(tmp) + 'Trivial_String ("%s"));'
                               % const_value)
                         continuation(b)
-
-                # Set SLOC
-                if needs_sloc:
-                    write(b, 'Comment.Set_Field ("source_location",')
-                    write(b, '                   Trivial_Sloc (N.Sloc));')
-                    continuation(b)
 
                 if needs_null:
                     write(b, "null;")
@@ -1673,6 +1661,10 @@ def main():
     write(b, "procedure PI_String (S : String_Id);")
     write(b, "--  Print one-line string description")
     write(b, "--    e.g. \"wibble\" (String_Id=400000001)")
+    write(b, "")
+    write(b, "procedure PI_Sloc (S : Source_Ptr);")
+    write(b, "--  Print one-line source location")
+    write(b, "--    e.g. \"foo.bar:42:666\" (Source_Ptr=12345)")
     write(b, "")
     write(b, "procedure PI_Bool (B : Boolean);")
     write(b, "--  Print one-line boolean description")
@@ -1738,7 +1730,6 @@ def main():
     write(b, "end PI_Irep;")
     write(b, "")
 
-
     write_comment_block(b, "PI_List")
     write(b, "procedure PI_List (L : Irep_List; Name : String)")
     write(b, "is")
@@ -1759,7 +1750,6 @@ def main():
     write(b, "end PI_List;")
     write(b, "")
 
-
     write_comment_block(b, "PI_String")
     write(b, "procedure PI_String (S : String_Id)")
     write(b, "is")
@@ -1775,6 +1765,26 @@ def main():
         write(b, "Write_Char (')');")
         write(b, "Write_Eol;")
     write(b, "end PI_String;")
+    write(b, "")
+
+    write_comment_block(b, "PI_Sloc")
+    write(b, "procedure PI_Sloc (S : Source_Ptr)")
+    write(b, "is")
+    continuation(b)
+    write(b, "begin")
+    with indent(b):
+        write(b, "if S = No_Location then")
+        with indent(b):
+            write(b, 'Write_Str ("No_Location");')
+        write(b, "else")
+        with indent(b):
+            write(b, 'Write_Str ("TODO");')
+        write(b, "end if;")
+        write(b, 'Write_Str (" (Source_Ptr=");')
+        write(b, "Write_Int (Int (S));")
+        write(b, "Write_Char (')');")
+        write(b, "Write_Eol;")
+    write(b, "end PI_Sloc;")
     write(b, "")
 
     write_comment_block(b, "PI_Bool")
@@ -1821,9 +1831,6 @@ def main():
     write(b, "begin")
     manual_indent(b)
     write(b, "Indent;")
-    write(b, 'Write_Str ("Source_Location = ");')
-    write(b, 'Write_Int (Int (N.Sloc));')
-    write(b, 'Write_Eol;')
     write(b, "case N.Kind is")
     manual_indent(b)
     for sn in top_sorted_sn:
@@ -1838,10 +1845,13 @@ def main():
             write(b, 'Write_Str ("%s = ");' % ada_casing(friendly_name))
             if layout_kind == "str":
                 assert layout_typ == "trivial"
-                write(b, "PI_String (N.%s);" % cn)
+                write(b, "PI_String (String_Id (N.%s));" % cn)
             elif layout_kind == "bool":
                 assert layout_typ == "trivial"
                 write(b, 'PI_Bool (N.%s);' % cn)
+            elif layout_kind == "sloc":
+                assert layout_typ == "trivial"
+                write(b, "PI_Sloc (Source_Ptr (N.%s));" % cn)
             else:
                 assert layout_kind == "int"
                 if layout_typ == "irep":
