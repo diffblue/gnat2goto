@@ -771,7 +771,7 @@ def main():
     components = [("Kind", "Valid_Irep_Kind", None)]
     size = 8
     for i in xrange(MAX_INTS):
-        components.append(("Int_%u" % i, "Integer", "0"))
+        components.append(("Int_%u" % i, "Integer", None))
         size += 32
     for i in xrange(MAX_BOOLS):
         components.append(("Bool_%u" % i, "Boolean", "False"))
@@ -780,12 +780,12 @@ def main():
         max_len = max(map(len, (x[0] for x in components)))
         for cname, ctyp, default in components:
             if default is None:
-                write(b, "%-*s : %-15s;" % (max_len, cname, ctyp))
+                write(b, "%-*s : %s;" % (max_len, cname, ctyp))
             else:
-                write(b, "%-*s : %-15s := %s;" % (max_len,
-                                                  cname,
-                                                  ctyp,
-                                                  default))
+                write(b, "%-*s : %s := %s;" % (max_len,
+                                               cname,
+                                               ctyp,
+                                               default))
     write(b, "end record with Pack, Size => %u;" % size)
     write(b, "")
 
@@ -800,6 +800,15 @@ def main():
     continuation(b)
     write(b, "                           S_Str);")
     continuation(b)
+    write(b, "")
+
+    write(b, "Empty_Default : constant array (Node_Storage_Kind) of Integer :=")
+    write(b, "  (S_Unused => Integer'First,")
+    write(b, "   S_Irep   => Integer (Empty),")
+    write(b, "   S_List   => Integer (0),")
+    write(b, "   S_Int    => Integer'First,")
+    write(b, "   S_Sloc   => Integer (No_Location),")
+    write(b, "   S_Str    => Integer (No_String));")
     write(b, "")
 
     write(b, "type Node_Semantics is record")
@@ -987,11 +996,13 @@ def main():
     write(b, "is")
     continuation(b)
     with indent(b):
-        write(b, "I : Irep_Node;")
+        write(b, "N : Irep_Node;")
     write(b, "begin")
     with indent(b):
-        write(b, "I.Kind := Kind;")
-        write(b, "Irep_Table.Append (I);")
+        write(b, "N.Kind  := Kind;")
+        for i in xrange(MAX_INTS):
+            write(b, "N.Int_%u := Empty_Default (Semantics (Kind).Int_%u);" % (i, i))
+        write(b, "Irep_Table.Append (N);")
         write(b, "return Irep_Table.Last;")
     write(b, "end New_Irep;")
     write(b, "")
