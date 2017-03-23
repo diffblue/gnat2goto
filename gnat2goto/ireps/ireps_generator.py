@@ -677,6 +677,9 @@ def main():
                         print sn, setter_name, kind, typ
                         assert False
 
+    MAX_INTS  = max(x["int"] for x in op_counts.itervalues())
+    MAX_BOOLS = max(x["bool"] for x in op_counts.itervalues())
+
     ##########################################################################
     # Documentation
 
@@ -766,10 +769,13 @@ def main():
 
     write(b, "type Irep_Node is record")
     components = [("Kind", "Valid_Irep_Kind", None)]
-    for i in xrange(max(x["int"] for x in op_counts.itervalues())):
+    size = 8
+    for i in xrange(MAX_INTS):
         components.append(("Int_%u" % i, "Integer", "0"))
-    for i in xrange(max(x["bool"] for x in op_counts.itervalues())):
+        size += 32
+    for i in xrange(MAX_BOOLS):
         components.append(("Bool_%u" % i, "Boolean", "False"))
+        size += 1
     with indent(b):
         max_len = max(map(len, (x[0] for x in components)))
         for cname, ctyp, default in components:
@@ -780,8 +786,82 @@ def main():
                                                   cname,
                                                   ctyp,
                                                   default))
+    write(b, "end record with Pack, Size => %u;" % size)
+    write(b, "")
+
+    write(b, "type Node_Storage_Kind is (S_Unused,")
+    write(b, "                           S_Irep,")
+    continuation(b)
+    write(b, "                           S_List,")
+    continuation(b)
+    write(b, "                           S_Int,")
+    continuation(b)
+    write(b, "                           S_Sloc,")
+    continuation(b)
+    write(b, "                           S_Str);")
+    continuation(b)
+    write(b, "")
+
+    write(b, "type Node_Semantics is record")
+    with indent(b):
+        for i in xrange(MAX_INTS):
+            write(b, "Int_%u : Node_Storage_Kind;" % i)
     write(b, "end record;")
-    write(b, "pragma Pack (Irep_Node);")
+    write(b, "")
+
+    write(b, "type Semantics_T is array (Valid_Irep_Kind) of Node_Semantics;")
+    write(b, "")
+
+    # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+    #                                    index,
+    #                                    irep|list|trivial)
+    # sem ::= sn -> index -> unused|irep|list|int|sloc|str
+    semantics = {}
+    for sn in layout:
+        semantics[sn] = {}
+        for friendly_name in layout[sn]:
+            lo_kind, lo_idx, lo_typ = layout[sn][friendly_name]
+            if lo_kind in ("str", "int", "sloc"):
+                if lo_typ == "irep":
+                    semantics[sn][lo_idx] = "irep"
+                elif lo_typ == "list":
+                    semantics[sn][lo_idx] = "list"
+                elif lo_kind == "int":
+                    semantics[sn][lo_idx] = "int"
+                elif lo_kind == "str":
+                    semantics[sn][lo_idx] = "str"
+                elif lo_kind == "sloc":
+                    semantics[sn][lo_idx] = "sloc"
+                else:
+                    assert False
+            for i in xrange(MAX_INTS):
+                if i not in semantics[sn]:
+                    semantics[sn][i] = "unused"
+    for sn in top_sorted_sn:
+        if sn not in semantics:
+            semantics[sn] = {}
+        if len(semantics[sn]) == 0:
+            for i in xrange(MAX_INTS):
+                semantics[sn][i] = "unused"
+
+    max_len = max(map(len, (schemata[sn]["ada_name"] for sn in top_sorted_sn)))
+    content = []
+    for sn in top_sorted_sn:
+        tmp = []
+        for i in sorted(semantics[sn]):
+            tmp.append("S_" + ada_casing(semantics[sn][i]))
+        for i in xrange(len(tmp) - 1):
+            tmp[i] += ","
+        tmp[-1] += ")"
+        content += mk_prefixed_lines("%-*s => (" % (max_len, schemata[sn]["ada_name"]),
+                                     tmp)
+        if sn != top_sorted_sn[-1]:
+            content[-1] += ","
+    content[-1] += ");"
+
+    write(b, "Semantics : constant Semantics_T :=")
+    for l in mk_prefixed_lines("(", content):
+        write(b, "  " + l)
     write(b, "")
 
     write(b, "type Irep_List_Node is record")
@@ -1299,31 +1379,18 @@ def main():
         write(b, "end case;")
         write(b, "")
 
-        # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
-        #                                    index,
-        #                                    irep|list|trivial)
-
         write(b, "--  Visit children")
-        write(b, "case Irep_Table.Table (I).Kind is")
-        manual_indent(b)
-        for sn in top_sorted_sn:
-            write(b, "when %s =>" % schemata[sn]["ada_name"])
+        for i in xrange(MAX_INTS):
+            write(b, "case Semantics (Irep_Table.Table (I).Kind).Int_%u is" % i)
             with indent(b):
-                null_required = True
-                for friendly_name in layout[sn]:
-                    lo_kind, lo_idx, lo_typ = layout[sn][friendly_name]
-                    fld = "Irep_Table.Table (I).%s" %\
-                          ada_component_name(lo_kind, lo_idx)
-                    if lo_typ == "irep":
-                        null_required = False
-                        write(b, "Recurse (Irep (%s));" % fld)
-                    elif lo_typ == "list":
-                        null_required = False
-                        write(b, "Recurse (Irep_List (%s));" % fld)
-                if null_required:
-                    write(b, "null;")
-        manual_outdent(b)
-        write(b, "end case;")
+                write(b, "when S_Irep =>")
+                with indent(b):
+                    write(b, "Recurse (Irep (Irep_Table.Table (I).Int_%u));" % i)
+                write(b, "when S_List =>")
+                with indent(b):
+                    write(b, "Recurse (Irep_List (Irep_Table.Table (I).Int_%u));" % i)
+                write(b, "when others => null;")
+            write(b, "end case;")
     write(b, "end Recurse;")
     manual_outdent(b)
     write(b, "begin")
