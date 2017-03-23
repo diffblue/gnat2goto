@@ -1,7 +1,7 @@
 package body Symbol_Table_Info is
 
    function Symbol2Json (Sym : Symbol) return JSON_Value is
-      Ret : JSON_Value := Create_Object;
+      Ret : constant JSON_Value := Create_Object;
    begin
       Ret.Set_Field ("type",               To_JSON (Sym.SymType));
       Ret.Set_Field ("value",              To_JSON (Sym.Value));
