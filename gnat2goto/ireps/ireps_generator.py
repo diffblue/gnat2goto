@@ -18,6 +18,10 @@ from pprint import pprint
 from glob import glob
 from copy import copy
 
+# Enable this option to optimize the table layout to avoid switch
+# statements. This requires CVC4 on your path.
+OPTIMIZE = False
+
 def get_schema_files():
     try:
         assert len(sys.argv) == 2
@@ -82,10 +86,13 @@ def manual_outdent(f):
     f["content"].append({"kind" : "outdent"})
     f["indent"] -= 1
 
+def write_raw(f, txt):
+    f["content"].append({"kind" : "text",
+                         "text" : str(txt)})
+
 def write(f, txt):
     if len(txt) + 3*f["indent"] < 80:
-        f["content"].append({"kind" : "text",
-                             "text" : str(txt)})
+        write_raw(f, txt)
     else:
         bs = []
         last_space = None
@@ -106,10 +113,8 @@ def write(f, txt):
         b = " " * bs[-1] + txt[last_space:].strip()
         assert len(a) + f["indent"] * 3 < 80
         assert len(b) + f["indent"] * 3 < 80
-        f["content"].append({"kind" : "text",
-                             "text" : a})
-        f["content"].append({"kind" : "text",
-                             "text" : b})
+        write_raw(f, a)
+        write_raw(f, b)
 
     # Finally, we update the bracketing
     for pos, c in enumerate(str(txt)):
@@ -161,6 +166,95 @@ def mk_prefixed_lines(prefix, lines, join=""):
     for line in lines[1:]:
         rv.append(empty_prefix + line)
     return rv
+
+def optimize_layout(layout, max_int, max_bool):
+    accessors = {
+        "int"  : set(),
+        "bool" : set(),
+    }
+    req_fld = {
+        "int"  : max_int,
+        "bool" : max_bool,
+    }
+
+    for sn in layout:
+        for friendly_name in layout[sn]:
+            lo_typ, _, lo_kind = layout[sn][friendly_name]
+            if lo_kind in ("irep", "list"):
+                a_kind = "int"
+            elif lo_typ in ("int", "str", "sloc"):
+                a_kind = "int"
+            else:
+                lo_typ == "bool"
+                a_kind = "bool"
+            accessors[a_kind].add(friendly_name)
+    assert len(accessors["int"] & accessors["bool"]) == 0
+    for kind in accessors:
+        accessors[kind] = sorted(accessors[kind])
+
+    cls = sorted(layout)
+
+    for fld_kind, all_acc in accessors.iteritems():
+        n = req_fld[fld_kind]
+        f = new_file("%s_%u.smt2" % (fld_kind, n))
+
+        write(f, "(set-logic QF_LIA)")
+        write(f, "(set-option :produce-models true)")
+
+        # Accessors
+        for acc in all_acc:
+            write(f, "(declare-const acc_%s Int)" % acc)
+
+        # Restrict to fields
+        for acc in all_acc:
+            write(f, "(assert (<= 0 acc_%s %u))" % (acc, n - 1))
+
+        # required accessors must be disjoint
+        for sn in layout:
+            tmp = []
+            for friendly_name in layout[sn]:
+                if friendly_name in all_acc:
+                    tmp.append("acc_" + friendly_name)
+            if len(tmp) >= 2:
+                write(f, ";; for %s" % sn)
+                write_raw(f, "(assert (distinct %s))" % " ".join(tmp))
+
+        write(f, "(check-sat)")
+        write(f, "(get-model)")
+        write(f, "(exit)")
+        write_file(f)
+
+        os.system("cvc4 %s_%u.smt2 > %s_%u.out" % (fld_kind, n,
+                                                   fld_kind, n))
+
+        with open("%s_%u.out" % (fld_kind, n), "rU") as fd:
+            tmp = fd.read().strip()
+        assert tmp.startswith("sat")
+
+        optimal_lo = {}
+        for line in tmp.splitlines():
+            if line.startswith("(define-fun acc_"):
+                _, nam, _, _, pos = line.split()
+                nam = nam.replace("acc_", "")
+                assert nam in all_acc
+                pos = int(pos.rstrip(")"))
+                assert 0 <= pos < n
+                optimal_lo[nam] = pos
+        assert sorted(optimal_lo) == all_acc
+
+        # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+        #                                    index,
+        #                                    irep|list|trivial)
+
+        for sn in layout:
+            for friendly_name in layout[sn]:
+                if friendly_name in optimal_lo:
+                    lo_typ, lo_idx, lo_kind = layout[sn][friendly_name]
+                    lo_idx = optimal_lo[friendly_name]
+                    layout[sn][friendly_name] = (lo_typ, lo_idx, lo_kind)
+
+
+    return layout, req_fld["int"], req_fld["bool"]
 
 def main():
     special_names = {"+"      : "op_add",
@@ -679,6 +773,11 @@ def main():
 
     MAX_INTS  = max(x["int"] for x in op_counts.itervalues())
     MAX_BOOLS = max(x["bool"] for x in op_counts.itervalues())
+
+    if OPTIMIZE:
+        layout, MAX_INTS, MAX_BOOLS = optimize_layout(layout,
+                                                      MAX_INTS,
+                                                      MAX_BOOLS)
 
     ##########################################################################
     # Documentation
