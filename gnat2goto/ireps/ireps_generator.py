@@ -1,38 +1,40 @@
 #!/usr/bin/env python
+##############################################################################
+##                                                                          ##
+##                           GNAT2GOTO COMPONENTS                           ##
+##                                                                          ##
+##                I R E P S   T A B L E    G E N E R A T O R                ##
+##                                                                          ##
+##                   Copyright (C) 2017, Altran UK Limited                  ##
+##                                                                          ##
+## gnat2goto is  free  software;  you can redistribute it and/or  modify it ##
+## under terms of the  GNU General Public License as published  by the Free ##
+## Software  Foundation;  either version 3,  or (at your option)  any later ##
+## version.  gnat2goto is distributed  in the hope that it will be  useful, ##
+## but WITHOUT ANY WARRANTY; without even the implied warranty of  MERCHAN- ##
+## TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public ##
+## License for  more details.  You should have  received  a copy of the GNU ##
+## General  Public License  distributed with gnat2goto;  see file COPYING3. ##
+## If not,  go to  http://www.gnu.org/licenses  for a complete  copy of the ##
+## license.                                                                 ##
+##                                                                          ##
+##############################################################################
 
-"""
-   This is Florian's attempt at making an sinfo-like ireps package based
-   on GNAT.Tables. It is work in progress and until it's done we will keep
-   using irep_specs_to_ada.
-"""
-
-# Special todo:
+# Features left to do:
 # * code_ifthenelse we need to deal with the "optional" flag
-# * recognize and remove Argument_List
+# * recognize and remove Argument_List?
+# * serealise Empty as {"id" : "nil"}
+# * do not serealise "sub", "comment" or "namedSub" if they are empty
+# * refactor so not everything is nested in main()
 
 import os
 import sys
 import json
+import argparse
 
 from pprint import pprint
 from glob import glob
 from copy import copy
-
-# Enable this option to optimize the table layout to avoid switch
-# statements. This requires CVC4 on your path.
-OPTIMIZE = False
-
-def get_schema_files():
-    try:
-        assert len(sys.argv) == 2
-        CBMC_ROOT = sys.argv[1]
-        assert os.path.isdir(CBMC_ROOT)
-        assert os.path.isfile(os.path.join(CBMC_ROOT, "README.md"))
-        return glob(os.path.join(CBMC_ROOT, "src", "util", "irep_specs",
-                                 "*.json"))
-    except:
-        print "Usage: %s <PATH_TO_CBMC_ROOT>" % sys.argv[0]
-        sys.exit(1)
 
 def ada_casing(s):
     rv = ""
@@ -256,7 +258,7 @@ def optimize_layout(layout, max_int, max_bool):
 
     return layout, req_fld["int"], req_fld["bool"]
 
-def main():
+def generate_code(optimize, schema_file_names):
     special_names = {"+"      : "op_add",
                      "-"      : "op_sub",
                      "*"      : "op_mul",
@@ -271,7 +273,7 @@ def main():
                  }
 
     schemata = {}
-    for schema_fn in get_schema_files():
+    for schema_fn in schema_file_names:
         with open(schema_fn, "rU") as fd:
             sn = os.path.splitext(os.path.basename(schema_fn))[0]
             # print "Loading %s" % sn
@@ -774,7 +776,7 @@ def main():
     MAX_INTS  = max(x["int"] for x in op_counts.itervalues())
     MAX_BOOLS = max(x["bool"] for x in op_counts.itervalues())
 
-    if OPTIMIZE:
+    if optimize:
         layout, MAX_INTS, MAX_BOOLS = optimize_layout(layout,
                                                       MAX_INTS,
                                                       MAX_BOOLS)
@@ -2191,7 +2193,28 @@ def main():
     write(b, "end Ireps;")
     write_file(b)
 
-    #pprint(schemata)
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-O", "--optimize",
+                    action="store_true",
+                    help="Optimise table layout. Requires CVC4 binary on path.")
+    ap.add_argument("cbmc_root",
+                    metavar="<CBMC_ROOT>",
+                    help="Path to a checkout of CBMC.")
+
+    args = ap.parse_args()
+
+    if not os.path.isdir(args.cbmc_root):
+        ap.error("CBMC_ROOT must be a directory")
+    if not os.path.isfile(os.path.join(args.cbmc_root, "README.md")):
+        ap.error("CBMC_ROOT does not look like the root of a cbmc checkout")
+    schema_files = glob(os.path.join(args.cbmc_root,
+                                     "src", "util", "irep_specs",
+                                     "*.json"))
+
+    generate_code(optimize          = args.optimize,
+                  schema_file_names = schema_files)
+
 
 if __name__ == "__main__":
     main()
