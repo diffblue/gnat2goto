@@ -26,3 +26,4 @@ clean:
 	rm -f unit_test unit_test.bexch
 	rm -f tree.*
 	rm -rf ireps.ad[bs]
+	rm -f *.smt2 *.out

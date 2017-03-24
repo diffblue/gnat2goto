@@ -19,10 +19,16 @@ Install GNATCOLL GPL 2016:
   - `$ make` (its safe to use -jN here if you want)
   - `$ make install`
 
+You will need a checkout of specific CBMC branch from:
+
+  - https://github.com/smowton/cbmc.git
+  - use branch "external_parser_support"
+
 ## Building gnat2goto
 
   - `$ export PATH=/opt/gnat/bin:${PATH}`
   - `$ export GPR_PROJECT_PATH=/opt/gnat/lib/gnat`
+  - `$ export CBMC_SOURCE=/path/to/cbmc/source`
   - `$ make`
 
 This should build into install/bin. You can test if it works by calling:

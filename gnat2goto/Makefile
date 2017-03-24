@@ -1,10 +1,11 @@
 #
 # gnat2goto
 #
-# This Makefile is heavily based on the SPARK 2014 makefile.
+# This Makefile is losely based on the SPARK 2014 makefile.
 #
 
 GPRBUILD=gprbuild
+CBMC_SOURCE?=~/gnat/src/cbmc
 
 # number of processors
 PROCS=0
@@ -82,9 +83,13 @@ obj/%: gnat_src/%
 	@mkdir -p obj
 	cp -p $< $@
 
-build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY))
+ireps/ireps.ads:
+	make -C ireps ireps.ads CBMC=$(CBMC_SOURCE)
+
+build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY)) ireps/ireps.ads
 	@mkdir -p install/bin
 	$(GPRBUILD) $(GPRARGS) -Pgnat2goto.gpr -j$(PROCS) -cargs ${CFLAGS} -largs $(LDFLAGS)
 
 clean:
 	-$(RM) obj obj-tools
+	make -C ireps clean
