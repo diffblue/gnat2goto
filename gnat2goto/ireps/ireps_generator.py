@@ -500,9 +500,6 @@ def generate_code(optimize, schema_file_names):
             assert len(friendly_name) == 2
             assert friendly_name[0] == "op%u" % op_id
             friendly_name = friendly_name[1]
-        if friendly_name == "op" and root_schema == "replication_expr":
-            # Hack to resolve some name clash
-            friendly_name = "to_replicate"
 
         schema = schemata[root_schema]
         setter_kind = "list" if is_list else "value"
