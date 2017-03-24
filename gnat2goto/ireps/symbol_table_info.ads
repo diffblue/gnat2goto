@@ -11,9 +11,9 @@ with GNATCOLL.JSON;              use GNATCOLL.JSON;
 package Symbol_Table_Info is
 
    type Symbol is record
-      SymType          : Irep;
-      Value            : Irep;
-      Location         : Irep;
+      SymType          : Irep := Empty;
+      Value            : Irep := Empty;
+      Location         : Irep := Empty;
       Name             : Unbounded_String;
       Module           : Unbounded_String;
       BaseName         : Unbounded_String;
