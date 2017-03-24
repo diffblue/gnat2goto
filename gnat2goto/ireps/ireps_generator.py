@@ -1695,6 +1695,7 @@ def generate_code(optimize, schema_file_names):
                     tbl_field = "N." + ada_component_name(layout_kind,
                                                           layout_index)
                     if is_list:
+                        assert len(subs) == 1
                         write(b, "Sub := To_JSON (Irep_List (%s));" % tbl_field)
                     else:
                         write(b, "Append (Sub, To_JSON (Irep (%s)));" %
