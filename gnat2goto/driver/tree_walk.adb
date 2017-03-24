@@ -153,6 +153,7 @@ package body Tree_Walk is
       RHS : constant Irep := Do_Expression (Expression (N));
    begin
       return R : constant Irep := New_Irep (I_Code_Assign) do
+         Set_Source_Location (R, Sloc (N));
          Set_Lhs (R, LHS);
          if Do_Range_Check (Expression (N)) then
             --  Implicit typecast. Make it explicit.
@@ -187,6 +188,7 @@ package body Tree_Walk is
       Set_Type (Proc, Global_Symbol_Table (Proc_Name).SymType);
       --  ??? Why not look at type of entity?
 
+      Set_Source_Location (R, Sloc (N));
       --  Set_LHS (R, Empty);  -- ??? what is the "nil" irep?
       Set_Function (R, Proc);
       Set_Arguments (R, Do_Argument_List (N));
@@ -201,6 +203,7 @@ package body Tree_Walk is
    function Do_Simple_Return_Statement (N : Node_Id) return Irep is
    begin
       return R : constant Irep := New_Irep (I_Code_Return) do
+         Set_Source_Location (R, Sloc (N));
          if Present (Expression (N)) then
             Set_Return_Value (R, Do_Expression (Expression (N)));
          end if;
@@ -254,6 +257,7 @@ package body Tree_Walk is
    function Do_Defining_Identifier (N : Node_Id) return Irep is
    begin
       return R : constant Irep := New_Irep (I_Symbol_Expr) do
+         Set_Source_Location (R, Sloc (N));
          Set_Identifier (R, Get_Name_String (Chars (N)));
          --  !!! use of chars
          Set_Type (R, Do_Type_Reference (Etype (N)));
@@ -296,6 +300,7 @@ package body Tree_Walk is
 
       return R : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call)
       do
+         Set_Source_Location (R, Sloc (N));
          Set_Function (R, The_Function);
          Set_Arguments (R, Do_Argument_List (N));
       end return;
@@ -373,6 +378,7 @@ package body Tree_Walk is
          Comp_Defn : constant Node_Id := Component_Definition (Comp);
          Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
       begin
+         Set_Source_Location (Comp_Irep, Sloc (Comp));
          if not Present (Subtype_Indication (Comp_Defn)) then
             Pp (Union_Id (Comp_Defn));
             raise Program_Error;
@@ -526,6 +532,7 @@ package body Tree_Walk is
               Get_Name_String (Chars (Defining_Identifier (Param_Iter)));
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
          begin
+            Set_Source_Location (Param_Irep, Sloc (Param_Iter));
             Set_Type (Param_Irep, Param_Type);
             Set_Identifier (Param_Irep, Param_Name);
             Set_Base_Name (Param_Irep, Param_Name);
@@ -633,6 +640,7 @@ package body Tree_Walk is
          If_Block : constant Irep := Process_Statement_List (Then_Statements (N));
          Ret : constant Irep := New_Irep (I_Code_Ifthenelse);
       begin
+         Set_Source_Location (Ret, Sloc (N));
          Set_Cond (Ret, Cond_Expr);
          Set_Then_Case (Ret, If_Block);
          return Ret;
@@ -674,12 +682,18 @@ package body Tree_Walk is
       Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
       Body_Block : constant Irep := Process_Statement_List (Statements (N));
 
-      function Do_For_Statement return Irep is begin
-         return New_Irep (I_Code_For);
+      function Do_For_Statement return Irep is
+         Ret : constant Irep := New_Irep (I_Code_For);
+      begin
+         -- ??? What happens to Body_Block here?
+         Set_Source_Location (Ret, Sloc (N));
+         return Ret;
       end;
+
       function Do_While_Statement (Cond : Irep) return Irep is
          Ret : constant Irep := New_Irep (I_Code_While);
       begin
+         Set_Source_Location (Ret, Sloc (N));
          Set_Cond (Ret, Cond);
          Set_Body (Ret, Body_Block);
          return Ret;
@@ -713,9 +727,10 @@ package body Tree_Walk is
    ---------------------------
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep) is
-      Id : constant Irep := Do_Defining_Identifier (Defining_Identifier(N));
+      Id   : constant Irep := Do_Defining_Identifier (Defining_Identifier(N));
       Decl : constant Irep := New_Irep (I_Code_Decl);
    begin
+      Set_Source_Location (Decl, (Sloc (N)));
       Set_Symbol (Decl, Id);
       Append_Op (Block, Decl);
       if Has_Init_Expression (N) then
@@ -739,6 +754,7 @@ package body Tree_Walk is
       New_Type : constant Irep := Do_Type_Reference (EType (N));
       Ret : constant Irep := New_Irep (I_Op_Typecast);
    begin
+      Set_Source_Location (Ret, Sloc (N));
       if Do_Range_Check (Expression (N)) then
          Set_Range_Check (Ret, True);
       end if;
@@ -806,6 +822,7 @@ package body Tree_Walk is
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
       Ret : constant Irep := New_Irep (Op_Kind);
    begin
+      Set_Source_Location (Ret, Sloc (N));
       Set_Lhs (Ret, LHS);
       Set_Rhs (Ret, RHS);
       Set_Type (Ret, Do_Type_Reference (EType (N)));
@@ -820,6 +837,7 @@ package body Tree_Walk is
       Ret : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (EType (N));
    begin
+      Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Constant_Type);
       -- FIXME
       Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
@@ -835,6 +853,7 @@ package body Tree_Walk is
       Component_Type : constant Irep := Do_Type_Reference (EType (Selector_Name (N)));
       Ret : constant Irep := New_Irep (I_Member_Expr);
    begin
+      Set_Source_Location (Ret, Sloc (N));
       Set_Compound (Ret, Root);
       Set_Component_Name (Ret, Get_Name_String (Chars (Selector_Name (N))));
       Set_Type (Ret, Component_Type);
@@ -854,6 +873,7 @@ package body Tree_Walk is
                     then Process_Statement_List (Decls)
                     else New_Irep (I_Code_Block));
 
+      Set_Source_Location (Decls_Rep, Sloc (N));
       if Present (HSS) then
          Process_Statement (HSS, Decls_Rep);
       end if;
