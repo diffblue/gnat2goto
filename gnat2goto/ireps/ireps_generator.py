@@ -23,7 +23,6 @@
 # Features left to do:
 # * code_ifthenelse we need to deal with the "optional" flag
 # * recognize and remove Argument_List?
-# * serealise Empty as {"id" : "nil"}
 # * do not serealise "sub", "comment" or "namedSub" if they are empty
 # * refactor so not everything is nested in main()
 
@@ -90,27 +89,28 @@ def manual_outdent(f):
 
 def write_raw(f, txt):
     f["content"].append({"kind" : "text",
-                         "text" : str(txt)})
+                         "text" : str(txt).rstrip()})
 
 def write(f, txt):
-    if len(txt) + 3*f["indent"] < 80:
+    if len(txt.rstrip()) + 3*f["indent"] < 80:
         write_raw(f, txt)
     else:
         bs = []
         last_space = None
-        for pos, c in enumerate(str(txt)):
+        for pos, c in enumerate(str(txt).rstrip()):
             actual_pos = 3 * f["indent"] + pos
             if actual_pos < 80:
                 if c == '(':
                     bs.append(pos)
-                elif c == ')':
+                elif c == ')' and len(bs) > 0:
                     del bs[-1]
                 elif c == ' ':
                     last_space = pos
             else:
-                assert len(bs) > 0
                 assert last_space is not None
                 break
+        if len(bs) == 0:
+            bs = copy(f["bracket_stack"])
         a = txt[:last_space].rstrip()
         b = " " * bs[-1] + txt[last_space:].strip()
         assert len(a) + f["indent"] * 3 < 80
@@ -119,7 +119,7 @@ def write(f, txt):
         write_raw(f, b)
 
     # Finally, we update the bracketing
-    for pos, c in enumerate(str(txt)):
+    for pos, c in enumerate(str(txt.strip())):
         if c == '(':
             f["bracket_stack"].append(pos)
         elif c == ")":
@@ -1690,12 +1690,14 @@ def generate_code(optimize, schema_file_names):
     write_comment_block(b, "To_JSON")
     write(b, "function To_JSON (I : Irep) return JSON_Value")
     write(b, "is")
-    continuation(b)
+    with indent(b):
+        write(b, "V : constant JSON_Value := Create_Object;")
     write(b, "begin")
     manual_indent(b)
     write(b, "if I = 0 then")
     with indent(b):
-        write(b, "return JSON_Null;")
+        write(b, 'V.Set_Field ("id", "nil");')
+        write(b, "return V;")
     write(b, "end if;")
     write(b, "")
     write(b, "declare")
@@ -1706,8 +1708,6 @@ def generate_code(optimize, schema_file_names):
         write(b, "Named_Sub : constant JSON_Value := Create_Object;")
         write(b, "Comment   : constant JSON_Value := Create_Object;")
     write(b, "begin")
-    manual_indent(b)
-    write(b, "return V : constant JSON_Value := Create_Object do")
     manual_indent(b)
     write(b, 'V.Set_Field ("id", Id (I));')
     write(b, "case N.Kind is")
@@ -1805,9 +1805,8 @@ def generate_code(optimize, schema_file_names):
     write(b, 'V.Set_Field ("namedSub", Named_Sub);')
     write(b, 'V.Set_Field ("comment",  Comment);')
     manual_outdent(b)
-    write(b, "end return;")
-    manual_outdent(b)
     write(b, "end;")
+    write(b, "return V;")
     manual_outdent(b)
     write(b, "end To_JSON;")
     write(b, "")
