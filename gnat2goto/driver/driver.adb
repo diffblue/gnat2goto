@@ -91,7 +91,7 @@ package body Driver is
                Arg_Symbol_Expr : constant Irep := New_Irep (I_Symbol_Expr);
                Arg_Decl : constant Irep := New_Irep (I_Code_Decl);
                Arg_Nondet : constant Irep :=
-                 New_Irep (I_Side_Effect_Expr_Nondet);
+                 New_Irep (I_Nondet_Expr);
                Arg_Assign : constant Irep := New_Irep (I_Code_Assign);
             begin
                Arg_Symbol.Name := Arg_Id;
