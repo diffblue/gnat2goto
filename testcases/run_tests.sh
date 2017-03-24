@@ -25,7 +25,7 @@ for prog in $DIR/*.adb; do
    $G2G $prog > $JSOUT
    $CBMC $JSOUT --show-symbol-table > $SYMTAB
    $CBMC $JSOUT --show-goto-functions > $GOTOPROG
-   $CBMC $JSOUT > $OUTOUT 2>&1
+   $CBMC $JSOUT > $OUTPUT 2>&1
 done
 
 echo "All tests passed!"
