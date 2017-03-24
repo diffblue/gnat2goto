@@ -112,7 +112,7 @@ def write(f, txt):
         if len(bs) == 0:
             bs = copy(f["bracket_stack"])
         a = txt[:last_space].rstrip()
-        b = " " * bs[-1] + txt[last_space:].strip()
+        b = " " * (bs[-1] + 1) + txt[last_space:].strip()
         assert len(a) + f["indent"] * 3 < 80
         assert len(b) + f["indent"] * 3 < 80
         write_raw(f, a)
