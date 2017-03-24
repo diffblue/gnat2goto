@@ -1601,9 +1601,6 @@ def generate_code(optimize, schema_file_names):
         write(b, "return V : constant JSON_Value := Create_Object do")
         with indent(b):
             write(b, 'V.Set_Field ("id",       As_String (B));')
-            write(b, 'V.Set_Field ("sub",      Empty_Array);')
-            write(b, 'V.Set_Field ("namedSub", Create_Object);')
-            write(b, 'V.Set_Field ("comment",  Create_Object);')
         write(b, "end return;")
     write(b, "end Trivial_Boolean;")
     write(b, "")
@@ -1625,9 +1622,6 @@ def generate_code(optimize, schema_file_names):
             with indent(b):
                 write(b, 'V.Set_Field ("id", S);')
             write(b, "end if;")
-            write(b, 'V.Set_Field ("sub",      Empty_Array);')
-            write(b, 'V.Set_Field ("namedSub", Create_Object);')
-            write(b, 'V.Set_Field ("comment",  Create_Object);')
         write(b, "end return;")
     write(b, "end Trivial_Integer;")
     write(b, "")
@@ -1642,9 +1636,6 @@ def generate_code(optimize, schema_file_names):
         write(b, "return V : constant JSON_Value := Create_Object do")
         with indent(b):
             write(b, 'V.Set_Field ("id",       Name_Buffer (1 .. Name_Len));')
-            write(b, 'V.Set_Field ("sub",      Empty_Array);')
-            write(b, 'V.Set_Field ("namedSub", Create_Object);')
-            write(b, 'V.Set_Field ("comment",  Create_Object);')
         write(b, "end return;")
     write(b, "end Trivial_String;")
     write(b, "")
@@ -1657,9 +1648,6 @@ def generate_code(optimize, schema_file_names):
         write(b, "return V : constant JSON_Value := Create_Object do")
         with indent(b):
             write(b, 'V.Set_Field ("id",       S);')
-            write(b, 'V.Set_Field ("sub",      Empty_Array);')
-            write(b, 'V.Set_Field ("namedSub", Create_Object);')
-            write(b, 'V.Set_Field ("comment",  Create_Object);')
         write(b, "end return;")
     write(b, "end Trivial_String;")
     write(b, "")
@@ -1681,8 +1669,6 @@ def generate_code(optimize, schema_file_names):
         with indent(b):
             write(b, 'Naked_Irep.Set_Field ("id",       Name);')
             write(b, 'Naked_Irep.Set_Field ("sub",      To_JSON (L));')
-            write(b, 'Naked_Irep.Set_Field ("namedSub", Create_Object);')
-            write(b, 'Naked_Irep.Set_Field ("comment",  Create_Object);')
         write(b, "end return;")
     write(b, "end Trivial_List;")
     write(b, "")
@@ -1801,9 +1787,18 @@ def generate_code(optimize, schema_file_names):
                 write(b, "")
     write(b, "end case;")
     write(b, "")
-    write(b, 'V.Set_Field ("sub",      Sub);')
-    write(b, 'V.Set_Field ("namedSub", Named_Sub);')
-    write(b, 'V.Set_Field ("comment",  Comment);')
+    write(b, 'if Length (Sub) /= 0 then')
+    with indent(b):
+       write(b, 'V.Set_Field ("sub",      Sub);')
+    write(b, 'end if;')
+    write(b, 'if not Is_Empty (Named_Sub) then')
+    with indent(b):
+       write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+    write(b, 'end if;')
+    write(b, 'if not Is_Empty (Comment) then')
+    with indent(b):
+       write(b, 'V.Set_Field ("comment",  Comment);')
+    write(b, 'end if;')
     manual_outdent(b)
     write(b, "end;")
     write(b, "return V;")
