@@ -1568,12 +1568,6 @@ def generate_code(optimize, schema_file_names):
     write(b, "--  Create a source_location from S")
     write(b, "")
 
-    write(b, "function Trivial_List (L : Irep_List; Name : String)")
-    write(b, "                      return JSON_Value;")
-    continuation(b)
-    write(b, "--  Create naked irep with id = Name and subs containing L")
-    write(b, "")
-
     # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
     #                                    index,
     #                                    irep|list|trivial)
@@ -1655,21 +1649,6 @@ def generate_code(optimize, schema_file_names):
     continuation(b)
     write(b, "")
 
-    write_comment_block(b, "Trivial_List")
-    write(b, "function Trivial_List (L : Irep_List; Name : String)")
-    write(b, "                      return JSON_Value")
-    continuation(b)
-    write(b, "is")
-    write(b, "begin")
-    with indent(b):
-        write(b, "return Naked_Irep : constant JSON_Value := Create_Object do")
-        with indent(b):
-            write(b, 'Naked_Irep.Set_Field ("id",       Name);')
-            write(b, 'Naked_Irep.Set_Field ("sub",      To_JSON (L));')
-        write(b, "end return;")
-    write(b, "end Trivial_List;")
-    write(b, "")
-
     write_comment_block(b, "To_JSON")
     write(b, "function To_JSON (I : Irep) return JSON_Value")
     write(b, "is")
@@ -1716,9 +1695,7 @@ def generate_code(optimize, schema_file_names):
                     tbl_field = "N." + ada_component_name(layout_kind,
                                                           layout_index)
                     if is_list:
-                        write(b, "Append (Sub, Trivial_List (Irep_List (%s)," % tbl_field)
-                        write(b, "                           \"%s\"));" % setter_name)
-                        continuation(b)
+                        write(b, "Sub := To_JSON (Irep_List (%s));" % tbl_field)
                     else:
                         write(b, "Append (Sub, To_JSON (Irep (%s)));" %
                               tbl_field)
@@ -1739,9 +1716,6 @@ def generate_code(optimize, schema_file_names):
                             obj = "Comment" if is_comment else "Named_Sub"
                             if kind == "irep":
                                 val = "To_JSON (Irep (%s))" % tbl_field
-                            elif kind == "list":
-                                val = "Trivial_List (Irep_List (%s), \"%s\")" \
-                                      % (tbl_field, setter_name)
                             elif layout_kind == "str":
                                 val = "Trivial_String (String_Id (%s))" % tbl_field
                             elif layout_kind == "int":
