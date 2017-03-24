@@ -1682,8 +1682,7 @@ def generate_code(optimize, schema_file_names):
     manual_indent(b)
     write(b, "if I = 0 then")
     with indent(b):
-        write(b, 'V.Set_Field ("id", "nil");')
-        write(b, "return V;")
+        write(b, "return Trivial_String (\"nil\");")
     write(b, "end if;")
     write(b, "")
     write(b, "declare")
