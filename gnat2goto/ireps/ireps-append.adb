@@ -1,9 +1,8 @@
 separate (Ireps)
 procedure Append (L : Irep_List; I : Irep)
 is
-   New_Head : constant Irep_List_Node := (Is_Node => True,
-                                          A       => Integer (I),
-                                          B       => 0);
+   New_Head : constant Irep_List_Node := (A => Integer (I),
+                                          B => 0);
    The_List : Irep_List_Node renames
      Irep_List_Table.Table (To_Internal_List (L));
 

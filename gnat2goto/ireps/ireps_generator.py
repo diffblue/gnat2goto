@@ -845,16 +845,6 @@ def generate_code(optimize, schema_file_names):
     write(b, "function To_String (S : String_Id) return String;")
     write(b, "")
 
-    write(b, "function Is_Irep (I : Integer) return Boolean")
-    write(b, "is (I >= Integer (Irep'First));")
-    continuation(b)
-    write(b, "")
-
-    write(b, "function Is_List (I : Integer) return Boolean")
-    write(b, "is (I <= Integer (Irep_List'Last));")
-    continuation(b)
-    write(b, "")
-
     write(b, "function To_Internal_List (L : Irep_List) return Internal_Irep_List")
     write(b, "is (Internal_Irep_List (-L));")
     continuation(b)
@@ -973,18 +963,11 @@ def generate_code(optimize, schema_file_names):
 
     write(b, "type Irep_List_Node is record")
     with indent(b):
-        write(b, "A       : Integer;            "
+        write(b, "A : Integer;            "
               "--  Element [or pointer to first list link]")
-        write(b, "B       : Internal_Irep_List; "
+        write(b, "B : Internal_Irep_List; "
               "--  Next [or pointer to last list link]")
-        write(b, "Is_Node : Boolean;")
-    write(b, "end record with Dynamic_Predicate =>")
-    with indent(b):
-        write(b, "(if Is_Node")
-        write(b, " then Is_Irep (A)")
-        continuation(b)
-        write(b, " else Is_List (A));")
-        continuation(b)
+    write(b, "end record;")
     write(b, "pragma Pack (Irep_List_Node);")
     write(b, "")
 
@@ -1021,9 +1004,8 @@ def generate_code(optimize, schema_file_names):
     write(b, "is")
     continuation(b)
     with indent(b):
-        write(b, "N : constant Irep_List_Node := (Is_Node => False,")
-        write(b, "                                A       => 0,")
-        write(b, "                                B       => 0);")
+        write(b, "N : constant Irep_List_Node := (A => 0,")
+        write(b, "                                B => 0);")
     write(b, "begin")
     with indent(b):
         write(b, "Irep_List_Table.Append (N);")
