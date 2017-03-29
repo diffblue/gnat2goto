@@ -829,7 +829,9 @@ package body Tree_Walk is
       if Do_Overflow_Check (N) then
          Set_Overflow_Check (Ret, True);
       end if;
-
+      if Do_Division_Check (N) then
+         Set_Div_By_Zero_Check (Ret, True);
+      end if;
       return Ret;
    end Do_Operator;
 
