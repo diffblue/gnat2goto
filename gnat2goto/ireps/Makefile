@@ -1,4 +1,5 @@
-CBMC?=~/gnat/src/cbmc
+CBMC_ROOT?=~/gnat/src/cbmc
+CBMC?=$(CBMC_ROOT)
 SYMLINKS=table.ads table.adb types.ads types.adb alloc.ads stringt.ads stringt.adb namet.ads namet.adb debug.ads debug.adb output.ads output.adb tree_io.ads tree_io.adb opt.ads opt.adb hostparm.ads widechar.ads widechar.adb gnatvsn.ads gnatvsn.adb
 CVC4:=$(shell which cvc4)
 

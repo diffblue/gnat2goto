@@ -2152,6 +2152,7 @@ def main():
     args = ap.parse_args()
 
     if not os.path.isdir(args.cbmc_root):
+        print args.cbmc_root
         ap.error("CBMC_ROOT must be a directory")
     if not os.path.isfile(os.path.join(args.cbmc_root, "README.md")):
         ap.error("CBMC_ROOT does not look like the root of a cbmc checkout")
