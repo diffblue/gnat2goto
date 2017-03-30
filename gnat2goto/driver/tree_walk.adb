@@ -530,12 +530,23 @@ package body Tree_Walk is
             Param_Name : constant String :=
               Unique_Name (Defining_Identifier (Param_Iter));
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
+            Param_Symbol : Symbol;
          begin
             Set_Source_Location (Param_Irep, Sloc (Param_Iter));
             Set_Type (Param_Irep, Param_Type);
             Set_Identifier (Param_Irep, Param_Name);
             Set_Base_Name (Param_Irep, Param_Name);
             Append_Parameter (Param_List, Param_Irep);
+            -- Add the param to the symtab as well:
+            Param_Symbol.Name := To_Unbounded_String (Param_Name);
+            Param_Symbol.PrettyName := Param_Symbol.Name;
+            Param_Symbol.BaseName := Param_Symbol.Name;
+            Param_Symbol.SymType := Param_Type;
+            Param_Symbol.IsThreadLocal := True;
+            Param_Symbol.IsFileLocal := True;
+            Param_Symbol.IsLValue := True;
+            Param_Symbol.IsParameter := True;
+            Symbol_Maps.Insert (Global_Symbol_Table, Param_Symbol.Name, Param_Symbol);
             Next (Param_Iter);
          end;
       end loop;
