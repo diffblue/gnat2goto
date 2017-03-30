@@ -1,0 +1,20 @@
+# Linked files from gnat_src:
+alloc.*
+debug.*
+gnatvsn.*
+hostparm.*
+namet.*
+opt.*
+output.*
+stringt.*
+table.*
+tree_io.*
+types.*
+widechar.*
+# Generated:
+ireps.*
+tree.dot
+tree.pdf
+unit_test
+unit_test.bexch
+b__unit_test*
