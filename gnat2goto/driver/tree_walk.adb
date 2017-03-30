@@ -379,6 +379,10 @@ package body Tree_Walk is
          Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
       begin
          Set_Source_Location (Comp_Irep, Sloc (Comp));
+         -- Set attributes we don't use yet:
+         Set_Access (Comp_Irep, "public");
+         Set_Is_Padding (Comp_Irep, False);
+         Set_Anonymous (Comp_Irep, False);
          if not Present (Subtype_Indication (Comp_Defn)) then
             Pp (Union_Id (Comp_Defn));
             raise Program_Error;
