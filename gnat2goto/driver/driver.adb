@@ -24,7 +24,12 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
+with Sem_Util;              use Sem_Util;
+with Stand;                 use Stand;
 with Switch;                use Switch;
+with Einfo;                 use Einfo;
+with Atree;                 use Atree;
+with Uintp;                 use Uintp;
 
 with Ireps;                 use Ireps;
 with Symbol_Table_Info;     use Symbol_Table_Info;
@@ -52,17 +57,43 @@ package body Driver is
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
    begin
       -- Add primitive types to the symtab:
-      -- TODO how to iterate over these?
-      declare
-         Standard_Int : Symbol;
-      begin
-         Standard_Int.Name := To_Unbounded_String ("standard__integer");
-         Standard_Int.PrettyName := Standard_Int.Name;
-         Standard_Int.BaseName := Standard_Int.Name;
-         Standard_Int.SymType := Make_Int_Type (32);
-         Standard_Int.IsType := True;
-         Symbol_Maps.Insert (Global_Symbol_Table, Standard_Int.Name, Standard_Int);
-      end;
+      for Standard_Type in S_Types'Range loop
+         declare
+            Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
+            Type_Kind : constant Irep_Kind :=
+              (case Ekind (Builtin_Node) is
+                 when E_Floating_Point_Type => I_Floatbv_Type,
+                 when E_Signed_Integer_Subtype => I_Signedbv_Type,
+                 when E_Enumeration_Type => I_Unsignedbv_Type,
+                 when others => I_Empty);
+         begin
+            if Type_Kind /= I_Empty then
+               declare
+                  Type_Irep : constant Irep := New_Irep (Type_Kind);
+                  Builtin : Symbol;
+               begin
+                  Set_Width (Type_Irep, Integer (UI_To_Int (Esize (Builtin_Node))));
+                  if Type_Kind = I_Floatbv_Type then
+                     -- Ada's floating-point types are interesting, as they're
+                     -- specified in terms of decimal precision. Entirely too interesting
+                     -- for now-- I'll assume float32 or float64 will do the trick and
+                     -- fix this later.
+                     if (Esize (Builtin_Node) = 32) then
+                        Set_F (Type_Irep, 23); -- 23-bit mantissa, 8-bit exponent
+                     elsif (Esize (Builtin_Node) = 64) then
+                        Set_F (Type_Irep, 52); -- 52-bit mantissa, 11-bit exponent
+                     end if;
+                  end if;
+                  Builtin.Name := To_Unbounded_String (Unique_Name (Builtin_Node));
+                  Builtin.PrettyName := Builtin.Name;
+                  Builtin.BaseName := Builtin.Name;
+                  Builtin.SymType := Type_Irep;
+                  Builtin.IsType := True;
+                  Symbol_Maps.Insert (Global_Symbol_Table, Builtin.Name, Builtin);
+               end;
+            end if;
+         end;
+      end loop;
 
       -- Gather local symbols and put them in the symtab:
       declare
