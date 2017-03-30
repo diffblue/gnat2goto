@@ -1,0 +1,7 @@
+# Linked for config:
+cbmc
+# Generated:
+*.goto_functions
+*.json_symtab
+*.symtab
+*.out
