@@ -11,36 +11,36 @@ with GNATCOLL.JSON;              use GNATCOLL.JSON;
 package Symbol_Table_Info is
 
    type Symbol is record
-      SymType          : Irep := Empty;
-      Value            : Irep := Empty;
-      Location         : Irep := Empty;
-      Name             : Unbounded_String;
-      Module           : Unbounded_String;
-      BaseName         : Unbounded_String;
-      Mode             : Unbounded_String;
-      PrettyName       : Unbounded_String;
-      IsType           : Boolean := False;
-      IsMacro          : Boolean := False;
-      IsExported       : Boolean := False;
-      IsInput          : Boolean := False;
-      IsOutput         : Boolean := False;
-      IsStateVar       : Boolean := False;
-      IsProperty       : Boolean := False;
-      IsStaticLifetime : Boolean := False;
-      IsThreadLocal    : Boolean := False;
-      IsLValue         : Boolean := False;
-      IsFileLocal      : Boolean := False;
-      IsExtern         : Boolean := False;
-      IsVolatile       : Boolean := False;
-      IsParameter      : Boolean := False;
-      IsAuxiliary      : Boolean := False;
-      IsWeak           : Boolean := False;
+      SymType          : Irep := Empty;    --  Should be Entity_Id?
+      Value            : Irep := Empty;    --  ??? What does this mean
+      Location         : Irep := Empty;    --  Should be Source_Ptr
+      Name             : Unbounded_String; --  Can be derived form Key
+      Module           : Unbounded_String; --  ??? What does this mean
+      BaseName         : Unbounded_String; --  ??? What does this mean
+      Mode             : Unbounded_String; --  Always 'Ada'?
+      PrettyName       : Unbounded_String; --  ??? What does this mean
+      IsType           : Boolean := False; --  Can be derived from Key
+      IsMacro          : Boolean := False; --  Always False in Ada?
+      IsExported       : Boolean := False; --  ??? What does this mean
+      IsInput          : Boolean := False; --  ??? What does this mean
+      IsOutput         : Boolean := False; --  ??? What does this mean
+      IsStateVar       : Boolean := False; --  ??? What does this mean
+      IsProperty       : Boolean := False; --  ??? What does this mean
+      IsStaticLifetime : Boolean := False; --  ??? What does this mean
+      IsThreadLocal    : Boolean := False; --  ??? What does this mean
+      IsLValue         : Boolean := False; --  ??? What does this mean
+      IsFileLocal      : Boolean := False; --  ??? What does this mean
+      IsExtern         : Boolean := False; --  ??? What does this mean
+      IsVolatile       : Boolean := False; --  Can be derived from Key
+      IsParameter      : Boolean := False; --  Can be derived from Key
+      IsAuxiliary      : Boolean := False; --  ??? What does this mean
+      IsWeak           : Boolean := False; --  ??? What does this mean
    end record;
 
    function Symbol2Json (Sym : Symbol) return JSON_Value;
 
    package Symbol_Maps is new Hashed_Maps
-     (Key_Type        => Unbounded_String,
+     (Key_Type        => Unbounded_String,  --  Should be Entity_Id
       Element_Type    => Symbol,
       Hash            => Ada.Strings.Unbounded.Hash,
       Equivalent_Keys => "=");
