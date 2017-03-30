@@ -10,7 +10,7 @@ package body Gather_Irep_Symbols is
          Expr_Type  : Irep;
          New_Symbol : Symbol;
       begin
-         if Id (I) = "symbol" then
+         if Kind (I) = I_Symbol_Expr then
             Id_String := To_Unbounded_String (Get_Identifier (I));
             if not Symbol_Maps.Contains (Table, Id_String) then
                Expr_Type := Get_Type (I);
