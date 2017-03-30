@@ -83,7 +83,7 @@ obj/%: gnat_src/%
 	@mkdir -p obj
 	cp -p $< $@
 
-ireps/ireps.ads:
+ireps/ireps.ads: ireps/ireps_generator.py
 	make -C ireps ireps.ads CBMC=$(CBMC_SOURCE)
 
 build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY)) ireps/ireps.ads
