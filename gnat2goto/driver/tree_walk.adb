@@ -388,7 +388,7 @@ package body Tree_Walk is
             raise Program_Error;
          else
             declare
-               Comp_Type : constant Irep := Do_Subtype_Indication (Comp_Defn);
+               Comp_Type : constant Irep := Do_Type_Reference (Entity (Subtype_Indication (Comp_Defn)));
             begin
                Set_Name (Comp_Irep, Comp_Name);
                Set_Pretty_Name (Comp_Irep, Comp_Name);
