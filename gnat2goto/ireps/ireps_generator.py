@@ -1710,8 +1710,13 @@ def generate_code(optimize, schema_file_names):
                             else:
                                 assert False
 
+                            if is_comment:
+                                key_name = "#" + setter_name
+                            else:
+                                key_name = setter_name
+
                             tmp = "%s.Set_Field (" % obj
-                            write(b, tmp + '"' + setter_name + '",')
+                            write(b, tmp + '"' + key_name + '",')
                             write(b, " " * len(tmp) + val + ");")
                             continuation(b)
 
