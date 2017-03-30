@@ -174,8 +174,7 @@ package body Tree_Walk is
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
       Proc_Name : constant Unbounded_String :=
-        To_Unbounded_String (Get_Name_String (Chars (Name (N))));
-      --  ??? This is not OK
+        To_Unbounded_String (Unique_Name (N));
 
       Proc : constant Irep := New_Irep (I_Symbol_Expr);
       R    : constant Irep := New_Irep (I_Code_Function_Call);
@@ -221,9 +220,7 @@ package body Tree_Walk is
                Unit_Type : constant Irep :=
                  Do_Subprogram_Specification (Specification (U));
                Unit_Name : constant Unbounded_String :=
-                 To_Unbounded_String (Get_Name_String
-                                        (Chars (Unique_Defining_Entity (U))));
-               --  ??? Use of Chars here is suspicious
+                 To_Unbounded_String (Unique_Name (Unique_Defining_Entity (U)));
             begin
                -- Register the symbol *before* we compile the body, for
                -- recursive calls.
@@ -254,7 +251,7 @@ package body Tree_Walk is
    begin
       return R : constant Irep := New_Irep (I_Symbol_Expr) do
          Set_Source_Location (R, Sloc (N));
-         Set_Identifier (R, Get_Name_String (Chars (N)));
+         Set_Identifier (R, Unique_Name (N));
          --  !!! use of chars
          Set_Type (R, Do_Type_Reference (Etype (N)));
       end return;
@@ -284,7 +281,7 @@ package body Tree_Walk is
    function Do_Function_Call (N : Node_Id) return Irep
    is
       Func_Name    : constant Unbounded_String :=
-        To_Unbounded_String (Get_Name_String (Chars (Name (N))));
+        To_Unbounded_String (Unique_Name (Entity (Name (N))));
 
       Func_Symbol  : constant Symbol := Global_Symbol_Table (Func_Name);
 
@@ -370,7 +367,7 @@ package body Tree_Walk is
       Components : constant Irep := New_Irep (I_Struct_Union_Components);
       Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
       procedure Do_Record_Component (Comp : Node_Id) is
-         Comp_Name : constant String := Get_Name_String (Chars (Defining_Identifier (Comp)));
+         Comp_Name : constant String := Unique_Name (Defining_Identifier (Comp));
          Comp_Defn : constant Node_Id := Component_Definition (Comp);
          Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
       begin
@@ -478,7 +475,7 @@ package body Tree_Walk is
    procedure Do_Type_Declaration (New_Type_In : Irep; Name_Node : Node_Id) is
       New_Type : constant Irep := New_Type_In;
       New_Type_Name : constant Unbounded_String :=
-        To_Unbounded_String (Get_Name_String (Chars (Name_Node)));
+        To_Unbounded_String (Unique_Name (Name_Node));
       New_Type_Symbol : Symbol;
    begin
       if Kind (New_Type) = I_Struct_Type then
@@ -531,7 +528,7 @@ package body Tree_Walk is
             Param_Type : constant Irep :=
               Do_Type_Reference (EType (Parameter_Type (Param_Iter)));
             Param_Name : constant String :=
-              Get_Name_String (Chars (Defining_Identifier (Param_Iter)));
+              Unique_Name (Defining_Identifier (Param_Iter));
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
          begin
             Set_Source_Location (Param_Irep, Sloc (Param_Iter));
@@ -559,7 +556,7 @@ package body Tree_Walk is
       Proc_Symbol : Symbol;
       Proc_Type : constant Irep := Do_Subprogram_Specification (Specification (N));
       Proc_Name : constant Unbounded_String :=
-        To_Unbounded_String (Get_Name_String (Chars (Corresponding_Body (N))));
+        To_Unbounded_String (Unique_Name (Corresponding_Body (N)));
    begin
       Proc_Symbol.Name := Proc_Name;
       Proc_Symbol.BaseName := Proc_Name;
@@ -575,7 +572,7 @@ package body Tree_Walk is
 
    procedure Do_Subprogram_Body (N : Node_Id) is
       Proc_Name : constant Unbounded_String :=
-        To_Unbounded_String (Get_Name_String (Chars (Corresponding_Spec (N))));
+        To_Unbounded_String (Unique_Name (Corresponding_Spec (N)));
       Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
       Proc_Body : constant Irep := Do_Subprogram_Or_Block (N);
    begin
@@ -594,7 +591,7 @@ package body Tree_Walk is
       elsif Nkind (N) = N_Defining_Identifier then
          declare
             Ret : constant Irep := New_Irep (I_Symbol_Type);
-            Id : constant String := Get_Name_String (Chars (N));
+            Id : constant String := Unique_Name (N);
          begin
             if (Id = "integer") then
                return Make_Int_Type (32);
@@ -859,7 +856,7 @@ package body Tree_Walk is
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Compound (Ret, Root);
-      Set_Component_Name (Ret, Get_Name_String (Chars (Selector_Name (N))));
+      Set_Component_Name (Ret, Unique_Name (Selector_Name (N)));
       Set_Type (Ret, Component_Type);
       return Ret;
    end;
