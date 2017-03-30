@@ -506,7 +506,9 @@ package body Tree_Walk is
    begin
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
       -- Declare the implicit initial subtype too:
-      Do_Type_Declaration (New_Type, Etype (Defining_Identifier (N)));
+      if Etype (Defining_Identifier(N)) /= Defining_Identifier (N) then
+         Do_Type_Declaration (New_Type, Etype (Defining_Identifier (N)));
+      end if;
    end Do_Full_Type_Declaration;
 
    ----------------------------
