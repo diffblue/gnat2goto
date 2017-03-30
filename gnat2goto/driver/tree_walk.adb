@@ -1,13 +1,11 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-with Namet;                 use Namet;
 with Nlists;                use Nlists;
 with Sem_util;              use Sem_Util;
 with Stand;                 use Stand;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
 
-with Ireps;                 use Ireps;
 with Uint_To_Binary;        use Uint_To_Binary;
 with Follow;                use Follow;
 
@@ -134,9 +132,7 @@ package body Tree_Walk is
    with Post => Kind (Process_Statement_List'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
-   function Make_Int_Type (Width : Positive) return Irep
-   with Post => Kind (Make_Int_Type'Result) = I_Signedbv_Type
-   is
+   function Make_Int_Type (Width : Positive) return Irep is
    begin
       return I : constant Irep := New_Irep (I_Signedbv_Type) do
          Set_Width (I, Width);

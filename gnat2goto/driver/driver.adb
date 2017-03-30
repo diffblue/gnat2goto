@@ -51,6 +51,19 @@ package body Driver is
       Initial_Call : constant Irep := New_Irep (I_Code_Function_Call);
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
    begin
+      -- Add primitive types to the symtab:
+      -- TODO how to iterate over these?
+      declare
+         Standard_Int : Symbol;
+      begin
+         Standard_Int.Name := To_Unbounded_String ("standard__integer");
+         Standard_Int.PrettyName := Standard_Int.Name;
+         Standard_Int.BaseName := Standard_Int.Name;
+         Standard_Int.SymType := Make_Int_Type (32);
+         Standard_Int.IsType := True;
+         Symbol_Maps.Insert (Global_Symbol_Table, Standard_Int.Name, Standard_Int);
+      end;
+
       -- Gather local symbols and put them in the symtab:
       declare
          Local_Symbols : Symbol_Table;
