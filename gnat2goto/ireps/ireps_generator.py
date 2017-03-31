@@ -856,14 +856,16 @@ def generate_code(optimize, schema_file_names):
     write(b, "")
 
     write(b, "type Irep_Node is record")
-    components = [("Kind", "Valid_Irep_Kind", None)]
-    size = 8
+    components = []
+    size = 0
     for i in xrange(MAX_INTS):
         components.append(("Int_%u" % i, "Integer", None))
         size += 32
     for i in xrange(MAX_BOOLS):
         components.append(("Bool_%u" % i, "Boolean", "False"))
         size += 1
+    components.append(("Kind", "Valid_Irep_Kind", None))
+    size += 8
     with indent(b):
         max_len = max(map(len, (x[0] for x in components)))
         for cname, ctyp, default in components:
