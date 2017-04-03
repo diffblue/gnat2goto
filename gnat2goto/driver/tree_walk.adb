@@ -450,9 +450,10 @@ package body Tree_Walk is
         or else Present (Interface_List (N))
         or else Interface_Present (N)
       then
-         Pp (Union_Id (N));
+         pp (Union_Id (N));
          raise Program_Error;
       end if;
+
       return Subtype_Irep;
    end Do_Derived_Type_Definition;
 
@@ -470,7 +471,7 @@ package body Tree_Walk is
          when N_Derived_Type_Definition =>
             return Do_Derived_Type_Definition (N);
          when others =>
-            Pp (Union_Id (N));
+            pp (Union_Id (N));
             raise Program_Error;
       end case;
    end Do_Type_Definition;
