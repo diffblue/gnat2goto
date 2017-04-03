@@ -368,9 +368,13 @@ package body Tree_Walk is
    --------------------------
 
    function Do_Record_Definition (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Struct_Type);
+
       Components : constant Irep := New_Irep (I_Struct_Union_Components);
-      Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
+
+      -------------------------
+      -- Do_Record_Component --
+      -------------------------
+
       procedure Do_Record_Component (Comp : Node_Id) is
          Comp_Name : constant String := Unique_Name (Defining_Identifier (Comp));
          Comp_Defn : constant Node_Id := Component_Definition (Comp);
@@ -381,21 +385,29 @@ package body Tree_Walk is
          Set_Access (Comp_Irep, "public");
          Set_Is_Padding (Comp_Irep, False);
          Set_Anonymous (Comp_Irep, False);
-         if not Present (Subtype_Indication (Comp_Defn)) then
-            Pp (Union_Id (Comp_Defn));
-            raise Program_Error;
-         else
+
+         if Present (Subtype_Indication (Comp_Defn)) then
             declare
-               Comp_Type : constant Irep := Do_Type_Reference (Entity (Subtype_Indication (Comp_Defn)));
+               Comp_Type : constant Irep :=
+                 Do_Type_Reference (Entity (Subtype_Indication (Comp_Defn)));
             begin
-               Set_Name (Comp_Irep, Comp_Name);
+               Set_Name        (Comp_Irep, Comp_Name);
                Set_Pretty_Name (Comp_Irep, Comp_Name);
-               Set_Base_Name (Comp_Irep, Comp_Name);
-               Set_Type (Comp_Irep, Comp_Type);
+               Set_Base_Name   (Comp_Irep, Comp_Name);
+               Set_Type        (Comp_Irep, Comp_Type);
             end;
+         else
+            pp (Union_Id (Comp_Defn));
+            raise Program_Error;
          end if;
+
          Append_Component (Components, Comp_Irep);
       end;
+
+      --  Local variables:
+      Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
+      Ret            : constant Irep := New_Irep (I_Struct_Type);
+
    begin
       while Present (Component_Iter) loop
          Do_Record_Component (Component_Iter);
@@ -657,9 +669,16 @@ package body Tree_Walk is
 
    function Do_If_Statement (N : Node_Id) return Irep is
 
+      --  ??? chained if-then-else are more idiomatically iterated with WHILE
+      --  (at least in GNAT) than with recursion.
+
+      -----------------
+      -- Do_If_Block --
+      -----------------
+
       function Do_If_Block (N : Node_Id) return Irep is
          Cond_Expr : constant Irep := Do_Expression (Condition (N));
-         If_Block : constant Irep := Process_Statement_List (Then_Statements (N));
+         If_Block  : constant Irep := Process_Statement_List (Then_Statements (N));
          Ret : constant Irep := New_Irep (I_Code_Ifthenelse);
       begin
          Set_Source_Location (Ret, Sloc (N));
@@ -668,23 +687,28 @@ package body Tree_Walk is
          return Ret;
       end;
 
-      procedure Do_Elsifs (Else_Ifs : Node_Id;
+      ---------------
+      -- Do_Elsifs --
+      ---------------
+
+      procedure Do_Elsifs (Else_Ifs  : Node_Id;
                            Else_List : List_Id;
-                           Ret : Irep) is
+                           Ret       : Irep)
+      is
       begin
-         if not Present (Else_Ifs) then
-            if (Present (Else_List)) then
-               Set_Else_Case (Ret, Process_Statement_List (Else_List));
-            end if;
-         else
+         if Present (Else_Ifs) then
             declare
-               Sub_If : constant Irep := Do_If_Block (Else_Ifs);
+               Sub_If   : constant Irep := Do_If_Block (Else_Ifs);
                Next_Eif : Node_Id := Else_Ifs;
             begin
                Next (Next_Eif);
                Do_Elsifs (Next_Eif, Else_List, Sub_If);
                Set_Else_Case (Ret, Sub_If);
             end;
+         else
+            if (Present (Else_List)) then
+               Set_Else_Case (Ret, Process_Statement_List (Else_List));
+            end if;
          end if;
       end;
 
@@ -704,6 +728,10 @@ package body Tree_Walk is
       Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
       Body_Block : constant Irep := Process_Statement_List (Statements (N));
 
+      ----------------------
+      -- Do_For_Statement --
+      ----------------------
+
       function Do_For_Statement return Irep is
          Ret : constant Irep := New_Irep (I_Code_For);
       begin
@@ -711,6 +739,10 @@ package body Tree_Walk is
          Set_Source_Location (Ret, Sloc (N));
          return Ret;
       end;
+
+      ------------------------
+      -- Do_While_Statement --
+      ------------------------
 
       function Do_While_Statement (Cond : Irep) return Irep is
          Ret : constant Irep := New_Irep (I_Code_While);
