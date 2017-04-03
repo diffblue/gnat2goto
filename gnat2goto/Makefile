@@ -46,8 +46,13 @@ GENERATED_FILES:=$(addprefix obj/, treeprs.ads nmake.ads nmake.adb snames.ads sn
 
 all: build
 
-obj-tools/%: gnat_src/%
-	@mkdir -p obj-tools
+obj:
+	@mkdir obj
+
+obj-tools:
+	@mkdir obj-tools
+
+obj-tools/%: gnat_src/% | obj-tools
 	cp -p $< $@
 
 obj-tools/xtreeprs: $(addprefix obj-tools/, $(SINFO_CODEGEN))
@@ -59,28 +64,23 @@ obj-tools/xnmake: $(addprefix obj-tools/, $(SINFO_CODEGEN))
 obj-tools/xsnamest: $(addprefix obj-tools/, $(SINFO_CODEGEN))
 	cd obj-tools && gnatmake -q $(notdir $@)
 
-obj/treeprs.ads: obj-tools/xtreeprs
-	@mkdir -p obj
+obj/treeprs.ads: obj-tools/xtreeprs | obj
 	cd obj-tools && ./xtreeprs && cp treeprs.ads ../obj
 
-obj/nmake%ads obj/nmake%adb: obj-tools/xnmake
-	@mkdir -p obj
+obj/nmake%ads obj/nmake%adb: obj-tools/xnmake | obj
 	cd obj-tools && ./xnmake && cp nmake.ad[bs] ../obj
 
-obj/snames%ads obj/snames%adb: obj-tools/xsnamest
-	@mkdir -p obj
+obj/snames%ads obj/snames%adb: obj-tools/xsnamest | obj
 	cd obj-tools && ./xsnamest && cp snames.ns ../obj/snames.ads && cp snames.nb ../obj/snames.adb
 
-obj/sdefault.adb: driver/sdefault.adb.in
-	@mkdir -p obj
+obj/sdefault.adb: driver/sdefault.adb.in | obj
 	sed -e "s^@ADAINCLUDE@^$(adainclude)^" \
 	    -e "s^@ADALIB@^$(adalib)^" \
 	    -e "s^@PREFIX@^$(prefix)^" \
 	    -e "s^@GNAT1DIR@^$(gnat1dir)^" \
 	    driver/sdefault.adb.in > obj/sdefault.adb
 
-obj/%: gnat_src/%
-	@mkdir -p obj
+obj/%: gnat_src/% | obj
 	cp -p $< $@
 
 ireps/ireps.ads: ireps/ireps_generator.py
