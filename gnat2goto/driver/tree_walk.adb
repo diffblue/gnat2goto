@@ -378,7 +378,7 @@ package body Tree_Walk is
          Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
       begin
          Set_Source_Location (Comp_Irep, Sloc (Comp));
-         -- Set attributes we don't use yet:
+         --  Set attributes we don't use yet:
          Set_Access (Comp_Irep, "public");
          Set_Is_Padding (Comp_Irep, False);
          Set_Anonymous (Comp_Irep, False);
@@ -402,7 +402,9 @@ package body Tree_Walk is
          Do_Record_Component (Component_Iter);
          Next (Component_Iter);
       end loop;
+
       Set_Components (Ret, Components);
+
       return Ret;
    end Do_Record_Definition;
 
@@ -423,7 +425,7 @@ package body Tree_Walk is
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep is
       Lower : constant Irep := Do_Constant (Low_Bound (N));
       Upper : constant Irep := Do_Constant (High_Bound (N));
-      Ret : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+      Ret   : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
    begin
       Set_Lower_Bound (Ret, Lower);
       Set_Upper_Bound (Ret, Upper);
@@ -483,16 +485,18 @@ package body Tree_Walk is
       New_Type_Name : constant Unbounded_String :=
         To_Unbounded_String (Unique_Name (Name_Node));
       New_Type_Symbol : Symbol;
+
    begin
       if Kind (New_Type) = I_Struct_Type then
          Set_Tag (New_Type, To_String (New_Type_Name));
       end if;
-      New_Type_Symbol.Name := New_Type_Name;
+      New_Type_Symbol.Name       := New_Type_Name;
       New_Type_Symbol.PrettyName := New_Type_Name;
-      New_Type_Symbol.BaseName := New_Type_Name;
-      New_Type_Symbol.SymType := New_Type;
-      New_Type_Symbol.Mode := To_Unbounded_String ("C");
-      New_Type_Symbol.IsType := True;
+      New_Type_Symbol.BaseName   := New_Type_Name;
+      New_Type_Symbol.SymType    := New_Type;
+      New_Type_Symbol.Mode       := To_Unbounded_String ("C");
+      New_Type_Symbol.IsType     := True;
+
       Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
    end;
 
@@ -751,9 +755,10 @@ package body Tree_Walk is
       Set_Source_Location (Decl, (Sloc (N)));
       Set_Symbol (Decl, Id);
       Append_Op (Block, Decl);
+
       if Has_Init_Expression (N) then
          declare
-            Init_Expr : constant Irep := Do_Expression (Expression (N));
+            Init_Expr      : constant Irep := Do_Expression (Expression (N));
             Init_Statement : constant Irep := New_Irep (I_Code_Assign);
          begin
             Set_Lhs (Init_Statement, Id);
@@ -769,14 +774,14 @@ package body Tree_Walk is
 
    function Do_Type_Conversion (N : Node_Id) return Irep is
       To_Convert : constant Irep := Do_Expression (Expression (N));
-      New_Type : constant Irep := Do_Type_Reference (EType (N));
-      Ret : constant Irep := New_Irep (I_Op_Typecast);
+      New_Type   : constant Irep := Do_Type_Reference (EType (N));
+      Ret        : constant Irep := New_Irep (I_Op_Typecast);
    begin
       Set_Source_Location (Ret, Sloc (N));
       if Do_Range_Check (Expression (N)) then
          Set_Range_Check (Ret, True);
       end if;
-      Set_Op0 (Ret, To_Convert);
+      Set_Op0  (Ret, To_Convert);
       Set_Type (Ret, New_Type);
       return Ret;
    end;
@@ -838,23 +843,28 @@ package body Tree_Walk is
       end;
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
-      Ret : constant Irep := New_Irep (Op_Kind);
+      Ret     : constant Irep      := New_Irep (Op_Kind);
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Lhs (Ret, LHS);
       Set_Rhs (Ret, RHS);
       Set_Type (Ret, Do_Type_Reference (EType (N)));
+
       if Do_Overflow_Check (N) then
          Set_Overflow_Check (Ret, True);
       end if;
-      if Nkind (N) in N_Op_Divide | N_Op_Mod | N_Op_Rem and then Do_Division_Check (N) then
+
+      if Nkind (N) in N_Op_Divide | N_Op_Mod | N_Op_Rem
+        and then Do_Division_Check (N)
+      then
          Set_Div_By_Zero_Check (Ret, True);
       end if;
+
       return Ret;
    end Do_Operator;
 
    function Do_Constant (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Constant_Expr);
+      Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (EType (N));
    begin
       Set_Source_Location (Ret, Sloc (N));
@@ -869,9 +879,9 @@ package body Tree_Walk is
    ---------------------------
 
    function Do_Selected_Component (N : Node_Id) return Irep is
-      Root : constant Irep := Do_Expression (Prefix (N));
+      Root           : constant Irep := Do_Expression (Prefix (N));
       Component_Type : constant Irep := Do_Type_Reference (EType (Selector_Name (N)));
-      Ret : constant Irep := New_Irep (I_Member_Expr);
+      Ret            : constant Irep := New_Irep (I_Member_Expr);
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Compound (Ret, Root);
