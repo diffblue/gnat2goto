@@ -6,29 +6,44 @@ package body Gather_Irep_Symbols is
       procedure Visitor (I : Irep);
 
       procedure Visitor (I : Irep) is
-         Id_String  : Unbounded_String;
-         Expr_Type  : Irep;
-         New_Symbol : Symbol;
       begin
          if Kind (I) = I_Symbol_Expr then
-            Id_String := To_Unbounded_String (Get_Identifier (I));
-            if not Symbol_Maps.Contains (Table, Id_String) then
-               Expr_Type := Get_Type (I);
+            declare
+               Id_String : constant Unbounded_String :=
+                 To_Unbounded_String (Get_Identifier (I));
 
-               New_Symbol.SymType       := Expr_Type;
-               New_Symbol.Value         := Empty;
-               --  ??? TODO: What is a naked irep with 'id=nil'?
-               New_Symbol.Name          := Id_String;
-               New_Symbol.BaseName      := Id_String;
-               New_Symbol.PrettyName    := Id_String;
-               New_Symbol.Mode          := To_Unbounded_String ("C");
-               New_Symbol.IsStateVar    := True;
-               New_Symbol.IsThreadLocal := True;
-               New_Symbol.IsLValue      := True;
-               Symbol_Maps.Insert (Table, Id_String, New_Symbol);
-            end if;
+               Inserted  : Boolean;
+               New_Entry : Symbol_Maps.Cursor;
+
+            begin
+               Table.Insert (Key      => Id_String,
+                             Position => New_Entry,
+                             Inserted => Inserted);
+
+               if Inserted then
+                  declare
+                     New_Symbol : Symbol renames Table (New_Entry);
+                     Expr_Type  : constant Irep := Get_Type (I);
+                  begin
+                     New_Symbol.SymType       := Expr_Type;
+                     New_Symbol.Value         := Empty;
+                     --  ??? TODO: What is a naked irep with 'id=nil'?
+                     New_Symbol.Name          := Id_String;
+                     New_Symbol.BaseName      := Id_String;
+                     New_Symbol.PrettyName    := Id_String;
+                     New_Symbol.Mode          := To_Unbounded_String ("C");
+                     New_Symbol.IsStateVar    := True;
+                     New_Symbol.IsThreadLocal := True;
+                     New_Symbol.IsLValue      := True;
+                  end;
+               end if;
+            end;
+
          end if;
       end Visitor;
+
+   --  Start of processing for Gather
+
    begin
       Walk_Irep_Tree (Ir, Visitor'Access);
    end Gather;
