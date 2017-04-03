@@ -173,14 +173,14 @@ package body Tree_Walk is
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
-      Proc_Name : constant Unbounded_String :=
-        To_Unbounded_String (Unique_Name (N));
+      Callee : constant String := Unique_Name (N);
 
       Proc : constant Irep := New_Irep (I_Symbol_Expr);
       R    : constant Irep := New_Irep (I_Code_Function_Call);
    begin
-      Set_Identifier (Proc, To_String (Proc_Name));
-      Set_Type (Proc, Global_Symbol_Table (Proc_Name).SymType);
+      Set_Identifier (Proc, Callee);
+      Set_Type (Proc,
+                Global_Symbol_Table (To_Unbounded_String (Callee)).SymType);
       --  ??? Why not look at type of entity?
 
       Set_Source_Location (R, Sloc (N));
