@@ -196,11 +196,12 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Simple_Return_Statement (N : Node_Id) return Irep is
+      Expr : constant Node_Id := Expression (N);
    begin
       return R : constant Irep := New_Irep (I_Code_Return) do
          Set_Source_Location (R, Sloc (N));
-         if Present (Expression (N)) then
-            Set_Return_Value (R, Do_Expression (Expression (N)));
+         if Present (Expr) then
+            Set_Return_Value (R, Do_Expression (Expr));
          end if;
       end return;
    end;
@@ -327,11 +328,13 @@ package body Tree_Walk is
    is
       Resolved_Underlying : constant Irep :=
         Follow_Symbol_Type (Underlying, Global_Symbol_Table);
+
+      Range_Expr : constant Node_Id := Range_Expression (N);
    begin
       return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type) do
          Set_Width (R, Get_Width (Resolved_Underlying));
-         Set_Lower_Bound (R, Do_Constant (Low_Bound (Range_Expression (N))));
-         Set_Upper_Bound (R, Do_Constant (High_Bound (Range_Expression (N))));
+         Set_Lower_Bound (R, Do_Constant (Low_Bound (Range_Expr)));
+         Set_Upper_Bound (R, Do_Constant (High_Bound (Range_Expr)));
       end return;
    end;
 
@@ -343,11 +346,14 @@ package body Tree_Walk is
    is
       Underlying : constant Irep :=
         Do_Type_Reference (EType (Subtype_Mark (N)));
+
+      Constr : constant Node_Id := Constraint (N);
+
    begin
-      if Present (Constraint (N)) then
-         case Nkind (Constraint (N)) is
+      if Present (Constr) then
+         case Nkind (Constr) is
             when N_Range_Constraint =>
-               return Do_Range_Constraint (Constraint (N), Underlying);
+               return Do_Range_Constraint (Constr, Underlying);
 
             when others =>
                Print_Tree_Node (N);
@@ -496,11 +502,13 @@ package body Tree_Walk is
 
    procedure Do_Full_Type_Declaration (N : Node_Id) is
       New_Type : constant Irep := Do_Type_Definition (Type_Definition (N));
+      E        : constant Entity_Id := Defining_Identifier (N);
    begin
-      Do_Type_Declaration (New_Type, Defining_Identifier (N));
-      -- Declare the implicit initial subtype too:
-      if Etype (Defining_Identifier(N)) /= Defining_Identifier (N) then
-         Do_Type_Declaration (New_Type, Etype (Defining_Identifier (N)));
+      Do_Type_Declaration (New_Type, E);
+
+      -- Declare the implicit initial subtype too
+      if Etype (E) /= E then
+         Do_Type_Declaration (New_Type, Etype (E));
       end if;
    end Do_Full_Type_Declaration;
 
