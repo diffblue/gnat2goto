@@ -18,3 +18,5 @@ tree.pdf
 unit_test
 unit_test.bexch
 b__unit_test*
+*out
+*smt2
