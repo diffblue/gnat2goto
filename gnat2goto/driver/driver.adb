@@ -37,31 +37,11 @@ with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
 with Gather_Irep_Symbols;
 
-with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.JSON;         use GNATCOLL.JSON;
 
 package body Driver is
 
-   procedure GNAT_To_Goto (GNAT_Root : Node_Id)
-   is
-      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root);
-
-      Program_Expr        : constant Irep := New_Irep (I_Symbol_Expr);
-      Program_Type        : constant Irep := Program_Symbol.SymType;
-      Program_Return_Type : constant Irep := Get_Return_Type (Program_Type);
-
-      Program_Args        : constant Irep_List :=
-        Get_Parameter (Get_Parameters (Program_Type));
-
-      Void_Type : constant Irep := New_Irep (I_Void_Type);
-
-      Start_Name : constant Unbounded_String := To_Unbounded_String ("_start");
-
-      Start_Symbol      : Symbol;
-      Start_Type        : constant Irep := New_Irep (I_Code_Type);
-      Start_Body        : constant Irep := New_Irep (I_Code_Block);
-      Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
-      Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
-
+   procedure Translate_Standard_Types is
    begin
       -- Add primitive types to the symtab
       for Standard_Type in S_Types'Range loop
@@ -109,6 +89,31 @@ package body Driver is
             end if;
          end;
       end loop;
+   end;
+
+   procedure GNAT_To_Goto (GNAT_Root : Node_Id)
+   is
+      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root);
+
+      Program_Expr        : constant Irep := New_Irep (I_Symbol_Expr);
+      Program_Type        : constant Irep := Program_Symbol.SymType;
+      Program_Return_Type : constant Irep := Get_Return_Type (Program_Type);
+
+      Program_Args        : constant Irep_List :=
+        Get_Parameter (Get_Parameters (Program_Type));
+
+      Void_Type : constant Irep := New_Irep (I_Void_Type);
+
+      Start_Name : constant Unbounded_String := To_Unbounded_String ("_start");
+
+      Start_Symbol      : Symbol;
+      Start_Type        : constant Irep := New_Irep (I_Code_Type);
+      Start_Body        : constant Irep := New_Irep (I_Code_Block);
+      Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
+      Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
+
+   begin
+      Translate_Standard_Types;
 
       -- Gather local symbols and put them in the symtab
       declare

@@ -327,6 +327,7 @@ package body Tree_Walk is
    is
       Resolved_Underlying : constant Irep :=
         Follow_Symbol_Type (Underlying, Global_Symbol_Table);
+      --  ??? why not get this from the entity
 
       Range_Expr : constant Node_Id := Range_Expression (N);
    begin
@@ -493,8 +494,8 @@ package body Tree_Walk is
    -------------------------
 
    procedure Do_Type_Declaration (New_Type_In : Irep; Name_Node : Node_Id) is
-      New_Type : constant Irep := New_Type_In;
-      New_Type_Name : constant Unbounded_String :=
+      New_Type        : constant Irep := New_Type_In;
+      New_Type_Name   : constant Unbounded_String :=
         To_Unbounded_String (Unique_Name (Name_Node));
       New_Type_Symbol : Symbol;
 
@@ -588,16 +589,16 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
-      Proc_Symbol : Symbol;
       Proc_Type : constant Irep := Do_Subprogram_Specification (Specification (N));
       Proc_Name : constant Unbounded_String :=
         To_Unbounded_String (Unique_Name (Corresponding_Body (N)));
+      Proc_Symbol : Symbol;
    begin
-      Proc_Symbol.Name := Proc_Name;
-      Proc_Symbol.BaseName := Proc_Name;
+      Proc_Symbol.Name       := Proc_Name;
+      Proc_Symbol.BaseName   := Proc_Name;
       Proc_Symbol.PrettyName := Proc_Name;
-      Proc_Symbol.SymType := Proc_Type;
-      Proc_Symbol.Mode := To_Unbounded_String ("C");
+      Proc_Symbol.SymType    := Proc_Type;
+      Proc_Symbol.Mode       := To_Unbounded_String ("C");
       Symbol_Maps.Insert (Global_Symbol_Table, Proc_Name, Proc_Symbol);
    end Do_Subprogram_Declaration;
 
@@ -606,10 +607,10 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Body (N : Node_Id) is
-      Proc_Name : constant Unbounded_String :=
+      Proc_Name   : constant Unbounded_String :=
         To_Unbounded_String (Unique_Name (Corresponding_Spec (N)));
+      Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
       Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
-      Proc_Body : constant Irep := Do_Subprogram_Or_Block (N);
    begin
       Proc_Symbol.Value := Proc_Body;
       Symbol_Maps.Replace (Global_Symbol_Table, Proc_Name, Proc_Symbol);
