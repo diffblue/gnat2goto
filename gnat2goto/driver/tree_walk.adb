@@ -306,17 +306,16 @@ package body Tree_Walk is
 
    function Do_Expression (N : Node_Id) return Irep is
    begin
-      case Nkind (N) is
-         when N_Identifier =>         return Do_Identifier (N);
-         when N_Selected_Component => return Do_Selected_Component (N);
-         when N_Op =>                 return Do_Operator (N);
-         when N_Integer_Literal =>    return Do_Constant (N);
-         when N_Type_Conversion =>    return Do_Type_Conversion (N);
-         when N_Function_Call =>      return Do_Function_Call (N);
+      return
+        (case Nkind (N) is
+            when N_Identifier         => Do_Identifier (N),
+            when N_Selected_Component => Do_Selected_Component (N),
+            when N_Op                 => Do_Operator (N),
+            when N_Integer_Literal    => Do_Constant (N),
+            when N_Type_Conversion    => Do_Type_Conversion (N),
+            when N_Function_Call      => Do_Function_Call (N),
 
-         when others =>
-            raise Program_Error;
-      end case;
+            when others               => raise Program_Error);
    end Do_Expression;
 
    -------------------------
@@ -796,50 +795,36 @@ package body Tree_Walk is
 
       function Op_To_Kind (N : N_Op) return Irep_Kind is
       begin
-         case N is
-            when N_Op_Divide =>
-               return I_Op_Div;
-            when N_Op_Add =>
-               return I_Op_Add;
-            when N_Op_Subtract =>
-               return I_Op_Sub;
-            when N_Op_Multiply =>
-               return I_Op_Mul;
-            when N_Op_Rem =>
-               return I_Op_Rem;
-            when N_Op_Mod =>
-               return I_Op_Mod;
-            when N_Op_And =>
-               return I_Op_And;
-            when N_Op_Or =>
-               return I_Op_Or;
-            when N_Op_Eq =>
-               return I_Op_Eq;
-            when N_Op_Ne =>
-               return I_Op_Notequal;
-            when N_Op_Ge =>
-               return I_Op_Geq;
-            when N_Op_Gt =>
-               return I_Op_Gt;
-            when N_Op_Le =>
-               return I_Op_Leq;
-            when N_Op_Lt =>
-               return I_Op_Lt;
-            when N_Op_Concat
-              | N_Op_Expon
-              | N_Op_Xor
-              | N_Op_Rotate_Left
-              | N_Op_Rotate_Right
-              | N_Op_Shift_Left
-              | N_Op_Shift_Right
-              | N_Op_Shift_Right_Arithmetic
-              | N_Op_Abs
-              | N_Op_Minus
-              | N_Op_Not
-              | N_Op_Plus
-              =>
-               raise Program_Error;
-         end case;
+         return
+           (case N is
+               when N_Op_Divide   => I_Op_Div,
+               when N_Op_Add      => I_Op_Add,
+               when N_Op_Subtract => I_Op_Sub,
+               when N_Op_Multiply => I_Op_Mul,
+               when N_Op_Rem      => I_Op_Rem,
+               when N_Op_Mod      => I_Op_Mod,
+               when N_Op_And      => I_Op_And,
+               when N_Op_Or       => I_Op_Or,
+               when N_Op_Eq       => I_Op_Eq,
+               when N_Op_Ne       => I_Op_Notequal,
+               when N_Op_Ge       => I_Op_Geq,
+               when N_Op_Gt       => I_Op_Gt,
+               when N_Op_Le       => I_Op_Leq,
+               when N_Op_Lt       => I_Op_Lt,
+               when N_Op_Concat
+                  | N_Op_Expon
+                  | N_Op_Xor
+                  | N_Op_Rotate_Left
+                  | N_Op_Rotate_Right
+                  | N_Op_Shift_Left
+                  | N_Op_Shift_Right
+                  | N_Op_Shift_Right_Arithmetic
+                  | N_Op_Abs
+                  | N_Op_Minus
+                  | N_Op_Not
+                  | N_Op_Plus
+          =>
+             raise Program_Error);
       end;
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
