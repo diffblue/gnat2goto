@@ -614,11 +614,11 @@ package body Tree_Walk is
       elsif Nkind (N) = N_Defining_Identifier then
          declare
             Ret : constant Irep := New_Irep (I_Symbol_Type);
-            Id : constant String := Unique_Name (N);
+            Id  : constant String := Unique_Name (N);
          begin
-            if (Id = "integer") then
+            if Id = "integer" then
                return Make_Int_Type (32);
-            elsif (Id = "boolean") then
+            elsif Id = "boolean" then
                return New_Irep (I_Bool_Type);
             end if;
 
