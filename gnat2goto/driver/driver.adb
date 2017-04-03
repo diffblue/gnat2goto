@@ -44,117 +44,140 @@ package body Driver is
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
       Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root);
-      Program_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-      Program_Type : constant Irep := Program_Symbol.SymType;
-      Program_Return_Type : constant Irep :=  Get_Return_Type (Program_Type);
-      Program_Args : constant Irep_List := Get_Parameter (Get_Parameters (Program_Type));
+
+      Program_Expr        : constant Irep := New_Irep (I_Symbol_Expr);
+      Program_Type        : constant Irep := Program_Symbol.SymType;
+      Program_Return_Type : constant Irep := Get_Return_Type (Program_Type);
+
+      Program_Args        : constant Irep_List :=
+        Get_Parameter (Get_Parameters (Program_Type));
+
       Void_Type : constant Irep := New_Irep (I_Void_Type);
+
       Start_Name : constant Unbounded_String := To_Unbounded_String ("_start");
-      Start_Symbol : Symbol;
-      Start_Type : constant Irep := New_Irep (I_Code_Type);
-      Start_Body : constant Irep := New_Irep (I_Code_Block);
-      Initial_Call : constant Irep := New_Irep (I_Code_Function_Call);
+
+      Start_Symbol      : Symbol;
+      Start_Type        : constant Irep := New_Irep (I_Code_Type);
+      Start_Body        : constant Irep := New_Irep (I_Code_Block);
+      Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
+
    begin
-      -- Add primitive types to the symtab:
+      -- Add primitive types to the symtab
       for Standard_Type in S_Types'Range loop
          declare
             Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
+
             Type_Kind : constant Irep_Kind :=
               (case Ekind (Builtin_Node) is
-                 when E_Floating_Point_Type => I_Floatbv_Type,
+                 when E_Floating_Point_Type    => I_Floatbv_Type,
                  when E_Signed_Integer_Subtype => I_Signedbv_Type,
-                 when E_Enumeration_Type => I_Unsignedbv_Type,
-                 when others => I_Empty);
+                 when E_Enumeration_Type       => I_Unsignedbv_Type,
+                 when others                   => I_Empty);
+
          begin
             if Type_Kind /= I_Empty then
                declare
                   Type_Irep : constant Irep := New_Irep (Type_Kind);
-                  Builtin : Symbol;
+                  Builtin   : Symbol;
+
+                  Esize_Width : constant Nat := UI_To_Int (Esize (Builtin_Node));
+
                begin
-                  Set_Width (Type_Irep, Integer (UI_To_Int (Esize (Builtin_Node))));
+                  Set_Width (Type_Irep, Integer (Esize_Width));
+
                   if Type_Kind = I_Floatbv_Type then
-                     -- Ada's floating-point types are interesting, as they're
-                     -- specified in terms of decimal precision. Entirely too interesting
-                     -- for now-- I'll assume float32 or float64 will do the trick and
-                     -- fix this later.
-                     if (Esize (Builtin_Node) = 32) then
-                        Set_F (Type_Irep, 23); -- 23-bit mantissa, 8-bit exponent
-                     elsif (Esize (Builtin_Node) = 64) then
-                        Set_F (Type_Irep, 52); -- 52-bit mantissa, 11-bit exponent
-                     end if;
+                     --  Ada's floating-point types are interesting, as they're
+                     --  specified in terms of decimal precision. Entirely too
+                     --  interesting for now... Let's use float32 or float64
+                     --  for now and fix this later.
+                     Set_F (Type_Irep,
+                            (case Esize_Width is
+                                when 32     => 23, -- 23-bit mantissa, 8-bit exponent
+                                when 64     => 52, -- 52-bit mantissa, 11-bit exponent
+                                when others => raise Program_Error));
                   end if;
-                  Builtin.Name := To_Unbounded_String (Unique_Name (Builtin_Node));
+
+                  Builtin.Name       := To_Unbounded_String (Unique_Name (Builtin_Node));
                   Builtin.PrettyName := Builtin.Name;
-                  Builtin.BaseName := Builtin.Name;
-                  Builtin.SymType := Type_Irep;
-                  Builtin.IsType := True;
-                  Symbol_Maps.Insert (Global_Symbol_Table, Builtin.Name, Builtin);
+                  Builtin.BaseName   := Builtin.Name;
+                  Builtin.SymType    := Type_Irep;
+                  Builtin.IsType     := True;
+
+                  Global_Symbol_Table.Insert (Builtin.Name, Builtin);
                end;
             end if;
          end;
       end loop;
 
-      -- Gather local symbols and put them in the symtab:
+      -- Gather local symbols and put them in the symtab
       declare
          Local_Symbols : Symbol_Table;
       begin
-         for Sym_Iter in Global_Symbol_Table.Iterate loop
-            if Kind (Global_Symbol_Table (Sym_Iter).SymType) = I_Code_Type then
-               Gather_Irep_Symbols.Gather (Local_Symbols, Global_Symbol_Table (Sym_Iter).Value);
+         for Sym of Global_Symbol_Table loop
+            if Kind (Sym.SymType) = I_Code_Type then
+               Gather_Irep_Symbols.Gather (Local_Symbols, Sym.Value);
             end if;
          end loop;
+
          for Sym_Iter in Local_Symbols.Iterate loop
             declare
-               Ignored1 : Boolean;
-               Ignored2 : Symbol_Maps.Cursor;
+               Ignored : Boolean;
+               Unused  : Symbol_Maps.Cursor;
             begin
-               -- Insert new symbol if not present already.
-               Symbol_Maps.Insert (Global_Symbol_Table,
-                                   Symbol_Maps.Key (Sym_Iter),
-                                   Symbol_Maps.Element (Sym_Iter),
-                                   Ignored2,
-                                   Ignored1);
+               -- Insert new symbol if not present already
+               Global_Symbol_Table.Insert
+                 (Key      => Symbol_Maps.Key (Sym_Iter),
+                  New_Item => Local_Symbols (Sym_Iter),
+                  Inserted => Ignored,
+                  Position => Unused);
             end;
          end loop;
       end;
 
-      -- Generate a simple _start function that calls the entry point:
+      -- Generate a simple _start function that calls the entry point
       declare
          C : List_Cursor := List_First (Program_Args);
       begin
          while List_Has_Element (Program_Args, C) loop
-            -- For each argument, declare and nondet-initialise a parameter local
-            -- and add it to the call argument list.
+            --  For each argument, declare and nondet-initialise a parameter
+            --  local and add it to the call argument list.
             declare
-               Arg : constant Irep := List_Element (Program_Args, C);
+               Arg      : constant Irep := List_Element (Program_Args, C);
                Arg_Type : constant Irep := Get_Type (Arg);
-               Arg_Id : constant Unbounded_String :=
-                 "input_" & To_Unbounded_String (Get_Identifier (Arg));
+               Arg_Id   : constant Unbounded_String :=
+                 To_Unbounded_String ("input_" &  Get_Identifier (Arg));
                Arg_Symbol : Symbol;
+
                Arg_Symbol_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-               Arg_Decl : constant Irep := New_Irep (I_Code_Decl);
-               Arg_Nondet : constant Irep :=
+               Arg_Decl        : constant Irep := New_Irep (I_Code_Decl);
+               Arg_Nondet      : constant Irep :=
                  New_Irep (I_Side_Effect_Expr_Nondet);
-               Arg_Assign : constant Irep := New_Irep (I_Code_Assign);
+               Arg_Assign      : constant Irep := New_Irep (I_Code_Assign);
+
             begin
-               Arg_Symbol.Name := Arg_Id;
-               Arg_Symbol.PrettyName := Arg_Id;
-               Arg_Symbol.BaseName := Arg_Id;
-               Arg_Symbol.Mode := To_Unbounded_String ("C");
-               Arg_Symbol.SymType := Arg_Type;
-               Arg_Symbol.IsStateVar := True;
-               Arg_Symbol.IsLValue := True;
+               Arg_Symbol.Name        := Arg_Id;
+               Arg_Symbol.PrettyName  := Arg_Id;
+               Arg_Symbol.BaseName    := Arg_Id;
+               Arg_Symbol.Mode        := To_Unbounded_String ("C");
+               Arg_Symbol.SymType     := Arg_Type;
+               Arg_Symbol.IsStateVar  := True;
+               Arg_Symbol.IsLValue    := True;
                Arg_Symbol.IsAuxiliary := True;
                Global_Symbol_Table.Insert (Arg_Id, Arg_Symbol);
+
                Set_Identifier (Arg_Symbol_Expr, To_String (Arg_Id));
-               Set_Type (Arg_Symbol_Expr, Arg_Type);
+               Set_Type       (Arg_Symbol_Expr, Arg_Type);
+
                Set_Symbol (Arg_Decl, Arg_Symbol_Expr);
-               Append_Op (Start_Body, Arg_Decl);
+               Append_Op  (Start_Body, Arg_Decl);
+
                Set_Type (Arg_Nondet, Arg_Type);
-               Set_Lhs (Arg_Assign, Arg_Symbol_Expr);
-               Set_Rhs (Arg_Assign, Arg_Nondet);
+               Set_Lhs  (Arg_Assign, Arg_Symbol_Expr);
+               Set_Rhs  (Arg_Assign, Arg_Nondet);
+
                Append_Op (Start_Body, Arg_Assign);
+
                Append_Argument (Initial_Call_Args, Arg_Symbol_Expr);
             end;
             C := List_Next (Program_Args, C);
@@ -162,13 +185,14 @@ package body Driver is
       end;
       Set_Arguments (Initial_Call, Initial_Call_Args);
 
-      -- Catch the call's return value if it has one.
+      -- Catch the call's return value if it has one
       if Kind (Program_Return_Type) /= I_Empty then
          declare
             Return_Symbol : Symbol;
+
             Return_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-            Return_Id : constant Unbounded_String := To_Unbounded_String ("return'");
             Return_Decl : constant Irep := New_Irep (I_Code_Decl);
+            Return_Id   : constant Unbounded_String := To_Unbounded_String ("return'");
          begin
             Return_Symbol.Name := Return_Id;
             Return_Symbol.BaseName := Return_Id;
@@ -191,14 +215,17 @@ package body Driver is
 
       Append_Op (Start_Body, Initial_Call);
 
-      Start_Symbol.Name := Start_Name;
+      Start_Symbol.Name       := Start_Name;
       Start_Symbol.PrettyName := Start_Name;
-      Start_Symbol.BaseName := Start_Name;
+      Start_Symbol.BaseName   := Start_Name;
+
       Set_Return_Type (Start_Type, Void_Type);
+
       Start_Symbol.SymType := Start_Type;
-      Start_Symbol.Value := Start_Body;
-      Start_Symbol.Mode := To_Unbounded_String ("C");
-      Symbol_Maps.Insert (Global_Symbol_Table, Start_Name, Start_Symbol);
+      Start_Symbol.Value   := Start_Body;
+      Start_Symbol.Mode    := To_Unbounded_String ("C");
+
+      Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
 
       Put_Line (Create (SymbolTable2Json (Global_Symbol_Table)).Write);
    end GNAT_To_Goto;
