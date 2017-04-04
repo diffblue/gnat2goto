@@ -1,5 +1,3 @@
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 with Nlists;                use Nlists;
 with Sem_util;              use Sem_Util;
 with Stand;                 use Stand;
@@ -173,14 +171,16 @@ package body Tree_Walk is
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
-      Callee : constant String := Unique_Name (N);
+      Callee : constant String := Unique_Name (Entity (Name (N)));
+      --  ??? use Get_Entity_Name from gnat2why to handle entries and entry
+      --  families (and most likely extend it for accesses to subprograms).
 
       Proc : constant Irep := New_Irep (I_Symbol_Expr);
       R    : constant Irep := New_Irep (I_Code_Function_Call);
    begin
       Set_Identifier (Proc, Callee);
       Set_Type (Proc,
-                Global_Symbol_Table (To_Unbounded_String (Callee)).SymType);
+                Global_Symbol_Table (Intern (Callee)).SymType);
       --  ??? Why not look at type of entity?
 
       Set_Source_Location (R, Sloc (N));
@@ -220,15 +220,15 @@ package body Tree_Walk is
             declare
                Unit_Type : constant Irep :=
                  Do_Subprogram_Specification (Specification (U));
-               Unit_Name : constant Unbounded_String :=
-                 To_Unbounded_String (Unique_Name (Unique_Defining_Entity (U)));
+               Unit_Name : constant Symbol_Id :=
+                 Intern (Unique_Name (Unique_Defining_Entity (U)));
             begin
                -- Register the symbol *before* we compile the body, for
                -- recursive calls.
                Unit_Symbol.Name       := Unit_Name;
                Unit_Symbol.PrettyName := Unit_Name;
                Unit_Symbol.BaseName   := Unit_Name;
-               Unit_Symbol.Mode       := To_Unbounded_String ("C");
+               Unit_Symbol.Mode       := Intern ("C");
                Unit_Symbol.SymType    := Unit_Type;
                Global_Symbol_Table.Insert (Unit_Name, Unit_Symbol);
 
@@ -281,14 +281,14 @@ package body Tree_Walk is
 
    function Do_Function_Call (N : Node_Id) return Irep
    is
-      Func_Name    : constant Unbounded_String :=
-        To_Unbounded_String (Unique_Name (Entity (Name (N))));
+      Func_Name    : constant Symbol_Id :=
+        Intern (Unique_Name (Entity (Name (N))));
 
-      Func_Symbol  : constant Symbol := Global_Symbol_Table (Func_Name);
+      Func_Symbol  : Symbol renames Global_Symbol_Table (Func_Name);
 
       The_Function : constant Irep := New_Irep (I_Symbol_Expr);
    begin
-      Set_Identifier (The_Function, To_String (Func_Name));
+      Set_Identifier (The_Function, Unintern (Func_Name));
       Set_Type (The_Function, Func_Symbol.SymType);
       --  ??? why not get this from the entity
 
@@ -495,19 +495,18 @@ package body Tree_Walk is
 
    procedure Do_Type_Declaration (New_Type_In : Irep; Name_Node : Node_Id) is
       New_Type        : constant Irep := New_Type_In;
-      New_Type_Name   : constant Unbounded_String :=
-        To_Unbounded_String (Unique_Name (Name_Node));
+      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (Name_Node));
       New_Type_Symbol : Symbol;
 
    begin
       if Kind (New_Type) = I_Struct_Type then
-         Set_Tag (New_Type, To_String (New_Type_Name));
+         Set_Tag (New_Type, Unintern (New_Type_Name));
       end if;
       New_Type_Symbol.Name       := New_Type_Name;
       New_Type_Symbol.PrettyName := New_Type_Name;
       New_Type_Symbol.BaseName   := New_Type_Name;
       New_Type_Symbol.SymType    := New_Type;
-      New_Type_Symbol.Mode       := To_Unbounded_String ("C");
+      New_Type_Symbol.Mode       := Intern ("C");
       New_Type_Symbol.IsType     := True;
 
       Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
@@ -558,20 +557,20 @@ package body Tree_Walk is
             Param_Symbol : Symbol;
          begin
             Set_Source_Location (Param_Irep, Sloc (Param_Iter));
-            Set_Type (Param_Irep, Param_Type);
-            Set_Identifier (Param_Irep, Param_Name);
-            Set_Base_Name (Param_Irep, Param_Name);
+            Set_Type            (Param_Irep, Param_Type);
+            Set_Identifier      (Param_Irep, Param_Name);
+            Set_Base_Name       (Param_Irep, Param_Name);
             Append_Parameter (Param_List, Param_Irep);
             -- Add the param to the symtab as well:
-            Param_Symbol.Name := To_Unbounded_String (Param_Name);
-            Param_Symbol.PrettyName := Param_Symbol.Name;
-            Param_Symbol.BaseName := Param_Symbol.Name;
-            Param_Symbol.SymType := Param_Type;
+            Param_Symbol.Name          := Intern (Param_Name);
+            Param_Symbol.PrettyName    := Param_Symbol.Name;
+            Param_Symbol.BaseName      := Param_Symbol.Name;
+            Param_Symbol.SymType       := Param_Type;
             Param_Symbol.IsThreadLocal := True;
-            Param_Symbol.IsFileLocal := True;
-            Param_Symbol.IsLValue := True;
-            Param_Symbol.IsParameter := True;
-            Symbol_Maps.Insert (Global_Symbol_Table, Param_Symbol.Name, Param_Symbol);
+            Param_Symbol.IsFileLocal   := True;
+            Param_Symbol.IsLValue      := True;
+            Param_Symbol.IsParameter   := True;
+            Global_Symbol_Table.Insert (Param_Symbol.Name, Param_Symbol);
             Next (Param_Iter);
          end;
       end loop;
@@ -589,17 +588,21 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
-      Proc_Type : constant Irep := Do_Subprogram_Specification (Specification (N));
-      Proc_Name : constant Unbounded_String :=
-        To_Unbounded_String (Unique_Name (Corresponding_Body (N)));
+      Proc_Type : constant Irep :=
+        Do_Subprogram_Specification (Specification (N));
+
+      Proc_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Corresponding_Body (N)));
+
       Proc_Symbol : Symbol;
    begin
       Proc_Symbol.Name       := Proc_Name;
       Proc_Symbol.BaseName   := Proc_Name;
       Proc_Symbol.PrettyName := Proc_Name;
       Proc_Symbol.SymType    := Proc_Type;
-      Proc_Symbol.Mode       := To_Unbounded_String ("C");
-      Symbol_Maps.Insert (Global_Symbol_Table, Proc_Name, Proc_Symbol);
+      Proc_Symbol.Mode       := Intern ("C");
+
+      Global_Symbol_Table.Insert (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Declaration;
 
    -------------------------------
@@ -607,13 +610,13 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Body (N : Node_Id) is
-      Proc_Name   : constant Unbounded_String :=
-        To_Unbounded_String (Unique_Name (Corresponding_Spec (N)));
+      Proc_Name   : constant Symbol_Id :=
+        Intern (Unique_Name (Corresponding_Spec (N)));
       Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
       Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
    begin
       Proc_Symbol.Value := Proc_Body;
-      Symbol_Maps.Replace (Global_Symbol_Table, Proc_Name, Proc_Symbol);
+      Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
 
    -----------------------
@@ -899,12 +902,13 @@ package body Tree_Walk is
 
    function Do_Selected_Component (N : Node_Id) return Irep is
       Root           : constant Irep := Do_Expression (Prefix (N));
-      Component_Type : constant Irep := Do_Type_Reference (EType (Selector_Name (N)));
+      Component      : constant Entity_Id := Entity (Selector_Name (N));
+      Component_Type : constant Irep := Do_Type_Reference (EType (Component));
       Ret            : constant Irep := New_Irep (I_Member_Expr);
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Compound (Ret, Root);
-      Set_Component_Name (Ret, Unique_Name (Selector_Name (N)));
+      Set_Component_Name (Ret, Unique_Name (Component));
       Set_Type (Ret, Component_Type);
       return Ret;
    end;

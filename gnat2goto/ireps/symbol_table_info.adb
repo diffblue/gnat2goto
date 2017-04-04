@@ -1,16 +1,25 @@
 package body Symbol_Table_Info is
 
+   Intern_Strings : constant GNATCOLL.Symbols.Symbol_Table_Access :=
+     GNATCOLL.Symbols.Allocate;
+
+   function Unintern (S : Symbol_Id) return String is
+     (GNATCOLL.Symbols.Get (S).all);
+
+   function Intern (S : String) return Symbol_Id is
+     (GNATCOLL.Symbols.Find (Intern_Strings, S));
+
    function Symbol2Json (Sym : Symbol) return JSON_Value is
       Ret : constant JSON_Value := Create_Object;
    begin
       Ret.Set_Field ("type",               To_JSON (Sym.SymType));
       Ret.Set_Field ("value",              To_JSON (Sym.Value));
       Ret.Set_Field ("location",           To_JSON (Sym.Location));
-      Ret.Set_Field ("name",               To_String (Sym.Name));
-      Ret.Set_Field ("module",             To_String (Sym.Module));
-      Ret.Set_Field ("base_name",          To_String (Sym.BaseName));
-      Ret.Set_Field ("mode",               To_String (Sym.Mode));
-      Ret.Set_Field ("pretty_name",        To_String (Sym.PrettyName));
+      Ret.Set_Field ("name",               Unintern (Sym.Name));
+      Ret.Set_Field ("module",             Unintern (Sym.Module));
+      Ret.Set_Field ("base_name",          Unintern (Sym.BaseName));
+      Ret.Set_Field ("mode",               Unintern (Sym.Mode));
+      Ret.Set_Field ("pretty_name",        Unintern (Sym.PrettyName));
       Ret.Set_Field ("is_type",            Sym.IsType);
       Ret.Set_Field ("is_macro",           Sym.IsMacro);
       Ret.Set_Field ("is_exported",        Sym.IsExported);

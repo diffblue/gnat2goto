@@ -1,5 +1,3 @@
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 package body Gather_Irep_Symbols is
 
    procedure Gather (Table : in out Symbol_Table; Ir : Irep) is
@@ -9,8 +7,7 @@ package body Gather_Irep_Symbols is
       begin
          if Kind (I) = I_Symbol_Expr then
             declare
-               Id_String : constant Unbounded_String :=
-                 To_Unbounded_String (Get_Identifier (I));
+               Id_String : constant Symbol_Id := Intern (Get_Identifier (I));
 
                Inserted  : Boolean;
                New_Entry : Symbol_Maps.Cursor;
@@ -31,7 +28,7 @@ package body Gather_Irep_Symbols is
                      New_Symbol.Name          := Id_String;
                      New_Symbol.BaseName      := Id_String;
                      New_Symbol.PrettyName    := Id_String;
-                     New_Symbol.Mode          := To_Unbounded_String ("C");
+                     New_Symbol.Mode          := Intern ("C");
                      New_Symbol.IsStateVar    := True;
                      New_Symbol.IsThreadLocal := True;
                      New_Symbol.IsLValue      := True;
