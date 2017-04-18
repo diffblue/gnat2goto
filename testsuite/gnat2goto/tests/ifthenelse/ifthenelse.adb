@@ -3,7 +3,7 @@ procedure Ifthenelse is
   b : Integer := 2;
   c : Integer;
 begin
-  if (a = b) then
+  if a = b then
     c := a + b;
   else
     c := a - b;
