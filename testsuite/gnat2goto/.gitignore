@@ -4,4 +4,6 @@ cbmc
 *.goto_functions
 *.json_symtab
 *.symtab
-*.out
+# Testsuite itself
+*.pyc
+out
