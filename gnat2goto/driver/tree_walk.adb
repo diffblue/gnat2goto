@@ -3,6 +3,8 @@ with Sem_util;              use Sem_Util;
 with Stand;                 use Stand;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
+with Einfo;                 use Einfo;
+with Snames;                use Snames;
 
 with Uint_To_Binary;        use Uint_To_Binary;
 with Follow;                use Follow;
@@ -36,6 +38,14 @@ package body Tree_Walk is
    function Do_Loop_Statement (N : Node_Id) return Irep
    with Pre  => NKind (N) = N_Loop_Statement,
         Post => Kind (Do_Loop_Statement'Result) in Class_Code;
+
+   function Do_Address_Of (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Attribute_Reference,
+        Post => Kind (Do_Address_Of'Result) = I_Address_Of_Expr;
+
+   function Do_Dereference (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Explicit_Dereference,
+        Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
 
    function Do_Expression (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Subexpr,
@@ -86,6 +96,9 @@ package body Tree_Walk is
 
    procedure Do_Subtype_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Subtype_Declaration;
+
+   procedure Do_Itype_Reference (N : Node_Id)
+   with Pre => Nkind (N) = N_Itype_Reference;
 
    function Do_Subtype_Indication (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Subtype_Indication,
@@ -301,6 +314,36 @@ package body Tree_Walk is
    end Do_Function_Call;
 
    -------------------
+   -- Do_Address_Of --
+   -------------------
+
+   function Do_Address_Of (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_Address_Of_Expr);
+      Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
+      Base : constant Irep := Do_Expression (Prefix (N));
+   begin
+      Set_Width (Pointer_Type, 64);
+      Set_Subtype (Pointer_Type, Get_Type (Base));
+      Set_Type (Ret, Pointer_Type);
+      Set_Object (Ret, Base);
+      return Ret;
+   end Do_Address_Of;
+
+   --------------------
+   -- Do_Dereference --
+   --------------------
+
+   function Do_Dereference (N : Node_Id) return Irep is
+      Base : constant Irep := Do_Expression (Prefix (N));
+      Ret : constant Irep := New_Irep (I_Dereference_Expr);
+      Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      Set_Type (Ret, Ret_Type);
+      Set_Object (Ret, Base);
+      return Ret;
+   end Do_Dereference;
+
+   -------------------
    -- Do_Expression --
    -------------------
 
@@ -308,12 +351,17 @@ package body Tree_Walk is
    begin
       return
         (case Nkind (N) is
-            when N_Identifier         => Do_Identifier (N),
-            when N_Selected_Component => Do_Selected_Component (N),
-            when N_Op                 => Do_Operator (N),
-            when N_Integer_Literal    => Do_Constant (N),
-            when N_Type_Conversion    => Do_Type_Conversion (N),
-            when N_Function_Call      => Do_Function_Call (N),
+            when N_Identifier           => Do_Identifier (N),
+            when N_Selected_Component   => Do_Selected_Component (N),
+            when N_Op                   => Do_Operator (N),
+            when N_Integer_Literal      => Do_Constant (N),
+            when N_Type_Conversion      => Do_Type_Conversion (N),
+            when N_Function_Call        => Do_Function_Call (N),
+            when N_Attribute_Reference  =>
+               (case Attribute_Name (N) is
+                  when Snames.Name_Access => Do_Address_Of (N),
+                  when others   => raise Program_Error),
+            when N_Explicit_Dereference => Do_Dereference (N),
 
             when others               => raise Program_Error);
    end Do_Expression;
@@ -537,6 +585,31 @@ package body Tree_Walk is
    begin
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
+
+   ------------------------
+   -- Do_Itype_Reference --
+   ------------------------
+
+   procedure Do_Itype_Reference (N : Node_Id) is
+      Typedef : constant Node_Id := Etype (Itype (N));
+      function Do_Anonymous_Type_Definition return Irep is
+      begin
+         case Ekind (Typedef) is
+            when E_Anonymous_Access_Type => declare
+               Base : constant Irep := Do_Type_Reference (Designated_Type (Typedef));
+               Ret : constant Irep := New_Irep (I_Pointer_Type);
+            begin
+               Set_Width (Ret, 64);
+               Set_Subtype (Ret, Base);
+               return Ret;
+            end;
+            when others => raise Program_Error;
+         end case;
+      end;
+      New_Type : constant Irep := Do_Anonymous_Type_Definition;
+   begin
+      Do_Type_Declaration (New_Type, Typedef);
+   end Do_Itype_Reference;
 
    --------------------------------
    -- Do_Subprogram_Specification --
@@ -976,6 +1049,9 @@ package body Tree_Walk is
          when N_Freeze_Entity =>
             -- Ignore, nothing to generate
             null;
+
+         when N_Itype_Reference =>
+            Do_Itype_Reference (N);
 
          when N_Subprogram_Declaration =>
             Do_Subprogram_Declaration (N);
