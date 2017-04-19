@@ -5,6 +5,7 @@ This module contains support functions for all test.py files
 import json
 import fnmatch
 import os
+import re
 import sys
 from gnatpython.ex import Run
 
@@ -22,15 +23,7 @@ def ada_body_files():
 def filter_timing(results):
     """Remove timing data from results"""
 
-    filtered = []
-
-    for line in results.splitlines():
-        if line.startswith("Runtime decision procedure: "):
-            pass
-        else:
-            filtered.append(line)
-
-    return "\n".join(filtered)
+    return re.sub(r'Runtime decision procedure: \d+\.\d+\n', r'', results)
 
 
 def process(file):
