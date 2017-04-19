@@ -11,6 +11,9 @@ with Follow;                use Follow;
 
 package body Tree_Walk is
 
+   Pointer_Type_Width : constant Positive := 64;
+   --  ??? this should be queried at runtime from GNAT
+
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
         Post => Kind (Do_Assignment_Statement'Result) = I_Code_Assign;
@@ -322,7 +325,7 @@ package body Tree_Walk is
       Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
       Base : constant Irep := Do_Expression (Prefix (N));
    begin
-      Set_Width (Pointer_Type, 64);
+      Set_Width (Pointer_Type, Pointer_Type_Width);
       Set_Subtype (Pointer_Type, Get_Type (Base));
       Set_Type (Ret, Pointer_Type);
       Set_Object (Ret, Base);
@@ -599,7 +602,7 @@ package body Tree_Walk is
                Base : constant Irep := Do_Type_Reference (Designated_Type (Typedef));
                Ret : constant Irep := New_Irep (I_Pointer_Type);
             begin
-               Set_Width (Ret, 64);
+               Set_Width (Ret, Pointer_Type_Width);
                Set_Subtype (Ret, Base);
                return Ret;
             end;
