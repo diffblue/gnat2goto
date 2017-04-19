@@ -8,6 +8,8 @@ with Snames;                use Snames;
 
 with Uint_To_Binary;        use Uint_To_Binary;
 with Follow;                use Follow;
+with Ada.Containers.Ordered_Maps;
+with Ada.Containers;        use Ada.Containers;
 
 package body Tree_Walk is
 
@@ -148,6 +150,11 @@ package body Tree_Walk is
    with Post => Kind (Process_Statement_List'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
+   generic
+      with procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id);
+   procedure Iterate_Call_Parameters (Call : Node_Id)
+   with Pre => Nkind (Call) in N_Subprogram_Call | N_Entry_Call_Statement;
+
    function Make_Int_Type (Width : Positive) return Irep is
    begin
       return I : constant Irep := New_Irep (I_Signedbv_Type) do
@@ -168,6 +175,68 @@ package body Tree_Walk is
          Set_Type (R, Make_Pointer_Type (Get_Type (Base)));
       end return;
    end Make_Address_Of;
+
+   -- Borrowed from https://github.com/AdaCore/spark2014/blob/master/gnat2why/spark/spark_util.adb
+
+   function Get_Called_Entity (N : Node_Id) return Entity_Id is
+      Nam : constant Node_Id := Name (N);
+
+   begin
+      return
+        Entity (case Nkind (Nam) is
+                   when N_Selected_Component => Selector_Name (Nam),
+                   when N_Indexed_Component  => Selector_Name (Prefix (Nam)),
+                   when others               => Nam);
+   end Get_Called_Entity;
+
+   procedure Iterate_Call_Parameters (Call : Node_Id)
+   is
+      Params     : constant List_Id := Parameter_Associations (Call);
+      Cur_Formal : Entity_Id := First_Entity (Get_Called_Entity (Call));
+      Cur_Actual : Node_Id := First (Params);
+      In_Named   : Boolean := False;
+   begin
+      --  We have to deal with named arguments, but the frontend has
+      --  done some work for us. All unnamed arguments come first and
+      --  are given as-is, while named arguments are wrapped into a
+      --  N_Parameter_Association. The field First_Named_Actual of the
+      --  function or procedure call points to the first named argument,
+      --  that should be inserted after the last unnamed one. Each
+      --  Named Actual then points to a Next_Named_Actual. These
+      --  pointers point directly to the actual, but Next_Named_Actual
+      --  pointers are attached to the N_Parameter_Association, so to
+      --  get the next actual from the current one, we need to follow
+      --  the Parent pointer.
+      --
+      --  The Boolean In_Named states how to obtain the next actual:
+      --  either follow the Next pointer, or the Next_Named_Actual of
+      --  the parent.
+      --  We start by updating the Cur_Actual and In_Named variables for
+      --  the first parameter.
+
+      if Nkind (Cur_Actual) = N_Parameter_Association then
+         In_Named := True;
+         Cur_Actual := First_Named_Actual (Call);
+      end if;
+
+      while Present (Cur_Formal) and then Present (Cur_Actual) loop
+         Handle_Parameter (Cur_Formal, Cur_Actual);
+         Cur_Formal := Next_Formal (Cur_Formal);
+
+         if In_Named then
+            Cur_Actual := Next_Named_Actual (Parent (Cur_Actual));
+         else
+            Next (Cur_Actual);
+
+            if Nkind (Cur_Actual) = N_Parameter_Association then
+               In_Named := True;
+               Cur_Actual := First_Named_Actual (Call);
+            end if;
+         end if;
+      end loop;
+   end Iterate_Call_Parameters;
+
+   -- End borrowed code
 
    -----------------------------
    -- Do_Assignment_Statement --
@@ -301,14 +370,33 @@ package body Tree_Walk is
       end if;
    end Do_Defining_Identifier;
 
+   package Argument_Ordinal_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type => Node_Id,
+      Element_Type => Count_Type);
+
+   function Get_Argument_Ordinal_Map (N : Node_Id) return Argument_Ordinal_Maps.Map
+   is
+      Formal_Iter : Node_Id := First_Formal (Entity (Name (N)));
+      Idx : Count_Type := 1;
+   begin
+      return R : Argument_Ordinal_Maps.Map do
+         while Present (Formal_Iter) loop
+            R.Insert (Formal_Iter, Idx);
+            Proc_Next_Formal (Formal_Iter);
+            Idx := Idx + 1;
+         end loop;
+      end return;
+   end;
+
    ----------------------
    -- Do_Argument_List --
    ----------------------
 
    function Do_Argument_List (N : Node_Id) return Irep
    is
-      Formal_Iter : Node_Id := First_Formal (Entity (Name (N)));
-      Arg_Iter : Node_Id := First (Parameter_Associations (N));
+      Formal_Node_To_Ordinal : constant Argument_Ordinal_Maps.Map :=
+        Get_Argument_Ordinal_Map (N);
+      Parameter_Assignments : array (1 .. Formal_Node_To_Ordinal.Length) of Irep;
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is begin
          if not Is_Out then
             return Base;
@@ -316,17 +404,21 @@ package body Tree_Walk is
             return Make_Address_Of (Base);
          end if;
       end;
+      procedure Store_Parameter (Formal : Entity_Id; Actual : Node_Id) is
+         Parameter_Pos : constant Count_Type :=
+           Formal_Node_To_Ordinal.Element (Formal);
+         Is_Out : constant Boolean := Out_Present (Parent (Formal));
+         Actual_Irep : constant Irep := Wrap_Argument (Do_Expression (Actual), Is_Out);
+      begin
+         Parameter_Assignments (Parameter_Pos) := Actual_Irep;
+      end;
+      procedure Iter_Store_Parameter is new
+        Iterate_Call_Parameters (Store_Parameter);
    begin
-      --  !!! this will not work for named or mixed parameters
       return R : constant Irep := New_Irep (I_Argument_List) do
-         while Present (Arg_Iter) loop
-            declare
-               Is_Out : constant Boolean := Out_Present (Parent (Formal_Iter));
-            begin
-               Append_Argument (R, Wrap_Argument (Do_Expression (Arg_Iter), Is_Out));
-            end;
-            Next (Arg_Iter);
-            Proc_Next_Formal (Formal_Iter);
+         Iter_Store_Parameter (N);
+         for I in Parameter_Assignments'Range loop
+            Append_Argument (R, Parameter_Assignments (I));
          end loop;
       end return;
    end Do_Argument_List;
