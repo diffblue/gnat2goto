@@ -983,6 +983,9 @@ package body Tree_Walk is
          when N_Subprogram_Body =>
             Do_Subprogram_Body (N);
 
+         when N_Null_Statement =>
+            null;
+
          when others =>
             pp (Union_Id (N));
             --  ??? To be added later
