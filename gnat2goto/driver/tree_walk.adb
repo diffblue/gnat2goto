@@ -60,11 +60,13 @@ package body Tree_Walk is
 
    function Do_Defining_Identifier (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Defining_Identifier,
-        Post => Kind (Do_Defining_Identifier'Result) = I_Symbol_Expr;
+        Post => Kind (Do_Defining_Identifier'Result) in
+           I_Symbol_Expr | I_Dereference_Expr;
 
    function Do_Identifier (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Identifier,
-        Post => Kind (Do_Identifier'Result) = I_Symbol_Expr;
+        Post => Kind (Do_Identifier'Result) in
+           I_Symbol_Expr | I_Dereference_Expr;
 
    function Do_Operator (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op,
@@ -152,6 +154,20 @@ package body Tree_Walk is
          Set_Width (I, Width);
       end return;
    end Make_Int_Type;
+
+   function Make_Pointer_Type (Base : Irep) return Irep is begin
+      return R : constant Irep := New_Irep (I_Pointer_Type) do
+         Set_Subtype (R, Base);
+         Set_Width (R, Pointer_Type_Width);
+      end return;
+   end Make_Pointer_Type;
+
+   function Make_Address_Of (Base : Irep) return Irep is begin
+      return R : constant Irep := New_Irep (I_Address_Of_Expr) do
+         Set_Object (R, Base);
+         Set_Type (R, Make_Pointer_Type (Get_Type (Base)));
+      end return;
+   end Make_Address_Of;
 
    -----------------------------
    -- Do_Assignment_Statement --
@@ -265,13 +281,24 @@ package body Tree_Walk is
    ----------------------------
 
    function Do_Defining_Identifier (N : Node_Id) return Irep is
+      Sym : constant Irep := New_Irep (I_Symbol_Expr);
+      Result_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Is_Out_Param : constant Boolean := Ekind (N) in
+        E_In_Out_Parameter | E_Out_Parameter;
+      Symbol_Type : constant Irep :=
+        (if (Is_Out_Param) then Make_Pointer_Type (Result_Type) else Result_Type);
    begin
-      return R : constant Irep := New_Irep (I_Symbol_Expr) do
-         Set_Source_Location (R, Sloc (N));
-         Set_Identifier (R, Unique_Name (N));
-         --  !!! use of chars
-         Set_Type (R, Do_Type_Reference (Etype (N)));
-      end return;
+      Set_Source_Location (Sym, Sloc (N));
+      Set_Identifier (Sym, Unique_Name (N));
+      Set_Type (Sym, Symbol_Type);
+      if (Is_Out_Param) then
+         return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
+           Set_Type (Deref, Result_Type);
+           Set_Object (Deref, Sym);
+         end return;
+      else
+         return Sym;
+      end if;
    end Do_Defining_Identifier;
 
    ----------------------
@@ -280,13 +307,26 @@ package body Tree_Walk is
 
    function Do_Argument_List (N : Node_Id) return Irep
    is
+      Formal_Iter : Node_Id := First_Formal (Entity (Name (N)));
       Arg_Iter : Node_Id := First (Parameter_Associations (N));
+      function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is begin
+         if not Is_Out then
+            return Base;
+         else
+            return Make_Address_Of (Base);
+         end if;
+      end;
    begin
       --  !!! this will not work for named or mixed parameters
       return R : constant Irep := New_Irep (I_Argument_List) do
          while Present (Arg_Iter) loop
-            Append_Argument (R, Do_Expression (Arg_Iter));
+            declare
+               Is_Out : constant Boolean := Out_Present (Parent (Formal_Iter));
+            begin
+               Append_Argument (R, Wrap_Argument (Do_Expression (Arg_Iter), Is_Out));
+            end;
             Next (Arg_Iter);
+            Proc_Next_Formal (Formal_Iter);
          end loop;
       end return;
    end Do_Argument_List;
@@ -320,16 +360,8 @@ package body Tree_Walk is
    -- Do_Address_Of --
    -------------------
 
-   function Do_Address_Of (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Address_Of_Expr);
-      Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
-      Base : constant Irep := Do_Expression (Prefix (N));
-   begin
-      Set_Width (Pointer_Type, Pointer_Type_Width);
-      Set_Subtype (Pointer_Type, Get_Type (Base));
-      Set_Type (Ret, Pointer_Type);
-      Set_Object (Ret, Base);
-      return Ret;
+   function Do_Address_Of (N : Node_Id) return Irep is begin
+      return Make_Address_Of (Do_Expression (Prefix (N)));
    end Do_Address_Of;
 
    --------------------
@@ -600,11 +632,8 @@ package body Tree_Walk is
          case Ekind (Typedef) is
             when E_Anonymous_Access_Type => declare
                Base : constant Irep := Do_Type_Reference (Designated_Type (Typedef));
-               Ret : constant Irep := New_Irep (I_Pointer_Type);
             begin
-               Set_Width (Ret, Pointer_Type_Width);
-               Set_Subtype (Ret, Base);
-               return Ret;
+               return Make_Pointer_Type (Base);
             end;
             when others => raise Program_Error;
          end case;
@@ -625,8 +654,13 @@ package body Tree_Walk is
    begin
       while Present (Param_Iter) loop
          declare
-            Param_Type : constant Irep :=
+            Is_Out : constant Boolean := Out_Present (Param_Iter);
+            Param_Type_Base : constant Irep :=
               Do_Type_Reference (EType (Parameter_Type (Param_Iter)));
+            Param_Type : constant Irep :=
+              (if (Is_Out) then
+              Make_Pointer_Type (Param_Type_Base) else
+              Param_Type_Base);
             Param_Name : constant String :=
               Unique_Name (Defining_Identifier (Param_Iter));
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
