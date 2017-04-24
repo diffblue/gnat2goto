@@ -14,9 +14,9 @@ with Uint_To_Binary;        use Uint_To_Binary;
 
 package body Tree_Walk is
 
-   function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
-
-   function Do_Type_Definition (N : Node_Id) return Irep;
+   function Do_Address_Of (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Attribute_Reference,
+        Post => Kind (Do_Address_Of'Result) = I_Address_Of_Expr;
 
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
@@ -26,68 +26,91 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
         Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
 
-   function Do_Procedure_Call_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Procedure_Call_Statement,
-        Post => Kind (Do_Procedure_Call_Statement'Result) =
-                  I_Code_Function_Call;
-
-   function Do_Simple_Return_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Simple_Return_Statement,
-        Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
-
-   procedure Do_Object_Declaration (N : Node_Id; Block : Irep)
-   with Pre => Nkind (N) = N_Object_Declaration
-                 and then Kind (Block) = I_Code_Block;
-
-   function Do_If_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_If_Statement,
-        Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
-
-   function Do_Loop_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Loop_Statement,
-        Post => Kind (Do_Loop_Statement'Result) in Class_Code;
-
-   function Do_Address_Of (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Attribute_Reference,
-        Post => Kind (Do_Address_Of'Result) = I_Address_Of_Expr;
-
-   function Do_Dereference (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Explicit_Dereference,
-        Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
-
-   function Do_Expression (N : Node_Id) return Irep
-   with Pre  => Nkind (N) in N_Subexpr,
-        Post => Kind (Do_Expression'Result) in Class_Expr;
-
-   function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
-        Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
+   function Do_Constant (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Integer_Literal,
+        Post => Kind (Do_Constant'Result) = I_Constant_Expr;
 
    function Do_Defining_Identifier (E : Entity_Id) return Irep
    with Pre  => Nkind (E) = N_Defining_Identifier,
         Post => Kind (Do_Defining_Identifier'Result) in
            I_Symbol_Expr | I_Dereference_Expr;
 
+   function Do_Dereference (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Explicit_Dereference,
+        Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
+
+   function Do_Derived_Type_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Derived_Type_Definition,
+        Post => Kind (Do_Derived_Type_Definition'Result) in Class_Type;
+
+   function Do_Expression (N : Node_Id) return Irep
+   with Pre  => Nkind (N) in N_Subexpr,
+        Post => Kind (Do_Expression'Result) in Class_Expr;
+
+   procedure Do_Full_Type_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Full_Type_Declaration;
+
+   function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
+        Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
+
    function Do_Identifier (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Identifier,
         Post => Kind (Do_Identifier'Result) in
            I_Symbol_Expr | I_Dereference_Expr;
 
-   function Do_Operator (N : Node_Id) return Irep
-   with Pre  => Nkind (N) in N_Op,
-        Post => Kind (Do_Operator'Result) in Class_Expr;
+   function Do_If_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_If_Statement,
+        Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
    function Do_Function_Call (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Function_Call,
         Post => Kind (Do_Function_Call'Result) in Class_Expr;
 
-   function Do_Type_Conversion (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Type_Conversion,
-        Post => Kind (Do_Type_Conversion'Result) in Class_Expr;
+   procedure Do_Itype_Reference (N : Node_Id)
+   with Pre => Nkind (N) = N_Itype_Reference;
 
-   function Do_Constant (N : Node_Id) return Irep
-   with Pre => Nkind (N) = N_Integer_Literal,
-        Post => Kind (Do_Constant'Result) = I_Constant_Expr;
+   function Do_Loop_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Loop_Statement,
+        Post => Kind (Do_Loop_Statement'Result) in Class_Code;
+
+   procedure Do_Object_Declaration (N : Node_Id; Block : Irep)
+   with Pre => Nkind (N) = N_Object_Declaration
+                 and then Kind (Block) = I_Code_Block;
+
+   function Do_Operator (N : Node_Id) return Irep
+   with Pre  => Nkind (N) in N_Op,
+        Post => Kind (Do_Operator'Result) in Class_Expr;
+
+   function Do_Procedure_Call_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Procedure_Call_Statement,
+        Post => Kind (Do_Procedure_Call_Statement'Result) =
+                  I_Code_Function_Call;
+
+   function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
+
+   function Do_Record_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Record_Definition,
+        Post => Kind (Do_Record_Definition'Result) = I_Struct_Type;
+
+   function Do_Selected_Component (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Selected_Component,
+        Post => Kind (Do_Selected_Component'Result) = I_Member_Expr;
+
+   function Do_Signed_Integer_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Signed_Integer_Type_Definition,
+        Post => Kind (Do_Signed_Integer_Definition'Result) =
+                  I_Bounded_Signedbv_Type;
+
+   function Do_Simple_Return_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Simple_Return_Statement,
+        Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
+
+   procedure Do_Subprogram_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Subprogram_Declaration;
+
+   procedure Do_Subprogram_Body (N : Node_Id)
+   with Pre => Nkind (N) = N_Subprogram_Body;
 
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Subprogram_Body |
@@ -97,53 +120,30 @@ package body Tree_Walk is
                              N_Entry_Body,
         Post => Kind (Do_Subprogram_Or_Block'Result) = I_Code_Block;
 
-   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id)
-   with Pre => Is_Type (E) and then
-               Kind (New_Type_In) in Class_Type;
-
-   procedure Do_Full_Type_Declaration (N : Node_Id)
-   with Pre => Nkind (N) = N_Full_Type_Declaration;
+   function Do_Subprogram_Specification (N : Node_Id) return Irep
+   with Pre  => Nkind (N) in N_Subprogram_Specification,
+        Post => Kind (Do_Subprogram_Specification'Result) = I_Code_Type;
 
    procedure Do_Subtype_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Subtype_Declaration;
-
-   procedure Do_Itype_Reference (N : Node_Id)
-   with Pre => Nkind (N) = N_Itype_Reference;
 
    function Do_Subtype_Indication (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Subtype_Indication,
         Post => Kind (Do_Subtype_Indication'Result) in Class_Type;
 
-   function Do_Record_Definition (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Record_Definition,
-        Post => Kind (Do_Record_Definition'Result) = I_Struct_Type;
+   function Do_Type_Conversion (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Type_Conversion,
+        Post => Kind (Do_Type_Conversion'Result) in Class_Expr;
 
-   function Do_Signed_Integer_Definition (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Signed_Integer_Type_Definition,
-        Post => Kind (Do_Signed_Integer_Definition'Result) =
-                  I_Bounded_Signedbv_Type;
+   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id)
+   with Pre => Is_Type (E) and then
+               Kind (New_Type_In) in Class_Type;
 
-   function Do_Derived_Type_Definition (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Derived_Type_Definition,
-        Post => Kind (Do_Derived_Type_Definition'Result) in Class_Type;
+   function Do_Type_Definition (N : Node_Id) return Irep;
 
    function Do_Type_Reference (E : Entity_Id) return Irep
    with Pre  => Is_Type (E),
         Post => Kind (Do_Type_Reference'Result) in Class_Type;
-
-   function Do_Selected_Component (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Selected_Component,
-        Post => Kind (Do_Selected_Component'Result) = I_Member_Expr;
-
-   procedure Do_Subprogram_Declaration (N : Node_Id)
-   with Pre => Nkind (N) = N_Subprogram_Declaration;
-
-   function Do_Subprogram_Specification (N : Node_Id) return Irep
-   with Pre  => Nkind (N) in N_Subprogram_Specification,
-        Post => Kind (Do_Subprogram_Specification'Result) = I_Code_Type;
-
-   procedure Do_Subprogram_Body (N : Node_Id)
-   with Pre => Nkind (N) = N_Subprogram_Body;
 
    procedure Process_Statement (N : Node_Id; Block : Irep)
    with Pre => Kind (Block) = I_Code_Block;
