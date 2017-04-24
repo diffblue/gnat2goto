@@ -519,9 +519,9 @@ package body Tree_Walk is
             when N_Type_Conversion      => Do_Type_Conversion (N),
             when N_Function_Call        => Do_Function_Call (N),
             when N_Attribute_Reference  =>
-               (case Attribute_Name (N) is
-                  when Snames.Name_Access => Do_Address_Of (N),
-                  when others             => raise Program_Error),
+               (case Get_Attribute_Id (Attribute_Name (N)) is
+                  when Attribute_Access => Do_Address_Of (N),
+                  when others           => raise Program_Error),
             when N_Explicit_Dereference => Do_Dereference (N),
 
             when others                 => raise Program_Error);
