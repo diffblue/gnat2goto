@@ -60,8 +60,8 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
         Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
 
-   function Do_Defining_Identifier (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Defining_Identifier,
+   function Do_Defining_Identifier (E : Entity_Id) return Irep
+   with Pre  => Nkind (E) = N_Defining_Identifier,
         Post => Kind (Do_Defining_Identifier'Result) in
            I_Symbol_Expr | I_Dereference_Expr;
 
@@ -155,12 +155,20 @@ package body Tree_Walk is
    procedure Iterate_Call_Parameters (Call : Node_Id)
    with Pre => Nkind (Call) in N_Subprogram_Call | N_Entry_Call_Statement;
 
+   -------------------
+   -- Make_Int_Type --
+   -------------------
+
    function Make_Int_Type (Width : Positive) return Irep is
+      I : constant Irep := New_Irep (I_Signedbv_Type);
    begin
-      return I : constant Irep := New_Irep (I_Signedbv_Type) do
-         Set_Width (I, Width);
-      end return;
+      Set_Width (I, Width);
+      return I;
    end Make_Int_Type;
+
+   -----------------------
+   -- Make_Pointer_Type --
+   -----------------------
 
    function Make_Pointer_Type (Base : Irep) return Irep is
       R : constant Irep := New_Irep (I_Pointer_Type);
@@ -169,6 +177,10 @@ package body Tree_Walk is
       Set_Width   (R, Pointer_Type_Width);
       return R;
    end Make_Pointer_Type;
+
+   ---------------------
+   -- Make_Address_Of --
+   ---------------------
 
    function Make_Address_Of (Base : Irep) return Irep is
       R : constant Irep := New_Irep (I_Address_Of_Expr);
@@ -180,6 +192,10 @@ package body Tree_Walk is
 
    -- Borrowed from https://github.com/AdaCore/spark2014/blob/master/gnat2why/spark/spark_util.adb
 
+   -----------------------
+   -- Get_Called_Entity --
+   -----------------------
+
    function Get_Called_Entity (N : Node_Id) return Entity_Id is
       Nam : constant Node_Id := Name (N);
 
@@ -190,6 +206,10 @@ package body Tree_Walk is
                    when N_Indexed_Component  => Selector_Name (Prefix (Nam)),
                    when others               => Nam);
    end Get_Called_Entity;
+
+   -----------------------------
+   -- Iterate_Call_Parameters --
+   -----------------------------
 
    procedure Iterate_Call_Parameters (Call : Node_Id)
    is
@@ -300,13 +320,13 @@ package body Tree_Walk is
 
    function Do_Simple_Return_Statement (N : Node_Id) return Irep is
       Expr : constant Node_Id := Expression (N);
+      R    : constant Irep := New_Irep (I_Code_Return);
    begin
-      return R : constant Irep := New_Irep (I_Code_Return) do
-         Set_Source_Location (R, Sloc (N));
-         if Present (Expr) then
-            Set_Return_Value (R, Do_Expression (Expr));
-         end if;
-      end return;
+      Set_Source_Location (R, Sloc (N));
+      if Present (Expr) then
+         Set_Return_Value (R, Do_Expression (Expr));
+      end if;
+      return R;
    end;
 
    -------------------------
@@ -351,12 +371,12 @@ package body Tree_Walk is
    -- Do_Defining_Identifier --
    ----------------------------
 
-   function Do_Defining_Identifier (N : Node_Id) return Irep is
+   function Do_Defining_Identifier (E : Entity_Id) return Irep is
       Sym          : constant Irep := New_Irep (I_Symbol_Expr);
-      Result_Type  : constant Irep := Do_Type_Reference (Etype (N));
+      Result_Type  : constant Irep := Do_Type_Reference (Etype (E));
 
       Is_Out_Param : constant Boolean :=
-        Ekind (N) in E_In_Out_Parameter | E_Out_Parameter;
+        Ekind (E) in E_In_Out_Parameter | E_Out_Parameter;
 
       Symbol_Type  : constant Irep :=
         (if Is_Out_Param
@@ -364,8 +384,8 @@ package body Tree_Walk is
          else Result_Type);
 
    begin
-      Set_Source_Location (Sym, Sloc (N));
-      Set_Identifier      (Sym, Unique_Name (N));
+      Set_Source_Location (Sym, Sloc (E));
+      Set_Identifier      (Sym, Unique_Name (E));
       Set_Type            (Sym, Symbol_Type);
 
       if Is_Out_Param then
@@ -454,14 +474,14 @@ package body Tree_Walk is
 
    begin
       Set_Identifier (The_Function, Unintern (Func_Name));
-      Set_Type (The_Function, Func_Symbol.SymType);
+      Set_Type       (The_Function, Func_Symbol.SymType);
       --  ??? why not get this from the entity
 
       return R : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call)
       do
          Set_Source_Location (R, Sloc (N));
-         Set_Function (R, The_Function);
-         Set_Arguments (R, Do_Argument_List (N));
+         Set_Function        (R, The_Function);
+         Set_Arguments       (R, Do_Argument_List (N));
       end return;
    end Do_Function_Call;
 
@@ -469,21 +489,18 @@ package body Tree_Walk is
    -- Do_Address_Of --
    -------------------
 
-   function Do_Address_Of (N : Node_Id) return Irep is begin
-      return Make_Address_Of (Do_Expression (Prefix (N)));
-   end Do_Address_Of;
+   function Do_Address_Of (N : Node_Id) return Irep is
+     (Make_Address_Of (Do_Expression (Prefix (N))));
 
    --------------------
    -- Do_Dereference --
    --------------------
 
    function Do_Dereference (N : Node_Id) return Irep is
-      Base : constant Irep := Do_Expression (Prefix (N));
       Ret : constant Irep := New_Irep (I_Dereference_Expr);
-      Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
    begin
-      Set_Type (Ret, Ret_Type);
-      Set_Object (Ret, Base);
+      Set_Type   (Ret, Do_Type_Reference (Etype (N)));
+      Set_Object (Ret, Do_Expression (Prefix (N)));
       return Ret;
    end Do_Dereference;
 
@@ -504,10 +521,10 @@ package body Tree_Walk is
             when N_Attribute_Reference  =>
                (case Attribute_Name (N) is
                   when Snames.Name_Access => Do_Address_Of (N),
-                  when others   => raise Program_Error),
+                  when others             => raise Program_Error),
             when N_Explicit_Dereference => Do_Dereference (N),
 
-            when others               => raise Program_Error);
+            when others                 => raise Program_Error);
    end Do_Expression;
 
    -------------------------
@@ -597,9 +614,11 @@ package body Tree_Walk is
          Append_Component (Components, Comp_Irep);
       end;
 
-      --  Local variables:
+      --  Local variables
       Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
       Ret            : constant Irep := New_Irep (I_Struct_Type);
+
+   --  Start of processing for Do_Record_Definition
 
    begin
       while Present (Component_Iter) loop
@@ -611,6 +630,10 @@ package body Tree_Walk is
 
       return Ret;
    end Do_Record_Definition;
+
+   --------------------------------
+   -- Pick_Underlying_Type_Width --
+   --------------------------------
 
    function Pick_Underlying_Type_Width (Val : Uint) return Integer is
       Ret : Integer := 8;
