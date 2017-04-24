@@ -7,7 +7,7 @@ Removal of function pointers and virtual functions
 Partial Inlining
 Generic Property Instrumentation
 Starting Bounded Model Checking
-size of program expression: 17 steps
+
 simple slicing removed 0 assignments
 Generated 0 VCC(s), 0 remaining after simplification
 VERIFICATION SUCCESSFUL

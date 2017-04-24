@@ -23,7 +23,9 @@ def ada_body_files():
 def filter_timing(results):
     """Remove timing data from results"""
 
-    return re.sub(r'Runtime decision procedure: \d+\.\d+\n', r'', results)
+    skip = re.compile(r'(^Runtime decision procedure: \d+\.\d+$)|(^size of program expression: \d+ steps$)', re.MULTILINE)
+
+    return re.sub(skip, r'', results)
 
 
 def process(file):
