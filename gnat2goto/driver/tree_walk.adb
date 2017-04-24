@@ -8,8 +8,6 @@ with Snames;                use Snames;
 
 with Uint_To_Binary;        use Uint_To_Binary;
 with Follow;                use Follow;
-with Ada.Containers.Ordered_Maps;
-with Ada.Containers;        use Ada.Containers;
 
 package body Tree_Walk is
 
@@ -20,9 +18,9 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Assignment_Statement,
         Post => Kind (Do_Assignment_Statement'Result) = I_Code_Assign;
 
-   function Do_Argument_List (N : Node_Id) return Irep
+   function Do_Call_Parameters (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
-        Post => Kind (Do_Argument_List'Result) = I_Argument_List;
+        Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Procedure_Call_Statement,
@@ -309,7 +307,7 @@ package body Tree_Walk is
       Set_Source_Location (R, Sloc (N));
       --  Set_LHS (R, Empty);  -- ??? what is the "nil" irep?
       Set_Function (R, Proc);
-      Set_Arguments (R, Do_Argument_List (N));
+      Set_Arguments (R, Do_Call_Parameters (N));
 
       return R;
    end Do_Procedure_Call_Statement;
@@ -398,66 +396,35 @@ package body Tree_Walk is
       end if;
    end Do_Defining_Identifier;
 
-   package Argument_Ordinal_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => Node_Id,
-      Element_Type => Count_Type);
-
-   function Get_Argument_Ordinal_Map
-     (N : Node_Id)
-      return Argument_Ordinal_Maps.Map
-   is
-      Formal_Iter : Node_Id := First_Formal (Entity (Name (N)));
-      Idx : Count_Type := 1;
-   begin
-      return R : Argument_Ordinal_Maps.Map do
-         while Present (Formal_Iter) loop
-            R.Insert (Formal_Iter, Idx);
-            Proc_Next_Formal (Formal_Iter);
-            Idx := Idx + 1;
-         end loop;
-      end return;
-   end;
-
    ----------------------
    -- Do_Argument_List --
    ----------------------
 
-   function Do_Argument_List (N : Node_Id) return Irep
+   function Do_Call_Parameters (N : Node_Id) return Irep
    is
-      Formal_Node_To_Ordinal : constant Argument_Ordinal_Maps.Map :=
-        Get_Argument_Ordinal_Map (N);
-
-      Parameter_Assignments :
-        array (1 .. Formal_Node_To_Ordinal.Length) of Irep;
+      Args : constant Irep := New_Irep (I_Argument_List);
 
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
         (if Is_Out
          then Make_Address_Of (Base)
          else Base);
 
-      procedure Store_Parameter (Formal : Entity_Id; Actual : Node_Id) is
-         Parameter_Pos : constant Count_Type :=
-           Formal_Node_To_Ordinal.Element (Formal);
-
+      procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Is_Out        : constant Boolean := Out_Present (Parent (Formal));
          Actual_Irep   : constant Irep :=
            Wrap_Argument (Do_Expression (Actual), Is_Out);
 
       begin
-         Parameter_Assignments (Parameter_Pos) := Actual_Irep;
+         Append_Argument (Args, Actual_Irep);
       end;
 
-      procedure Iter_Store_Parameter is new
-        Iterate_Call_Parameters (Store_Parameter);
+      procedure Handle_Parameters is new
+        Iterate_Call_Parameters (Handle_Parameter);
 
    begin
-      return R : constant Irep := New_Irep (I_Argument_List) do
-         Iter_Store_Parameter (N);
-         for Arg of Parameter_Assignments loop
-            Append_Argument (R, Arg);
-         end loop;
-      end return;
-   end Do_Argument_List;
+      Handle_Parameters (N);
+      return Args;
+   end Do_Call_Parameters;
 
    ----------------------
    -- Do_Function_Call --
@@ -481,7 +448,7 @@ package body Tree_Walk is
       do
          Set_Source_Location (R, Sloc (N));
          Set_Function        (R, The_Function);
-         Set_Arguments       (R, Do_Argument_List (N));
+         Set_Arguments       (R, Do_Call_Parameters (N));
       end return;
    end Do_Function_Call;
 
