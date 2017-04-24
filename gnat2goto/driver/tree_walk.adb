@@ -1,19 +1,22 @@
+with Einfo;                 use Einfo;
 with Nlists;                use Nlists;
-with Sem_util;              use Sem_Util;
+with Sem_Util;              use Sem_Util;
+with Snames;                use Snames;
 with Stand;                 use Stand;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
-with Einfo;                 use Einfo;
-with Snames;                use Snames;
 
+with Ireps;                 use Ireps;
 with Follow;                use Follow;
 with GNAT_Utils;            use GNAT_Utils;
+with GOTO_Utils;            use GOTO_Utils;
 with Uint_To_Binary;        use Uint_To_Binary;
 
 package body Tree_Walk is
 
-   Pointer_Type_Width : constant Positive := 64;
-   --  ??? this should be queried at runtime from GNAT
+   function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
+
+   function Do_Type_Definition (N : Node_Id) return Irep;
 
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
@@ -33,14 +36,15 @@ package body Tree_Walk is
         Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep)
-   with Pre => Nkind (N) = N_Object_Declaration and Kind (Block) = I_Code_Block;
+   with Pre => Nkind (N) = N_Object_Declaration
+                 and then Kind (Block) = I_Code_Block;
 
    function Do_If_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
    function Do_Loop_Statement (N : Node_Id) return Irep
-   with Pre  => NKind (N) = N_Loop_Statement,
+   with Pre  => Nkind (N) = N_Loop_Statement,
         Post => Kind (Do_Loop_Statement'Result) in Class_Code;
 
    function Do_Address_Of (N : Node_Id) return Irep
@@ -149,44 +153,6 @@ package body Tree_Walk is
    with Post => Kind (Process_Statement_List'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
-   -------------------
-   -- Make_Int_Type --
-   -------------------
-
-   function Make_Int_Type (Width : Positive) return Irep is
-      I : constant Irep := New_Irep (I_Signedbv_Type);
-   begin
-      Set_Width (I, Width);
-      return I;
-   end Make_Int_Type;
-
-   -----------------------
-   -- Make_Pointer_Type --
-   -----------------------
-
-   function Make_Pointer_Type (Base : Irep) return Irep is
-      R : constant Irep := New_Irep (I_Pointer_Type);
-   begin
-      Set_Subtype (R, Base);
-      Set_Width   (R, Pointer_Type_Width);
-      return R;
-   end Make_Pointer_Type;
-
-   ---------------------
-   -- Make_Address_Of --
-   ---------------------
-
-   function Make_Address_Of (Base : Irep) return Irep is
-      R : constant Irep := New_Irep (I_Address_Of_Expr);
-   begin
-      Set_Object (R, Base);
-      Set_Type   (R, Make_Pointer_Type (Get_Type (Base)));
-      return R;
-   end Make_Address_Of;
-
-   -- Borrowed from https://github.com/AdaCore/spark2014/blob/master/gnat2why/spark/spark_util.adb
-
-
    -----------------------------
    -- Do_Assignment_Statement --
    -----------------------------
@@ -210,7 +176,7 @@ package body Tree_Walk is
                Set_Rhs (R, Cast_RHS);
             end;
          else
-            Set_RHS (R, RHS);
+            Set_Rhs (R, RHS);
          end if;
       end return;
    end Do_Assignment_Statement;
@@ -254,7 +220,7 @@ package body Tree_Walk is
          Set_Return_Value (R, Do_Expression (Expr));
       end if;
       return R;
-   end;
+   end Do_Simple_Return_Statement;
 
    -------------------------
    -- Do_Compilation_Unit --
@@ -273,8 +239,8 @@ package body Tree_Walk is
                Unit_Name : constant Symbol_Id :=
                  Intern (Unique_Name (Unique_Defining_Entity (U)));
             begin
-               -- Register the symbol *before* we compile the body, for
-               -- recursive calls.
+               --  Register the symbol *before* we compile the body, for
+               --  recursive calls.
                Unit_Symbol.Name       := Unit_Name;
                Unit_Symbol.PrettyName := Unit_Name;
                Unit_Symbol.BaseName   := Unit_Name;
@@ -317,8 +283,8 @@ package body Tree_Walk is
 
       if Is_Out_Param then
          return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
-           Set_Type   (Deref, Result_Type);
-           Set_Object (Deref, Sym);
+            Set_Type   (Deref, Result_Type);
+            Set_Object (Deref, Sym);
          end return;
       else
          return Sym;
@@ -338,6 +304,12 @@ package body Tree_Walk is
          then Make_Address_Of (Base)
          else Base);
 
+      procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id);
+
+      ----------------------
+      -- Handle_Parameter --
+      ----------------------
+
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Is_Out        : constant Boolean := Out_Present (Parent (Formal));
          Actual_Irep   : constant Irep :=
@@ -345,10 +317,12 @@ package body Tree_Walk is
 
       begin
          Append_Argument (Args, Actual_Irep);
-      end;
+      end Handle_Parameter;
 
       procedure Handle_Parameters is new
         Iterate_Call_Parameters (Handle_Parameter);
+
+   --  Start of processing for Do_Call_Parameters
 
    begin
       Handle_Parameters (N);
@@ -441,7 +415,7 @@ package body Tree_Walk is
          Set_Lower_Bound (R, Do_Constant (Low_Bound (Range_Expr)));
          Set_Upper_Bound (R, Do_Constant (High_Bound (Range_Expr)));
       end return;
-   end;
+   end Do_Range_Constraint;
 
    ---------------------------
    -- Do_Subtype_Indication --
@@ -450,7 +424,7 @@ package body Tree_Walk is
    function Do_Subtype_Indication (N : Node_Id) return Irep
    is
       Underlying : constant Irep :=
-        Do_Type_Reference (EType (Subtype_Mark (N)));
+        Do_Type_Reference (Etype (Subtype_Mark (N)));
 
       Constr : constant Node_Id := Constraint (N);
 
@@ -477,14 +451,19 @@ package body Tree_Walk is
 
       Components : constant Irep := New_Irep (I_Struct_Union_Components);
 
+      procedure Do_Record_Component (Comp : Node_Id);
+
       -------------------------
       -- Do_Record_Component --
       -------------------------
 
       procedure Do_Record_Component (Comp : Node_Id) is
-         Comp_Name : constant String := Unique_Name (Defining_Identifier (Comp));
+         Comp_Name : constant String :=
+           Unique_Name (Defining_Identifier (Comp));
+
          Comp_Defn : constant Node_Id := Component_Definition (Comp);
          Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
+
       begin
          Set_Source_Location (Comp_Irep, Sloc (Comp));
          --  Set attributes we don't use yet:
@@ -508,7 +487,7 @@ package body Tree_Walk is
          end if;
 
          Append_Component (Components, Comp_Irep);
-      end;
+      end Do_Record_Component;
 
       --  Local variables
       Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
@@ -553,7 +532,9 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Derived_Type_Definition (N : Node_Id) return Irep is
-      Subtype_Irep : constant Irep := Do_Subtype_Indication (Subtype_Indication (N));
+      Subtype_Irep : constant Irep :=
+        Do_Subtype_Indication (Subtype_Indication (N));
+
    begin
       if Abstract_Present (N)
         or else Null_Exclusion_Present (N)
@@ -612,7 +593,7 @@ package body Tree_Walk is
       New_Type_Symbol.IsType     := True;
 
       Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
-   end;
+   end Do_Type_Declaration;
 
    ------------------------------
    -- Do_Full_Type_Declaration --
@@ -624,7 +605,7 @@ package body Tree_Walk is
    begin
       Do_Type_Declaration (New_Type, E);
 
-      -- Declare the implicit initial subtype too
+      --  Declare the implicit initial subtype too
       if Etype (E) /= E then
          Do_Type_Declaration (New_Type, Etype (E));
       end if;
@@ -635,7 +616,9 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Subtype_Declaration (N : Node_Id) is
-      New_Type : constant Irep := Do_Subtype_Indication (Subtype_Indication (N));
+      New_Type : constant Irep :=
+        Do_Subtype_Indication (Subtype_Indication (N));
+
    begin
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
@@ -646,17 +629,28 @@ package body Tree_Walk is
 
    procedure Do_Itype_Reference (N : Node_Id) is
       Typedef : constant Node_Id := Etype (Itype (N));
+
+      function Do_Anonymous_Type_Definition return Irep;
+
+      ----------------------------------
+      -- Do_Anonymous_Type_Definition --
+      ----------------------------------
+
       function Do_Anonymous_Type_Definition return Irep is
       begin
          case Ekind (Typedef) is
-            when E_Anonymous_Access_Type => declare
-               Base : constant Irep := Do_Type_Reference (Designated_Type (Typedef));
-            begin
-               return Make_Pointer_Type (Base);
-            end;
-            when others => raise Program_Error;
+            when E_Anonymous_Access_Type =>
+               return
+                 Make_Pointer_Type
+                   (Base => Do_Type_Reference (Designated_Type (Typedef)));
+
+            when others =>
+               raise Program_Error;
+
          end case;
-      end;
+
+      end Do_Anonymous_Type_Definition;
+
       New_Type : constant Irep := Do_Anonymous_Type_Definition;
    begin
       Do_Type_Declaration (New_Type, Typedef);
@@ -676,7 +670,7 @@ package body Tree_Walk is
             Is_Out : constant Boolean := Out_Present (Param_Iter);
 
             Param_Type_Base : constant Irep :=
-              Do_Type_Reference (EType (Parameter_Type (Param_Iter)));
+              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
 
             Param_Type      : constant Irep :=
               (if Is_Out
@@ -695,7 +689,7 @@ package body Tree_Walk is
             Set_Identifier      (Param_Irep, Param_Name);
             Set_Base_Name       (Param_Irep, Param_Name);
             Append_Parameter (Param_List, Param_Irep);
-            -- Add the param to the symtab as well:
+            --  Add the param to the symtab as well:
             Param_Symbol.Name          := Intern (Param_Name);
             Param_Symbol.PrettyName    := Param_Symbol.Name;
             Param_Symbol.BaseName      := Param_Symbol.Name;
@@ -708,11 +702,11 @@ package body Tree_Walk is
             Next (Param_Iter);
          end;
       end loop;
-      if Nkind(N) = N_Function_Specification then
-         Set_Return_Type (Ret, Do_Type_Reference (EType (Result_Definition (N))));
-      else
-         Set_Return_Type (Ret, New_Irep (I_Void_Type));
-      end if;
+      Set_Return_Type
+        (Ret,
+         (if Nkind (N) = N_Function_Specification
+          then Do_Type_Reference (Etype (Result_Definition (N)))
+          else New_Irep (I_Void_Type)));
       Set_Parameters (Ret, Param_List);
       return Ret;
    end Do_Subprogram_Specification;
@@ -776,7 +770,7 @@ package body Tree_Walk is
          end;
 
       end if;
-   end;
+   end Do_Type_Reference;
 
    ---------------------------------------
    -- Do_Handled_Sequence_Of_Statements --
@@ -807,20 +801,30 @@ package body Tree_Walk is
       --  ??? chained if-then-else are more idiomatically iterated with WHILE
       --  (at least in GNAT) than with recursion.
 
+      function Do_If_Block (N : Node_Id) return Irep;
+      procedure Do_Elsifs (Else_Ifs  : Node_Id;
+                           Else_List : List_Id;
+                           Ret       : Irep);
+
       -----------------
       -- Do_If_Block --
       -----------------
 
       function Do_If_Block (N : Node_Id) return Irep is
-         Cond_Expr : constant Irep := Do_Expression (Condition (N));
-         If_Block  : constant Irep := Process_Statement_List (Then_Statements (N));
+         Cond_Expr : constant Irep :=
+           Do_Expression (Condition (N));
+
+         If_Block  : constant Irep :=
+           Process_Statement_List (Then_Statements (N));
+
          Ret : constant Irep := New_Irep (I_Code_Ifthenelse);
+
       begin
          Set_Source_Location (Ret, Sloc (N));
          Set_Cond (Ret, Cond_Expr);
          Set_Then_Case (Ret, If_Block);
          return Ret;
-      end;
+      end Do_If_Block;
 
       ---------------
       -- Do_Elsifs --
@@ -841,18 +845,18 @@ package body Tree_Walk is
                Set_Else_Case (Ret, Sub_If);
             end;
          else
-            if (Present (Else_List)) then
+            if Present (Else_List) then
                Set_Else_Case (Ret, Process_Statement_List (Else_List));
             end if;
          end if;
-      end;
+      end Do_Elsifs;
 
       Ret : constant Irep := Do_If_Block (N);
 
    begin
       Do_Elsifs (First (Elsif_Parts (N)), Else_Statements (N), Ret);
       return Ret;
-   end;
+   end Do_If_Statement;
 
    -----------------------
    -- Do_Loop_Statement --
@@ -861,7 +865,10 @@ package body Tree_Walk is
    function Do_Loop_Statement (N : Node_Id) return Irep is
 
       Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
-      Body_Block : constant Irep := Process_Statement_List (Statements (N));
+      Body_Block  : constant Irep := Process_Statement_List (Statements (N));
+
+      function Do_For_Statement return Irep;
+      function Do_While_Statement (Cond : Irep) return Irep;
 
       ----------------------
       -- Do_For_Statement --
@@ -870,10 +877,10 @@ package body Tree_Walk is
       function Do_For_Statement return Irep is
          Ret : constant Irep := New_Irep (I_Code_For);
       begin
-         -- ??? What happens to Body_Block here?
+         --  ??? What happens to Body_Block here?
          Set_Source_Location (Ret, Sloc (N));
          return Ret;
-      end;
+      end Do_For_Statement;
 
       ------------------------
       -- Do_While_Statement --
@@ -886,7 +893,7 @@ package body Tree_Walk is
          Set_Cond (Ret, Cond);
          Set_Body (Ret, Body_Block);
          return Ret;
-      end;
+      end Do_While_Statement;
 
    begin
 
@@ -894,7 +901,7 @@ package body Tree_Walk is
          declare
             Const_True : constant Irep := New_Irep (I_Constant_Expr);
          begin
-            -- mimic C-style 8-bit bool. This might also work with 1-bit type.
+            --  mimic C-style 8-bit bool; this might also work with 1-bit type
             Set_Value (Const_True, "00000001");
             Set_Type (Const_True, Make_Int_Type (8));
             return Do_While_Statement (Const_True);
@@ -909,14 +916,14 @@ package body Tree_Walk is
          return Do_For_Statement;
       end if;
 
-   end;
+   end Do_Loop_Statement;
 
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep) is
-      Id   : constant Irep := Do_Defining_Identifier (Defining_Identifier(N));
+      Id   : constant Irep := Do_Defining_Identifier (Defining_Identifier (N));
       Decl : constant Irep := New_Irep (I_Code_Decl);
    begin
       Set_Source_Location (Decl, (Sloc (N)));
@@ -941,7 +948,7 @@ package body Tree_Walk is
 
    function Do_Type_Conversion (N : Node_Id) return Irep is
       To_Convert : constant Irep := Do_Expression (Expression (N));
-      New_Type   : constant Irep := Do_Type_Reference (EType (N));
+      New_Type   : constant Irep := Do_Type_Reference (Etype (N));
       Ret        : constant Irep := New_Irep (I_Op_Typecast);
    begin
       Set_Source_Location (Ret, Sloc (N));
@@ -951,7 +958,7 @@ package body Tree_Walk is
       Set_Op0  (Ret, To_Convert);
       Set_Type (Ret, New_Type);
       return Ret;
-   end;
+   end Do_Type_Conversion;
 
    -----------------
    -- Do_Operator --
@@ -960,6 +967,12 @@ package body Tree_Walk is
    function Do_Operator (N : Node_Id) return Irep is
       LHS : constant Irep := Do_Expression (Left_Opnd (N));
       RHS : constant Irep := Do_Expression (Right_Opnd (N));
+
+      function Op_To_Kind (N : N_Op) return Irep_Kind;
+
+      ----------------
+      -- Op_To_Kind --
+      ----------------
 
       function Op_To_Kind (N : N_Op) return Irep_Kind is
       begin
@@ -993,7 +1006,7 @@ package body Tree_Walk is
                   | N_Op_Plus
           =>
              raise Program_Error);
-      end;
+      end Op_To_Kind;
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
       Ret     : constant Irep      := New_Irep (Op_Kind);
@@ -1001,7 +1014,7 @@ package body Tree_Walk is
       Set_Source_Location (Ret, Sloc (N));
       Set_Lhs (Ret, LHS);
       Set_Rhs (Ret, RHS);
-      Set_Type (Ret, Do_Type_Reference (EType (N)));
+      Set_Type (Ret, Do_Type_Reference (Etype (N)));
 
       if Do_Overflow_Check (N) then
          Set_Overflow_Check (Ret, True);
@@ -1022,14 +1035,14 @@ package body Tree_Walk is
 
    function Do_Constant (N : Node_Id) return Irep is
       Ret           : constant Irep := New_Irep (I_Constant_Expr);
-      Constant_Type : constant Irep := Do_Type_Reference (EType (N));
+      Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Constant_Type);
-      -- FIXME
+      --  ??? FIXME
       Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
       return Ret;
-   end;
+   end Do_Constant;
 
    ---------------------------
    -- Do_Selected_Component --
@@ -1038,7 +1051,7 @@ package body Tree_Walk is
    function Do_Selected_Component (N : Node_Id) return Irep is
       Root           : constant Irep := Do_Expression (Prefix (N));
       Component      : constant Entity_Id := Entity (Selector_Name (N));
-      Component_Type : constant Irep := Do_Type_Reference (EType (Component));
+      Component_Type : constant Irep := Do_Type_Reference (Etype (Component));
       Ret            : constant Irep := New_Irep (I_Member_Expr);
    begin
       Set_Source_Location (Ret, Sloc (N));
@@ -1046,7 +1059,7 @@ package body Tree_Walk is
       Set_Component_Name (Ret, Unique_Name (Component));
       Set_Type (Ret, Component_Type);
       return Ret;
-   end;
+   end Do_Selected_Component;
 
    ----------------------------
    -- Do_Subprogram_Or_Block --
@@ -1096,7 +1109,8 @@ package body Tree_Walk is
             Append_Op (Block, Do_If_Statement (N));
 
          when N_Implicit_Label_Declaration =>
-            -- Ignore for now, as I guess an implicit label can't be referenced
+            --  Ignore for now, as I guess an implicit label can't be
+            --  referenced.
             null;
 
          when N_Loop_Statement =>
@@ -1109,7 +1123,7 @@ package body Tree_Walk is
             Do_Subtype_Declaration (N);
 
          when N_Freeze_Entity =>
-            -- Ignore, nothing to generate
+            --  Ignore, nothing to generate
             null;
 
          when N_Itype_Reference =>

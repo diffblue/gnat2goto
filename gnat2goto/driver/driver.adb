@@ -40,9 +40,15 @@ with GNATCOLL.JSON;         use GNATCOLL.JSON;
 
 package body Driver is
 
+   procedure Translate_Standard_Types;
+
+   ------------------------------
+   -- Translate_Standard_Types --
+   ------------------------------
+
    procedure Translate_Standard_Types is
    begin
-      -- Add primitive types to the symtab
+      --  Add primitive types to the symtab
       for Standard_Type in S_Types'Range loop
          declare
             Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
@@ -60,7 +66,8 @@ package body Driver is
                   Type_Irep : constant Irep := New_Irep (Type_Kind);
                   Builtin   : Symbol;
 
-                  Esize_Width : constant Nat := UI_To_Int (Esize (Builtin_Node));
+                  Esize_Width : constant Nat :=
+                    UI_To_Int (Esize (Builtin_Node));
 
                begin
                   Set_Width (Type_Irep, Integer (Esize_Width));
@@ -70,10 +77,15 @@ package body Driver is
                      --  specified in terms of decimal precision. Entirely too
                      --  interesting for now... Let's use float32 or float64
                      --  for now and fix this later.
+
                      Set_F (Type_Irep,
                             (case Esize_Width is
-                                when 32     => 23, -- 23-bit mantissa, 8-bit exponent
-                                when 64     => 52, -- 52-bit mantissa, 11-bit exponent
+                                when 32     => 23,
+                                --  23-bit mantissa, 8-bit exponent
+
+                                when 64     => 52,
+                                --  52-bit mantissa, 11-bit exponent
+
                                 when others => raise Program_Error));
                   end if;
 
@@ -88,7 +100,7 @@ package body Driver is
             end if;
          end;
       end loop;
-   end;
+   end Translate_Standard_Types;
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
@@ -114,7 +126,7 @@ package body Driver is
    begin
       Translate_Standard_Types;
 
-      -- Gather local symbols and put them in the symtab
+      --  Gather local symbols and put them in the symtab
       declare
          Local_Symbols : Symbol_Table;
       begin
@@ -129,7 +141,7 @@ package body Driver is
                Ignored : Boolean;
                Unused  : Symbol_Maps.Cursor;
             begin
-               -- Insert new symbol if not present already
+               --  Insert new symbol if not present already
                Global_Symbol_Table.Insert
                  (Key      => Symbol_Maps.Key (Sym_Iter),
                   New_Item => Local_Symbols (Sym_Iter),
@@ -139,7 +151,7 @@ package body Driver is
          end loop;
       end;
 
-      -- Generate a simple _start function that calls the entry point
+      --  Generate a simple _start function that calls the entry point
       declare
          C : List_Cursor := List_First (Program_Args);
       begin
@@ -189,7 +201,7 @@ package body Driver is
       end;
       Set_Arguments (Initial_Call, Initial_Call_Args);
 
-      -- Catch the call's return value if it has one
+      --  Catch the call's return value if it has one
       if Kind (Program_Return_Type) /= I_Empty then
          declare
             Return_Symbol : Symbol;

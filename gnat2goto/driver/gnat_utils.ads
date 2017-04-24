@@ -17,4 +17,6 @@ package GNAT_Utils is
    procedure Iterate_Call_Parameters (Call : Node_Id)
    with Pre => Nkind (Call) in N_Subprogram_Call | N_Entry_Call_Statement;
 
+   function Get_Called_Entity (N : Node_Id) return Entity_Id;
+
 end GNAT_Utils;
