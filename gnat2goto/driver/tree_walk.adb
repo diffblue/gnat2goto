@@ -412,7 +412,6 @@ package body Tree_Walk is
 
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is begin
          if Is_Out then
-
             return Make_Address_Of (Base);
          else
             return Base;
@@ -437,8 +436,8 @@ package body Tree_Walk is
    begin
       return R : constant Irep := New_Irep (I_Argument_List) do
          Iter_Store_Parameter (N);
-         for I in Parameter_Assignments'Range loop
-            Append_Argument (R, Parameter_Assignments (I));
+         for Arg of Parameter_Assignments loop
+            Append_Argument (R, Arg);
          end loop;
       end return;
    end Do_Argument_List;
@@ -823,6 +822,7 @@ package body Tree_Walk is
         Intern (Unique_Name (Corresponding_Body (N)));
 
       Proc_Symbol : Symbol;
+
    begin
       Proc_Symbol.Name       := Proc_Name;
       Proc_Symbol.BaseName   := Proc_Name;
