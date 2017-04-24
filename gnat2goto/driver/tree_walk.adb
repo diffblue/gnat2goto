@@ -149,8 +149,8 @@ package body Tree_Walk is
    with Pre => Kind (Block) = I_Code_Block;
    --  Process statement or declaration
 
-   function Process_Statement_List (L : List_Id) return Irep
-   with Post => Kind (Process_Statement_List'Result) = I_Code_Block;
+   function Process_Statements (L : List_Id) return Irep
+   with Post => Kind (Process_Statements'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
    -------------------
@@ -420,7 +420,7 @@ package body Tree_Walk is
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep is
       Stmts : constant List_Id := Statements (N);
    begin
-      return Process_Statement_List (Stmts);
+      return Process_Statements (Stmts);
    end Do_Handled_Sequence_Of_Statements;
 
    -------------------
@@ -467,7 +467,7 @@ package body Tree_Walk is
             end;
          else
             if Present (Else_List) then
-               Set_Else_Case (Ret, Process_Statement_List (Else_List));
+               Set_Else_Case (Ret, Process_Statements (Else_List));
             end if;
          end if;
       end Do_Elsifs;
@@ -477,13 +477,9 @@ package body Tree_Walk is
       -----------------
 
       function Do_If_Block (N : Node_Id) return Irep is
-         Cond_Expr : constant Irep :=
-           Do_Expression (Condition (N));
-
-         If_Block  : constant Irep :=
-           Process_Statement_List (Then_Statements (N));
-
-         Ret : constant Irep := New_Irep (I_Code_Ifthenelse);
+         Cond_Expr : constant Irep := Do_Expression (Condition (N));
+         If_Block  : constant Irep := Process_Statements (Then_Statements (N));
+         Ret       : constant Irep := New_Irep (I_Code_Ifthenelse);
 
       begin
          Set_Source_Location (Ret, Sloc (N));
@@ -543,7 +539,7 @@ package body Tree_Walk is
    function Do_Loop_Statement (N : Node_Id) return Irep is
 
       Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
-      Body_Block  : constant Irep := Process_Statement_List (Statements (N));
+      Body_Block  : constant Irep := Process_Statements (Statements (N));
 
       function Do_For_Statement return Irep;
       function Do_While_Statement (Cond : Irep) return Irep;
@@ -901,7 +897,7 @@ package body Tree_Walk is
       Decls_Rep : Irep;
    begin
       Decls_Rep := (if Present (Decls)
-                    then Process_Statement_List (Decls)
+                    then Process_Statements (Decls)
                     else New_Irep (I_Code_Block));
 
       Set_Source_Location (Decls_Rep, Sloc (N));
@@ -1153,11 +1149,11 @@ package body Tree_Walk is
       end case;
    end Process_Statement;
 
-   ----------------------------
-   -- Process_Statement_List --
-   ----------------------------
+   ------------------------
+   -- Process_Statements --
+   ------------------------
 
-   function Process_Statement_List (L : List_Id) return Irep is
+   function Process_Statements (L : List_Id) return Irep is
       Reps : constant Irep := New_Irep (I_Code_Block);
       Stmt : Node_Id := First (L);
 
@@ -1168,6 +1164,6 @@ package body Tree_Walk is
       end loop;
 
       return Reps;
-   end Process_Statement_List;
+   end Process_Statements;
 
 end Tree_Walk;
