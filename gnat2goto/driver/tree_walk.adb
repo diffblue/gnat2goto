@@ -631,21 +631,6 @@ package body Tree_Walk is
       return Ret;
    end Do_Record_Definition;
 
-   --------------------------------
-   -- Pick_Underlying_Type_Width --
-   --------------------------------
-
-   function Pick_Underlying_Type_Width (Val : Uint) return Integer
-   is
-      Ret : Integer := 8;
-   begin
-      while Val >= UI_From_Int (Int (2)) ** UI_From_Int (Int (Ret - 1)) or else
-        Val < -(UI_From_Int (Int (2)) ** UI_From_Int (Int (Ret - 1))) loop
-         Ret := Ret * 2;
-      end loop;
-      return Ret;
-   end Pick_Underlying_Type_Width;
-
    ----------------------------------
    -- Do_Signed_Integer_Definition --
    ----------------------------------
@@ -654,11 +639,16 @@ package body Tree_Walk is
       Lower : constant Irep := Do_Constant (Low_Bound (N));
       Upper : constant Irep := Do_Constant (High_Bound (N));
       Ret   : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+
+      E : constant Entity_Id := Defining_Entity (Parent (N));
+      --  Type entity
+
+      pragma Assert (Is_Type (E));
+
    begin
       Set_Lower_Bound (Ret, Lower);
       Set_Upper_Bound (Ret, Upper);
-      Set_Width (Ret, Integer'Max (Pick_Underlying_Type_Width (Intval (Low_Bound (N))),
-                                   Pick_Underlying_Type_Width (Intval (High_Bound (N)))));
+      Set_Width       (Ret, Positive (UI_To_Int (Esize (E))));
       return  Ret;
    end Do_Signed_Integer_Definition;
 
