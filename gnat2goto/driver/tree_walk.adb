@@ -162,18 +162,20 @@ package body Tree_Walk is
       end return;
    end Make_Int_Type;
 
-   function Make_Pointer_Type (Base : Irep) return Irep is begin
-      return R : constant Irep := New_Irep (I_Pointer_Type) do
-         Set_Subtype (R, Base);
-         Set_Width (R, Pointer_Type_Width);
-      end return;
+   function Make_Pointer_Type (Base : Irep) return Irep is
+      R : constant Irep := New_Irep (I_Pointer_Type);
+   begin
+      Set_Subtype (R, Base);
+      Set_Width   (R, Pointer_Type_Width);
+      return R;
    end Make_Pointer_Type;
 
-   function Make_Address_Of (Base : Irep) return Irep is begin
-      return R : constant Irep := New_Irep (I_Address_Of_Expr) do
-         Set_Object (R, Base);
-         Set_Type (R, Make_Pointer_Type (Get_Type (Base)));
-      end return;
+   function Make_Address_Of (Base : Irep) return Irep is
+      R : constant Irep := New_Irep (I_Address_Of_Expr);
+   begin
+      Set_Object (R, Base);
+      Set_Type   (R, Make_Pointer_Type (Get_Type (Base)));
+      return R;
    end Make_Address_Of;
 
    -- Borrowed from https://github.com/AdaCore/spark2014/blob/master/gnat2why/spark/spark_util.adb
@@ -350,19 +352,25 @@ package body Tree_Walk is
    ----------------------------
 
    function Do_Defining_Identifier (N : Node_Id) return Irep is
-      Sym : constant Irep := New_Irep (I_Symbol_Expr);
-      Result_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Is_Out_Param : constant Boolean := Ekind (N) in
-        E_In_Out_Parameter | E_Out_Parameter;
-      Symbol_Type : constant Irep :=
-        (if (Is_Out_Param) then Make_Pointer_Type (Result_Type) else Result_Type);
+      Sym          : constant Irep := New_Irep (I_Symbol_Expr);
+      Result_Type  : constant Irep := Do_Type_Reference (Etype (N));
+
+      Is_Out_Param : constant Boolean :=
+        Ekind (N) in E_In_Out_Parameter | E_Out_Parameter;
+
+      Symbol_Type  : constant Irep :=
+        (if Is_Out_Param
+         then Make_Pointer_Type (Result_Type)
+         else Result_Type);
+
    begin
       Set_Source_Location (Sym, Sloc (N));
-      Set_Identifier (Sym, Unique_Name (N));
-      Set_Type (Sym, Symbol_Type);
-      if (Is_Out_Param) then
+      Set_Identifier      (Sym, Unique_Name (N));
+      Set_Type            (Sym, Symbol_Type);
+
+      if Is_Out_Param then
          return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
-           Set_Type (Deref, Result_Type);
+           Set_Type   (Deref, Result_Type);
            Set_Object (Deref, Sym);
          end return;
       else
@@ -374,7 +382,9 @@ package body Tree_Walk is
      (Key_Type => Node_Id,
       Element_Type => Count_Type);
 
-   function Get_Argument_Ordinal_Map (N : Node_Id) return Argument_Ordinal_Maps.Map
+   function Get_Argument_Ordinal_Map
+     (N : Node_Id)
+      return Argument_Ordinal_Maps.Map
    is
       Formal_Iter : Node_Id := First_Formal (Entity (Name (N)));
       Idx : Count_Type := 1;
@@ -396,24 +406,34 @@ package body Tree_Walk is
    is
       Formal_Node_To_Ordinal : constant Argument_Ordinal_Maps.Map :=
         Get_Argument_Ordinal_Map (N);
-      Parameter_Assignments : array (1 .. Formal_Node_To_Ordinal.Length) of Irep;
+
+      Parameter_Assignments :
+        array (1 .. Formal_Node_To_Ordinal.Length) of Irep;
+
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is begin
-         if not Is_Out then
-            return Base;
-         else
+         if Is_Out then
+
             return Make_Address_Of (Base);
+         else
+            return Base;
          end if;
       end;
+
       procedure Store_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Parameter_Pos : constant Count_Type :=
            Formal_Node_To_Ordinal.Element (Formal);
-         Is_Out : constant Boolean := Out_Present (Parent (Formal));
-         Actual_Irep : constant Irep := Wrap_Argument (Do_Expression (Actual), Is_Out);
+
+         Is_Out        : constant Boolean := Out_Present (Parent (Formal));
+         Actual_Irep   : constant Irep :=
+           Wrap_Argument (Do_Expression (Actual), Is_Out);
+
       begin
          Parameter_Assignments (Parameter_Pos) := Actual_Irep;
       end;
+
       procedure Iter_Store_Parameter is new
         Iterate_Call_Parameters (Store_Parameter);
+
    begin
       return R : constant Irep := New_Irep (I_Argument_List) do
          Iter_Store_Parameter (N);
@@ -435,6 +455,7 @@ package body Tree_Walk is
       Func_Symbol  : Symbol renames Global_Symbol_Table (Func_Name);
 
       The_Function : constant Irep := New_Irep (I_Symbol_Expr);
+
    begin
       Set_Identifier (The_Function, Unintern (Func_Name));
       Set_Type (The_Function, Func_Symbol.SymType);
@@ -747,16 +768,21 @@ package body Tree_Walk is
       while Present (Param_Iter) loop
          declare
             Is_Out : constant Boolean := Out_Present (Param_Iter);
+
             Param_Type_Base : constant Irep :=
               Do_Type_Reference (EType (Parameter_Type (Param_Iter)));
-            Param_Type : constant Irep :=
-              (if (Is_Out) then
-              Make_Pointer_Type (Param_Type_Base) else
-              Param_Type_Base);
+
+            Param_Type      : constant Irep :=
+              (if Is_Out
+               then Make_Pointer_Type (Param_Type_Base)
+               else Param_Type_Base);
+
             Param_Name : constant String :=
               Unique_Name (Defining_Identifier (Param_Iter));
+
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
             Param_Symbol : Symbol;
+
          begin
             Set_Source_Location (Param_Irep, Sloc (Param_Iter));
             Set_Type            (Param_Irep, Param_Type);
