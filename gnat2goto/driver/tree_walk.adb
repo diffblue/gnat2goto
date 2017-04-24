@@ -153,6 +153,13 @@ package body Tree_Walk is
    with Post => Kind (Process_Statement_List'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
+   -------------------
+   -- Do_Address_Of --
+   -------------------
+
+   function Do_Address_Of (N : Node_Id) return Irep is
+     (Make_Address_Of (Do_Expression (Prefix (N))));
+
    -----------------------------
    -- Do_Assignment_Statement --
    -----------------------------
@@ -181,46 +188,43 @@ package body Tree_Walk is
       end return;
    end Do_Assignment_Statement;
 
-   ---------------------------------
-   -- Do_Procedure_Call_Statement --
-   ---------------------------------
+   ------------------------
+   -- Do_Call_Parameters --
+   ------------------------
 
-   function Do_Procedure_Call_Statement (N : Node_Id) return Irep
+   function Do_Call_Parameters (N : Node_Id) return Irep
    is
-      Callee : constant String := Unique_Name (Entity (Name (N)));
-      --  ??? use Get_Entity_Name from gnat2why to handle entries and entry
-      --  families (and most likely extend it for accesses to subprograms).
+      Args : constant Irep := New_Irep (I_Argument_List);
 
-      Proc : constant Irep := New_Irep (I_Symbol_Expr);
-      R    : constant Irep := New_Irep (I_Code_Function_Call);
+      function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
+        (if Is_Out
+         then Make_Address_Of (Base)
+         else Base);
+
+      procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id);
+
+      ----------------------
+      -- Handle_Parameter --
+      ----------------------
+
+      procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
+         Is_Out        : constant Boolean := Out_Present (Parent (Formal));
+         Actual_Irep   : constant Irep :=
+           Wrap_Argument (Do_Expression (Actual), Is_Out);
+
+      begin
+         Append_Argument (Args, Actual_Irep);
+      end Handle_Parameter;
+
+      procedure Handle_Parameters is new
+        Iterate_Call_Parameters (Handle_Parameter);
+
+   --  Start of processing for Do_Call_Parameters
+
    begin
-      Set_Identifier (Proc, Callee);
-      Set_Type (Proc,
-                Global_Symbol_Table (Intern (Callee)).SymType);
-      --  ??? Why not look at type of entity?
-
-      Set_Source_Location (R, Sloc (N));
-      --  Set_LHS (R, Empty);  -- ??? what is the "nil" irep?
-      Set_Function (R, Proc);
-      Set_Arguments (R, Do_Call_Parameters (N));
-
-      return R;
-   end Do_Procedure_Call_Statement;
-
-   --------------------------------
-   -- Do_Simple_Return_Statement --
-   --------------------------------
-
-   function Do_Simple_Return_Statement (N : Node_Id) return Irep is
-      Expr : constant Node_Id := Expression (N);
-      R    : constant Irep := New_Irep (I_Code_Return);
-   begin
-      Set_Source_Location (R, Sloc (N));
-      if Present (Expr) then
-         Set_Return_Value (R, Do_Expression (Expr));
-      end if;
-      return R;
-   end Do_Simple_Return_Statement;
+      Handle_Parameters (N);
+      return Args;
+   end Do_Call_Parameters;
 
    -------------------------
    -- Do_Compilation_Unit --
@@ -260,6 +264,21 @@ package body Tree_Walk is
       return Unit_Symbol;
    end Do_Compilation_Unit;
 
+   -----------------
+   -- Do_Constant --
+   -----------------
+
+   function Do_Constant (N : Node_Id) return Irep is
+      Ret           : constant Irep := New_Irep (I_Constant_Expr);
+      Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      Set_Source_Location (Ret, Sloc (N));
+      Set_Type (Ret, Constant_Type);
+      --  ??? FIXME
+      Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
+      return Ret;
+   end Do_Constant;
+
    ----------------------------
    -- Do_Defining_Identifier --
    ----------------------------
@@ -291,77 +310,6 @@ package body Tree_Walk is
       end if;
    end Do_Defining_Identifier;
 
-   ----------------------
-   -- Do_Argument_List --
-   ----------------------
-
-   function Do_Call_Parameters (N : Node_Id) return Irep
-   is
-      Args : constant Irep := New_Irep (I_Argument_List);
-
-      function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
-        (if Is_Out
-         then Make_Address_Of (Base)
-         else Base);
-
-      procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id);
-
-      ----------------------
-      -- Handle_Parameter --
-      ----------------------
-
-      procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
-         Is_Out        : constant Boolean := Out_Present (Parent (Formal));
-         Actual_Irep   : constant Irep :=
-           Wrap_Argument (Do_Expression (Actual), Is_Out);
-
-      begin
-         Append_Argument (Args, Actual_Irep);
-      end Handle_Parameter;
-
-      procedure Handle_Parameters is new
-        Iterate_Call_Parameters (Handle_Parameter);
-
-   --  Start of processing for Do_Call_Parameters
-
-   begin
-      Handle_Parameters (N);
-      return Args;
-   end Do_Call_Parameters;
-
-   ----------------------
-   -- Do_Function_Call --
-   ----------------------
-
-   function Do_Function_Call (N : Node_Id) return Irep
-   is
-      Func_Name    : constant Symbol_Id :=
-        Intern (Unique_Name (Entity (Name (N))));
-
-      Func_Symbol  : Symbol renames Global_Symbol_Table (Func_Name);
-
-      The_Function : constant Irep := New_Irep (I_Symbol_Expr);
-
-   begin
-      Set_Identifier (The_Function, Unintern (Func_Name));
-      Set_Type       (The_Function, Func_Symbol.SymType);
-      --  ??? why not get this from the entity
-
-      return R : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call)
-      do
-         Set_Source_Location (R, Sloc (N));
-         Set_Function        (R, The_Function);
-         Set_Arguments       (R, Do_Call_Parameters (N));
-      end return;
-   end Do_Function_Call;
-
-   -------------------
-   -- Do_Address_Of --
-   -------------------
-
-   function Do_Address_Of (N : Node_Id) return Irep is
-     (Make_Address_Of (Do_Expression (Prefix (N))));
-
    --------------------
    -- Do_Dereference --
    --------------------
@@ -373,159 +321,6 @@ package body Tree_Walk is
       Set_Object (Ret, Do_Expression (Prefix (N)));
       return Ret;
    end Do_Dereference;
-
-   -------------------
-   -- Do_Expression --
-   -------------------
-
-   function Do_Expression (N : Node_Id) return Irep is
-   begin
-      return
-        (case Nkind (N) is
-            when N_Identifier           => Do_Identifier (N),
-            when N_Selected_Component   => Do_Selected_Component (N),
-            when N_Op                   => Do_Operator (N),
-            when N_Integer_Literal      => Do_Constant (N),
-            when N_Type_Conversion      => Do_Type_Conversion (N),
-            when N_Function_Call        => Do_Function_Call (N),
-            when N_Attribute_Reference  =>
-               (case Get_Attribute_Id (Attribute_Name (N)) is
-                  when Attribute_Access => Do_Address_Of (N),
-                  when others           => raise Program_Error),
-            when N_Explicit_Dereference => Do_Dereference (N),
-
-            when others                 => raise Program_Error);
-   end Do_Expression;
-
-   -------------------------
-   -- Do_Range_Constraint --
-   -------------------------
-
-   function Do_Range_Constraint (N : Node_Id; Underlying : Irep)
-                                 return Irep
-   is
-      Resolved_Underlying : constant Irep :=
-        Follow_Symbol_Type (Underlying, Global_Symbol_Table);
-      --  ??? why not get this from the entity
-
-      Range_Expr : constant Node_Id := Range_Expression (N);
-   begin
-      return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type) do
-         Set_Width (R, Get_Width (Resolved_Underlying));
-         Set_Lower_Bound (R, Do_Constant (Low_Bound (Range_Expr)));
-         Set_Upper_Bound (R, Do_Constant (High_Bound (Range_Expr)));
-      end return;
-   end Do_Range_Constraint;
-
-   ---------------------------
-   -- Do_Subtype_Indication --
-   ---------------------------
-
-   function Do_Subtype_Indication (N : Node_Id) return Irep
-   is
-      Underlying : constant Irep :=
-        Do_Type_Reference (Etype (Subtype_Mark (N)));
-
-      Constr : constant Node_Id := Constraint (N);
-
-   begin
-      if Present (Constr) then
-         case Nkind (Constr) is
-            when N_Range_Constraint =>
-               return Do_Range_Constraint (Constr, Underlying);
-
-            when others =>
-               Print_Tree_Node (N);
-               raise Program_Error;
-         end case;
-      else
-         return Underlying;
-      end if;
-   end Do_Subtype_Indication;
-
-   --------------------------
-   -- Do_Record_Definition --
-   --------------------------
-
-   function Do_Record_Definition (N : Node_Id) return Irep is
-
-      Components : constant Irep := New_Irep (I_Struct_Union_Components);
-
-      procedure Do_Record_Component (Comp : Node_Id);
-
-      -------------------------
-      -- Do_Record_Component --
-      -------------------------
-
-      procedure Do_Record_Component (Comp : Node_Id) is
-         Comp_Name : constant String :=
-           Unique_Name (Defining_Identifier (Comp));
-
-         Comp_Defn : constant Node_Id := Component_Definition (Comp);
-         Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
-
-      begin
-         Set_Source_Location (Comp_Irep, Sloc (Comp));
-         --  Set attributes we don't use yet:
-         Set_Access (Comp_Irep, "public");
-         Set_Is_Padding (Comp_Irep, False);
-         Set_Anonymous (Comp_Irep, False);
-
-         if Present (Subtype_Indication (Comp_Defn)) then
-            declare
-               Comp_Type : constant Irep :=
-                 Do_Type_Reference (Entity (Subtype_Indication (Comp_Defn)));
-            begin
-               Set_Name        (Comp_Irep, Comp_Name);
-               Set_Pretty_Name (Comp_Irep, Comp_Name);
-               Set_Base_Name   (Comp_Irep, Comp_Name);
-               Set_Type        (Comp_Irep, Comp_Type);
-            end;
-         else
-            pp (Union_Id (Comp_Defn));
-            raise Program_Error;
-         end if;
-
-         Append_Component (Components, Comp_Irep);
-      end Do_Record_Component;
-
-      --  Local variables
-      Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
-      Ret            : constant Irep := New_Irep (I_Struct_Type);
-
-   --  Start of processing for Do_Record_Definition
-
-   begin
-      while Present (Component_Iter) loop
-         Do_Record_Component (Component_Iter);
-         Next (Component_Iter);
-      end loop;
-
-      Set_Components (Ret, Components);
-
-      return Ret;
-   end Do_Record_Definition;
-
-   ----------------------------------
-   -- Do_Signed_Integer_Definition --
-   ----------------------------------
-
-   function Do_Signed_Integer_Definition (N : Node_Id) return Irep is
-      Lower : constant Irep := Do_Constant (Low_Bound (N));
-      Upper : constant Irep := Do_Constant (High_Bound (N));
-      Ret   : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
-
-      E : constant Entity_Id := Defining_Entity (Parent (N));
-      --  Type entity
-
-      pragma Assert (Is_Type (E));
-
-   begin
-      Set_Lower_Bound (Ret, Lower);
-      Set_Upper_Bound (Ret, Upper);
-      Set_Width       (Ret, Positive (UI_To_Int (Esize (E))));
-      return  Ret;
-   end Do_Signed_Integer_Definition;
 
    --------------------------------
    -- Do_Derived_Type_Definition --
@@ -553,47 +348,28 @@ package body Tree_Walk is
       return Subtype_Irep;
    end Do_Derived_Type_Definition;
 
-   ------------------------
-   -- Do_Type_Definition --
-   ------------------------
+   -------------------
+   -- Do_Expression --
+   -------------------
 
-   function Do_Type_Definition (N : Node_Id) return Irep is
+   function Do_Expression (N : Node_Id) return Irep is
    begin
-      case Nkind (N) is
-         when N_Record_Definition =>
-            return Do_Record_Definition (N);
-         when N_Signed_Integer_Type_Definition =>
-            return Do_Signed_Integer_Definition (N);
-         when N_Derived_Type_Definition =>
-            return Do_Derived_Type_Definition (N);
-         when others =>
-            pp (Union_Id (N));
-            raise Program_Error;
-      end case;
-   end Do_Type_Definition;
+      return
+        (case Nkind (N) is
+            when N_Identifier           => Do_Identifier (N),
+            when N_Selected_Component   => Do_Selected_Component (N),
+            when N_Op                   => Do_Operator (N),
+            when N_Integer_Literal      => Do_Constant (N),
+            when N_Type_Conversion      => Do_Type_Conversion (N),
+            when N_Function_Call        => Do_Function_Call (N),
+            when N_Attribute_Reference  =>
+               (case Get_Attribute_Id (Attribute_Name (N)) is
+                  when Attribute_Access => Do_Address_Of (N),
+                  when others           => raise Program_Error),
+            when N_Explicit_Dereference => Do_Dereference (N),
 
-   -------------------------
-   -- Do_Type_Declaration --
-   -------------------------
-
-   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id) is
-      New_Type        : constant Irep := New_Type_In;
-      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (E));
-      New_Type_Symbol : Symbol;
-
-   begin
-      if Kind (New_Type) = I_Struct_Type then
-         Set_Tag (New_Type, Unintern (New_Type_Name));
-      end if;
-      New_Type_Symbol.Name       := New_Type_Name;
-      New_Type_Symbol.PrettyName := New_Type_Name;
-      New_Type_Symbol.BaseName   := New_Type_Name;
-      New_Type_Symbol.SymType    := New_Type;
-      New_Type_Symbol.Mode       := Intern ("C");
-      New_Type_Symbol.IsType     := True;
-
-      Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
-   end Do_Type_Declaration;
+            when others                 => raise Program_Error);
+   end Do_Expression;
 
    ------------------------------
    -- Do_Full_Type_Declaration --
@@ -611,166 +387,31 @@ package body Tree_Walk is
       end if;
    end Do_Full_Type_Declaration;
 
-   ----------------------------
-   -- Do_Subtype_Declaration --
-   ----------------------------
+   ----------------------
+   -- Do_Function_Call --
+   ----------------------
 
-   procedure Do_Subtype_Declaration (N : Node_Id) is
-      New_Type : constant Irep :=
-        Do_Subtype_Indication (Subtype_Indication (N));
+   function Do_Function_Call (N : Node_Id) return Irep
+   is
+      Func_Name    : constant Symbol_Id :=
+        Intern (Unique_Name (Entity (Name (N))));
 
-   begin
-      Do_Type_Declaration (New_Type, Defining_Identifier (N));
-   end Do_Subtype_Declaration;
+      Func_Symbol  : Symbol renames Global_Symbol_Table (Func_Name);
 
-   ------------------------
-   -- Do_Itype_Reference --
-   ------------------------
-
-   procedure Do_Itype_Reference (N : Node_Id) is
-      Typedef : constant Node_Id := Etype (Itype (N));
-
-      function Do_Anonymous_Type_Definition return Irep;
-
-      ----------------------------------
-      -- Do_Anonymous_Type_Definition --
-      ----------------------------------
-
-      function Do_Anonymous_Type_Definition return Irep is
-      begin
-         case Ekind (Typedef) is
-            when E_Anonymous_Access_Type =>
-               return
-                 Make_Pointer_Type
-                   (Base => Do_Type_Reference (Designated_Type (Typedef)));
-
-            when others =>
-               raise Program_Error;
-
-         end case;
-
-      end Do_Anonymous_Type_Definition;
-
-      New_Type : constant Irep := Do_Anonymous_Type_Definition;
-   begin
-      Do_Type_Declaration (New_Type, Typedef);
-   end Do_Itype_Reference;
-
-   --------------------------------
-   -- Do_Subprogram_Specification --
-   --------------------------------
-
-   function Do_Subprogram_Specification (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Code_Type);
-      Param_List : constant Irep := New_Irep (I_Parameter_List);
-      Param_Iter : Node_Id := First (Parameter_Specifications (N));
-   begin
-      while Present (Param_Iter) loop
-         declare
-            Is_Out : constant Boolean := Out_Present (Param_Iter);
-
-            Param_Type_Base : constant Irep :=
-              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
-
-            Param_Type      : constant Irep :=
-              (if Is_Out
-               then Make_Pointer_Type (Param_Type_Base)
-               else Param_Type_Base);
-
-            Param_Name : constant String :=
-              Unique_Name (Defining_Identifier (Param_Iter));
-
-            Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
-            Param_Symbol : Symbol;
-
-         begin
-            Set_Source_Location (Param_Irep, Sloc (Param_Iter));
-            Set_Type            (Param_Irep, Param_Type);
-            Set_Identifier      (Param_Irep, Param_Name);
-            Set_Base_Name       (Param_Irep, Param_Name);
-            Append_Parameter (Param_List, Param_Irep);
-            --  Add the param to the symtab as well:
-            Param_Symbol.Name          := Intern (Param_Name);
-            Param_Symbol.PrettyName    := Param_Symbol.Name;
-            Param_Symbol.BaseName      := Param_Symbol.Name;
-            Param_Symbol.SymType       := Param_Type;
-            Param_Symbol.IsThreadLocal := True;
-            Param_Symbol.IsFileLocal   := True;
-            Param_Symbol.IsLValue      := True;
-            Param_Symbol.IsParameter   := True;
-            Global_Symbol_Table.Insert (Param_Symbol.Name, Param_Symbol);
-            Next (Param_Iter);
-         end;
-      end loop;
-      Set_Return_Type
-        (Ret,
-         (if Nkind (N) = N_Function_Specification
-          then Do_Type_Reference (Etype (Result_Definition (N)))
-          else New_Irep (I_Void_Type)));
-      Set_Parameters (Ret, Param_List);
-      return Ret;
-   end Do_Subprogram_Specification;
-
-   -------------------------------
-   -- Do_Subprogram_Declaration --
-   -------------------------------
-
-   procedure Do_Subprogram_Declaration (N : Node_Id) is
-      Proc_Type : constant Irep :=
-        Do_Subprogram_Specification (Specification (N));
-
-      Proc_Name : constant Symbol_Id :=
-        Intern (Unique_Name (Corresponding_Body (N)));
-
-      Proc_Symbol : Symbol;
+      The_Function : constant Irep := New_Irep (I_Symbol_Expr);
 
    begin
-      Proc_Symbol.Name       := Proc_Name;
-      Proc_Symbol.BaseName   := Proc_Name;
-      Proc_Symbol.PrettyName := Proc_Name;
-      Proc_Symbol.SymType    := Proc_Type;
-      Proc_Symbol.Mode       := Intern ("C");
+      Set_Identifier (The_Function, Unintern (Func_Name));
+      Set_Type       (The_Function, Func_Symbol.SymType);
+      --  ??? why not get this from the entity
 
-      Global_Symbol_Table.Insert (Proc_Name, Proc_Symbol);
-   end Do_Subprogram_Declaration;
-
-   -------------------------------
-   -- Do_Subprogram_Body --
-   -------------------------------
-
-   procedure Do_Subprogram_Body (N : Node_Id) is
-      Proc_Name   : constant Symbol_Id :=
-        Intern (Unique_Name (Corresponding_Spec (N)));
-      Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
-      Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
-   begin
-      Proc_Symbol.Value := Proc_Body;
-      Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
-   end Do_Subprogram_Body;
-
-   -----------------------
-   -- Do_Type_Reference --
-   -----------------------
-
-   function Do_Type_Reference (E : Entity_Id) return Irep is
-   begin
-      if E = Standard_Integer then
-         return Make_Int_Type (32);
-
-      elsif E = Standard_Boolean then
-         return New_Irep (I_Bool_Type);
-
-      else
-         declare
-            Ret : constant Irep := New_Irep (I_Symbol_Type);
-         begin
-            Set_Identifier (Ret, Unique_Name (E));
-
-            return Ret;
-         end;
-
-      end if;
-   end Do_Type_Reference;
+      return R : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call)
+      do
+         Set_Source_Location (R, Sloc (N));
+         Set_Function        (R, The_Function);
+         Set_Arguments       (R, Do_Call_Parameters (N));
+      end return;
+   end Do_Function_Call;
 
    ---------------------------------------
    -- Do_Handled_Sequence_Of_Statements --
@@ -806,26 +447,6 @@ package body Tree_Walk is
                            Else_List : List_Id;
                            Ret       : Irep);
 
-      -----------------
-      -- Do_If_Block --
-      -----------------
-
-      function Do_If_Block (N : Node_Id) return Irep is
-         Cond_Expr : constant Irep :=
-           Do_Expression (Condition (N));
-
-         If_Block  : constant Irep :=
-           Process_Statement_List (Then_Statements (N));
-
-         Ret : constant Irep := New_Irep (I_Code_Ifthenelse);
-
-      begin
-         Set_Source_Location (Ret, Sloc (N));
-         Set_Cond (Ret, Cond_Expr);
-         Set_Then_Case (Ret, If_Block);
-         return Ret;
-      end Do_If_Block;
-
       ---------------
       -- Do_Elsifs --
       ---------------
@@ -851,12 +472,69 @@ package body Tree_Walk is
          end if;
       end Do_Elsifs;
 
+      -----------------
+      -- Do_If_Block --
+      -----------------
+
+      function Do_If_Block (N : Node_Id) return Irep is
+         Cond_Expr : constant Irep :=
+           Do_Expression (Condition (N));
+
+         If_Block  : constant Irep :=
+           Process_Statement_List (Then_Statements (N));
+
+         Ret : constant Irep := New_Irep (I_Code_Ifthenelse);
+
+      begin
+         Set_Source_Location (Ret, Sloc (N));
+         Set_Cond (Ret, Cond_Expr);
+         Set_Then_Case (Ret, If_Block);
+         return Ret;
+      end Do_If_Block;
+
+      --  Local variables
+
       Ret : constant Irep := Do_If_Block (N);
+
+   --  Start of processing for Do_If_Statement
 
    begin
       Do_Elsifs (First (Elsif_Parts (N)), Else_Statements (N), Ret);
       return Ret;
    end Do_If_Statement;
+
+   ------------------------
+   -- Do_Itype_Reference --
+   ------------------------
+
+   procedure Do_Itype_Reference (N : Node_Id) is
+      Typedef : constant Node_Id := Etype (Itype (N));
+
+      function Do_Anonymous_Type_Definition return Irep;
+
+      ----------------------------------
+      -- Do_Anonymous_Type_Definition --
+      ----------------------------------
+
+      function Do_Anonymous_Type_Definition return Irep is
+      begin
+         case Ekind (Typedef) is
+            when E_Anonymous_Access_Type =>
+               return
+                 Make_Pointer_Type
+                   (Base => Do_Type_Reference (Designated_Type (Typedef)));
+
+            when others =>
+               raise Program_Error;
+
+         end case;
+
+      end Do_Anonymous_Type_Definition;
+
+      New_Type : constant Irep := Do_Anonymous_Type_Definition;
+   begin
+      Do_Type_Declaration (New_Type, Typedef);
+   end Do_Itype_Reference;
 
    -----------------------
    -- Do_Loop_Statement --
@@ -942,24 +620,6 @@ package body Tree_Walk is
       end if;
    end Do_Object_Declaration;
 
-   ------------------------
-   -- Do_Type_Conversion --
-   ------------------------
-
-   function Do_Type_Conversion (N : Node_Id) return Irep is
-      To_Convert : constant Irep := Do_Expression (Expression (N));
-      New_Type   : constant Irep := Do_Type_Reference (Etype (N));
-      Ret        : constant Irep := New_Irep (I_Op_Typecast);
-   begin
-      Set_Source_Location (Ret, Sloc (N));
-      if Do_Range_Check (Expression (N)) then
-         Set_Range_Check (Ret, True);
-      end if;
-      Set_Op0  (Ret, To_Convert);
-      Set_Type (Ret, New_Type);
-      return Ret;
-   end Do_Type_Conversion;
-
    -----------------
    -- Do_Operator --
    -----------------
@@ -1010,6 +670,9 @@ package body Tree_Walk is
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
       Ret     : constant Irep      := New_Irep (Op_Kind);
+
+   --  Start of processing for Do_Operator
+
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Lhs (Ret, LHS);
@@ -1029,20 +692,114 @@ package body Tree_Walk is
       return Ret;
    end Do_Operator;
 
-   -----------------
-   -- Do_Constant --
-   -----------------
+   ---------------------------------
+   -- Do_Procedure_Call_Statement --
+   ---------------------------------
 
-   function Do_Constant (N : Node_Id) return Irep is
-      Ret           : constant Irep := New_Irep (I_Constant_Expr);
-      Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+   function Do_Procedure_Call_Statement (N : Node_Id) return Irep
+   is
+      Callee : constant String := Unique_Name (Entity (Name (N)));
+      --  ??? use Get_Entity_Name from gnat2why to handle entries and entry
+      --  families (and most likely extend it for accesses to subprograms).
+
+      Proc : constant Irep := New_Irep (I_Symbol_Expr);
+      R    : constant Irep := New_Irep (I_Code_Function_Call);
    begin
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Constant_Type);
-      --  ??? FIXME
-      Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
+      Set_Identifier (Proc, Callee);
+      Set_Type (Proc,
+                Global_Symbol_Table (Intern (Callee)).SymType);
+      --  ??? Why not look at type of entity?
+
+      Set_Source_Location (R, Sloc (N));
+      --  Set_LHS (R, Empty);  -- ??? what is the "nil" irep?
+      Set_Function (R, Proc);
+      Set_Arguments (R, Do_Call_Parameters (N));
+
+      return R;
+   end Do_Procedure_Call_Statement;
+
+   -------------------------
+   -- Do_Range_Constraint --
+   -------------------------
+
+   function Do_Range_Constraint (N : Node_Id; Underlying : Irep)
+                                 return Irep
+   is
+      Resolved_Underlying : constant Irep :=
+        Follow_Symbol_Type (Underlying, Global_Symbol_Table);
+      --  ??? why not get this from the entity
+
+      Range_Expr : constant Node_Id := Range_Expression (N);
+   begin
+      return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type) do
+         Set_Width (R, Get_Width (Resolved_Underlying));
+         Set_Lower_Bound (R, Do_Constant (Low_Bound (Range_Expr)));
+         Set_Upper_Bound (R, Do_Constant (High_Bound (Range_Expr)));
+      end return;
+   end Do_Range_Constraint;
+
+   --------------------------
+   -- Do_Record_Definition --
+   --------------------------
+
+   function Do_Record_Definition (N : Node_Id) return Irep is
+
+      Components : constant Irep := New_Irep (I_Struct_Union_Components);
+
+      procedure Do_Record_Component (Comp : Node_Id);
+
+      -------------------------
+      -- Do_Record_Component --
+      -------------------------
+
+      procedure Do_Record_Component (Comp : Node_Id) is
+         Comp_Name : constant String :=
+           Unique_Name (Defining_Identifier (Comp));
+
+         Comp_Defn : constant Node_Id := Component_Definition (Comp);
+         Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
+
+      begin
+         Set_Source_Location (Comp_Irep, Sloc (Comp));
+         --  Set attributes we don't use yet:
+         Set_Access (Comp_Irep, "public");
+         Set_Is_Padding (Comp_Irep, False);
+         Set_Anonymous (Comp_Irep, False);
+
+         if Present (Subtype_Indication (Comp_Defn)) then
+            declare
+               Comp_Type : constant Irep :=
+                 Do_Type_Reference (Entity (Subtype_Indication (Comp_Defn)));
+            begin
+               Set_Name        (Comp_Irep, Comp_Name);
+               Set_Pretty_Name (Comp_Irep, Comp_Name);
+               Set_Base_Name   (Comp_Irep, Comp_Name);
+               Set_Type        (Comp_Irep, Comp_Type);
+            end;
+         else
+            pp (Union_Id (Comp_Defn));
+            raise Program_Error;
+         end if;
+
+         Append_Component (Components, Comp_Irep);
+      end Do_Record_Component;
+
+      --  Local variables
+      Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
+      Ret            : constant Irep := New_Irep (I_Struct_Type);
+
+   --  Start of processing for Do_Record_Definition
+
+   begin
+      while Present (Component_Iter) loop
+         Do_Record_Component (Component_Iter);
+         Next (Component_Iter);
+      end loop;
+
+      Set_Components (Ret, Components);
+
       return Ret;
-   end Do_Constant;
+   end Do_Record_Definition;
 
    ---------------------------
    -- Do_Selected_Component --
@@ -1060,6 +817,79 @@ package body Tree_Walk is
       Set_Type (Ret, Component_Type);
       return Ret;
    end Do_Selected_Component;
+
+   ----------------------------------
+   -- Do_Signed_Integer_Definition --
+   ----------------------------------
+
+   function Do_Signed_Integer_Definition (N : Node_Id) return Irep is
+      Lower : constant Irep := Do_Constant (Low_Bound (N));
+      Upper : constant Irep := Do_Constant (High_Bound (N));
+      Ret   : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+
+      E : constant Entity_Id := Defining_Entity (Parent (N));
+      --  Type entity
+
+      pragma Assert (Is_Type (E));
+
+   begin
+      Set_Lower_Bound (Ret, Lower);
+      Set_Upper_Bound (Ret, Upper);
+      Set_Width       (Ret, Positive (UI_To_Int (Esize (E))));
+      return  Ret;
+   end Do_Signed_Integer_Definition;
+
+   --------------------------------
+   -- Do_Simple_Return_Statement --
+   --------------------------------
+
+   function Do_Simple_Return_Statement (N : Node_Id) return Irep is
+      Expr : constant Node_Id := Expression (N);
+      R    : constant Irep := New_Irep (I_Code_Return);
+   begin
+      Set_Source_Location (R, Sloc (N));
+      if Present (Expr) then
+         Set_Return_Value (R, Do_Expression (Expr));
+      end if;
+      return R;
+   end Do_Simple_Return_Statement;
+
+   -------------------------------
+   -- Do_Subprogram_Body --
+   -------------------------------
+
+   procedure Do_Subprogram_Body (N : Node_Id) is
+      Proc_Name   : constant Symbol_Id :=
+        Intern (Unique_Name (Corresponding_Spec (N)));
+      Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
+      Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
+   begin
+      Proc_Symbol.Value := Proc_Body;
+      Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
+   end Do_Subprogram_Body;
+
+   -------------------------------
+   -- Do_Subprogram_Declaration --
+   -------------------------------
+
+   procedure Do_Subprogram_Declaration (N : Node_Id) is
+      Proc_Type : constant Irep :=
+        Do_Subprogram_Specification (Specification (N));
+
+      Proc_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Corresponding_Body (N)));
+
+      Proc_Symbol : Symbol;
+
+   begin
+      Proc_Symbol.Name       := Proc_Name;
+      Proc_Symbol.BaseName   := Proc_Name;
+      Proc_Symbol.PrettyName := Proc_Name;
+      Proc_Symbol.SymType    := Proc_Type;
+      Proc_Symbol.Mode       := Intern ("C");
+
+      Global_Symbol_Table.Insert (Proc_Name, Proc_Symbol);
+   end Do_Subprogram_Declaration;
 
    ----------------------------
    -- Do_Subprogram_Or_Block --
@@ -1081,6 +911,183 @@ package body Tree_Walk is
 
       return Decls_Rep;
    end Do_Subprogram_Or_Block;
+
+   --------------------------------
+   -- Do_Subprogram_Specification --
+   --------------------------------
+
+   function Do_Subprogram_Specification (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_Code_Type);
+      Param_List : constant Irep := New_Irep (I_Parameter_List);
+      Param_Iter : Node_Id := First (Parameter_Specifications (N));
+   begin
+      while Present (Param_Iter) loop
+         declare
+            Is_Out : constant Boolean := Out_Present (Param_Iter);
+
+            Param_Type_Base : constant Irep :=
+              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
+
+            Param_Type      : constant Irep :=
+              (if Is_Out
+               then Make_Pointer_Type (Param_Type_Base)
+               else Param_Type_Base);
+
+            Param_Name : constant String :=
+              Unique_Name (Defining_Identifier (Param_Iter));
+
+            Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
+            Param_Symbol : Symbol;
+
+         begin
+            Set_Source_Location (Param_Irep, Sloc (Param_Iter));
+            Set_Type            (Param_Irep, Param_Type);
+            Set_Identifier      (Param_Irep, Param_Name);
+            Set_Base_Name       (Param_Irep, Param_Name);
+            Append_Parameter (Param_List, Param_Irep);
+            --  Add the param to the symtab as well:
+            Param_Symbol.Name          := Intern (Param_Name);
+            Param_Symbol.PrettyName    := Param_Symbol.Name;
+            Param_Symbol.BaseName      := Param_Symbol.Name;
+            Param_Symbol.SymType       := Param_Type;
+            Param_Symbol.IsThreadLocal := True;
+            Param_Symbol.IsFileLocal   := True;
+            Param_Symbol.IsLValue      := True;
+            Param_Symbol.IsParameter   := True;
+            Global_Symbol_Table.Insert (Param_Symbol.Name, Param_Symbol);
+            Next (Param_Iter);
+         end;
+      end loop;
+      Set_Return_Type
+        (Ret,
+         (if Nkind (N) = N_Function_Specification
+          then Do_Type_Reference (Etype (Result_Definition (N)))
+          else New_Irep (I_Void_Type)));
+      Set_Parameters (Ret, Param_List);
+      return Ret;
+   end Do_Subprogram_Specification;
+
+   ----------------------------
+   -- Do_Subtype_Declaration --
+   ----------------------------
+
+   procedure Do_Subtype_Declaration (N : Node_Id) is
+      New_Type : constant Irep :=
+        Do_Subtype_Indication (Subtype_Indication (N));
+
+   begin
+      Do_Type_Declaration (New_Type, Defining_Identifier (N));
+   end Do_Subtype_Declaration;
+
+   ---------------------------
+   -- Do_Subtype_Indication --
+   ---------------------------
+
+   function Do_Subtype_Indication (N : Node_Id) return Irep
+   is
+      Underlying : constant Irep :=
+        Do_Type_Reference (Etype (Subtype_Mark (N)));
+
+      Constr : constant Node_Id := Constraint (N);
+
+   begin
+      if Present (Constr) then
+         case Nkind (Constr) is
+            when N_Range_Constraint =>
+               return Do_Range_Constraint (Constr, Underlying);
+
+            when others =>
+               Print_Tree_Node (N);
+               raise Program_Error;
+         end case;
+      else
+         return Underlying;
+      end if;
+   end Do_Subtype_Indication;
+
+   ------------------------
+   -- Do_Type_Conversion --
+   ------------------------
+
+   function Do_Type_Conversion (N : Node_Id) return Irep is
+      To_Convert : constant Irep := Do_Expression (Expression (N));
+      New_Type   : constant Irep := Do_Type_Reference (Etype (N));
+      Ret        : constant Irep := New_Irep (I_Op_Typecast);
+   begin
+      Set_Source_Location (Ret, Sloc (N));
+      if Do_Range_Check (Expression (N)) then
+         Set_Range_Check (Ret, True);
+      end if;
+      Set_Op0  (Ret, To_Convert);
+      Set_Type (Ret, New_Type);
+      return Ret;
+   end Do_Type_Conversion;
+
+   -------------------------
+   -- Do_Type_Declaration --
+   -------------------------
+
+   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id) is
+      New_Type        : constant Irep := New_Type_In;
+      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (E));
+      New_Type_Symbol : Symbol;
+
+   begin
+      if Kind (New_Type) = I_Struct_Type then
+         Set_Tag (New_Type, Unintern (New_Type_Name));
+      end if;
+      New_Type_Symbol.Name       := New_Type_Name;
+      New_Type_Symbol.PrettyName := New_Type_Name;
+      New_Type_Symbol.BaseName   := New_Type_Name;
+      New_Type_Symbol.SymType    := New_Type;
+      New_Type_Symbol.Mode       := Intern ("C");
+      New_Type_Symbol.IsType     := True;
+
+      Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
+   end Do_Type_Declaration;
+
+   ------------------------
+   -- Do_Type_Definition --
+   ------------------------
+
+   function Do_Type_Definition (N : Node_Id) return Irep is
+   begin
+      case Nkind (N) is
+         when N_Record_Definition =>
+            return Do_Record_Definition (N);
+         when N_Signed_Integer_Type_Definition =>
+            return Do_Signed_Integer_Definition (N);
+         when N_Derived_Type_Definition =>
+            return Do_Derived_Type_Definition (N);
+         when others =>
+            pp (Union_Id (N));
+            raise Program_Error;
+      end case;
+   end Do_Type_Definition;
+
+   -----------------------
+   -- Do_Type_Reference --
+   -----------------------
+
+   function Do_Type_Reference (E : Entity_Id) return Irep is
+   begin
+      if E = Standard_Integer then
+         return Make_Int_Type (32);
+
+      elsif E = Standard_Boolean then
+         return New_Irep (I_Bool_Type);
+
+      else
+         declare
+            Ret : constant Irep := New_Irep (I_Symbol_Type);
+         begin
+            Set_Identifier (Ret, Unique_Name (E));
+
+            return Ret;
+         end;
+
+      end if;
+   end Do_Type_Reference;
 
    -------------------------
    --  Process_Statement  --
