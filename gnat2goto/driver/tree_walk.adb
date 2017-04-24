@@ -124,9 +124,9 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Derived_Type_Definition,
         Post => Kind (Do_Derived_Type_Definition'Result) in Class_Type;
 
-   function Do_Type_Reference (N : Node_Id) return Irep
-   --  ??? Pre
-   with Post => Kind (Do_Type_Reference'Result) in Class_Type;
+   function Do_Type_Reference (E : Entity_Id) return Irep
+   with Pre  => Is_Type (E),
+        Post => Kind (Do_Type_Reference'Result) in Class_Type;
 
    function Do_Selected_Component (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Selected_Component,
@@ -862,27 +862,23 @@ package body Tree_Walk is
    -- Do_Type_Reference --
    -----------------------
 
-   function Do_Type_Reference (N : Node_Id) return Irep is
+   function Do_Type_Reference (E : Entity_Id) return Irep is
    begin
-      if N = Standard_Integer then
+      if E = Standard_Integer then
          return Make_Int_Type (32);
-      elsif Nkind (N) = N_Defining_Identifier then
+
+      elsif E = Standard_Boolean then
+         return New_Irep (I_Bool_Type);
+
+      else
          declare
             Ret : constant Irep := New_Irep (I_Symbol_Type);
-            Id  : constant String := Unique_Name (N);
          begin
-            if Id = "integer" then
-               return Make_Int_Type (32);
-            elsif Id = "boolean" then
-               return New_Irep (I_Bool_Type);
-            end if;
+            Set_Identifier (Ret, Unique_Name (E));
 
-            Set_Identifier (Ret, Id);
             return Ret;
          end;
-      else
-         Pp (Union_Id (N));
-         raise Program_Error;
+
       end if;
    end;
 
