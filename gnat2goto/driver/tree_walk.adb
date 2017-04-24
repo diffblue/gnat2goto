@@ -410,13 +410,10 @@ package body Tree_Walk is
       Parameter_Assignments :
         array (1 .. Formal_Node_To_Ordinal.Length) of Irep;
 
-      function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is begin
-         if Is_Out then
-            return Make_Address_Of (Base);
-         else
-            return Base;
-         end if;
-      end;
+      function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
+        (if Is_Out
+         then Make_Address_Of (Base)
+         else Base);
 
       procedure Store_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Parameter_Pos : constant Count_Type :=
