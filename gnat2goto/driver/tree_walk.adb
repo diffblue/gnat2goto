@@ -94,8 +94,8 @@ package body Tree_Walk is
                              N_Entry_Body,
         Post => Kind (Do_Subprogram_Or_Block'Result) = I_Code_Block;
 
-   procedure Do_Type_Declaration (New_Type_In : Irep; Name_Node : Node_Id)
-   with Pre => Nkind (Name_Node) = N_Defining_Identifier and then
+   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id)
+   with Pre => Is_Type (E) and then
                Kind (New_Type_In) in Class_Type;
 
    procedure Do_Full_Type_Declaration (N : Node_Id)
@@ -635,7 +635,8 @@ package body Tree_Walk is
    -- Pick_Underlying_Type_Width --
    --------------------------------
 
-   function Pick_Underlying_Type_Width (Val : Uint) return Integer is
+   function Pick_Underlying_Type_Width (Val : Uint) return Integer
+   is
       Ret : Integer := 8;
    begin
       while Val >= UI_From_Int (Int (2)) ** UI_From_Int (Int (Ret - 1)) or else
@@ -708,9 +709,9 @@ package body Tree_Walk is
    -- Do_Type_Declaration --
    -------------------------
 
-   procedure Do_Type_Declaration (New_Type_In : Irep; Name_Node : Node_Id) is
+   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id) is
       New_Type        : constant Irep := New_Type_In;
-      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (Name_Node));
+      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (E));
       New_Type_Symbol : Symbol;
 
    begin
