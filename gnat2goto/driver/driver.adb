@@ -42,66 +42,6 @@ package body Driver is
 
    procedure Translate_Standard_Types;
 
-   ------------------------------
-   -- Translate_Standard_Types --
-   ------------------------------
-
-   procedure Translate_Standard_Types is
-   begin
-      --  Add primitive types to the symtab
-      for Standard_Type in S_Types'Range loop
-         declare
-            Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
-
-            Type_Kind : constant Irep_Kind :=
-              (case Ekind (Builtin_Node) is
-                 when E_Floating_Point_Type    => I_Floatbv_Type,
-                 when E_Signed_Integer_Subtype => I_Signedbv_Type,
-                 when E_Enumeration_Type       => I_Unsignedbv_Type,
-                 when others                   => I_Empty);
-
-         begin
-            if Type_Kind /= I_Empty then
-               declare
-                  Type_Irep : constant Irep := New_Irep (Type_Kind);
-                  Builtin   : Symbol;
-
-                  Esize_Width : constant Nat :=
-                    UI_To_Int (Esize (Builtin_Node));
-
-               begin
-                  Set_Width (Type_Irep, Integer (Esize_Width));
-
-                  if Type_Kind = I_Floatbv_Type then
-                     --  Ada's floating-point types are interesting, as they're
-                     --  specified in terms of decimal precision. Entirely too
-                     --  interesting for now... Let's use float32 or float64
-                     --  for now and fix this later.
-
-                     Set_F (Type_Irep,
-                            (case Esize_Width is
-                                when 32     => 23,
-                                --  23-bit mantissa, 8-bit exponent
-
-                                when 64     => 52,
-                                --  52-bit mantissa, 11-bit exponent
-
-                                when others => raise Program_Error));
-                  end if;
-
-                  Builtin.Name       := Intern (Unique_Name (Builtin_Node));
-                  Builtin.PrettyName := Builtin.Name;
-                  Builtin.BaseName   := Builtin.Name;
-                  Builtin.SymType    := Type_Irep;
-                  Builtin.IsType     := True;
-
-                  Global_Symbol_Table.Insert (Builtin.Name, Builtin);
-               end;
-            end if;
-         end;
-      end loop;
-   end Translate_Standard_Types;
-
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
       Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root);
@@ -261,5 +201,65 @@ package body Driver is
           and then (Switch (First) in 'f' | 'g' | 'm' | 'O' | 'W' | 'w'
                       or else Switch (First .. Last) = "pipe");
    end Is_Back_End_Switch;
+
+   ------------------------------
+   -- Translate_Standard_Types --
+   ------------------------------
+
+   procedure Translate_Standard_Types is
+   begin
+      --  Add primitive types to the symtab
+      for Standard_Type in S_Types'Range loop
+         declare
+            Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
+
+            Type_Kind : constant Irep_Kind :=
+              (case Ekind (Builtin_Node) is
+                 when E_Floating_Point_Type    => I_Floatbv_Type,
+                 when E_Signed_Integer_Subtype => I_Signedbv_Type,
+                 when E_Enumeration_Type       => I_Unsignedbv_Type,
+                 when others                   => I_Empty);
+
+         begin
+            if Type_Kind /= I_Empty then
+               declare
+                  Type_Irep : constant Irep := New_Irep (Type_Kind);
+                  Builtin   : Symbol;
+
+                  Esize_Width : constant Nat :=
+                    UI_To_Int (Esize (Builtin_Node));
+
+               begin
+                  Set_Width (Type_Irep, Integer (Esize_Width));
+
+                  if Type_Kind = I_Floatbv_Type then
+                     --  Ada's floating-point types are interesting, as they're
+                     --  specified in terms of decimal precision. Entirely too
+                     --  interesting for now... Let's use float32 or float64
+                     --  for now and fix this later.
+
+                     Set_F (Type_Irep,
+                            (case Esize_Width is
+                                when 32     => 23,
+                                --  23-bit mantissa, 8-bit exponent
+
+                                when 64     => 52,
+                                --  52-bit mantissa, 11-bit exponent
+
+                                when others => raise Program_Error));
+                  end if;
+
+                  Builtin.Name       := Intern (Unique_Name (Builtin_Node));
+                  Builtin.PrettyName := Builtin.Name;
+                  Builtin.BaseName   := Builtin.Name;
+                  Builtin.SymType    := Type_Irep;
+                  Builtin.IsType     := True;
+
+                  Global_Symbol_Table.Insert (Builtin.Name, Builtin);
+               end;
+            end if;
+         end;
+      end loop;
+   end Translate_Standard_Types;
 
 end Driver;

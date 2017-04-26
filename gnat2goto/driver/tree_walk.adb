@@ -235,43 +235,56 @@ package body Tree_Walk is
       return Args;
    end Do_Call_Parameters;
 
-   -------------------------------
-   -- Fresh_Case_Bound_Var_Name --
-   -------------------------------
-
-   function Fresh_Case_Bound_Var_Name return String is
-      Binder_Number_Str_Raw : constant String := Integer'Image(Case_Binder_Count);
-      Binder_Number_Str : constant String :=
-        Binder_Number_Str_Raw (2 .. Binder_Number_Str_Raw'Last);
-   begin
-      -- Note this is intentionally an illegal Ada identifier to avoid clashes.
-      return "_case_bound_var_" & Binder_Number_Str;
-   end Fresh_Case_Bound_Var_Name;
-
-   --------------------------------------
-   -- Fresh_Case_Bound_Var_Symbol_Expr --
-   --------------------------------------
-
-   function Fresh_Case_Bound_Var_Symbol_Expr (Ty : Irep) return Irep is
-      Id : constant String := Fresh_Case_Bound_Var_Name;
-      Ret : constant Irep := New_Irep (I_Symbol_Expr);
-   begin
-      Set_Identifier (Ret, Id);
-      Set_Type (Ret, Ty);
-      return Ret;
-   end Fresh_Case_Bound_Var_Symbol_Expr;
-
    ------------------------
    -- Do_Case_Expression --
    ------------------------
 
    function Do_Case_Expression (N : Node_Id) return Irep is
+
+      --  Appease the style police
+      function Fresh_Case_Bound_Var_Name return String;
+      function Fresh_Case_Bound_Var_Symbol_Expr (Ty : Irep) return Irep;
+      function Make_Case_Test (Alts : List_Id) return Irep;
+
+      -------------------------------
+      -- Fresh_Case_Bound_Var_Name --
+      -------------------------------
+
+      function Fresh_Case_Bound_Var_Name return String is
+         Binder_Number_Str_Raw : constant String :=
+           Integer'Image (Case_Binder_Count);
+         Binder_Number_Str : constant String :=
+           Binder_Number_Str_Raw (2 .. Binder_Number_Str_Raw'Last);
+      begin
+         --  Note this is intentionally an illegal Ada identifier
+         --  to avoid clashes.
+         return "_case_bound_var_" & Binder_Number_Str;
+      end Fresh_Case_Bound_Var_Name;
+
+      --------------------------------------
+      -- Fresh_Case_Bound_Var_Symbol_Expr --
+      --------------------------------------
+
+      function Fresh_Case_Bound_Var_Symbol_Expr (Ty : Irep) return Irep is
+         Id : constant String := Fresh_Case_Bound_Var_Name;
+         Ret : constant Irep := New_Irep (I_Symbol_Expr);
+      begin
+         Set_Identifier (Ret, Id);
+         Set_Type (Ret, Ty);
+         return Ret;
+      end Fresh_Case_Bound_Var_Symbol_Expr;
+
       Ret : constant Irep := New_Irep (I_Let_Expr);
       Value : constant Irep := Do_Expression (Expression (N));
       Bound_Var : constant Irep :=
         Fresh_Case_Bound_Var_Symbol_Expr (Get_Type (Value));
 
+      --------------------
+      -- Make_Case_Test --
+      --------------------
+
       function Make_Case_Test (Alts : List_Id) return Irep is
+         function Make_Single_Test (Alt : Node_Id) return Irep;
          function Make_Single_Test (Alt : Node_Id) return Irep is
             Ret : constant Irep := New_Irep (I_Op_Eq);
             Rhs : constant Irep := Do_Expression (Alt);
@@ -280,11 +293,11 @@ package body Tree_Walk is
             Set_Rhs (Ret, Rhs);
             Set_Type (Ret, New_Irep (I_Bool_Type));
             return Ret;
-         end;
+         end Make_Single_Test;
          First_Alt_Test : constant Irep := Make_Single_Test (First (Alts));
          This_Alt : Node_Id := First (Alts);
       begin
-         Next(This_Alt);
+         Next (This_Alt);
          if not Present (This_Alt) then
             return First_Alt_Test;
          end if;
@@ -298,7 +311,7 @@ package body Tree_Walk is
             end loop;
             return Big_Or;
          end;
-      end;
+      end Make_Case_Test;
 
       Case_Body_Leaf : Irep := Ireps.Empty;
       This_Alt : Node_Id := First (Alternatives (N));
@@ -314,21 +327,22 @@ package body Tree_Walk is
          begin
             Next (This_Alt);
             if not Present (This_Alt) then
-               -- Omit test, this is either `others`
-               -- or the last case of complete coverage
+               --  Omit test, this is either `others`
+               --  or the last case of complete coverage
                This_Test := This_Expr;
             else
                This_Test := New_Irep (I_If_Expr);
-               Set_Cond (This_Test, Make_Case_Test (Discrete_Choices (This_Alt_Copy)));
+               Set_Cond (This_Test,
+                         Make_Case_Test (Discrete_Choices (This_Alt_Copy)));
                Set_True_Case (This_Test, This_Expr);
                Set_Type (This_Test, Get_Type (This_Expr));
             end if;
             if Case_Body_Leaf = Ireps.Empty then
-               -- First case
+               --  First case
                Set_Where (Ret, This_Test);
                Set_Type (Ret, Get_Type (This_Test));
             else
-               -- Subsequent case, add to list of conditionals
+               --  Subsequent case, add to list of conditionals
                Set_False_Case (Case_Body_Leaf, This_Test);
             end if;
             Case_Body_Leaf := This_Test;
@@ -468,11 +482,13 @@ package body Tree_Walk is
       Enum_Type_Symbol : constant Irep := New_Irep (I_Symbol_Type);
       Member : Node_Id := First (Literals (N));
    begin
-      Set_Identifier (Enum_Type_Symbol, Unique_Name (Defining_Identifier (Parent (N))));
+      Set_Identifier (Enum_Type_Symbol,
+                      Unique_Name (Defining_Identifier (Parent (N))));
       while Present (Member) loop
          declare
             Element : constant Irep := New_Irep (I_C_Enum_Member);
-            Val_String : constant String := UI_Image (Enumeration_Rep (Member));
+            Val_String : constant String :=
+              UI_Image (Enumeration_Rep (Member));
             Val_Name : constant String := Unique_Name (Member);
             Base_Name : constant String := Get_Name_String (Chars (Member));
             Member_Symbol : Symbol;

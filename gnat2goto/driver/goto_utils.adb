@@ -1,5 +1,17 @@
 package body GOTO_Utils is
 
+   ---------------------
+   -- Make_Address_Of --
+   ---------------------
+
+   function Make_Address_Of (Base : Irep) return Irep is
+      R : constant Irep := New_Irep (I_Address_Of_Expr);
+   begin
+      Set_Object (R, Base);
+      Set_Type   (R, Make_Pointer_Type (Get_Type (Base)));
+      return R;
+   end Make_Address_Of;
+
    -------------------
    -- Make_Int_Type --
    -------------------
@@ -22,17 +34,5 @@ package body GOTO_Utils is
       Set_Width   (R, Pointer_Type_Width);
       return R;
    end Make_Pointer_Type;
-
-   ---------------------
-   -- Make_Address_Of --
-   ---------------------
-
-   function Make_Address_Of (Base : Irep) return Irep is
-      R : constant Irep := New_Irep (I_Address_Of_Expr);
-   begin
-      Set_Object (R, Base);
-      Set_Type   (R, Make_Pointer_Type (Get_Type (Base)));
-      return R;
-   end Make_Address_Of;
 
 end GOTO_Utils;
