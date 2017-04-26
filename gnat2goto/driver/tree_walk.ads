@@ -6,6 +6,7 @@ with Symbol_Table_Info; use Symbol_Table_Info;
 package Tree_Walk is
 
    Global_Symbol_Table : Symbol_Table;
+   Case_Binder_Count : Positive := 1;
 
    function Do_Compilation_Unit (N : Node_Id) return Symbol
    with Pre => Nkind (N) = N_Compilation_Unit;

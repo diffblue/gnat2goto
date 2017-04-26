@@ -1,4 +1,5 @@
 with Einfo;                 use Einfo;
+with Namet;                 use Namet;
 with Nlists;                use Nlists;
 with Sem_Util;              use Sem_Util;
 with Snames;                use Snames;
@@ -26,6 +27,10 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
         Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
 
+   function Do_Case_Expression (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Case_Expression,
+        Post => Kind (Do_Case_Expression'Result) = I_Let_Expr;
+
    function Do_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
@@ -42,6 +47,10 @@ package body Tree_Walk is
    function Do_Derived_Type_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Derived_Type_Definition,
         Post => Kind (Do_Derived_Type_Definition'Result) in Class_Type;
+
+   function Do_Enumeration_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Enumeration_Type_Definition,
+        Post => Kind (Do_Enumeration_Definition'Result) = I_C_Enum_Type;
 
    function Do_Expression (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Subexpr,
@@ -226,6 +235,108 @@ package body Tree_Walk is
       return Args;
    end Do_Call_Parameters;
 
+   -------------------------------
+   -- Fresh_Case_Bound_Var_Name --
+   -------------------------------
+
+   function Fresh_Case_Bound_Var_Name return String is
+      Binder_Number_Str_Raw : constant String := Integer'Image(Case_Binder_Count);
+      Binder_Number_Str : constant String :=
+        Binder_Number_Str_Raw (2 .. Binder_Number_Str_Raw'Last);
+   begin
+      -- Note this is intentionally an illegal Ada identifier to avoid clashes.
+      return "_case_bound_var_" & Binder_Number_Str;
+   end Fresh_Case_Bound_Var_Name;
+
+   --------------------------------------
+   -- Fresh_Case_Bound_Var_Symbol_Expr --
+   --------------------------------------
+
+   function Fresh_Case_Bound_Var_Symbol_Expr (Ty : Irep) return Irep is
+      Id : constant String := Fresh_Case_Bound_Var_Name;
+      Ret : constant Irep := New_Irep (I_Symbol_Expr);
+   begin
+      Set_Identifier (Ret, Id);
+      Set_Type (Ret, Ty);
+      return Ret;
+   end Fresh_Case_Bound_Var_Symbol_Expr;
+
+   ------------------------
+   -- Do_Case_Expression --
+   ------------------------
+
+   function Do_Case_Expression (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_Let_Expr);
+      Value : constant Irep := Do_Expression (Expression (N));
+      Bound_Var : constant Irep :=
+        Fresh_Case_Bound_Var_Symbol_Expr (Get_Type (Value));
+
+      function Make_Case_Test (Alts : List_Id) return Irep is
+         function Make_Single_Test (Alt : Node_Id) return Irep is
+            Ret : constant Irep := New_Irep (I_Op_Eq);
+            Rhs : constant Irep := Do_Expression (Alt);
+         begin
+            Set_Lhs (Ret, Bound_Var);
+            Set_Rhs (Ret, Rhs);
+            Set_Type (Ret, New_Irep (I_Bool_Type));
+            return Ret;
+         end;
+         First_Alt_Test : constant Irep := Make_Single_Test (First (Alts));
+         This_Alt : Node_Id := First (Alts);
+      begin
+         Next(This_Alt);
+         if not Present (This_Alt) then
+            return First_Alt_Test;
+         end if;
+         declare
+            Big_Or : constant Irep := New_Irep (I_Op_Or);
+         begin
+            Append_Op (Big_Or, First_Alt_Test);
+            while Present (This_Alt) loop
+               Append_Op (Big_Or, Make_Single_Test (This_Alt));
+               Next (This_Alt);
+            end loop;
+            return Big_Or;
+         end;
+      end;
+
+      Case_Body_Leaf : Irep := Ireps.Empty;
+      This_Alt : Node_Id := First (Alternatives (N));
+   begin
+      Set_Symbol (Ret, Bound_Var);
+      Set_Value (Ret, Value);
+
+      while Present (This_Alt) loop
+         declare
+            This_Expr : constant Irep := Do_Expression (Expression (This_Alt));
+            This_Alt_Copy : constant Node_Id := This_Alt;
+            This_Test : Irep;
+         begin
+            Next (This_Alt);
+            if not Present (This_Alt) then
+               -- Omit test, this is either `others`
+               -- or the last case of complete coverage
+               This_Test := This_Expr;
+            else
+               This_Test := New_Irep (I_If_Expr);
+               Set_Cond (This_Test, Make_Case_Test (Discrete_Choices (This_Alt_Copy)));
+               Set_True_Case (This_Test, This_Expr);
+               Set_Type (This_Test, Get_Type (This_Expr));
+            end if;
+            if Case_Body_Leaf = Ireps.Empty then
+               -- First case
+               Set_Where (Ret, This_Test);
+               Set_Type (Ret, Get_Type (This_Test));
+            else
+               -- Subsequent case, add to list of conditionals
+               Set_False_Case (Case_Body_Leaf, This_Test);
+            end if;
+            Case_Body_Leaf := This_Test;
+         end;
+      end loop;
+      return Ret;
+   end Do_Case_Expression;
+
    -------------------------
    -- Do_Compilation_Unit --
    -------------------------
@@ -329,7 +440,6 @@ package body Tree_Walk is
    function Do_Derived_Type_Definition (N : Node_Id) return Irep is
       Subtype_Irep : constant Irep :=
         Do_Subtype_Indication (Subtype_Indication (N));
-
    begin
       if Abstract_Present (N)
         or else Null_Exclusion_Present (N)
@@ -347,6 +457,53 @@ package body Tree_Walk is
 
       return Subtype_Irep;
    end Do_Derived_Type_Definition;
+
+   -------------------------------
+   -- Do_Enumeration_Definition --
+   -------------------------------
+
+   function Do_Enumeration_Definition (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_C_Enum_Type);
+      Enum_Body : constant Irep := New_Irep (I_C_Enum_Members);
+      Enum_Type_Symbol : constant Irep := New_Irep (I_Symbol_Type);
+      Member : Node_Id := First (Literals (N));
+   begin
+      Set_Identifier (Enum_Type_Symbol, Unique_Name (Defining_Identifier (Parent (N))));
+      while Present (Member) loop
+         declare
+            Element : constant Irep := New_Irep (I_C_Enum_Member);
+            Val_String : constant String := UI_Image (Enumeration_Rep (Member));
+            Val_Name : constant String := Unique_Name (Member);
+            Base_Name : constant String := Get_Name_String (Chars (Member));
+            Member_Symbol : Symbol;
+            Member_Symbol_Init : constant Irep := New_Irep (I_Constant_Expr);
+            Typecast_Expr : constant Irep := New_Irep (I_Op_Typecast);
+         begin
+            Set_Value (Element, Val_String);
+            Set_Identifier (Element, Val_Name);
+            Set_Base_Name (Element, Base_Name);
+            Append_Member (Enum_Body, Element);
+            Member_Symbol.Name := Intern (Val_Name);
+            Member_Symbol.PrettyName := Intern (Base_Name);
+            Member_Symbol.BaseName := Intern (Base_Name);
+            Member_Symbol.Mode := Intern ("C");
+            Member_Symbol.IsStaticLifetime := True;
+            Member_Symbol.IsStateVar := True;
+            Member_Symbol.SymType := Enum_Type_Symbol;
+            Set_Type (Member_Symbol_Init, Make_Int_Type (32));
+            Set_Value (Member_Symbol_Init,
+                       Convert_Uint_To_Binary (Enumeration_Rep (Member), 32));
+            Set_Op0 (Typecast_Expr, Member_Symbol_Init);
+            Set_Type (Typecast_Expr, Enum_Type_Symbol);
+            Member_Symbol.Value := Typecast_Expr;
+            Global_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
+         end;
+         Next (Member);
+      end loop;
+      Set_Subtype (Ret, Make_Int_Type (32));
+      Set_Body (Ret, Enum_Body);
+      return Ret;
+   end Do_Enumeration_Definition;
 
    -------------------
    -- Do_Expression --
@@ -367,6 +524,7 @@ package body Tree_Walk is
                   when Attribute_Access => Do_Address_Of (N),
                   when others           => raise Program_Error),
             when N_Explicit_Dereference => Do_Dereference (N),
+            when N_Case_Expression      => Do_Case_Expression (N),
 
             when others                 => raise Program_Error);
    end Do_Expression;
@@ -410,6 +568,7 @@ package body Tree_Walk is
          Set_Source_Location (R, Sloc (N));
          Set_Function        (R, The_Function);
          Set_Arguments       (R, Do_Call_Parameters (N));
+         Set_Type (R, Get_Return_Type (Func_Symbol.SymType));
       end return;
    end Do_Function_Call;
 
@@ -522,7 +681,6 @@ package body Tree_Walk is
 
             when others =>
                raise Program_Error;
-
          end case;
 
       end Do_Anonymous_Type_Definition;
@@ -1055,6 +1213,8 @@ package body Tree_Walk is
             return Do_Signed_Integer_Definition (N);
          when N_Derived_Type_Definition =>
             return Do_Derived_Type_Definition (N);
+         when N_Enumeration_Type_Definition =>
+            return Do_Enumeration_Definition (N);
          when others =>
             pp (Union_Id (N));
             raise Program_Error;
