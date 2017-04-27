@@ -258,6 +258,7 @@ package body Tree_Walk is
       begin
          --  Note this is intentionally an illegal Ada identifier
          --  to avoid clashes.
+         Case_Binder_Count := Case_Binder_Count + 1;
          return "_case_bound_var_" & Binder_Number_Str;
       end Fresh_Case_Bound_Var_Name;
 
