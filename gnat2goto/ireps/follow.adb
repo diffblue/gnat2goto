@@ -6,5 +6,5 @@ package body Follow is
          Next := ST (Intern (Get_Identifier (Next))).SymType;
       end loop;
       return Next;
-   end;
+   end Follow_Symbol_Type;
 end Follow;

@@ -37,7 +37,7 @@ package body Symbol_Table_Info is
       Ret.Set_Field ("is_auxiliary",       Sym.IsAuxiliary);
       Ret.Set_Field ("is_weak",            Sym.IsWeak);
       return Ret;
-   end;
+   end Symbol2Json;
 
    function SymbolTable2Json (Symtab : Symbol_Table) return JSON_Array is
       Ret         : JSON_Array := Empty_Array;
@@ -48,6 +48,6 @@ package body Symbol_Table_Info is
          Append (Ret, Symbol_Json);
       end loop;
       return Ret;
-   end;
+   end SymbolTable2Json;
 
 end Symbol_Table_Info;
