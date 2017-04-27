@@ -6,8 +6,8 @@ with Snames;                use Snames;
 with Stand;                 use Stand;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-with Ireps;                 use Ireps;
 with Follow;                use Follow;
 with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
@@ -18,6 +18,10 @@ package body Tree_Walk is
    function Do_Address_Of (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Attribute_Reference,
         Post => Kind (Do_Address_Of'Result) = I_Address_Of_Expr;
+
+   function Do_Aggregate_Literal (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Aggregate,
+        Post => Kind (Do_Aggregate_Literal'Result) = I_Struct_Expr;
 
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
@@ -76,6 +80,10 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Function_Call,
         Post => Kind (Do_Function_Call'Result) in Class_Expr;
 
+   function Do_Index_Or_Discriminant_Constraint
+     (N : Node_Id; Underlying : Irep) return Irep
+   with Pre  => Nkind (N) = N_Index_Or_Discriminant_Constraint;
+
    procedure Do_Itype_Reference (N : Node_Id)
    with Pre => Nkind (N) = N_Itype_Reference;
 
@@ -99,7 +107,7 @@ package body Tree_Walk is
    function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
 
    function Do_Record_Definition (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Record_Definition,
+   with Pre  => Nkind (N) in N_Record_Definition | N_Variant,
         Post => Kind (Do_Record_Definition'Result) = I_Struct_Type;
 
    function Do_Selected_Component (N : Node_Id) return Irep
@@ -154,6 +162,11 @@ package body Tree_Walk is
    with Pre  => Is_Type (E),
         Post => Kind (Do_Type_Reference'Result) in Class_Type;
 
+   function Get_Fresh_Type_Name (Actual_Type : Irep; Associated_Node : Node_Id)
+                                return Irep;
+
+   function Get_Variant_Union_Member_Name (N : Node_Id) return String;
+
    procedure Process_Statement (N : Node_Id; Block : Irep)
    with Pre => Kind (Block) = I_Code_Block;
    --  Process statement or declaration
@@ -168,6 +181,141 @@ package body Tree_Walk is
 
    function Do_Address_Of (N : Node_Id) return Irep is
      (Make_Address_Of (Do_Expression (Prefix (N))));
+
+   --------------------------
+   -- Do_Aggregate_Literal --
+   --------------------------
+
+   function Do_Aggregate_Literal (N : Node_Id) return Irep is
+      N_Type : constant Node_Id := Etype (N);
+      --  TOCHECK: Parent type may be more than one step away?
+      N_Type_Decl : constant Node_Id := Parent (N_Type);
+      N_Underlying_Type : constant Node_Id := Etype (N_Type);
+      Disc_Constraint : Node_Id := 0;
+      Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
+   begin
+      case Ekind (N_Type) is
+         when E_Record_Subtype =>
+            --  Perhaps carrying a variant constraint:
+            Disc_Constraint := Constraint (Subtype_Indication (N_Type_Decl));
+         when E_Record_Type =>
+            --  Unconstrained, nothing to do
+            null;
+         when others =>
+            --  Unhandled aggregate kind
+            pp (Union_Id (N));
+            raise Program_Error;
+      end case;
+      --  It appears GNAT sorts the aggregate members for us into the order
+      --  discriminant (if any), common members, variant members
+      --  However, let's check.
+      declare
+         Components : constant Node_Id :=
+           Component_List (Type_Definition (Parent (N_Underlying_Type)));
+         Variant_Node : constant Node_Id := Variant_Part (Components);
+         Component_Iter : Node_Id := First (Component_Items (Components));
+         Actual_Iter : Node_Id := First (Component_Associations (N));
+      begin
+
+         if Present (Variant_Node) then
+            --  Expect a discriminant value:
+            pragma Assert (Entity (Name (Variant_Node)) =
+                           Entity (First (Choices (Actual_Iter))));
+            Append_Struct_Member (Struct_Expr,
+                                  Do_Expression (Expression (Actual_Iter)));
+            Next (Actual_Iter);
+         end if;
+
+         --  Next expect common members:
+         while Present (Component_Iter) loop
+            pragma Assert (Present (Actual_Iter));
+            pragma Assert (Defining_Identifier (Component_Iter) =
+                           Entity (First (Choices (Actual_Iter))));
+            Append_Struct_Member (Struct_Expr,
+                                  Do_Expression (Expression (Actual_Iter)));
+            Next (Component_Iter);
+            Next (Actual_Iter);
+         end loop;
+
+         --  Extract variant members:
+         if Present (Variant_Node) then
+
+            declare
+
+               Variant_Union_Name : constant String :=
+                 Get_Variant_Union_Member_Name (
+                   First (Constraints (Disc_Constraint)));
+               Union_Literal : constant Irep := New_Irep (I_Union_Expr);
+               Variant_Substruct : constant Irep := New_Irep (I_Struct_Expr);
+               Substruct_Component_List : Node_Id := 0;
+               Variant_Found : Node_Id := 0;
+               Variant_Iter : Node_Id := First (Variants (Variant_Node));
+
+            begin
+
+               Set_Type (Union_Literal,
+                         Anonymous_Type_Map.Element (Variant_Node));
+               Set_Component_Name (Union_Literal, Variant_Union_Name);
+
+               --  Try to find a subrecord matching the
+               --  aggregate's actual discriminant
+               while Present (Variant_Iter) and then
+                     Substruct_Component_List = 0 loop
+                  declare
+                     Choice_Iter : Node_Id :=
+                       First (Discrete_Choices (Variant_Iter));
+                  begin
+                     while Present (Choice_Iter) and then
+                           Substruct_Component_List = 0 loop
+                        if Entity (Choice_Iter) =
+                          Entity (First (Constraints (Disc_Constraint)))
+                        then
+                           Substruct_Component_List :=
+                             First (
+                               Component_Items (
+                                 Component_List (Variant_Iter)));
+                           Variant_Found := Variant_Iter;
+                        end if;
+                        Next (Choice_Iter);
+                     end loop;
+                     Next (Variant_Iter);
+                  end;
+               end loop;
+
+               --  Check we found a matching subrecord:
+               pragma Assert (Present (Variant_Found));
+
+               Set_Type (Variant_Substruct,
+                         Anonymous_Type_Map.Element (Variant_Found));
+
+               --  Try to parse remaining aggregate parts
+               --  according to that subrecord:
+               while Present (Substruct_Component_List) loop
+                  pragma Assert (Present (Actual_Iter));
+                  pragma Assert
+                    (Defining_Identifier (Substruct_Component_List) =
+                     Entity (First (Choices (Actual_Iter))));
+                  Append_Struct_Member (
+                    Variant_Substruct,
+                    Do_Expression (Expression (Actual_Iter)));
+                  Next (Substruct_Component_List);
+                  Next (Actual_Iter);
+               end loop;
+
+               --  Add union literal to the outer struct:
+               Set_Op0 (Union_Literal, Variant_Substruct);
+               Append_Struct_Member (Struct_Expr, Union_Literal);
+
+            end;
+
+         end if;
+
+         Set_Type (Struct_Expr, Do_Type_Reference (N_Underlying_Type));
+         return Struct_Expr;
+
+      end;
+
+   end Do_Aggregate_Literal;
 
    -----------------------------
    -- Do_Assignment_Statement --
@@ -542,6 +690,7 @@ package body Tree_Walk is
                   when others           => raise Program_Error),
             when N_Explicit_Dereference => Do_Dereference (N),
             when N_Case_Expression      => Do_Case_Expression (N),
+            when N_Aggregate            => Do_Aggregate_Literal (N),
 
             when others                 => raise Program_Error);
    end Do_Expression;
@@ -674,6 +823,17 @@ package body Tree_Walk is
       Do_Elsifs (First (Elsif_Parts (N)), Else_Statements (N), Ret);
       return Ret;
    end Do_If_Statement;
+
+   -----------------------------------------
+   -- Do_Index_Or_Discriminant_Constraint --
+   -----------------------------------------
+
+   --  For now, don't encode the constraint in the Irep form; we'll generate
+   --  appropriate checks in the front-end, rather than delegating to CBMC
+   --  as for range checks.
+   function Do_Index_Or_Discriminant_Constraint
+     (N : Node_Id; Underlying : Irep) return Irep
+   is (Underlying);
 
    ------------------------
    -- Do_Itype_Reference --
@@ -917,7 +1077,55 @@ package body Tree_Walk is
 
       Components : constant Irep := New_Irep (I_Struct_Union_Components);
 
+      procedure Add_Record_Component (Comp_Name : String;
+                                      Comp_Type_Node : Node_Id;
+                                      Comp_Node : Node_Id;
+                                      Add_To_List : Irep := Components);
+      procedure Add_Record_Component_Raw (Comp_Name : String;
+                                          Comp_Type : Irep;
+                                          Comp_Node : Node_Id;
+                                          Add_To_List : Irep := Components);
       procedure Do_Record_Component (Comp : Node_Id);
+      procedure Do_Variant_Struct (Var : Node_Id; Union_Components : Irep);
+
+      --------------------------
+      -- Add_Record_Component --
+      --------------------------
+
+      procedure Add_Record_Component (Comp_Name : String;
+                                      Comp_Type_Node : Node_Id;
+                                      Comp_Node : Node_Id;
+                                      Add_To_List : Irep := Components) is
+      begin
+         Add_Record_Component_Raw (Comp_Name,
+                                   Do_Type_Reference (Comp_Type_Node),
+                                   Comp_Node,
+                                   Add_To_List);
+      end Add_Record_Component;
+
+      ------------------------------
+      -- Add_Record_Component_Raw --
+      ------------------------------
+
+      procedure Add_Record_Component_Raw (Comp_Name : String;
+                                          Comp_Type : Irep;
+                                          Comp_Node : Node_Id;
+                                          Add_To_List : Irep := Components) is
+         Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
+      begin
+         Set_Source_Location (Comp_Irep, Sloc (Comp_Node));
+         --  Set attributes we don't use yet:
+         Set_Access (Comp_Irep, "public");
+         Set_Is_Padding (Comp_Irep, False);
+         Set_Anonymous (Comp_Irep, False);
+         --  Real attributes:
+         Set_Name        (Comp_Irep, Comp_Name);
+         Set_Pretty_Name (Comp_Irep, Comp_Name);
+         Set_Base_Name   (Comp_Irep, Comp_Name);
+         Set_Type        (Comp_Irep, Comp_Type);
+
+         Append_Component (Add_To_List, Comp_Irep);
+      end Add_Record_Component_Raw;
 
       -------------------------
       -- Do_Record_Component --
@@ -926,46 +1134,90 @@ package body Tree_Walk is
       procedure Do_Record_Component (Comp : Node_Id) is
          Comp_Name : constant String :=
            Unique_Name (Defining_Identifier (Comp));
-
          Comp_Defn : constant Node_Id := Component_Definition (Comp);
-         Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
-
       begin
-         Set_Source_Location (Comp_Irep, Sloc (Comp));
-         --  Set attributes we don't use yet:
-         Set_Access (Comp_Irep, "public");
-         Set_Is_Padding (Comp_Irep, False);
-         Set_Anonymous (Comp_Irep, False);
-
          if Present (Subtype_Indication (Comp_Defn)) then
-            declare
-               Comp_Type : constant Irep :=
-                 Do_Type_Reference (Entity (Subtype_Indication (Comp_Defn)));
-            begin
-               Set_Name        (Comp_Irep, Comp_Name);
-               Set_Pretty_Name (Comp_Irep, Comp_Name);
-               Set_Base_Name   (Comp_Irep, Comp_Name);
-               Set_Type        (Comp_Irep, Comp_Type);
-            end;
+            Add_Record_Component (Comp_Name,
+                                  Entity (Subtype_Indication (Comp_Defn)),
+                                  Comp);
          else
             pp (Union_Id (Comp_Defn));
             raise Program_Error;
          end if;
-
-         Append_Component (Components, Comp_Irep);
       end Do_Record_Component;
+
+      -----------------------
+      -- Do_Variant_Struct --
+      -----------------------
+
+      procedure Do_Variant_Struct (Var : Node_Id; Union_Components : Irep) is
+         Struct_Type : constant Irep := Do_Record_Definition (Var);
+         Type_Symbol : constant Irep := Get_Fresh_Type_Name (Struct_Type, Var);
+         Choice_Iter : constant Node_Id := First (Discrete_Choices (Var));
+         Variant_Name : constant String :=
+           Get_Variant_Union_Member_Name (Choice_Iter);
+      begin
+         Set_Tag (Struct_Type, Get_Identifier (Type_Symbol));
+         Add_Record_Component_Raw (Variant_Name,
+                                   Type_Symbol,
+                                   Var,
+                                   Union_Components);
+      end Do_Variant_Struct;
 
       --  Local variables
       Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
+      Variants_Node  : constant Node_Id := Variant_Part (Component_List (N));
       Ret            : constant Irep := New_Irep (I_Struct_Type);
 
    --  Start of processing for Do_Record_Definition
 
    begin
+
+      --  Create a field for the discriminant.
+      --  This order (discriminant, common fields, variant fields)
+      --  seems to match GNAT's record-literal ordering (apparently
+      --  regardless of source ordering).
+      if Present (Variants_Node) then
+         declare
+            Disc_Name : constant Node_Id := Name (Variants_Node);
+         begin
+            Add_Record_Component (Unique_Name (Entity (Disc_Name)),
+                                  Etype (Disc_Name),
+                                  Variants_Node);
+         end;
+      end if;
+
+      --  Add regular fields
       while Present (Component_Iter) loop
          Do_Record_Component (Component_Iter);
          Next (Component_Iter);
       end loop;
+
+      --  Add union of variants if applicable
+      if Present (Variants_Node) then
+         --  Create a field for the discriminant,
+         --  plus a union of variant alternatives.
+         declare
+            Variant_Iter : Node_Id := First (Variants (Variants_Node));
+            Union_Irep : constant Irep := New_Irep (I_Union_Type);
+            Union_Components : constant Irep :=
+              New_Irep (I_Struct_Union_Components);
+         begin
+            while Present (Variant_Iter) loop
+               Do_Variant_Struct (Variant_Iter, Union_Components);
+               Next (Variant_Iter);
+            end loop;
+            Set_Components (Union_Irep, Union_Components);
+            declare
+               Union_Symbol : constant Irep :=
+                 Get_Fresh_Type_Name (Union_Irep, Variants_Node);
+            begin
+               Set_Tag (Union_Irep, Get_Identifier (Union_Symbol));
+               Add_Record_Component_Raw (
+                 "_variants", Union_Symbol, Variants_Node);
+            end;
+         end;
+      end if;
 
       Set_Components (Ret, Components);
 
@@ -1166,7 +1418,8 @@ package body Tree_Walk is
          case Nkind (Constr) is
             when N_Range_Constraint =>
                return Do_Range_Constraint (Constr, Underlying);
-
+            when N_Index_Or_Discriminant_Constraint =>
+               return Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
             when others =>
                Print_Tree_Node (N);
                raise Program_Error;
@@ -1261,6 +1514,57 @@ package body Tree_Walk is
 
       end if;
    end Do_Type_Reference;
+
+   -------------------------
+   -- Get_Fresh_Type_Name --
+   -------------------------
+
+   function Get_Fresh_Type_Name (Actual_Type : Irep;
+                                 Associated_Node : Node_Id) return Irep
+   is
+      Ret : constant Irep := New_Irep (I_Symbol_Type);
+      Number_Str_Raw : constant String :=
+        Integer'Image (Anonymous_Type_Count);
+      Number_Str : constant String :=
+        Number_Str_Raw (2 .. Number_Str_Raw'Last);
+      Fresh_Name : constant String := "_anonymous_type_" & Number_Str;
+      Type_Symbol : Symbol;
+   begin
+      Anonymous_Type_Count := Anonymous_Type_Count + 1;
+
+      Type_Symbol.SymType := Actual_Type;
+      Type_Symbol.IsType := True;
+      Type_Symbol.Name := Intern (Fresh_Name);
+      Type_Symbol.PrettyName := Intern (Fresh_Name);
+      Type_Symbol.BaseName := Intern (Fresh_Name);
+      Type_Symbol.Mode := Intern ("C");
+      Global_Symbol_Table.Insert (Intern (Fresh_Name), Type_Symbol);
+
+      Set_Identifier (Ret, Fresh_Name);
+
+      Anonymous_Type_Map.Insert (Associated_Node, Ret);
+
+      return Ret;
+   end Get_Fresh_Type_Name;
+
+   -----------------------------------
+   -- Get_Variant_Union_Member_Name --
+   -----------------------------------
+
+   function Get_Variant_Union_Member_Name (N : Node_Id) return String
+   is
+      Constraint_Iter : Node_Id := N;
+      Variant_Name : Unbounded_String := To_Unbounded_String ("");
+   begin
+      while Present (Constraint_Iter) loop
+         Variant_Name :=
+           Variant_Name &
+           "_" &
+           Get_Name_String (Chars (Constraint_Iter));
+         Next (Constraint_Iter);
+      end loop;
+      return To_String (Variant_Name);
+   end Get_Variant_Union_Member_Name;
 
    -------------------------
    --  Process_Statement  --
