@@ -651,6 +651,7 @@ package body Tree_Walk is
             Member_Symbol : Symbol;
             Member_Symbol_Init : constant Irep := New_Irep (I_Constant_Expr);
             Typecast_Expr : constant Irep := New_Irep (I_Op_Typecast);
+            Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
          begin
             Set_Value (Element, Val_String);
             Set_Identifier (Element, Val_Name);
@@ -663,9 +664,11 @@ package body Tree_Walk is
             Member_Symbol.IsStaticLifetime := True;
             Member_Symbol.IsStateVar := True;
             Member_Symbol.SymType := Enum_Type_Symbol;
-            Set_Type (Member_Symbol_Init, Make_Int_Type (32));
+            Set_Type (Member_Symbol_Init,
+                      Make_Int_Type (Integer (Member_Size)));
             Set_Value (Member_Symbol_Init,
-                       Convert_Uint_To_Binary (Enumeration_Rep (Member), 32));
+                       Convert_Uint_To_Binary (Enumeration_Rep (Member),
+                                               Member_Size));
             Set_Op0 (Typecast_Expr, Member_Symbol_Init);
             Set_Type (Typecast_Expr, Enum_Type_Symbol);
             Member_Symbol.Value := Typecast_Expr;
