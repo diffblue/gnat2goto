@@ -26,6 +26,8 @@ package Tree_Walk is
 
    Anonymous_Type_Map : Anonymous_Type_Maps.Map;
 
+   Check_Function_Symbol : Irep := Ireps.Empty;
+
    function Do_Compilation_Unit (N : Node_Id) return Symbol
    with Pre => Nkind (N) = N_Compilation_Unit;
 

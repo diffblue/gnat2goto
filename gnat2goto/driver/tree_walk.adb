@@ -112,7 +112,8 @@ package body Tree_Walk is
 
    function Do_Selected_Component (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Selected_Component,
-        Post => Kind (Do_Selected_Component'Result) = I_Member_Expr;
+        Post => Kind (Do_Selected_Component'Result) in
+          I_Member_Expr | I_Op_Comma;
 
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Signed_Integer_Type_Definition,
@@ -166,6 +167,11 @@ package body Tree_Walk is
                                 return Irep;
 
    function Get_Variant_Union_Member_Name (N : Node_Id) return String;
+
+   function Make_Runtime_Check (Condition : Irep) return Irep
+   with Pre  => Kind (Get_Type (Condition)) = I_Bool_Type,
+        Post => Kind (Make_Runtime_Check'Result) =
+                I_Side_Effect_Expr_Function_Call;
 
    procedure Process_Statement (N : Node_Id; Block : Irep)
    with Pre => Kind (Block) = I_Code_Block;
@@ -1235,10 +1241,87 @@ package body Tree_Walk is
       Ret            : constant Irep := New_Irep (I_Member_Expr);
    begin
       Set_Source_Location (Ret, Sloc (N));
-      Set_Compound (Ret, Root);
       Set_Component_Name (Ret, Unique_Name (Component));
       Set_Type (Ret, Component_Type);
-      return Ret;
+      if Do_Discriminant_Check (N) then
+
+         declare
+            Component_Variant : Node_Id := 0;
+            Record_Type : constant Node_Id :=
+              Type_Definition (Parent (Etype (Prefix (N))));
+            Variant_Iter : Node_Id :=
+              First (Variants (Variant_Part (Component_List (Record_Type))));
+            Variant_Spec : constant Node_Id :=
+              Variant_Part (Component_List (Record_Type));
+            Union_Selector : constant Irep := New_Irep (I_Member_Expr);
+            Substruct_Selector : constant Irep := New_Irep (I_Member_Expr);
+            Disc_Selector : constant Irep := New_Irep (I_Member_Expr);
+            Disc_Check : constant Irep := New_Irep (I_Op_Eq);
+            Comma_Expr : constant Irep := New_Irep (I_Op_Comma);
+         begin
+
+            --  Find the variant this belongs to:
+            while Present (Variant_Iter) and then Component_Variant = 0 loop
+               declare
+                  Item_Iter : Node_Id :=
+                    First (Component_Items (Component_List (Variant_Iter)));
+               begin
+                  while Present (Item_Iter) and then Component_Variant = 0 loop
+                     if Defining_Identifier (Item_Iter) = Component then
+                        Component_Variant := Variant_Iter;
+                     end if;
+                     Next (Item_Iter);
+                  end loop;
+               end;
+               Next (Variant_Iter);
+            end loop;
+
+            pragma Assert (Present (Component_Variant));
+
+            --  Add a discriminant-check side-effect:
+            Set_Compound (Disc_Selector, Root);
+            Set_Component_Name (
+              Disc_Selector, Unique_Name (Entity (Name (Variant_Spec))));
+            Set_Type (
+              Disc_Selector, Do_Type_Reference (Etype (Name (Variant_Spec))));
+            Set_Lhs (Disc_Check, Disc_Selector);
+            Set_Rhs (
+              Disc_Check,
+              Do_Expression (First (Discrete_Choices (Component_Variant))));
+            Set_Type (Disc_Check, New_Irep (I_Bool_Type));
+            Append_Op (Comma_Expr, Make_Runtime_Check (Disc_Check));
+
+            --  Create the actual member access by interposing a union access:
+            --  The actual access for member X of the Y == Z variant will look
+            --  like (_check(Base.Disc == Z), Base._variants.Z.X)
+
+            declare
+               Variant_Constraint_Node : constant Node_Id :=
+                 First (Discrete_Choices (Component_Variant));
+               Variant_Name : constant String :=
+                 Get_Variant_Union_Member_Name (Variant_Constraint_Node);
+            begin
+               Set_Component_Name (Substruct_Selector, Variant_Name);
+            end;
+
+            Set_Type (Substruct_Selector,
+                      Anonymous_Type_Map.Element (Component_Variant));
+            Set_Component_Name (Union_Selector, "_variants");
+            Set_Type (Union_Selector,
+                      Anonymous_Type_Map.Element (Variant_Spec));
+            Set_Compound (Union_Selector, Root);
+            Set_Compound (Substruct_Selector, Union_Selector);
+            Set_Compound (Ret, Substruct_Selector);
+
+            Append_Op (Comma_Expr, Ret);
+            Set_Type (Comma_Expr, Get_Type (Ret));
+            return Comma_Expr;
+
+         end;
+      else
+         Set_Compound (Ret, Root);
+         return Ret;
+      end if;
    end Do_Selected_Component;
 
    ----------------------------------
@@ -1565,6 +1648,61 @@ package body Tree_Walk is
       end loop;
       return To_String (Variant_Name);
    end Get_Variant_Union_Member_Name;
+
+   ------------------------
+   -- Make_Runtime_Check --
+   ------------------------
+
+   function Make_Runtime_Check (Condition : Irep) return Irep
+   is
+      Call_Expr : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call);
+      Call_Args : constant Irep := New_Irep (I_Argument_List);
+      Void_Type : constant Irep := New_Irep (I_Void_Type);
+   begin
+
+      if Check_Function_Symbol = Ireps.Empty then
+         --  Create the check function on demand:
+         declare
+            Fn_Symbol : Symbol;
+            Assertion : constant Irep := New_Irep (I_Code_Assert);
+            Formal_Params : constant Irep := New_Irep (I_Parameter_List);
+            Formal_Param : constant Irep := New_Irep (I_Code_Parameter);
+            Formal_Expr : constant Irep := New_Irep (I_Symbol_Expr);
+            Fn_Type : constant Irep := New_Irep (I_Code_Type);
+            Bool_Type : constant Irep := New_Irep (I_Bool_Type);
+         begin
+            Set_Identifier (Formal_Param, "__ada_runtime_check::arg");
+            Set_Base_Name (Formal_Param, "arg");
+            Set_Type (Formal_Param, Bool_Type);
+            Set_Identifier (Formal_Expr, Get_Identifier (Formal_Param));
+            Set_Type (Formal_Expr, Get_Type (Formal_Param));
+            Append_Parameter (Formal_Params, Formal_Param);
+            Set_Parameters (Fn_Type, Formal_Params);
+            Set_Return_Type (Fn_Type, Void_Type);
+            Set_Assertion (Assertion, Formal_Expr);
+
+            Fn_Symbol.Name := Intern ("__ada_runtime_check");
+            Fn_Symbol.PrettyName := Fn_Symbol.Name;
+            Fn_Symbol.BaseName := Fn_Symbol.Name;
+            Fn_Symbol.Value := Assertion;
+            Fn_Symbol.SymType := Fn_Type;
+            Global_Symbol_Table.Insert (Fn_Symbol.Name, Fn_Symbol);
+
+            Check_Function_Symbol := New_Irep (I_Symbol_Expr);
+            Set_Identifier (Check_Function_Symbol, Unintern (Fn_Symbol.Name));
+            Set_Type (Check_Function_Symbol, Fn_Symbol.SymType);
+         end;
+      end if;
+
+      --  Create a call to the (newly created?) function:
+      Set_Function (Call_Expr, Check_Function_Symbol);
+      Set_Type (Call_Expr, Void_Type);
+      Append_Argument (Call_Args, Condition);
+      Set_Arguments (Call_Expr, Call_Args);
+
+      return Call_Expr;
+
+   end Make_Runtime_Check;
 
    -------------------------
    --  Process_Statement  --
