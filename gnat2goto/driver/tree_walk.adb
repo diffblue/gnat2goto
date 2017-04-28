@@ -197,7 +197,7 @@ package body Tree_Walk is
       --  TOCHECK: Parent type may be more than one step away?
       N_Type_Decl : constant Node_Id := Parent (N_Type);
       N_Underlying_Type : constant Node_Id := Etype (N_Type);
-      Disc_Constraint : Node_Id := 0;
+      Disc_Constraint : Node_Id := Types.Empty;
       Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
    begin
       case Ekind (N_Type) is
@@ -253,8 +253,8 @@ package body Tree_Walk is
                    First (Constraints (Disc_Constraint)));
                Union_Literal : constant Irep := New_Irep (I_Union_Expr);
                Variant_Substruct : constant Irep := New_Irep (I_Struct_Expr);
-               Substruct_Component_List : Node_Id := 0;
-               Variant_Found : Node_Id := 0;
+               Substruct_Component_List : Node_Id := Types.Empty;
+               Variant_Found : Node_Id := Types.Empty;
                Variant_Iter : Node_Id := First (Variants (Variant_Node));
 
             begin
@@ -1252,7 +1252,7 @@ package body Tree_Walk is
       if Do_Discriminant_Check (N) then
 
          declare
-            Component_Variant : Node_Id := 0;
+            Component_Variant : Node_Id := Types.Empty;
             Record_Type : constant Node_Id :=
               Type_Definition (Parent (Etype (Prefix (N))));
             Variant_Iter : Node_Id :=
@@ -1616,7 +1616,7 @@ package body Tree_Walk is
         Integer'Image (Anonymous_Type_Counter);
       Number_Str : constant String :=
         Number_Str_Raw (2 .. Number_Str_Raw'Last);
-      Fresh_Name : constant String := "_anonymous_type_" & Number_Str;
+      Fresh_Name : constant String := "__anonymous_type_" & Number_Str;
       Type_Symbol : Symbol;
    begin
       Anonymous_Type_Counter := Anonymous_Type_Counter + 1;
@@ -1643,13 +1643,11 @@ package body Tree_Walk is
    function Get_Variant_Union_Member_Name (N : Node_Id) return String
    is
       Constraint_Iter : Node_Id := N;
-      Variant_Name : Unbounded_String := To_Unbounded_String ("");
+      Variant_Name : Unbounded_String;
    begin
       while Present (Constraint_Iter) loop
-         Variant_Name :=
-           Variant_Name &
-           "_" &
-           Get_Name_String (Chars (Constraint_Iter));
+         Append (Variant_Name,
+                 "_" & Get_Name_String (Chars (Constraint_Iter)));
          Next (Constraint_Iter);
       end loop;
       return To_String (Variant_Name);
