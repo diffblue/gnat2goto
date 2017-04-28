@@ -406,14 +406,14 @@ package body Tree_Walk is
 
       function Fresh_Case_Bound_Var_Name return String is
          Binder_Number_Str_Raw : constant String :=
-           Integer'Image (Case_Binder_Count);
+           Integer'Image (Case_Binder_Counter);
          Binder_Number_Str : constant String :=
            Binder_Number_Str_Raw (2 .. Binder_Number_Str_Raw'Last);
       begin
          --  Note this is intentionally an illegal Ada identifier
          --  to avoid clashes.
-         Case_Binder_Count := Case_Binder_Count + 1;
-         return "_case_bound_var_" & Binder_Number_Str;
+         Case_Binder_Counter := Case_Binder_Counter + 1;
+         return "__case_bound_var_" & Binder_Number_Str;
       end Fresh_Case_Bound_Var_Name;
 
       --------------------------------------
@@ -474,7 +474,8 @@ package body Tree_Walk is
       Set_Symbol (Ret, Bound_Var);
       Set_Value (Ret, Value);
 
-      while Present (This_Alt) loop
+      --  Do-while loop because there must be at least one alternative.
+      loop
          declare
             This_Expr : constant Irep := Do_Expression (Expression (This_Alt));
             This_Alt_Copy : constant Node_Id := This_Alt;
@@ -502,6 +503,7 @@ package body Tree_Walk is
             end if;
             Case_Body_Leaf := This_Test;
          end;
+         exit when not Present (This_Alt);
       end loop;
       return Ret;
    end Do_Case_Expression;
@@ -639,7 +641,7 @@ package body Tree_Walk is
    begin
       Set_Identifier (Enum_Type_Symbol,
                       Unique_Name (Defining_Identifier (Parent (N))));
-      while Present (Member) loop
+      loop
          declare
             Element : constant Irep := New_Irep (I_C_Enum_Member);
             Val_String : constant String :=
@@ -670,6 +672,7 @@ package body Tree_Walk is
             Global_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
          end;
          Next (Member);
+         exit when not Present (Member);
       end loop;
       Set_Subtype (Ret, Make_Int_Type (32));
       Set_Body (Ret, Enum_Body);
@@ -1607,13 +1610,13 @@ package body Tree_Walk is
    is
       Ret : constant Irep := New_Irep (I_Symbol_Type);
       Number_Str_Raw : constant String :=
-        Integer'Image (Anonymous_Type_Count);
+        Integer'Image (Anonymous_Type_Counter);
       Number_Str : constant String :=
         Number_Str_Raw (2 .. Number_Str_Raw'Last);
       Fresh_Name : constant String := "_anonymous_type_" & Number_Str;
       Type_Symbol : Symbol;
    begin
-      Anonymous_Type_Count := Anonymous_Type_Count + 1;
+      Anonymous_Type_Counter := Anonymous_Type_Counter + 1;
 
       Type_Symbol.SymType := Actual_Type;
       Type_Symbol.IsType := True;

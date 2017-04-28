@@ -9,8 +9,8 @@ with Ireps;                 use Ireps;
 package Tree_Walk is
 
    Global_Symbol_Table : Symbol_Table;
-   Case_Binder_Count : Positive := 1;
-   Anonymous_Type_Count : Positive := 1;
+   Case_Binder_Counter : Positive := 1;
+   Anonymous_Type_Counter : Positive := 1;
 
    --  This maps syntax tree node-ids onto CBMC symbol Ireps
    --  Presently:
