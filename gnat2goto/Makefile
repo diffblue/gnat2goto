@@ -42,7 +42,7 @@ SINFO_CODEGEN:=xtreeprs.adb xnmake.adb xsnamest.adb xutil.ads xutil.adb sinfo.ad
 
 GENERATED_FILES:=$(addprefix obj/, treeprs.ads nmake.ads nmake.adb snames.ads snames.adb sdefault.adb)
 
-.PHONY: clean
+.PHONY: clean rebuild_ireps
 
 all: build
 
@@ -83,10 +83,10 @@ obj/sdefault.adb: driver/sdefault.adb.in | obj
 obj/%: gnat_src/% | obj
 	cp -p $< $@
 
-ireps/ireps.ads: ireps/ireps_generator.py
-	make -C ireps ireps.ads CBMC=$(CBMC_SOURCE)
+rebuild_ireps:
+	make -C ireps rebuild_ireps CBMC=$(CBMC_SOURCE)
 
-build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY)) ireps/ireps.ads
+build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY)) rebuild_ireps
 	@mkdir -p install/bin
 	$(GPRBUILD) $(GPRARGS) -Pgnat2goto.gpr -j$(PROCS) -cargs ${CFLAGS} -largs $(LDFLAGS)
 

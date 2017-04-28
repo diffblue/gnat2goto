@@ -67,16 +67,27 @@ def ada_component_name(layout_kind, layout_id=None):
 def write_file(f):
     indent = 0
     instructions = f["content"]
-    with open(f["name"], "w") as fd:
-        for i in instructions:
-            if i["kind"] == "indent":
-                indent += 1
-            elif i["kind"] == "outdent":
-                indent -= 1
-            else:
-                assert i["kind"] == "text"
-                txt = "   " * indent + i["text"]
-                fd.write(txt.rstrip() + "\n")
+    old_content = None
+    try:
+       with open(f["name"], "r") as fd:
+          old_content = fd.read()
+    except:
+       pass # For example, if the file doesn't exist, leave old_content = None
+    to_write = ""
+    for i in instructions:
+       if i["kind"] == "indent":
+          indent += 1
+       elif i["kind"] == "outdent":
+          indent -= 1
+       else:
+          assert i["kind"] == "text"
+          txt = "   " * indent + i["text"]
+          to_write += (txt.rstrip() + "\n")
+    # Avoid altering the file's mtime if we would write an identical file.
+    # Useful for make et al.
+    if old_content != to_write:
+       with open(f["name"], "w") as fd:
+          fd.write(to_write)
     assert indent == 0
 
 def manual_indent(f):

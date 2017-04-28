@@ -11,6 +11,8 @@ endif
 
 all: unit_test
 
+.PHONY: rebuild_ireps
+
 gnatvsn.adb: ../driver/gnatvsn.adb
 	ln -s ../driver/$@
 
@@ -20,7 +22,7 @@ gnatvsn.adb: ../driver/gnatvsn.adb
 %.adb:
 	ln -s ../gnat_src/$@
 
-ireps.ads: ireps_generator.py
+rebuild_ireps:
 	./ireps_generator.py $(GEN_FLAGS) $(CBMC)
 
 unit_test: unit_test.adb $(SYMLINKS) ireps.ads ireps-*.adb
