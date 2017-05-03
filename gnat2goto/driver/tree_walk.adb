@@ -193,12 +193,13 @@ package body Tree_Walk is
    --------------------------
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep is
-      N_Type : constant Node_Id := Etype (N);
+      N_Type : constant Entity_Id := Etype (N);
       --  TOCHECK: Parent type may be more than one step away?
       N_Type_Decl : constant Node_Id := Parent (N_Type);
       N_Underlying_Type : constant Node_Id := Etype (N_Type);
       Disc_Constraint : Node_Id := Types.Empty;
       Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
+
    begin
       case Ekind (N_Type) is
          when E_Record_Subtype =>
@@ -212,19 +213,21 @@ package body Tree_Walk is
             pp (Union_Id (N));
             raise Program_Error;
       end case;
+
       --  It appears GNAT sorts the aggregate members for us into the order
-      --  discriminant (if any), common members, variant members
+      --  discriminant (if any), common members, variant members.
       --  However, let's check.
       declare
-         Components : constant Node_Id :=
+         Components   : constant Node_Id :=
            Component_List (Type_Definition (Parent (N_Underlying_Type)));
          Variant_Node : constant Node_Id := Variant_Part (Components);
+
          Component_Iter : Node_Id := First (Component_Items (Components));
-         Actual_Iter : Node_Id := First (Component_Associations (N));
+         Actual_Iter    : Node_Id := First (Component_Associations (N));
       begin
 
          if Present (Variant_Node) then
-            --  Expect a discriminant value:
+            --  Expect a discriminant value
             pragma Assert (Entity (Name (Variant_Node)) =
                            Entity (First (Choices (Actual_Iter))));
             Append_Struct_Member (Struct_Expr,
@@ -232,7 +235,7 @@ package body Tree_Walk is
             Next (Actual_Iter);
          end if;
 
-         --  Next expect common members:
+         --  Next expect common members
          while Present (Component_Iter) loop
             pragma Assert (Present (Actual_Iter));
             pragma Assert (Defining_Identifier (Component_Iter) =
@@ -243,11 +246,9 @@ package body Tree_Walk is
             Next (Actual_Iter);
          end loop;
 
-         --  Extract variant members:
+         --  Extract variant members
          if Present (Variant_Node) then
-
             declare
-
                Variant_Union_Name : constant String :=
                  Get_Variant_Union_Member_Name (
                    First (Constraints (Disc_Constraint)));
@@ -258,21 +259,22 @@ package body Tree_Walk is
                Variant_Iter : Node_Id := First (Variants (Variant_Node));
 
             begin
-
                Set_Type (Union_Literal,
                          Anonymous_Type_Map.Element (Variant_Node));
                Set_Component_Name (Union_Literal, Variant_Union_Name);
 
-               --  Try to find a subrecord matching the
-               --  aggregate's actual discriminant
-               while Present (Variant_Iter) and then
-                     Substruct_Component_List = 0 loop
+               --  Try to find a subrecord matching the aggregate's actual
+               --  discriminant.
+               while Present (Variant_Iter)
+                 and then Substruct_Component_List = 0
+               loop
                   declare
                      Choice_Iter : Node_Id :=
                        First (Discrete_Choices (Variant_Iter));
                   begin
                      while Present (Choice_Iter) and then
-                           Substruct_Component_List = 0 loop
+                       Substruct_Component_List = 0
+                     loop
                         if Entity (Choice_Iter) =
                           Entity (First (Constraints (Disc_Constraint)))
                         then
@@ -288,14 +290,14 @@ package body Tree_Walk is
                   end;
                end loop;
 
-               --  Check we found a matching subrecord:
+               --  Check we found a matching subrecord
                pragma Assert (Present (Variant_Found));
 
                Set_Type (Variant_Substruct,
                          Anonymous_Type_Map.Element (Variant_Found));
 
-               --  Try to parse remaining aggregate parts
-               --  according to that subrecord:
+               --  Try to parse remaining aggregate parts according to that
+               --  subrecord.
                while Present (Substruct_Component_List) loop
                   pragma Assert (Present (Actual_Iter));
                   pragma Assert
@@ -311,14 +313,12 @@ package body Tree_Walk is
                --  Add union literal to the outer struct:
                Set_Op0 (Union_Literal, Variant_Substruct);
                Append_Struct_Member (Struct_Expr, Union_Literal);
-
             end;
 
          end if;
 
          Set_Type (Struct_Expr, Do_Type_Reference (N_Underlying_Type));
          return Struct_Expr;
-
       end;
 
    end Do_Aggregate_Literal;
