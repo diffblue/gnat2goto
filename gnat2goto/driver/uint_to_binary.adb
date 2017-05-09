@@ -68,13 +68,23 @@ package body Uint_To_Binary is
       declare
          Unpadded_Hex : constant String := UI_Image (Nonnegative_Input, Hex);
          Padded_Hex   : String (1 .. Integer (Width / 4));
+         Padded_Idx   : Integer := Padded_Hex'Last;
       begin
-         --  Unpadded_Hex is in the form 16#val#
-         Move (Source  => Unpadded_Hex
-                            (Unpadded_Hex'First + 3 .. Unpadded_Hex'Last - 1),
-               Target  => Padded_Hex,
-               Justify => Right,
-               Pad     => '0');
+         --  Unpadded_Hex is in the form 16#val# with _ "thousand" separators.
+         --  Remove separators and prepend zeroes:
+         for Unpadded_Idx in
+           reverse Unpadded_Hex'First + 3 .. Unpadded_Hex'Last - 1 loop
+
+            if Unpadded_Hex (Unpadded_Idx) /= '_' then
+               Padded_Hex (Padded_Idx) := Unpadded_Hex (Unpadded_Idx);
+               Padded_Idx := Padded_Idx - 1;
+            end if;
+
+         end loop;
+
+         for Zero_Idx in 1 .. Padded_Idx loop
+            Padded_Hex (Zero_Idx) := '0';
+         end loop;
 
          return Hex_To_Binary (Padded_Hex);
       end;
