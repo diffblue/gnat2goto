@@ -15,17 +15,31 @@ with Uint_To_Binary;        use Uint_To_Binary;
 
 package body Tree_Walk is
 
+   procedure Append_Declare_And_Initialise
+     (Symbol : Irep; Value : Irep; Block : Irep);
+
    function Do_Address_Of (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Attribute_Reference,
         Post => Kind (Do_Address_Of'Result) = I_Address_Of_Expr;
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Aggregate,
-        Post => Kind (Do_Aggregate_Literal'Result) = I_Struct_Expr;
+        Post => Kind (Do_Aggregate_Literal'Result) in
+                I_Array_Expr | I_With_Expr | I_Op_Array_Of | I_Struct_Expr;
+
+   function Do_Aggregate_Literal_Array (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Aggregate,
+        Post => Kind (Do_Aggregate_Literal_Array'Result) in
+                I_Array_Expr | I_With_Expr | I_Op_Array_Of;
+
+   function Do_Aggregate_Literal_Record (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Aggregate,
+        Post => Kind (Do_Aggregate_Literal_Record'Result) = I_Struct_Expr;
 
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
-        Post => Kind (Do_Assignment_Statement'Result) = I_Code_Assign;
+        Post => Kind (Do_Assignment_Statement'Result) in
+                I_Code_Assign | I_Code_Block;
 
    function Do_Call_Parameters (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
@@ -38,6 +52,10 @@ package body Tree_Walk is
    function Do_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
+
+   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Constrained_Array_Definition,
+        Post => Kind (Do_Constrained_Array_Definition'Result) = I_Array_Type;
 
    function Do_Defining_Identifier (E : Entity_Id) return Irep
    with Pre  => Nkind (E) = N_Defining_Identifier,
@@ -63,6 +81,10 @@ package body Tree_Walk is
    procedure Do_Full_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
 
+   function Do_Function_Call (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Function_Call,
+        Post => Kind (Do_Function_Call'Result) in Class_Expr;
+
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
         Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
@@ -76,9 +98,8 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
-   function Do_Function_Call (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Function_Call,
-        Post => Kind (Do_Function_Call'Result) in Class_Expr;
+   function Do_Indexed_Component (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Indexed_Component;
 
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
@@ -124,6 +145,9 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Simple_Return_Statement,
         Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
 
+   function Do_Slice_Assignment (LHS : Node_Id; RHS : Node_Id) return Irep
+   with Post => Kind (Do_Slice_Assignment'Result) = I_Code_Block;
+
    procedure Do_Subprogram_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Subprogram_Declaration;
 
@@ -163,10 +187,26 @@ package body Tree_Walk is
    with Pre  => Is_Type (E),
         Post => Kind (Do_Type_Reference'Result) in Class_Type;
 
+   function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Unconstrained_Array_Definition,
+        Post => Kind (Do_Unconstrained_Array_Definition'Result) =
+                I_Struct_Type;
+
    function Get_Fresh_Type_Name (Actual_Type : Irep; Associated_Node : Node_Id)
                                 return Irep;
 
    function Get_Variant_Union_Member_Name (N : Node_Id) return String;
+
+   function Make_Array_First_Expr
+     (Base_Type : Node_Id; Base_Irep : Irep) return Irep;
+
+   function Make_Array_Index_Op
+     (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
+
+   function Make_Increment
+     (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep;
+
+   function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep;
 
    function Make_Runtime_Check (Condition : Irep) return Irep
    with Pre  => Kind (Get_Type (Condition)) = I_Bool_Type,
@@ -183,6 +223,24 @@ package body Tree_Walk is
    with Post => Kind (Process_Statements'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
+   -----------------------------------
+   -- Append_Declare_And_Initialise --
+   -----------------------------------
+
+   procedure Append_Declare_And_Initialise
+     (Symbol : Irep; Value : Irep; Block : Irep)
+   is
+      Decl : constant Irep := New_Irep (I_Code_Decl);
+      Assign : constant Irep := New_Irep (I_Code_Assign);
+   begin
+      Set_Symbol (Decl, Symbol);
+      Append_Op (Block, Decl);
+
+      Set_Lhs (Assign, Symbol);
+      Set_Rhs (Assign, Value);
+      Append_Op (Block, Assign);
+   end Append_Declare_And_Initialise;
+
    -------------------
    -- Do_Address_Of --
    -------------------
@@ -197,25 +255,97 @@ package body Tree_Walk is
    function Do_Aggregate_Literal (N : Node_Id) return Irep is
       N_Type : constant Entity_Id := Etype (N);
       --  TOCHECK: Parent type may be more than one step away?
-      N_Type_Decl : constant Node_Id := Parent (N_Type);
-      N_Underlying_Type : constant Node_Id := Etype (N_Type);
-      Disc_Constraint : Node_Id := Types.Empty;
-      Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
-
    begin
       case Ekind (N_Type) is
+         when E_Array_Type =>
+            return Do_Aggregate_Literal_Array (N);
+         when E_Array_Subtype =>
+            return Do_Aggregate_Literal_Array (N);
          when E_Record_Subtype =>
-            --  Perhaps carrying a variant constraint:
-            Disc_Constraint := Constraint (Subtype_Indication (N_Type_Decl));
+            return Do_Aggregate_Literal_Record (N);
          when E_Record_Type =>
-            --  Unconstrained, nothing to do
-            null;
+            return Do_Aggregate_Literal_Record (N);
          when others =>
             --  Unhandled aggregate kind
             pp (Union_Id (N));
             raise Program_Error;
       end case;
+   end Do_Aggregate_Literal;
 
+   --------------------------------
+   -- Do_Aggregate_Literal_Array --
+   --------------------------------
+
+   function Do_Aggregate_Literal_Array (N : Node_Id) return Irep is
+      Array_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Array_Expr : Irep;
+      Pos_Iter : Node_Id := First (Expressions (N));
+      Pos_Number : Natural := 0;
+      With_Mode : Boolean;
+   begin
+
+      --  Handle an "others" splat expression if present:
+      if Present (Component_Associations (N)) then
+         --  Produce something like array_of(others_expr)
+         --                         with 1 => 100, 2 => 200, ...
+         --  We expect only one named operand (others => ...):
+         pragma Assert (List_Length (Component_Associations (N)) = 1);
+         declare
+            Others_Node : constant Node_Id :=
+              First (Component_Associations (N));
+            Others_Choices : constant List_Id := Choices (Others_Node);
+         begin
+            pragma Assert (List_Length (Others_Choices) = 1);
+            pragma Assert (Nkind (First (Others_Choices)) = N_Others_Choice);
+            Array_Expr := New_Irep (I_Op_Array_Of);
+
+            Set_Op0 (Array_Expr, Do_Expression (Expression (Others_Node)));
+         end;
+         With_Mode := True;
+      else
+         Array_Expr := New_Irep (I_Array_Expr);
+         With_Mode := False;
+      end if;
+
+      while Present (Pos_Iter) loop
+         declare
+            Expr : constant Irep := Do_Expression (Pos_Iter);
+         begin
+            if With_Mode then
+               declare
+                  Pos_Str : constant String := Integer'Image (Pos_Number);
+                  Pos_Constant : constant Irep := New_Irep (I_Constant_Expr);
+                  New_With : constant Irep := New_Irep (I_With_Expr);
+               begin
+                  Set_Value (Pos_Constant, Pos_Str (2 .. Pos_Str'Last));
+                  Set_Type (Pos_Constant, New_Irep (I_Integer_Type));
+                  Set_Old (New_With, Array_Expr);
+                  --  Note these indices are zero-based, not 'First-based.
+                  Set_Where (New_With, Pos_Constant);
+                  Set_New_Value (New_With, Expr);
+                  Array_Expr := New_With;
+               end;
+            else
+               Append_Operand (Array_Expr, Expr);
+            end if;
+         end;
+         Next (Pos_Iter);
+         Pos_Number := Pos_Number + 1;
+      end loop;
+
+      Set_Type (Array_Expr, Array_Type);
+      return Array_Expr;
+   end Do_Aggregate_Literal_Array;
+
+   ---------------------------------
+   -- Do_Aggregate_Literal_Record --
+   ---------------------------------
+
+   function Do_Aggregate_Literal_Record (N : Node_Id) return Irep is
+      N_Type : constant Entity_Id := Etype (N);
+      N_Type_Decl : constant Node_Id := Parent (N_Type);
+      N_Underlying_Type : constant Node_Id := Etype (N_Type);
+   begin
       --  It appears GNAT sorts the aggregate members for us into the order
       --  discriminant (if any), common members, variant members.
       --  However, let's check.
@@ -226,7 +356,22 @@ package body Tree_Walk is
 
          Component_Iter : Node_Id := First (Component_Items (Components));
          Actual_Iter    : Node_Id := First (Component_Associations (N));
+         Disc_Constraint : Node_Id := Types.Empty;
+         Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
       begin
+
+         case Ekind (N_Type) is
+            when E_Record_Subtype =>
+               --  Perhaps carrying a variant constraint:
+               Disc_Constraint :=
+                 Constraint (Subtype_Indication (N_Type_Decl));
+            when E_Record_Type =>
+               --  Unconstrained, nothing to do
+               null;
+            when others =>
+               --  Impossible, already filtered by caller
+               raise Program_Error;
+         end case;
 
          if Present (Variant_Node) then
             --  Expect a discriminant value
@@ -323,7 +468,48 @@ package body Tree_Walk is
          return Struct_Expr;
       end;
 
-   end Do_Aggregate_Literal;
+   end Do_Aggregate_Literal_Record;
+
+   -------------------------------------
+   -- Do_Constrained_Array_Definition --
+   -------------------------------------
+
+   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
+   is
+      Sub_Identifier : constant Node_Id :=
+        Subtype_Indication (Component_Definition (N));
+      Sub : constant Irep :=
+        Do_Type_Reference (Etype (Sub_Identifier));
+      Length_Expr : Irep := Ireps.Empty;
+      Dimension_Iter : Node_Id := First (Discrete_Subtype_Definitions (N));
+      Ret : constant Irep := New_Irep (I_Array_Type);
+   begin
+      while Present (Dimension_Iter) loop
+         declare
+            This_Length : constant Irep := New_Irep (I_Op_Sub);
+            Dim_Range : constant Node_Id :=
+              Scalar_Range (Etype (Dimension_Iter));
+         begin
+            Set_Lhs (This_Length, Do_Expression (High_Bound (Dim_Range)));
+            Set_Rhs (This_Length, Do_Expression (Low_Bound (Dim_Range)));
+            if Length_Expr = Ireps.Empty then
+               Length_Expr := This_Length;
+            else
+               declare
+                  Mul_Expr : constant Irep := New_Irep (I_Op_Mul);
+               begin
+                  Set_Lhs (Mul_Expr, Length_Expr);
+                  Set_Rhs (Mul_Expr, This_Length);
+                  Length_Expr := Mul_Expr;
+               end;
+            end if;
+         end;
+         Next (Dimension_Iter);
+      end loop;
+      Set_Subtype (Ret, Sub);
+      Set_Size (Ret, Length_Expr);
+      return Ret;
+   end Do_Constrained_Array_Definition;
 
    -----------------------------
    -- Do_Assignment_Statement --
@@ -331,26 +517,34 @@ package body Tree_Walk is
 
    function Do_Assignment_Statement (N : Node_Id) return Irep
    is
-      LHS : constant Irep := Do_Expression (Name (N));
-      RHS : constant Irep := Do_Expression (Expression (N));
    begin
-      return R : constant Irep := New_Irep (I_Code_Assign) do
-         Set_Source_Location (R, Sloc (N));
-         Set_Lhs (R, LHS);
-         if Do_Range_Check (Expression (N)) then
-            --  Implicit typecast. Make it explicit.
-            declare
-               Cast_RHS : constant Irep := New_Irep (I_Op_Typecast);
-            begin
-               Set_Op0 (Cast_RHS, RHS);
-               Set_Type (Cast_RHS, Get_Type (LHS));
-               Set_Range_Check (Cast_RHS, True);
-               Set_Rhs (R, Cast_RHS);
-            end;
-         else
-            Set_Rhs (R, RHS);
-         end if;
-      end return;
+      if Nkind (Name (N)) = N_Slice or else
+         Nkind (Expression (N)) = N_Slice
+      then
+         return Do_Slice_Assignment (Name (N), Expression (N));
+      end if;
+      declare
+         LHS : constant Irep := Do_Expression (Name (N));
+         RHS : constant Irep := Do_Expression (Expression (N));
+      begin
+         return R : constant Irep := New_Irep (I_Code_Assign) do
+            Set_Source_Location (R, Sloc (N));
+            Set_Lhs (R, LHS);
+            if Do_Range_Check (Expression (N)) then
+               --  Implicit typecast. Make it explicit.
+               declare
+                  Cast_RHS : constant Irep := New_Irep (I_Op_Typecast);
+               begin
+                  Set_Op0 (Cast_RHS, RHS);
+                  Set_Type (Cast_RHS, Get_Type (LHS));
+                  Set_Range_Check (Cast_RHS, True);
+                  Set_Rhs (R, Cast_RHS);
+               end;
+            else
+               Set_Rhs (R, RHS);
+            end if;
+         end return;
+      end;
    end Do_Assignment_Statement;
 
    ------------------------
@@ -674,7 +868,7 @@ package body Tree_Walk is
             when N_Explicit_Dereference => Do_Dereference (N),
             when N_Case_Expression      => Do_Case_Expression (N),
             when N_Aggregate            => Do_Aggregate_Literal (N),
-
+            when N_Indexed_Component    => Do_Indexed_Component (N),
             when others                 => raise Program_Error);
    end Do_Expression;
 
@@ -817,6 +1011,17 @@ package body Tree_Walk is
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
    is (Underlying);
+
+   --------------------------
+   -- Do_Indexed_Component --
+   --------------------------
+
+   --  TODO: multi-dimensional arrays.
+   function Do_Indexed_Component (N : Node_Id) return Irep is
+      (Make_Array_Index_Op
+         (Do_Expression (Prefix (N)),
+          Etype (Prefix (N)),
+          Do_Expression (First (Expressions (N)))));
 
    ------------------------
    -- Do_Itype_Reference --
@@ -1328,9 +1533,99 @@ package body Tree_Walk is
       return R;
    end Do_Simple_Return_Statement;
 
-   -------------------------------
+   -------------------------
+   -- Do_Slice_Assignment --
+   -------------------------
+
+   --  CBMC can't do slice assignments at the moment, so lower it to an
+   --  assignment to a temporary and a copy loop.
+
+   function Do_Slice_Assignment (LHS : Node_Id; RHS : Node_Id) return Irep is
+
+      function Find_Base_Object (N : Node_Id) return Node_Id;
+      function Find_Range (N : Node_Id) return Node_Id;
+
+      function Find_Base_Object (N : Node_Id) return Node_Id
+      is (if Nkind (N) = N_Slice then Prefix (N) else N);
+
+      function Find_Range (N : Node_Id) return Node_Id
+      is (if Nkind (N) = N_Slice then Discrete_Range (N)
+          else Scalar_Range (Etype (First_Index (Etype (N)))));
+
+      Copy_Loop : constant Irep := New_Irep (I_Code_For);
+      LHS_Range : constant Node_Id := Find_Range (LHS);
+      RHS_Range : constant Node_Id := Find_Range (RHS);
+      LHS_Index_Type : constant Irep :=
+          Do_Type_Reference (Etype (LHS_Range));
+      LHS_Index_Symbol : constant Irep :=
+          Fresh_Var_Symbol_Expr (LHS_Index_Type, "slice_lhs_index");
+      RHS_Index_Symbol : constant Irep :=
+          Fresh_Var_Symbol_Expr (LHS_Index_Type, "slice_rhs_index");
+      LHS_Index_Inc : constant Irep :=
+          Make_Increment (LHS_Index_Symbol, Etype (LHS_Range), 1);
+      RHS_Index_Inc : constant Irep :=
+          Make_Increment (RHS_Index_Symbol, Etype (RHS_Range), 1);
+      Inc_Comma_Expr : constant Irep := New_Irep (I_Op_Comma);
+      Loop_Test : constant Irep := New_Irep (I_Op_Leq);
+      Ret : constant Irep := New_Irep (I_Code_Block);
+      RHS_Node : constant Node_Id := Find_Base_Object (RHS);
+      RHS_Base : constant Irep := Do_Expression (RHS_Node);
+      RHS_Symbol : constant Irep :=
+        Fresh_Var_Symbol_Expr (Get_Type (RHS_Base), "slice_assign_rhs");
+      LHS_Last_Symbol : constant Irep :=
+        Fresh_Var_Symbol_Expr (LHS_Index_Type, "slice_assign_last");
+      LHS_First_Expr : constant Irep :=
+        Do_Expression (Low_Bound (LHS_Range));
+      LHS_Last_Expr : constant Irep :=
+        Do_Expression (High_Bound (LHS_Range));
+      RHS_First_Expr : constant Irep :=
+        Do_Expression (Low_Bound (RHS_Range));
+      LHS_Node : constant Node_Id := Find_Base_Object (LHS);
+      LHS_Base : constant Irep := Do_Expression (LHS_Node);
+      LHS_Index : constant Irep :=
+        Make_Array_Index_Op (LHS_Base, Etype (LHS_Node), LHS_Index_Symbol);
+      RHS_Index : constant Irep :=
+        Make_Array_Index_Op (RHS_Symbol, Etype (RHS_Node), RHS_Index_Symbol);
+      Copy_Assign : constant Irep := New_Irep (I_Code_Assign);
+   begin
+
+      --  Generate C-ish code of the form:
+      --  {
+      --    rhst RHS = ... RHS slice or literal ...;
+      --    lhsindext lindex = LHS'First, llast = LHS'Last;
+      --    rhsindext rindex = RHS'First;
+      --    for(; lindex <= llast; ++lindex, ++rindex)
+      --       LHS[lindex] = RHS[rindex];
+      --  }
+
+      Append_Declare_And_Initialise (RHS_Symbol, RHS_Base, Ret);
+      Append_Declare_And_Initialise (LHS_Index_Symbol, LHS_First_Expr, Ret);
+      Append_Declare_And_Initialise (RHS_Index_Symbol, RHS_First_Expr, Ret);
+      Append_Declare_And_Initialise (LHS_Last_Symbol, LHS_Last_Expr, Ret);
+
+      --  Build the for-loop:
+
+      Append_Op (Inc_Comma_Expr, LHS_Index_Inc);
+      Append_Op (Inc_Comma_Expr, RHS_Index_Inc);
+      Set_Iter (Copy_Loop, Inc_Comma_Expr);
+
+      Set_Lhs (Loop_Test, LHS_Index_Symbol);
+      Set_Rhs (Loop_Test, LHS_Last_Expr);
+      Set_Type (Loop_Test, New_Irep (I_Bool_Type));
+      Set_Cond (Copy_Loop, Loop_Test);
+
+      Set_Lhs (Copy_Assign, LHS_Index);
+      Set_Rhs (Copy_Assign, RHS_Index);
+      Set_Loop_Body (Copy_Loop, Copy_Assign);
+
+      Append_Op (Ret, Copy_Loop);
+      return Ret;
+
+   end Do_Slice_Assignment;
+
+   ------------------------
    -- Do_Subprogram_Body --
-   -------------------------------
+   ------------------------
 
    procedure Do_Subprogram_Body (N : Node_Id) is
       Proc_Name   : constant Symbol_Id :=
@@ -1536,6 +1831,10 @@ package body Tree_Walk is
             return Do_Derived_Type_Definition (N);
          when N_Enumeration_Type_Definition =>
             return Do_Enumeration_Definition (N);
+         when N_Constrained_Array_Definition =>
+            return Do_Constrained_Array_Definition (N);
+         when N_Unconstrained_Array_Definition =>
+            return Do_Unconstrained_Array_Definition (N);
          when others =>
             pp (Union_Id (N));
             raise Program_Error;
@@ -1565,6 +1864,69 @@ package body Tree_Walk is
 
       end if;
    end Do_Type_Reference;
+
+   ---------------------------------------
+   -- Do_Unconstrained_Array_Definition --
+   ---------------------------------------
+
+   function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_Struct_Type);
+      Ret_Components : constant Irep := New_Irep (I_Struct_Union_Components);
+      Data_Type : constant Irep := New_Irep (I_Pointer_Type);
+      Data_Member : constant Irep :=
+        Make_Struct_Component ("data", Data_Type);
+      Sub_Identifier : constant Node_Id :=
+        Subtype_Indication (Component_Definition (N));
+      Sub : constant Irep :=
+        Do_Type_Reference (Etype (Sub_Identifier));
+      Dimension_Iter : Node_Id := First (Subtype_Marks (N));
+      Dimension_Number : Positive := 1;
+   begin
+
+      --  Define a structure with explicit first, last and data-pointer
+      --  members (unlike a constrained array, which is bare).
+
+      while Present (Dimension_Iter) loop
+         declare
+            Number_Str_Raw : constant String :=
+              Integer'Image (Dimension_Number);
+            Number_Str : constant String :=
+              Number_Str_Raw (2 .. Number_Str_Raw'Last);
+            First_Name : constant String := "first" & Number_Str;
+            Last_Name : constant String := "last" & Number_Str;
+            Dimension_Type : constant Irep :=
+              Do_Type_Reference (Etype (Dimension_Iter));
+            First_Comp : constant Irep :=
+              Make_Struct_Component (First_Name, Dimension_Type);
+            Last_Comp : constant Irep :=
+              Make_Struct_Component (Last_Name, Dimension_Type);
+         begin
+            Set_Name (First_Comp, First_Name);
+            Set_Base_Name (First_Comp, First_Name);
+            Set_Pretty_Name (First_Comp, First_Name);
+            Set_Name (Last_Comp, Last_Name);
+            Set_Base_Name (Last_Comp, Last_Name);
+            Set_Pretty_Name (Last_Comp, Last_Name);
+            Set_Type (First_Comp, Dimension_Type);
+            Set_Type (Last_Comp, Dimension_Type);
+            Append_Component (Ret_Components, First_Comp);
+            Append_Component (Ret_Components, Last_Comp);
+         end;
+         Dimension_Number := Dimension_Number + 1;
+         Next (Dimension_Iter);
+      end loop;
+
+      Set_Subtype (Data_Type, Sub);
+      Set_Type (Data_Member, Data_Type);
+      Set_Name (Data_Member, "data");
+      Set_Base_Name (Data_Member, "data");
+      Set_Pretty_Name (Data_Member, "data");
+      Append_Component (Ret_Components, Data_Member);
+
+      Set_Components (Ret, Ret_Components);
+      return Ret;
+
+   end Do_Unconstrained_Array_Definition;
 
    -------------------------
    -- Get_Fresh_Type_Name --
@@ -1614,6 +1976,113 @@ package body Tree_Walk is
       end loop;
       return To_String (Variant_Name);
    end Get_Variant_Union_Member_Name;
+
+   ---------------------------
+   -- Make_Array_First_Expr --
+   ---------------------------
+
+   function Make_Array_First_Expr
+     (Base_Type : Node_Id; Base_Irep : Irep) return Irep
+   is
+      Idx_Type : constant Node_Id := Etype (First_Index (Base_Type));
+   begin
+      if Is_Constrained (Base_Type) then
+         return
+            Do_Expression (Low_Bound (Scalar_Range (Idx_Type)));
+      else
+         declare
+            First : constant Irep := New_Irep (I_Member_Expr);
+         begin
+            Set_Component_Name (First, "first1");
+            Set_Compound (First, Base_Irep);
+            Set_Type (First, Do_Type_Reference (Idx_Type));
+            return First;
+         end;
+      end if;
+   end Make_Array_First_Expr;
+
+   -------------------------
+   -- Make_Array_Index_Op --
+   -------------------------
+
+   function Make_Array_Index_Op
+     (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep
+   is
+      First_Irep : constant Irep :=
+        Make_Array_First_Expr (Base_Type, Base_Irep);
+      Zero_Based_Index : constant Irep := New_Irep (I_Op_Sub);
+      Result_Type : constant Irep :=
+        Do_Type_Reference (Component_Type (Base_Type));
+   begin
+      Set_Lhs (Zero_Based_Index, Idx_Irep);
+      Set_Rhs (Zero_Based_Index, First_Irep);
+      Set_Type (Zero_Based_Index, Get_Type (Idx_Irep));
+      if Is_Constrained (Base_Type) then
+         --  Expect a plain array representation:
+         declare
+            Ret : constant Irep := New_Irep (I_Index_Expr);
+         begin
+            Set_Array (Ret, Base_Irep);
+            Set_Index (Ret, Zero_Based_Index);
+            Set_Type (Ret, Result_Type);
+            return Ret;
+         end;
+      else
+         --  Expect a struct representation:
+         declare
+            Data : constant Irep := New_Irep (I_Member_Expr);
+            Offset : constant Irep := New_Irep (I_Op_Add);
+            Deref : constant Irep := New_Irep (I_Dereference_Expr);
+            Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
+         begin
+            Set_Component_Name (Data, "data");
+            Set_Compound (Data, Base_Irep);
+            Set_Subtype (Pointer_Type, Result_Type);
+            Set_Type (Data, Pointer_Type);
+            Set_Lhs (Offset, Data);
+            Set_Rhs (Offset, Idx_Irep);
+            Set_Type (Offset, Pointer_Type);
+            Set_Object (Deref, Offset);
+            Set_Type (Deref, Result_Type);
+            return Deref;
+         end;
+      end if;
+   end Make_Array_Index_Op;
+
+   --------------------
+   -- Make_Increment --
+   --------------------
+
+   function Make_Increment
+     (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep
+   is
+      Inc : constant Irep := New_Irep (I_Side_Effect_Expr_Assign);
+      Plus : constant Irep := New_Irep (I_Op_Add);
+      Amount_Expr : constant Irep :=
+        Make_Integer_Constant (Amount, Sym_Type);
+   begin
+      Set_Lhs (Plus, Sym);
+      Set_Rhs (Plus, Amount_Expr);
+      Set_Type (Plus, Get_Type (Sym));
+
+      Set_Lhs (Inc, Sym);
+      Set_Rhs (Inc, Plus);
+      return Inc;
+   end Make_Increment;
+
+   ---------------------------
+   -- Make_Integer_Constant --
+   ---------------------------
+
+   function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep is
+      Type_Width : constant Int := UI_To_Int (Esize (Ty));
+      Val_Binary : constant String := Convert_Int_To_Binary (Val, Type_Width);
+      Ret : constant Irep := New_Irep (I_Constant_Expr);
+   begin
+      Set_Type (Ret, Do_Type_Reference (Ty));
+      Set_Value (Ret, Val_Binary);
+      return Ret;
+   end Make_Integer_Constant;
 
    ------------------------
    -- Make_Runtime_Check --
