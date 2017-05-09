@@ -35,4 +35,33 @@ package body GOTO_Utils is
       return R;
    end Make_Pointer_Type;
 
+   --------------------
+   -- Fresh_Var_Name --
+   --------------------
+
+   function Fresh_Var_Name (Infix : String) return String is
+      Binder_Number_Str_Raw : constant String :=
+        Integer'Image (Synthetic_Variable_Counter);
+      Binder_Number_Str : constant String :=
+        Binder_Number_Str_Raw (2 .. Binder_Number_Str_Raw'Last);
+   begin
+      --  Note this is intentionally an illegal Ada identifier
+      --  to avoid clashes.
+      Synthetic_Variable_Counter := Synthetic_Variable_Counter + 1;
+      return "__" & Infix & Binder_Number_Str;
+   end Fresh_Var_Name;
+
+   ---------------------------
+   -- Fresh_Var_Symbol_Expr --
+   ---------------------------
+
+   function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep is
+      Id : constant String := Fresh_Var_Name (Infix);
+      Ret : constant Irep := New_Irep (I_Symbol_Expr);
+   begin
+      Set_Identifier (Ret, Id);
+      Set_Type (Ret, Ty);
+      return Ret;
+   end Fresh_Var_Symbol_Expr;
+
 end GOTO_Utils;

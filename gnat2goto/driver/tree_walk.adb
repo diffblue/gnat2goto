@@ -396,43 +396,12 @@ package body Tree_Walk is
    function Do_Case_Expression (N : Node_Id) return Irep is
 
       --  Appease the style police
-      function Fresh_Case_Bound_Var_Name return String;
-      function Fresh_Case_Bound_Var_Symbol_Expr (Ty : Irep) return Irep;
       function Make_Case_Test (Alts : List_Id) return Irep;
-
-      -------------------------------
-      -- Fresh_Case_Bound_Var_Name --
-      -------------------------------
-
-      function Fresh_Case_Bound_Var_Name return String is
-         Binder_Number_Str_Raw : constant String :=
-           Integer'Image (Case_Binder_Counter);
-         Binder_Number_Str : constant String :=
-           Binder_Number_Str_Raw (2 .. Binder_Number_Str_Raw'Last);
-      begin
-         --  Note this is intentionally an illegal Ada identifier
-         --  to avoid clashes.
-         Case_Binder_Counter := Case_Binder_Counter + 1;
-         return "__case_bound_var_" & Binder_Number_Str;
-      end Fresh_Case_Bound_Var_Name;
-
-      --------------------------------------
-      -- Fresh_Case_Bound_Var_Symbol_Expr --
-      --------------------------------------
-
-      function Fresh_Case_Bound_Var_Symbol_Expr (Ty : Irep) return Irep is
-         Id : constant String := Fresh_Case_Bound_Var_Name;
-         Ret : constant Irep := New_Irep (I_Symbol_Expr);
-      begin
-         Set_Identifier (Ret, Id);
-         Set_Type (Ret, Ty);
-         return Ret;
-      end Fresh_Case_Bound_Var_Symbol_Expr;
 
       Ret : constant Irep := New_Irep (I_Let_Expr);
       Value : constant Irep := Do_Expression (Expression (N));
       Bound_Var : constant Irep :=
-        Fresh_Case_Bound_Var_Symbol_Expr (Get_Type (Value));
+        Fresh_Var_Symbol_Expr (Get_Type (Value), "case_binder");
 
       --------------------
       -- Make_Case_Test --
