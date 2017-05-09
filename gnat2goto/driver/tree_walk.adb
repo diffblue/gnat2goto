@@ -173,6 +173,8 @@ package body Tree_Walk is
         Post => Kind (Make_Runtime_Check'Result) =
                 I_Side_Effect_Expr_Function_Call;
 
+   function Make_Struct_Component (Name : String; Ty : Irep) return Irep;
+
    procedure Process_Statement (N : Node_Id; Block : Irep)
    with Pre => Kind (Block) = I_Code_Block;
    --  Process statement or declaration
@@ -1092,19 +1094,10 @@ package body Tree_Walk is
                                           Comp_Type : Irep;
                                           Comp_Node : Node_Id;
                                           Add_To_List : Irep := Components) is
-         Comp_Irep : constant Irep := New_Irep (I_Struct_Union_Component);
+         Comp_Irep : constant Irep :=
+           Make_Struct_Component (Comp_Name, Comp_Type);
       begin
          Set_Source_Location (Comp_Irep, Sloc (Comp_Node));
-         --  Set attributes we don't use yet:
-         Set_Access (Comp_Irep, "public");
-         Set_Is_Padding (Comp_Irep, False);
-         Set_Anonymous (Comp_Irep, False);
-         --  Real attributes:
-         Set_Name        (Comp_Irep, Comp_Name);
-         Set_Pretty_Name (Comp_Irep, Comp_Name);
-         Set_Base_Name   (Comp_Irep, Comp_Name);
-         Set_Type        (Comp_Irep, Comp_Type);
-
          Append_Component (Add_To_List, Comp_Irep);
       end Add_Record_Component_Raw;
 
@@ -1676,6 +1669,25 @@ package body Tree_Walk is
       return Call_Expr;
 
    end Make_Runtime_Check;
+
+   -----------------------------
+   --  Make_Struct_Component  --
+   -----------------------------
+
+   function Make_Struct_Component (Name : String; Ty : Irep) return Irep is
+      Ret : constant Irep := New_Irep (I_Struct_Union_Component);
+   begin
+      --  Set attributes we don't use yet:
+      Set_Access (Ret, "public");
+      Set_Is_Padding (Ret, False);
+      Set_Anonymous (Ret, False);
+      --  Real attributes:
+      Set_Name        (Ret, Name);
+      Set_Pretty_Name (Ret, Name);
+      Set_Base_Name   (Ret, Name);
+      Set_Type        (Ret, Ty);
+      return Ret;
+   end Make_Struct_Component;
 
    -------------------------
    --  Process_Statement  --
