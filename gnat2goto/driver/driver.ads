@@ -26,6 +26,7 @@ with Types; use Types;
 package Driver is
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id);
+   procedure Translate_Compilation_Unit (GNAT_Root : Node_Id);
 
    function Is_Back_End_Switch (Switch : String) return Boolean;
 

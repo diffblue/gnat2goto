@@ -64,4 +64,28 @@ package body GOTO_Utils is
       return Ret;
    end Fresh_Var_Symbol_Expr;
 
+   ------------------
+   -- Param_Symbol --
+   ------------------
+
+   function Param_Symbol (Param : Irep) return Irep is
+      Ret : constant Irep := New_Irep (I_Symbol_Expr);
+   begin
+      Set_Identifier (Ret, Get_Identifier (Param));
+      Set_Type (Ret, Get_Type (Param));
+      return Ret;
+   end Param_Symbol;
+
+   ------------------
+   -- Symbol_Expr --
+   ------------------
+
+   function Symbol_Expr (Sym : Symbol) return Irep is
+      Ret : constant Irep := New_Irep (I_Symbol_Expr);
+   begin
+      Set_Identifier (Ret, Unintern (Sym.Name));
+      Set_Type (Ret, Sym.SymType);
+      return Ret;
+   end Symbol_Expr;
+
 end GOTO_Utils;

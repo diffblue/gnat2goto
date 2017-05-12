@@ -25,6 +25,40 @@ package Tree_Walk is
 
    Anonymous_Type_Map : Anonymous_Type_Maps.Map;
 
+   --  This maps pairs of <element_type, index_type>, each represented
+   --  by their definining entity ids, onto function symbols implementing
+   --  array duplication. Keys are symbol expressions.
+
+   type Array_Dup_Key is record
+      Element_Type : Entity_Id;
+      Index_Type : Entity_Id;
+   end record;
+
+   function "<" (Left, Right : Array_Dup_Key) return Boolean;
+
+   package Array_Dup_Maps
+   is new Ada.Containers.Ordered_Maps
+     (Element_Type => Irep,
+      Key_Type => Array_Dup_Key);
+
+   Array_Dup_Map : Array_Dup_Maps.Map;
+
+   --  Similar, but for memcpy-style instead of dup-style functions:
+   type Array_Copy_Key is record
+      LHS_Element_Type : Entity_Id;
+      RHS_Element_Type : Entity_Id;
+      Index_Type : Entity_Id;
+   end record;
+
+   function "<" (Left, Right : Array_Copy_Key) return Boolean;
+
+   package Array_Copy_Maps
+   is new Ada.Containers.Ordered_Maps
+     (Element_Type => Irep,
+      Key_Type => Array_Copy_Key);
+
+   Array_Copy_Map : Array_Copy_Maps.Map;
+
    Check_Function_Symbol : Irep := Ireps.Empty;
 
    function Do_Compilation_Unit (N : Node_Id) return Symbol

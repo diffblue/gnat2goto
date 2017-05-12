@@ -1,4 +1,5 @@
 with Ireps; use Ireps;
+with Symbol_Table_Info; use Symbol_Table_Info;
 
 package GOTO_Utils is
 
@@ -17,5 +18,12 @@ package GOTO_Utils is
    function Make_Pointer_Type (Base : Irep) return Irep;
 
    function Make_Address_Of (Base : Irep) return Irep;
+
+   function Param_Symbol (Param : Irep) return Irep
+   with Pre  => Kind (Param) = I_Code_Parameter,
+        Post => Kind (Param_Symbol'Result) = I_Symbol_Expr;
+
+   function Symbol_Expr (Sym : Symbol) return Irep
+   with Post => Kind (Symbol_Expr'Result) = I_Symbol_Expr;
 
 end GOTO_Utils;

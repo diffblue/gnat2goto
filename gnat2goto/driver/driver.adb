@@ -44,6 +44,14 @@ package body Driver is
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
+   begin
+      Translate_Standard_Types;
+      Translate_Compilation_Unit (GNAT_Root);
+   end GNAT_To_Goto;
+
+   procedure Translate_Compilation_Unit (GNAT_Root : Node_Id)
+   is
+
       Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root);
 
       Program_Expr        : constant Irep := New_Irep (I_Symbol_Expr);
@@ -64,8 +72,6 @@ package body Driver is
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
 
    begin
-      Translate_Standard_Types;
-
       --  Gather local symbols and put them in the symtab
       declare
          Local_Symbols : Symbol_Table;
@@ -185,7 +191,7 @@ package body Driver is
       Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
 
       Put_Line (Create (SymbolTable2Json (Global_Symbol_Table)).Write);
-   end GNAT_To_Goto;
+   end Translate_Compilation_Unit;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
       First : constant Natural := Switch'First + 1;
