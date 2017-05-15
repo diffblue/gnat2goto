@@ -47,7 +47,8 @@ package body Tree_Walk is
                 I_Code_Assign | I_Code_Block;
 
    function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
-                                     return Irep;
+                                     return Irep
+   with Pre => Nkind (Range_Expr) = N_Range;
 
    function Do_Call_Parameters (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
@@ -113,8 +114,8 @@ package body Tree_Walk is
      (N : Node_Id; Underlying : Irep) return Irep
    with Pre  => Nkind (N) = N_Index_Or_Discriminant_Constraint;
 
-   function Do_Itype_Array_Subtype (N : Node_Id) return Irep
-   with Pre => Nkind (N) = N_Defining_Identifier;
+   function Do_Itype_Array_Subtype (N : Entity_Id) return Irep
+   with Pre => Is_Itype (N) and then Ekind (N) = E_Array_Subtype;
 
    function Do_Itype_Definition (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Defining_Identifier;
@@ -131,13 +132,14 @@ package body Tree_Walk is
                  and then Kind (Block) = I_Code_Block;
 
    function Do_Op_Concat (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Op_Concat;
+   with Pre => Nkind (N) = N_Op_Concat;
 
-   function Do_Operator (N : Node_Id) return Irep
+   function Do_Operator_Simple (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op,
-        Post => Kind (Do_Operator'Result) in Class_Expr;
+        Post => Kind (Do_Operator_Simple'Result) in Class_Expr;
 
-   function Do_Operator_Wrapper (N : Node_Id) return Irep;
+   function Do_Operator_General (N : Node_Id) return Irep
+   with Pre  => Nkind (N) in N_Op;
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Procedure_Call_Statement,
@@ -211,16 +213,20 @@ package body Tree_Walk is
         Post => Kind (Do_Unconstrained_Array_Definition'Result) =
                 I_Struct_Type;
 
-   function Get_Array_Component_Type (N : Node_Id) return Node_Id;
+   function Get_Array_Component_Type (N : Node_Id) return Entity_Id
+   with Post => Is_Type (Get_Array_Component_Type'Result);
 
-   function Get_Array_Copy_Function (LHS_Element_Type : Node_Id;
-                                     RHS_Element_Type : Node_Id;
-                                     Index_Type : Node_Id) return Irep;
+   function Get_Array_Copy_Function (LHS_Element_Type : Entity_Id;
+                                     RHS_Element_Type : Entity_Id;
+                                     Index_Type : Entity_Id) return Irep
+   with Post => Kind (Get_Array_Copy_Function'Result) = I_Symbol_Expr;
 
-   function Get_Array_Dup_Function (Element_Type : Node_Id;
-                                    Index_Type : Node_Id) return Irep;
+   function Get_Array_Dup_Function (Element_Type : Entity_Id;
+                                    Index_Type : Entity_Id) return Irep
+   with Post => Kind (Get_Array_Dup_Function'Result) = I_Symbol_Expr;
 
-   function Get_Array_Index_Type (N : Node_Id) return Entity_Id;
+   function Get_Array_Index_Type (N : Node_Id) return Entity_Id
+   with Post => Ekind (Get_Array_Index_Type'Result) = E_Signed_Integer_Type;
 
    function Get_Fresh_Type_Name (Actual_Type : Irep; Associated_Node : Node_Id)
                                 return Irep;
@@ -234,7 +240,8 @@ package body Tree_Walk is
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
 
    function Make_Array_Length_Expr
-     (Array_Struct : Irep; Index_Type : Node_Id) return Irep;
+     (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
+   with Pre => Ekind (Index_Type) in Discrete_Kind;
 
    function Make_Increment
      (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep;
@@ -252,7 +259,7 @@ package body Tree_Walk is
 
    function Make_Type_Symbol (Name : Symbol_Id; Defn : Irep) return Symbol;
 
-   function Maybe_Make_Typecast (Expr : Irep;
+   function Maybe_Make_Typecast (Expr     : Irep;
                                  Old_Type : Entity_Id;
                                  New_Type : Entity_Id) return Irep;
 
@@ -1049,7 +1056,7 @@ package body Tree_Walk is
         (case Nkind (N) is
             when N_Identifier           => Do_Identifier (N),
             when N_Selected_Component   => Do_Selected_Component (N),
-            when N_Op                   => Do_Operator_Wrapper (N),
+            when N_Op                   => Do_Operator_General (N),
             when N_Integer_Literal      => Do_Constant (N),
             when N_Type_Conversion      => Do_Type_Conversion (N),
             when N_Function_Call        => Do_Function_Call (N),
@@ -1499,7 +1506,7 @@ package body Tree_Walk is
       --  when you'd expect it to be so.
       Ultimate_Ancestor : constant Entity_Id := Etype (Entity (N));
 
-   --  Begin body of Do_Op_Concat
+   --  Start of processing for Do_Op_Concat
    begin
 
       --  Must set this before using Make_Binder
@@ -1599,11 +1606,24 @@ package body Tree_Walk is
 
    end Do_Op_Concat;
 
-   -----------------
-   -- Do_Operator --
-   -----------------
+   -------------------------
+   -- Do_Operator_General --
+   -------------------------
 
-   function Do_Operator (N : Node_Id) return Irep is
+   function Do_Operator_General (N : Node_Id) return Irep is
+   begin
+      if Nkind (N) = N_Op_Concat then
+         return Do_Op_Concat (N);
+      else
+         return Do_Operator_Simple (N);
+      end if;
+   end Do_Operator_General;
+
+   ------------------------
+   -- Do_Operator_Simple --
+   ------------------------
+
+   function Do_Operator_Simple (N : Node_Id) return Irep is
       LHS : constant Irep := Do_Expression (Left_Opnd (N));
       RHS : constant Irep := Do_Expression (Right_Opnd (N));
 
@@ -1650,7 +1670,7 @@ package body Tree_Walk is
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
       Ret     : constant Irep      := New_Irep (Op_Kind);
 
-   --  Start of processing for Do_Operator
+   --  Start of processing for Do_Operator_Simple
 
    begin
       Set_Source_Location (Ret, Sloc (N));
@@ -1669,20 +1689,7 @@ package body Tree_Walk is
       end if;
 
       return Ret;
-   end Do_Operator;
-
-   -------------------------
-   -- Do_Operator_Wrapper --
-   -------------------------
-
-   function Do_Operator_Wrapper (N : Node_Id) return Irep is
-   begin
-      if Nkind (N) = N_Op_Concat then
-         return Do_Op_Concat (N);
-      else
-         return Do_Operator (N);
-      end if;
-   end Do_Operator_Wrapper;
+   end Do_Operator_Simple;
 
    ---------------------------------
    -- Do_Procedure_Call_Statement --
@@ -2352,7 +2359,7 @@ package body Tree_Walk is
    -- Get_Array_Component_Type --
    ------------------------------
 
-   function Get_Array_Component_Type (N : Node_Id) return Node_Id is
+   function Get_Array_Component_Type (N : Node_Id) return Entity_Id is
       Ty : Entity_Id := Etype (N);
    begin
       while Ekind (Ty) = E_Array_Subtype loop
@@ -2365,9 +2372,9 @@ package body Tree_Walk is
    -- Get_Array_Copy_Function --
    -----------------------------
 
-   function Get_Array_Copy_Function (LHS_Element_Type : Node_Id;
-                                     RHS_Element_Type : Node_Id;
-                                     Index_Type : Node_Id) return Irep is
+   function Get_Array_Copy_Function (LHS_Element_Type : Entity_Id;
+                                     RHS_Element_Type : Entity_Id;
+                                     Index_Type : Entity_Id) return Irep is
       Map_Key : constant Array_Copy_Key :=
         (LHS_Element_Type, RHS_Element_Type, Index_Type);
       Map_Cursor : Array_Copy_Maps.Cursor;
@@ -2469,8 +2476,8 @@ package body Tree_Walk is
    -- Get_Array_Dup_Function --
    ----------------------------
 
-   function Get_Array_Dup_Function (Element_Type : Node_Id;
-                                    Index_Type : Node_Id) return Irep is
+   function Get_Array_Dup_Function (Element_Type : Entity_Id;
+                                    Index_Type : Entity_Id) return Irep is
       Map_Key : constant Array_Dup_Key := (Element_Type, Index_Type);
       Map_Cursor : Array_Dup_Maps.Cursor;
       Map_Inserted : Boolean;
@@ -2670,7 +2677,7 @@ package body Tree_Walk is
    ----------------------------
 
    function Make_Array_Length_Expr
-     (Array_Struct : Irep; Index_Type : Node_Id) return Irep
+     (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
    is
       First_Expr : constant Irep := New_Irep (I_Member_Expr);
       Last_Expr : constant Irep := New_Irep (I_Member_Expr);
@@ -2841,7 +2848,8 @@ package body Tree_Walk is
    function Maybe_Make_Typecast (Expr : Irep;
                                  Old_Type : Entity_Id;
                                  New_Type : Entity_Id) return Irep
-   is begin
+   is
+   begin
       if Old_Type = New_Type then
          return Expr;
       end if;

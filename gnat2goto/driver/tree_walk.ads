@@ -11,6 +11,10 @@ package Tree_Walk is
    Global_Symbol_Table : Symbol_Table;
    Anonymous_Type_Counter : Positive := 1;
 
+   --  The following two maps are only ordered because I know how to write
+   --  comparators but not hashers as of now; the ordering is unimportant
+   --  and they can be switched to hashed_maps as and when.
+
    --  This maps syntax tree node-ids onto CBMC symbol Ireps
    --  Presently:
    --    an N_Variant_Part maps onto a union type with
