@@ -514,7 +514,8 @@ def generate_code(optimize, schema_file_names):
     def register_sub_setter(root_schema,
                             op_id, friendly_name,
                             value_schema,
-                            is_list):
+                            is_list,
+                            default_value):
         if type(friendly_name) is list:
             assert len(friendly_name) == 2
             assert friendly_name[0] == "op%u" % op_id
@@ -528,18 +529,20 @@ def generate_code(optimize, schema_file_names):
         if setter_kind not in sub_setters[friendly_name]:
             sub_setters[friendly_name][setter_kind] = {}
         sub_setters[friendly_name][setter_kind][root_schema] = (op_id,
-                                                                value_schema)
+                                                                value_schema,
+                                                                default_value)
 
         # Also apply to all children
         for sc in schema.get("subclasses", None):
-            register_sub_setter(sc, op_id, friendly_name, value_schema, is_list)
+            register_sub_setter(sc, op_id, friendly_name, value_schema, is_list, default_value)
 
     named_setters = {}
     # setter_name -> value|list|trivial -> {schema: (is_comment, type)}
     def register_named_setter(root_schema,
                               kind,
                               friendly_name, value_type,
-                              is_comment):
+                              is_comment,
+                              default_value):
         schema = schemata[root_schema]
         assert kind in ("trivial", "irep", "list")
         assert not kind == "trivial" or value_type in ("bool",
@@ -560,14 +563,16 @@ def generate_code(optimize, schema_file_names):
         if actual_kind not in named_setters[friendly_name]:
             named_setters[friendly_name][actual_kind] = {}
         named_setters[friendly_name][actual_kind][root_schema] = (is_comment,
-                                                                  actual_type)
+                                                                  actual_type,
+                                                                  default_value)
 
         # Also apply to all children
         for sc in schema.get("subclasses", None):
             register_named_setter(sc,
                                   kind,
                                   friendly_name, value_type,
-                                  is_comment)
+                                  is_comment,
+                                  default_value)
 
     const = {}
     # cnst ::= schema -> id|namedSub|comment -> {name: value}
@@ -624,13 +629,14 @@ def generate_code(optimize, schema_file_names):
                 register_sub_setter(sn,
                                     i, friendly_name,
                                     sub["schema"],
-                                    sub.get("number", None) == "*")
+                                    sub.get("number", None) == "*",
+                                    sub.get("default", None))
 
             elif "number" in sub:
                 assert sub["number"] == "*"
                 friendly_name = "elmt" # TODO: should have a nicer name
                 element_type  = sub["schema"]
-                register_sub_setter(sn, i, friendly_name, element_type, True)
+                register_sub_setter(sn, i, friendly_name, element_type, True, None)
 
         for fld in ("namedSub", "comment"):
             if fld in schema:
@@ -648,21 +654,23 @@ def generate_code(optimize, schema_file_names):
 
                 elif data.get("type", None) in ("string", "integer", "bool"):
                     # Trivial field
-                    assert len(data) == 1
+                    assert set(data.keys()) <= set(("type", "default"))
                     register_named_setter(sn,
                                           "trivial",
                                           friendly_name, data["type"],
-                                          fld == "comment")
+                                          fld == "comment",
+                                          data.get("default", None))
 
                 elif "schema" in data:
                     # Irep of some type
                     assert data["schema"] in schemata
-                    assert len(data) == 1
+                    assert set(data.keys()) <= set(("schema", "default"))
                     value_type = data["schema"]
                     register_named_setter(sn,
                                           "irep",
                                           friendly_name, value_type,
-                                          fld == "comment")
+                                          fld == "comment",
+                                          data.get("default", None))
 
                 elif "sub" in data:
                     # A list
@@ -763,7 +771,7 @@ def generate_code(optimize, schema_file_names):
         for setter_name, setter_kinds in named_setters.iteritems():
             for kind in setter_kinds:
                 if sn in setter_kinds[kind]:
-                    is_comment, typ = setter_kinds[kind][sn]
+                    is_comment, typ, _ = setter_kinds[kind][sn]
                     if kind in ("irep", "list") or typ == "integer":
                         l_typ = "trivial" if typ == "integer" else kind
                         layout[sn][setter_name] = ("int",
@@ -830,7 +838,7 @@ def generate_code(optimize, schema_file_names):
         for setter_name, setter_kinds in named_setters.iteritems():
             for kind in setter_kinds:
                 if sn in setter_kinds[kind]:
-                    is_comment, typ = setter_kinds[kind][sn]
+                    is_comment, typ, _ = setter_kinds[kind][sn]
                     d = coms if is_comment else nams
                     if kind == "trivial":
                         d[setter_name] = typ
@@ -1702,7 +1710,7 @@ def generate_code(optimize, schema_file_names):
                         assert kind in ("irep", "list", "trivial")
                         if sn in named_setters[setter_name][kind]:
                             needs_null = False
-                            is_comment, value_type =\
+                            is_comment, value_type, _ =\
                               named_setters[setter_name][kind][sn]
                             layout_kind, layout_index, layout_typ =\
                               layout[sn][setter_name]
@@ -1796,17 +1804,40 @@ def generate_code(optimize, schema_file_names):
 
     for (friendly_name, kinds) in named_setters.iteritems():
         for (kind, schema_names) in kinds.iteritems():
-            for (schema_name, (is_comment, actual_type)) in schema_names.iteritems():
+            for (schema_name, (is_comment, actual_type, default_val)) in schema_names.iteritems():
                 if schema_name not in named_setters_by_schema:
                     named_setters_by_schema[schema_name] = []
                 param_type = actual_type if kind == "trivial" else kind
-                named_setters_by_schema[schema_name].append((friendly_name, param_type))
+                named_setters_by_schema[schema_name].append((friendly_name, param_type, default_val))
 
     def escape_reserved_words(w):
         if w in ("type", "subtype", "function", "array", "access", "body"):
             return "i_" + w
         else:
             return w
+
+    def initialiser_constant(val, typename):
+        if val is None:
+            return ""
+        if typename == "Irep":
+            assert val == "nil"
+            return "Ireps.Empty"
+        elif typename == "Boolean":
+            assert type(val) == bool
+            return str(val)
+        elif typename == "Integer":
+            assert type(val) == int
+            return str(val)
+        elif typename == "String":
+            assert type(val) in (str, unicode)
+            return "\"%s\"" % val
+
+    def initialiser(val, typename):
+        init_const = initialiser_constant(val, typename)
+        if init_const == "":
+            return init_const
+        else:
+            return " := " + init_const
 
     for sn in top_sorted_sn:
         schema = schemata[sn]
@@ -1817,20 +1848,20 @@ def generate_code(optimize, schema_file_names):
         if sn in sub_setters_by_schema:
             for friendly_name in sub_setters_by_schema[sn]:
                 formal_name = escape_reserved_words(friendly_name)
-                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep"))
+                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep", None))
         if sn in named_setters_by_schema:
-            for (friendly_name, actual_type) in named_setters_by_schema[sn]:
+            for (friendly_name, actual_type, default_value) in named_setters_by_schema[sn]:
                 formal_name = escape_reserved_words(friendly_name)
                 ada_type = irep_type_to_ada_type[actual_type]
-                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), ada_type))
+                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), ada_type, default_value))
         has_args = len(formal_args) != 0
         open_paren = "(" if has_args else ""
         write(b, "function %s %s" % (proc_name, open_paren))
         write(s, "function %s %s" % (proc_name, open_paren))
-        arg_strings = ["%s : %s" % (formal_name, formal_type) for
-                       (formal_name, _, formal_type) in formal_args]
+        arg_strings = ["%s : %s%s" % (formal_name, formal_type, initialiser(default_value, formal_type)) for
+                       (formal_name, _, formal_type, default_value) in formal_args]
         arg_strings[:-1] = ["%s;" % argstr for argstr in arg_strings[:-1]]
-        with indent(b):
+        with indent(b), indent(s):
             for argstr in arg_strings:
                 write(b, argstr)
                 write(s, argstr)
@@ -1843,7 +1874,7 @@ def generate_code(optimize, schema_file_names):
             write(b, "Ret : constant Irep := New_Irep (%s);" % schema["ada_name"])
         write(b, "begin")
         with indent(b):
-            for (formal_name, friendly_name, _) in formal_args:
+            for (formal_name, friendly_name, _, _) in formal_args:
                 write(b, "Set_%s (Ret, %s);" % (friendly_name, formal_name))
             write(b, "return Ret;")
         write(b, "end %s;" % proc_name)
