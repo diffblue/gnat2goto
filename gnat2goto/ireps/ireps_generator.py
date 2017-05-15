@@ -1797,10 +1797,10 @@ def generate_code(optimize, schema_file_names):
         for (kind, schema_names) in kinds.iteritems():
             if kind == "list":
                 continue
-            for schema_name in schema_names:
+            for (schema_name, (_, _, default_value)) in schema_names.iteritems():
                 if schema_name not in sub_setters_by_schema:
                     sub_setters_by_schema[schema_name] = []
-                sub_setters_by_schema[schema_name].append(friendly_name)
+                sub_setters_by_schema[schema_name].append((friendly_name, default_value))
 
     for (friendly_name, kinds) in named_setters.iteritems():
         for (kind, schema_names) in kinds.iteritems():
@@ -1846,9 +1846,9 @@ def generate_code(optimize, schema_file_names):
         formal_args = []
         # Print args named for each non-list member:
         if sn in sub_setters_by_schema:
-            for friendly_name in sub_setters_by_schema[sn]:
+            for (friendly_name, default_value) in sub_setters_by_schema[sn]:
                 formal_name = escape_reserved_words(friendly_name)
-                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep", None))
+                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep", default_value))
         if sn in named_setters_by_schema:
             for (friendly_name, actual_type, default_value) in named_setters_by_schema[sn]:
                 formal_name = escape_reserved_words(friendly_name)
