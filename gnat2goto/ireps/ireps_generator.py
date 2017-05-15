@@ -35,6 +35,14 @@ from pprint import pprint
 from glob import glob
 from copy import copy
 
+irep_type_to_ada_type = {
+   "irep"      : "Irep",
+   "bool"      : "Boolean",
+   "integer"   : "Integer",
+   "string"    : "String",
+   "gnat:sloc" : "Source_Ptr"
+}
+
 def ada_casing(s):
     rv = ""
     seen_underscore = True
@@ -1118,11 +1126,7 @@ def generate_code(optimize, schema_file_names):
         if is_list:
             ada_value_type = "Irep_List"
         else:
-            ada_value_type = {"irep"      : "Irep",
-                              "bool"      : "Boolean",
-                              "integer"   : "Integer",
-                              "string"    : "String",
-                              "gnat:sloc" : "Source_Ptr"}[value_type]
+            ada_value_type = irep_type_to_ada_type[value_type]
 
         precon = []
         i_kinds = set()
@@ -1221,11 +1225,7 @@ def generate_code(optimize, schema_file_names):
         name = ada_setter_name(fn_name, is_list)
         all_the_same = len(set(x for x in inputs.itervalues())) == 1
 
-        ada_value_type = {"irep"      : "Irep",
-                          "bool"      : "Boolean",
-                          "integer"   : "Integer",
-                          "string"    : "String",
-                          "gnat:sloc" : "Source_Ptr"}[value_type]
+        ada_value_type = irep_type_to_ada_type[value_type]
 
         precon = []
         i_kinds = set()
@@ -1777,6 +1777,77 @@ def generate_code(optimize, schema_file_names):
     write(b, "end To_JSON;")
     write(b, "")
 
+    ##########################################################################
+    # Record-style constructors
+
+    # Invert the sub_setter and named_setter maps:
+    # (Omit list-typed subexpressions for now)
+    sub_setters_by_schema = {}
+    named_setters_by_schema = {}
+
+    for (friendly_name, kinds) in sub_setters.iteritems():
+        for (kind, schema_names) in kinds.iteritems():
+            if kind == "list":
+                continue
+            for schema_name in schema_names:
+                if schema_name not in sub_setters_by_schema:
+                    sub_setters_by_schema[schema_name] = []
+                sub_setters_by_schema[schema_name].append(friendly_name)
+
+    for (friendly_name, kinds) in named_setters.iteritems():
+        for (kind, schema_names) in kinds.iteritems():
+            for (schema_name, (is_comment, actual_type)) in schema_names.iteritems():
+                if schema_name not in named_setters_by_schema:
+                    named_setters_by_schema[schema_name] = []
+                param_type = actual_type if kind == "trivial" else kind
+                named_setters_by_schema[schema_name].append((friendly_name, param_type))
+
+    def escape_reserved_words(w):
+        if w in ("type", "subtype", "function", "array", "access", "body"):
+            return "i_" + w
+        else:
+            return w
+
+    for sn in top_sorted_sn:
+        schema = schemata[sn]
+        proc_name = "Make_%s" % schema["ada_name"][2:]
+
+        formal_args = []
+        # Print args named for each non-list member:
+        if sn in sub_setters_by_schema:
+            for friendly_name in sub_setters_by_schema[sn]:
+                formal_name = escape_reserved_words(friendly_name)
+                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep"))
+        if sn in named_setters_by_schema:
+            for (friendly_name, actual_type) in named_setters_by_schema[sn]:
+                formal_name = escape_reserved_words(friendly_name)
+                ada_type = irep_type_to_ada_type[actual_type]
+                formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), ada_type))
+        has_args = len(formal_args) != 0
+        open_paren = "(" if has_args else ""
+        write(b, "function %s %s" % (proc_name, open_paren))
+        write(s, "function %s %s" % (proc_name, open_paren))
+        arg_strings = ["%s : %s" % (formal_name, formal_type) for
+                       (formal_name, _, formal_type) in formal_args]
+        arg_strings[:-1] = ["%s;" % argstr for argstr in arg_strings[:-1]]
+        with indent(b):
+            for argstr in arg_strings:
+                write(b, argstr)
+                write(s, argstr)
+        if has_args:
+            write(b, ")")
+            write(s, ")")
+        write(b, "return Irep is")
+        write(s, "return Irep;")
+        with indent(b):
+            write(b, "Ret : constant Irep := New_Irep (%s);" % schema["ada_name"])
+        write(b, "begin")
+        with indent(b):
+            for (formal_name, friendly_name, _) in formal_args:
+                write(b, "Set_%s (Ret, %s);" % (friendly_name, formal_name))
+            write(b, "return Ret;")
+        write(b, "end %s;" % proc_name)
+        write(b, "")
 
     ##########################################################################
     # Debug output
