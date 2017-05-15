@@ -385,12 +385,7 @@ package body Tree_Walk is
 
       Literal_Temp : constant Irep :=
         Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
-      Let_Expr : constant Irep :=
-        Make_Let_Expr (Symbol => Literal_Temp,
-                       Value => Ireps.Empty, --  To fill in later
-                       Where => Result_Struct,
-                       I_Type => Result_Type,
-                       Source_Location => Sloc (N));
+
       Typecast_Expr : constant Irep :=
         Make_Op_Typecast (Op0 => Make_Address_Of (Literal_Temp),
                           I_Type => Make_Pointer_Type (Element_Type),
@@ -471,9 +466,11 @@ package body Tree_Walk is
          Append_Struct_Member (Result_Struct, Call_Expr);
       end;
 
-      Set_Value (Let_Expr, Array_Expr);
-
-      return Let_Expr;
+      return Make_Let_Expr (Symbol => Literal_Temp,
+                            Value => Array_Expr,
+                            Where => Result_Struct,
+                            I_Type => Result_Type,
+                            Source_Location => Sloc (N));
    end Do_Aggregate_Literal_Array;
 
    ---------------------------------

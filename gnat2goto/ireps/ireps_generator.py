@@ -1874,8 +1874,14 @@ def generate_code(optimize, schema_file_names):
             write(b, "Ret : constant Irep := New_Irep (%s);" % schema["ada_name"])
         write(b, "begin")
         with indent(b):
-            for (formal_name, friendly_name, _, _) in formal_args:
+            for (formal_name, friendly_name, formal_type, _) in formal_args:
+                if formal_type == "Irep":
+                    write(b, "if %s /= Ireps.Empty then" % formal_name)
+                    manual_indent(b)
                 write(b, "Set_%s (Ret, %s);" % (friendly_name, formal_name))
+                if formal_type == "Irep":
+                    manual_outdent(b)
+                    write(b, "end if;")
             write(b, "return Ret;")
         write(b, "end %s;" % proc_name)
         write(b, "")
