@@ -630,12 +630,7 @@ package body Tree_Walk is
         Make_Array_Length_Expr (LHS, LHS_Idx_Type);
       RHS_Length : Irep :=
         Make_Array_Length_Expr (RHS, RHS_Idx_Type);
-      Ranges_Equal : constant Irep := New_Irep (I_Op_Eq);
-      Assert_Ranges_Equal : constant Irep := New_Irep (I_Code_Assert);
-      Copy_Call : constant Irep := New_Irep (I_Code_Function_Call);
       Copy_Args : constant Irep := New_Irep (I_Argument_List);
-      LHS_Data : constant Irep := New_Irep (I_Member_Expr);
-      RHS_Data : constant Irep := New_Irep (I_Member_Expr);
       LHS_Element_Type : constant Entity_Id :=
         Get_Array_Component_Type (Name (N));
       RHS_Element_Type : constant Entity_Id :=
@@ -657,27 +652,40 @@ package body Tree_Walk is
         Maybe_Make_Typecast (RHS_Length, RHS_Idx_Type, LHS_Idx_Type);
 
       --  assert (RHS'Length == LHS'Length)
-      Set_Lhs (Ranges_Equal, LHS_Length);
-      Set_Rhs (Ranges_Equal, RHS_Length);
-      Set_Type (Ranges_Equal, New_Irep (I_Bool_Type));
-      Set_Assertion (Assert_Ranges_Equal, Ranges_Equal);
-      Append_Op (Ret, Assert_Ranges_Equal);
+      declare
+         Cond : constant Irep :=
+           Make_Op_Eq (Lhs => LHS_Length,
+                       Rhs => RHS_Length,
+                       I_Type => Make_Bool_Type,
+                       Source_Location => Sloc (N));
+         Assert : constant Irep :=
+           Make_Code_Assert (Assertion => Cond,
+                             Source_Location => Sloc (N));
+      begin
+         Append_Op (Ret, Assert);
+      end;
 
       --  array_copy (lhs, rhs, length)
-      Set_Compound (LHS_Data, LHS);
-      Set_Compound (RHS_Data, RHS);
-      Set_Component_Name (LHS_Data, "data");
-      Set_Component_Name (RHS_Data, "data");
-      Set_Type (LHS_Data, LHS_Data_Type);
-      Set_Type (RHS_Data, RHS_Data_Type);
+      declare
+         LHS_Data : constant Irep :=
+           Make_Member_Expr (Compound => LHS,
+                             Component_Name => "data",
+                             I_Type => LHS_Data_Type,
+                             Source_Location => Sloc (N));
+         RHS_Data : constant Irep :=
+           Make_Member_Expr (Compound => RHS,
+                             Component_Name => "data",
+                             I_Type => RHS_Data_Type,
+                             Source_Location => Sloc (N));
+      begin
+         Append_Argument (Copy_Args, LHS_Data);
+         Append_Argument (Copy_Args, RHS_Data);
+         Append_Argument (Copy_Args, LHS_Length);
+      end;
 
-      Append_Argument (Copy_Args, LHS_Data);
-      Append_Argument (Copy_Args, RHS_Data);
-      Append_Argument (Copy_Args, LHS_Length);
-      Set_Function (Copy_Call, Copy_Func);
-      Set_Arguments (Copy_Call, Copy_Args);
-
-      Append_Op (Ret, Copy_Call);
+      Append_Op (Ret, Make_Code_Function_Call (I_Function => Copy_Func,
+                                               Arguments => Copy_Args,
+                                               Source_Location => Sloc (N)));
 
       return Ret;
 
