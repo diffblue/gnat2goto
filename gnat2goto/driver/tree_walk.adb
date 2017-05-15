@@ -123,6 +123,9 @@ package body Tree_Walk is
    function Do_Itype_Definition (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Defining_Identifier;
 
+   function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep
+   with Pre => Is_Itype (N) and then Ekind (N) = E_Signed_Integer_Subtype;
+
    procedure Do_Itype_Reference (N : Node_Id)
    with Pre => Nkind (N) = N_Itype_Reference;
 
@@ -1280,8 +1283,20 @@ package body Tree_Walk is
       --  might become the only way to get a type definition.
       return (case Ekind (N) is
          when E_Array_Subtype => Do_Itype_Array_Subtype (N),
+         when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when others => raise Program_Error);
    end Do_Itype_Definition;
+
+   ----------------------------
+   -- Do_Itype_Integer_Subtype --
+   ----------------------------
+
+   function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep is
+      (Make_Bounded_Signedbv_Type (
+         Lower_Bound => Do_Expression (Low_Bound (Scalar_Range (N))),
+         Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
+         Width => Positive (UI_To_Int (Esize (N))),
+         I_Subtype => Ireps.Empty));
 
    ------------------------
    -- Do_Itype_Reference --
