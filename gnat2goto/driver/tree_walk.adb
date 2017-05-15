@@ -1797,15 +1797,21 @@ package body Tree_Walk is
          Comp_Name : constant String :=
            Unique_Name (Defining_Identifier (Comp));
          Comp_Defn : constant Node_Id := Component_Definition (Comp);
+         Sub : constant Node_Id := Subtype_Indication (Comp_Defn);
       begin
-         if Present (Subtype_Indication (Comp_Defn)) then
+         pragma Assert (Present (Sub));
+         if Present (Etype (Sub)) then
             Add_Record_Component (Comp_Name,
-                                  Entity (Subtype_Indication (Comp_Defn)),
+                                  Etype (Sub),
                                   Comp);
          else
-            pp (Union_Id (Comp_Defn));
-            raise Program_Error;
+            --  This is a bit of a guess. Subtype indications without
+            --  an etype of their own appear in discriminated records it seems.
+            Add_Record_Component (Comp_Name,
+                                  Etype (Subtype_Mark (Sub)),
+                                  Comp);
          end if;
+
       end Do_Record_Component;
 
       -----------------------
