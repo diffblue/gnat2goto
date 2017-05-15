@@ -38,6 +38,9 @@ package body Tree_Walk is
                                 return Irep
    with Post => Kind (Do_Array_Assignment'Result) = I_Code_Block;
 
+   function Do_Array_Length (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Attribute_Reference;
+
    function Do_Array_Range (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Range;
 
@@ -688,6 +691,18 @@ package body Tree_Walk is
 
    end Do_Array_Assignment;
 
+   ---------------------
+   -- Do_Array_Length --
+   ---------------------
+
+   function Do_Array_Length (N : Node_Id) return Irep
+   is
+      Array_Struct : constant Irep := Do_Expression (Prefix (N));
+      Index_Type : constant Entity_Id := Get_Array_Index_Type (Prefix (N));
+   begin
+      return Make_Array_Length_Expr (Array_Struct, Index_Type);
+   end Do_Array_Length;
+
    --------------------
    -- Do_Array_Range --
    --------------------
@@ -1078,6 +1093,7 @@ package body Tree_Walk is
             when N_Attribute_Reference  =>
                (case Get_Attribute_Id (Attribute_Name (N)) is
                   when Attribute_Access => Do_Address_Of (N),
+                  when Attribute_Length => Do_Array_Length (N),
                   when others           => raise Program_Error),
             when N_Explicit_Dereference => Do_Dereference (N),
             when N_Case_Expression      => Do_Case_Expression (N),
