@@ -1291,9 +1291,9 @@ package body Tree_Walk is
          when others => raise Program_Error);
    end Do_Itype_Definition;
 
-   ----------------------------
+   ------------------------------
    -- Do_Itype_Integer_Subtype --
-   ----------------------------
+   ------------------------------
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep is
       (Make_Bounded_Signedbv_Type (
