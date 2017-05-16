@@ -157,7 +157,7 @@ package body Tree_Walk is
 
    function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
 
-   function Do_Record_Definition (N : Node_Id) return Irep
+   function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep
    with Pre  => Nkind (N) in N_Record_Definition | N_Variant,
         Post => Kind (Do_Record_Definition'Result) = I_Struct_Type;
 
@@ -211,7 +211,7 @@ package body Tree_Walk is
    with Pre => Is_Type (E) and then
                Kind (New_Type_In) in Class_Type;
 
-   function Do_Type_Definition (N : Node_Id) return Irep;
+   function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep;
 
    function Do_Type_Reference (E : Entity_Id) return Irep
    with Pre  => Is_Type (E),
@@ -1106,7 +1106,9 @@ package body Tree_Walk is
    ------------------------------
 
    procedure Do_Full_Type_Declaration (N : Node_Id) is
-      New_Type : constant Irep := Do_Type_Definition (Type_Definition (N));
+      New_Type : constant Irep :=
+        Do_Type_Definition (Type_Definition (N),
+                            Discriminant_Specifications (N));
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
       Do_Type_Declaration (New_Type, E);
@@ -1782,9 +1784,10 @@ package body Tree_Walk is
    -- Do_Record_Definition --
    --------------------------
 
-   function Do_Record_Definition (N : Node_Id) return Irep is
+   function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep is
 
       Components : constant Irep := New_Irep (I_Struct_Union_Components);
+      Disc_Iter : Node_Id := First (Discs);
 
       procedure Add_Record_Component (Comp_Name : String;
                                       Comp_Type_Node : Node_Id;
@@ -1857,7 +1860,8 @@ package body Tree_Walk is
       -----------------------
 
       procedure Do_Variant_Struct (Var : Node_Id; Union_Components : Irep) is
-         Struct_Type : constant Irep := Do_Record_Definition (Var);
+         Struct_Type : constant Irep :=
+           Do_Record_Definition (Var, List_Id (Types.Empty));
          Type_Symbol : constant Irep := Get_Fresh_Type_Name (Struct_Type, Var);
          Choice_Iter : constant Node_Id := First (Discrete_Choices (Var));
          Variant_Name : constant String :=
@@ -1879,19 +1883,16 @@ package body Tree_Walk is
 
    begin
 
-      --  Create a field for the discriminant.
+      --  Create fields for any discriminants:
       --  This order (discriminant, common fields, variant fields)
       --  seems to match GNAT's record-literal ordering (apparently
       --  regardless of source ordering).
-      if Present (Variants_Node) then
-         declare
-            Disc_Name : constant Node_Id := Name (Variants_Node);
-         begin
-            Add_Record_Component (Unique_Name (Entity (Disc_Name)),
-                                  Etype (Disc_Name),
-                                  Variants_Node);
-         end;
-      end if;
+      while Present (Disc_Iter) loop
+         Add_Record_Component (Unique_Name (Defining_Identifier (Disc_Iter)),
+                               Etype (Discriminant_Type (Disc_Iter)),
+                               Disc_Iter);
+         Next (Disc_Iter);
+      end loop;
 
       --  Add regular fields
       while Present (Component_Iter) loop
@@ -2302,11 +2303,13 @@ package body Tree_Walk is
    -- Do_Type_Definition --
    ------------------------
 
-   function Do_Type_Definition (N : Node_Id) return Irep is
+   function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep is
    begin
+      pragma Assert (Discs = List_Id (Types.Empty)
+                       or else Nkind (N) = N_Record_Definition);
       case Nkind (N) is
          when N_Record_Definition =>
-            return Do_Record_Definition (N);
+            return Do_Record_Definition (N, Discs);
          when N_Signed_Integer_Type_Definition =>
             return Do_Signed_Integer_Definition (N);
          when N_Derived_Type_Definition =>
