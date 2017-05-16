@@ -126,6 +126,9 @@ package body Tree_Walk is
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep
    with Pre => Is_Itype (N) and then Ekind (N) = E_Signed_Integer_Subtype;
 
+   function Do_Itype_Record_Subtype (N : Entity_Id) return Irep
+   with Pre => Is_Itype (N) and then Ekind (N) = E_Record_Subtype;
+
    procedure Do_Itype_Reference (N : Node_Id)
    with Pre => Nkind (N) = N_Itype_Reference;
 
@@ -1284,6 +1287,7 @@ package body Tree_Walk is
       return (case Ekind (N) is
          when E_Array_Subtype => Do_Itype_Array_Subtype (N),
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
+         when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when others => raise Program_Error);
    end Do_Itype_Definition;
 
@@ -1297,6 +1301,17 @@ package body Tree_Walk is
          Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
          Width => Positive (UI_To_Int (Esize (N))),
          I_Subtype => Ireps.Empty));
+
+   -----------------------------
+   -- Do_Itype_Record_Subtype --
+   -----------------------------
+
+   --  Don't need to record discriminant constraints in the irep
+   --  representation (yet), so just an alias for its supertype.
+   function Do_Itype_Record_Subtype (N : Entity_Id) return Irep is
+   begin
+      return Do_Type_Reference (Etype (N));
+   end Do_Itype_Record_Subtype;
 
    ------------------------
    -- Do_Itype_Reference --
