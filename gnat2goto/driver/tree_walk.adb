@@ -499,7 +499,8 @@ package body Tree_Walk is
            Component_List (Type_Definition (Parent (N_Underlying_Type)));
          Variant_Node : constant Node_Id := Variant_Part (Components);
 
-         Component_Iter : Node_Id := First (Component_Items (Components));
+         Component_Iter : Node_Id :=
+           First_Component_Or_Discriminant (N_Underlying_Type);
          Actual_Iter    : Node_Id := First (Component_Associations (N));
          Disc_Constraint : Node_Id := Types.Empty;
          Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
@@ -518,23 +519,14 @@ package body Tree_Walk is
                raise Program_Error;
          end case;
 
-         if Present (Variant_Node) then
-            --  Expect a discriminant value
-            pragma Assert (Entity (Name (Variant_Node)) =
-                           Entity (First (Choices (Actual_Iter))));
+         --  Expect discriminants and components in declared order:
+         while Present (Component_Iter)
+           and then Present (Actual_Iter)
+           and then Component_Iter = Entity (First (Choices (Actual_Iter)))
+         loop
             Append_Struct_Member (Struct_Expr,
                                   Do_Expression (Expression (Actual_Iter)));
-            Next (Actual_Iter);
-         end if;
-
-         --  Next expect common members
-         while Present (Component_Iter) loop
-            pragma Assert (Present (Actual_Iter));
-            pragma Assert (Defining_Identifier (Component_Iter) =
-                           Entity (First (Choices (Actual_Iter))));
-            Append_Struct_Member (Struct_Expr,
-                                  Do_Expression (Expression (Actual_Iter)));
-            Next (Component_Iter);
+            Next_Component_Or_Discriminant (Component_Iter);
             Next (Actual_Iter);
          end loop;
 
