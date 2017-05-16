@@ -500,10 +500,35 @@ package body Tree_Walk is
          Variant_Node : constant Node_Id := Variant_Part (Components);
 
          Component_Iter : Node_Id :=
-           First_Component_Or_Discriminant (N_Underlying_Type);
+           First_Component_Or_Discriminant (N_Type);
          Actual_Iter    : Node_Id := First (Component_Associations (N));
          Disc_Constraint : Node_Id := Types.Empty;
          Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
+         Non_Discriminant_Components_Seen : Int := 0;
+         Non_Discriminant_Components_Expected : constant Int :=
+           List_Length (Component_Items (Components));
+
+         function Components_Match (L : Node_Id; R : Node_Id) return Boolean;
+         function Components_Match (L : Node_Id; R : Node_Id) return Boolean
+         is
+            Lrec : constant Node_Id := Original_Record_Component (L);
+            Rrec : constant Node_Id := Original_Record_Component (R);
+         begin
+            return Lrec = Rrec;
+         end Components_Match;
+
+         function Expect_More_Components return Boolean;
+         function Expect_More_Components return Boolean is
+         begin
+            if Present (Component_Iter) and then
+              Ekind (Component_Iter) = E_Discriminant
+            then
+               return True;
+            end if;
+            return Non_Discriminant_Components_Seen <
+              Non_Discriminant_Components_Expected;
+         end Expect_More_Components;
+
       begin
 
          case Ekind (N_Type) is
@@ -520,12 +545,19 @@ package body Tree_Walk is
          end case;
 
          --  Expect discriminants and components in declared order:
-         while Present (Component_Iter)
-           and then Present (Actual_Iter)
-           and then Component_Iter = Entity (First (Choices (Actual_Iter)))
-         loop
+         while Expect_More_Components loop
+            pragma Assert (Present (Actual_Iter));
+            pragma Assert (Present (Component_Iter));
+            pragma Assert
+              (Components_Match (Component_Iter,
+                                 Entity (First (Choices (Actual_Iter)))));
+
             Append_Struct_Member (Struct_Expr,
                                   Do_Expression (Expression (Actual_Iter)));
+            if Ekind (Component_Iter) = E_Component then
+               Non_Discriminant_Components_Seen :=
+                 Non_Discriminant_Components_Seen + 1;
+            end if;
             Next_Component_Or_Discriminant (Component_Iter);
             Next (Actual_Iter);
          end loop;
