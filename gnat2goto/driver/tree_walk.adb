@@ -3,7 +3,6 @@ with Namet;                 use Namet;
 with Nlists;                use Nlists;
 with Sem_Util;              use Sem_Util;
 with Snames;                use Snames;
-with Stand;                 use Stand;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -2363,24 +2362,7 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Type_Reference (E : Entity_Id) return Irep is
-   begin
-      if E = Standard_Integer then
-         return Make_Int_Type (32);
-
-      elsif E = Standard_Boolean then
-         return New_Irep (I_Bool_Type);
-
-      else
-         declare
-            Ret : constant Irep := New_Irep (I_Symbol_Type);
-         begin
-            Set_Identifier (Ret, Unique_Name (E));
-
-            return Ret;
-         end;
-
-      end if;
-   end Do_Type_Reference;
+      (Make_Symbol_Type (Identifier => Unique_Name (E)));
 
    ---------------------------------------
    -- Do_Unconstrained_Array_Definition --
