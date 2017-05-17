@@ -1,7 +1,7 @@
 
 procedure Record_Init is
    type Unconst_Array is array (Positive range <>) of Integer;
-   type R1 (Len : Positive) is record
+   type R1 (Len : Positive := 10) is record
       A : Integer := 2;
       B : Unconst_Array (1 .. Len);
    end record;
@@ -11,6 +11,8 @@ procedure Record_Init is
    end record;
    Inst1 : R1 := (Len => 3, B => (1, 2, 3), others => <>);
    Inst2 : R2;
+   Inst3 : R1;
+   Inst4 : R1 (5);
 begin
    null;
 end Record_Init;

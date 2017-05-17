@@ -2,6 +2,7 @@ with Einfo;                 use Einfo;
 with Namet;                 use Namet;
 with Nlists;                use Nlists;
 with Sem_Util;              use Sem_Util;
+with Sem_Aux;               use Sem_Aux;
 with Snames;                use Snames;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
@@ -13,6 +14,8 @@ with GOTO_Utils;            use GOTO_Utils;
 with Uint_To_Binary;        use Uint_To_Binary;
 
 package body Tree_Walk is
+
+   procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
    procedure Append_Declare_And_Init
      (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr);
@@ -101,9 +104,7 @@ package body Tree_Walk is
         Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
 
    function Do_Identifier (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Identifier,
-        Post => Kind (Do_Identifier'Result) in
-           I_Symbol_Expr | I_Dereference_Expr;
+   with Pre  => Nkind (N) = N_Identifier;
 
    function Do_If_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_If_Statement,
@@ -251,6 +252,10 @@ package body Tree_Walk is
      (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
    with Pre => Ekind (Index_Type) in Discrete_Kind;
 
+   function Make_Array_Length_Expr
+     (First_Expr : Irep; Last_Expr : Irep; Index_Type : Entity_Id) return Irep
+   with Pre => Ekind (Index_Type) in Discrete_Kind;
+
    function Make_Increment
      (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep;
 
@@ -278,6 +283,17 @@ package body Tree_Walk is
    function Process_Statements (L : List_Id) return Irep
    with Post => Kind (Process_Statements'Result) = I_Code_Block;
    --  Process list of statements or declarations
+
+   procedure Remove_Entity_Substitution (E : Entity_Id);
+
+   -----------------------------
+   -- Add_Entity_Substitution --
+   -----------------------------
+
+   procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep) is
+   begin
+      Identifier_Substitution_Map.Insert (E, Subst);
+   end Add_Entity_Substitution;
 
    -----------------------------
    -- Append_Declare_And_Init --
@@ -372,20 +388,9 @@ package body Tree_Walk is
       Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
       High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
       Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
-      Index_Type : constant Irep := Do_Type_Reference (Index_Type_Node);
 
-      --  len = (high - low) + 1
-      One_Expr : constant Irep := Make_Integer_Constant (1, Index_Type_Node);
-      Diff_Expr : constant Irep :=
-        Make_Op_Sub (Lhs => High_Expr,
-                     Rhs => Low_Expr,
-                     I_Type => Index_Type,
-                     Source_Location => Sloc (N));
       Len_Expr : constant Irep :=
-        Make_Op_Add (Lhs => Diff_Expr,
-                     Rhs => One_Expr,
-                     I_Type => Index_Type,
-                     Source_Location => Sloc (N));
+        Make_Array_Length_Expr (Low_Expr, High_Expr, Index_Type_Node);
 
       Bare_Array_Type : constant Irep :=
         Make_Array_Type (I_Subtype => Element_Type,
@@ -1193,8 +1198,17 @@ package body Tree_Walk is
 
    function Do_Identifier (N : Node_Id) return Irep is
       E : constant Entity_Id := Entity (N);
+      Subst_Cursor : constant Identifier_Maps.Cursor :=
+        Identifier_Substitution_Map.Find (E);
    begin
-      return Do_Defining_Identifier (E);
+      if Identifier_Maps.Has_Element (Subst_Cursor) then
+         --  Indicates instead of literally referring to the given
+         --  name, we should return some replacement irep. Currently
+         --  this is used for discriminants during record init.
+         return Identifier_Maps.Element (Subst_Cursor);
+      else
+         return Do_Defining_Identifier (E);
+      end if;
    end Do_Identifier;
 
    ---------------------
@@ -1435,22 +1449,179 @@ package body Tree_Walk is
    ---------------------------
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep) is
-      Id   : constant Irep := Do_Defining_Identifier (Defining_Identifier (N));
+      Defined : constant Entity_Id := Defining_Identifier (N);
+      Id   : constant Irep := Do_Defining_Identifier (Defined);
       Decl : constant Irep := New_Irep (I_Code_Decl);
+      Init_Expr : Irep := Ireps.Empty;
+
+      function Has_Defaulted_Components (E : Entity_Id) return Boolean;
+      function Has_Defaulted_Components (E : Entity_Id) return Boolean is
+         Record_E : Entity_Id := E;
+         Record_Def : Node_Id;
+         Component_Iter : Node_Id;
+      begin
+         while Ekind (Record_E) = E_Record_Subtype loop
+            Record_E := Etype (Record_E);
+         end loop;
+         if Ekind (Record_E) /= E_Record_Type then
+            return False;
+         end if;
+         Record_Def := Type_Definition (Parent (Record_E));
+         Component_Iter :=
+           First (Component_Items (Component_List (Record_Def)));
+         while Present (Component_Iter) loop
+            if Present (Expression (Component_Iter)) then
+               return True;
+            end if;
+            Next (Component_Iter);
+         end loop;
+         return False;
+      end Has_Defaulted_Components;
+
+      function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
+      function Needs_Default_Initialisation (E : Entity_Id) return Boolean is
+      begin
+         return Has_Defaulted_Discriminants (E)
+           or else Has_Defaulted_Components (E);
+      end Needs_Default_Initialisation;
+
+      function Make_Default_Initialiser (E : Entity_Id;
+                                         DCs : Node_Id) return Irep;
+      function Make_Default_Initialiser (E : Entity_Id;
+                                         DCs : Node_Id) return Irep is
+         Ret : constant Irep := New_Irep (I_Struct_Expr);
+         Record_E : Entity_Id := E;
+      begin
+         if Ekind (E) in Array_Kind then
+            declare
+               Idx : constant Node_Id := First_Index (E);
+               Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
+               Hbound : constant Irep := Do_Expression (High_Bound (Idx));
+               Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
+               Len : constant Irep :=
+                 Make_Array_Length_Expr (Lbound, Hbound, Idx_Type);
+               Component_Type : constant Irep :=
+                 Do_Type_Reference (Get_Array_Component_Type (E));
+               Alloc : constant Irep :=
+                 Make_Side_Effect_Expr_Cpp_New_Array
+                 (Size => Len, I_Type => Make_Pointer_Type (Component_Type),
+                  Source_Location => Sloc (E));
+            begin
+               Append_Struct_Member (Ret, Lbound);
+               Append_Struct_Member (Ret, Hbound);
+               Append_Struct_Member (Ret, Alloc);
+            end;
+         elsif Ekind (E) in Record_Kind then
+            --  Find underlying Record_Type, for component defaults
+            while Ekind (Record_E) = E_Record_Subtype loop
+               Record_E := Etype (Record_E);
+            end loop;
+            --  First the discriminants:
+            if Has_Discriminants (E) then
+               declare
+                  Iter : Entity_Id := First_Discriminant (E);
+                  Disc_Constraint_Iter : Node_Id := Types.Empty;
+                  New_Expr : Irep;
+               begin
+                  if Present (DCs) then
+                     Disc_Constraint_Iter := First (Constraints (DCs));
+                  end if;
+                  while Present (Iter) loop
+                     if Present (DCs) then
+                        pragma Assert (Present (Disc_Constraint_Iter));
+                        New_Expr := Do_Expression (Disc_Constraint_Iter);
+                        Next (Disc_Constraint_Iter);
+                     else
+                        New_Expr :=
+                          Do_Expression (Discriminant_Default_Value (Iter));
+                     end if;
+                     Append_Struct_Member (Ret, New_Expr);
+                     --  Substitute uses of the discriminant in the record
+                     --  initialiser for its actual value:
+                     Add_Entity_Substitution (Original_Record_Component (Iter),
+                                              New_Expr);
+                     Next_Discriminant (Iter);
+                  end loop;
+               end;
+            end if;
+            --  Next defaulted components:
+            declare
+               Record_Def : constant Node_Id :=
+                 Type_Definition (Parent (Record_E));
+               Component_Iter : Node_Id :=
+                 First (Component_Items (Component_List (Record_Def)));
+               New_Expr : Irep;
+            begin
+               while Present (Component_Iter) loop
+                  if Present (Expression (Component_Iter)) then
+                     New_Expr := Do_Expression (Expression (Component_Iter));
+                  else
+                     declare
+                        Component_Type : constant Entity_Id :=
+                          Etype (Defining_Identifier (Component_Iter));
+                     begin
+                        if Ekind (Component_Type) in Aggregate_Kind then
+                           New_Expr :=
+                             Make_Default_Initialiser (Component_Type,
+                                                       Types.Empty);
+                        else
+                           New_Expr := Make_Side_Effect_Expr_Nondet
+                             (I_Type => Do_Type_Reference (Component_Type),
+                              Source_Location => Sloc (E));
+                        end if;
+                     end;
+                  end if;
+                  Append_Struct_Member (Ret, New_Expr);
+                  Next (Component_Iter);
+               end loop;
+            end;
+
+            --  TODO: variant part
+
+            --  Remove discriminant substitutions:
+            if Has_Discriminants (E) then
+               declare
+                  Iter : Entity_Id := First_Discriminant (E);
+               begin
+                  while Present (Iter) loop
+                     Remove_Entity_Substitution
+                       (Original_Record_Component (Iter));
+                     Next_Discriminant (Iter);
+                  end loop;
+               end;
+            end if;
+
+         end if;
+
+         Set_Type (Ret, Do_Type_Reference (E));
+         return Ret;
+
+      end Make_Default_Initialiser;
+
    begin
       Set_Source_Location (Decl, (Sloc (N)));
       Set_Symbol (Decl, Id);
       Append_Op (Block, Decl);
 
       if Has_Init_Expression (N) then
+         Init_Expr := Do_Expression (Expression (N));
+      elsif Needs_Default_Initialisation (Etype (Defined)) then
          declare
-            Init_Expr      : constant Irep := Do_Expression (Expression (N));
-            Init_Statement : constant Irep := New_Irep (I_Code_Assign);
+            Defn : constant Node_Id := Object_Definition (N);
+            Discriminant_Constraint : constant Node_Id :=
+              (if Nkind (Defn) = N_Subtype_Indication
+                 then Constraint (Defn) else Types.Empty);
          begin
-            Set_Lhs (Init_Statement, Id);
-            Set_Rhs (Init_Statement, Init_Expr);
-            Append_Op (Block, Init_Statement);
+            Init_Expr :=
+              Make_Default_Initialiser (Etype (Defined),
+                                        Discriminant_Constraint);
          end;
+      end if;
+
+      if Init_Expr /= Ireps.Empty then
+         Append_Op (Block, Make_Code_Assign (Lhs => Id,
+                                             Rhs => Init_Expr,
+                                             Source_Location => Sloc (N)));
       end if;
    end Do_Object_Declaration;
 
@@ -1840,6 +2011,7 @@ package body Tree_Walk is
                                       Comp_Node : Node_Id;
                                       Add_To_List : Irep := Components) is
       begin
+         Declare_Itype (Comp_Type_Node);
          Add_Record_Component_Raw (Comp_Name,
                                    Do_Type_Reference (Comp_Type_Node),
                                    Comp_Node,
@@ -1868,22 +2040,10 @@ package body Tree_Walk is
       procedure Do_Record_Component (Comp : Node_Id) is
          Comp_Name : constant String :=
            Unique_Name (Defining_Identifier (Comp));
-         Comp_Defn : constant Node_Id := Component_Definition (Comp);
-         Sub : constant Node_Id := Subtype_Indication (Comp_Defn);
       begin
-         pragma Assert (Present (Sub));
-         if Present (Etype (Sub)) then
-            Add_Record_Component (Comp_Name,
-                                  Etype (Sub),
-                                  Comp);
-         else
-            --  This is a bit of a guess. Subtype indications without
-            --  an etype of their own appear in discriminated records it seems.
-            Add_Record_Component (Comp_Name,
-                                  Etype (Subtype_Mark (Sub)),
-                                  Comp);
-         end if;
-
+         Add_Record_Component (Comp_Name,
+                               Etype (Defining_Identifier (Comp)),
+                               Comp);
       end Do_Record_Component;
 
       -----------------------
@@ -2757,10 +2917,7 @@ package body Tree_Walk is
    is
       First_Expr : constant Irep := New_Irep (I_Member_Expr);
       Last_Expr : constant Irep := New_Irep (I_Member_Expr);
-      Diff : constant Irep := New_Irep (I_Op_Sub);
-      Sum : constant Irep := New_Irep (I_Op_Add);
       Index_Type_Irep : constant Irep := Do_Type_Reference (Index_Type);
-      One : constant Irep := Make_Integer_Constant (1, Index_Type);
    begin
       Set_Compound (First_Expr, Array_Struct);
       Set_Component_Name (First_Expr, "first1");
@@ -2768,13 +2925,26 @@ package body Tree_Walk is
       Set_Compound (Last_Expr, Array_Struct);
       Set_Component_Name (Last_Expr, "last1");
       Set_Type (Last_Expr, Index_Type_Irep);
-      Set_Lhs (Diff, Last_Expr);
-      Set_Rhs (Diff, First_Expr);
-      Set_Type (Diff, Index_Type_Irep);
-      Set_Lhs (Sum, Diff);
-      Set_Rhs (Sum, One);
-      Set_Type (Sum, Index_Type_Irep);
-      return Sum;
+      return Make_Array_Length_Expr (First_Expr, Last_Expr, Index_Type);
+   end Make_Array_Length_Expr;
+
+   ----------------------------
+   -- Make_Array_Length_Expr --
+   ----------------------------
+
+   function Make_Array_Length_Expr
+     (First_Expr : Irep; Last_Expr : Irep; Index_Type : Entity_Id) return Irep
+   is
+      Index_Type_Irep : constant Irep := Do_Type_Reference (Index_Type);
+      One : constant Irep := Make_Integer_Constant (1, Index_Type);
+   begin
+      return Make_Op_Add
+        (Lhs => Make_Op_Sub
+           (Lhs => Last_Expr, Rhs => First_Expr, I_Type => Index_Type_Irep,
+            Source_Location => Sloc (Index_Type)),
+         Rhs => One,
+         I_Type => Index_Type_Irep,
+         Source_Location => Sloc (Index_Type));
    end Make_Array_Length_Expr;
 
    --------------------
@@ -3018,6 +3188,11 @@ package body Tree_Walk is
 
       return Reps;
    end Process_Statements;
+
+   procedure Remove_Entity_Substitution (E : Entity_Id) is
+   begin
+      Identifier_Substitution_Map.Delete (E);
+   end Remove_Entity_Substitution;
 
    function "<" (Left, Right : Array_Dup_Key) return Boolean is
    begin

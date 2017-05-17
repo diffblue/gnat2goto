@@ -63,6 +63,13 @@ package Tree_Walk is
 
    Array_Copy_Map : Array_Copy_Maps.Map;
 
+   package Identifier_Maps
+   is new Ada.Containers.Ordered_Maps
+     (Element_Type => Irep,
+      Key_Type => Entity_Id);
+
+   Identifier_Substitution_Map : Identifier_Maps.Map;
+
    Check_Function_Symbol : Irep := Ireps.Empty;
 
    function Do_Compilation_Unit (N : Node_Id) return Symbol
