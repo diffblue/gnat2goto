@@ -9,7 +9,7 @@ procedure Record_Init is
       A : Integer := 10;
       B : Positive := 20;
    end record;
-   type R3 (Has_Array1 : Boolean := True; Array2_Max : Integer := 10) is record
+   type R3 (Array2_Max : Integer := 10; Has_Array1 : Boolean := True) is record
       Arr2 : Unconst_Array (6 .. Array2_Max);
       case Has_Array1 is
          when True =>
@@ -23,7 +23,7 @@ procedure Record_Init is
    Inst3 : R1;
    Inst4 : R1 (5);
    Inst5 : R3;
-   Inst6 : R3 (False, 7);
+   Inst6 : R3 (7, False);
 begin
-   null;
+   Inst5 := (Has_Array1 => False, Array2_Max => 8, Arr2 => (1, 2, 3), Prim1 => 100);
 end Record_Init;

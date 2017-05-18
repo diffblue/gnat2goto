@@ -512,7 +512,6 @@ package body Tree_Walk is
 
    function Do_Aggregate_Literal_Record (N : Node_Id) return Irep is
       N_Type : constant Entity_Id := Etype (N);
-      N_Type_Decl : constant Node_Id := Parent (N_Type);
       N_Underlying_Type : constant Node_Id := Etype (N_Type);
    begin
       --  It appears GNAT sorts the aggregate members for us into the order
@@ -526,11 +525,11 @@ package body Tree_Walk is
          Component_Iter : Node_Id :=
            First_Component_Or_Discriminant (N_Type);
          Actual_Iter    : Node_Id := First (Component_Associations (N));
-         Disc_Constraint : Node_Id := Types.Empty;
          Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
          Non_Discriminant_Components_Seen : Int := 0;
          Non_Discriminant_Components_Expected : constant Int :=
            List_Length (Component_Items (Components));
+         Variant_Disc_Value : Node_Id := Types.Empty;
 
          function Components_Match (L : Node_Id; R : Node_Id) return Boolean;
          function Components_Match (L : Node_Id; R : Node_Id) return Boolean
@@ -555,19 +554,6 @@ package body Tree_Walk is
 
       begin
 
-         case Ekind (N_Type) is
-            when E_Record_Subtype =>
-               --  Perhaps carrying a variant constraint:
-               Disc_Constraint :=
-                 Constraint (Subtype_Indication (N_Type_Decl));
-            when E_Record_Type =>
-               --  Unconstrained, nothing to do
-               null;
-            when others =>
-               --  Impossible, already filtered by caller
-               raise Program_Error;
-         end case;
-
          --  Expect discriminants and components in declared order:
          while Expect_More_Components loop
             pragma Assert (Present (Actual_Iter));
@@ -581,6 +567,13 @@ package body Tree_Walk is
             if Ekind (Component_Iter) = E_Component then
                Non_Discriminant_Components_Seen :=
                  Non_Discriminant_Components_Seen + 1;
+            elsif Ekind (Component_Iter) = E_Discriminant then
+               if Present (Variant_Node) and then
+                 Original_Record_Component (Component_Iter) =
+                 Entity (Name (Variant_Node))
+               then
+                  Variant_Disc_Value := Expression (Actual_Iter);
+               end if;
             end if;
             Next_Component_Or_Discriminant (Component_Iter);
             Next (Actual_Iter);
@@ -589,10 +582,8 @@ package body Tree_Walk is
          --  Extract variant members
          if Present (Variant_Node) then
             declare
-               Actual_Discriminant : constant Node_Id :=
-                 First (Constraints (Disc_Constraint));
                Variant_Found : constant Node_Id :=
-                 Find_Record_Variant (Variant_Node, Actual_Discriminant);
+                 Find_Record_Variant (Variant_Node, Variant_Disc_Value);
                Union_Literal : Irep;
                Variant_Substruct : Irep;
                Substruct_Component_List : Node_Id :=
