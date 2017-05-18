@@ -222,6 +222,11 @@ package body Tree_Walk is
         Post => Kind (Do_Unconstrained_Array_Definition'Result) =
                 I_Struct_Type;
 
+   function Find_Record_Variant (Variant_Part : Node_Id;
+                                 Actual_Disc : Node_Id) return Node_Id
+   with Pre  => Nkind (Variant_Part) = N_Variant_Part,
+        Post => Nkind (Find_Record_Variant'Result) = N_Variant;
+
    function Get_Array_Component_Type (N : Node_Id) return Entity_Id
    with Post => Is_Type (Get_Array_Component_Type'Result);
 
@@ -271,6 +276,21 @@ package body Tree_Walk is
    function Make_Struct_Component (Name : String; Ty : Irep) return Irep;
 
    function Make_Type_Symbol (Name : Symbol_Id; Defn : Irep) return Symbol;
+
+   --  Given an N_Variant_Part and then desired N_Variant,
+   --  creates a union selector expression like
+   --  .some_particular_value = {}
+   --  where Union_Expr points to .some_particular_value
+   --  and Struct_Expr points to {} (and empty struct expression
+   --  of the right union component type)
+   procedure Make_Variant_Literal (Variants : Node_Id;
+                                   Chosen_Var : Node_Id;
+                                   Union_Expr : out Irep;
+                                   Struct_Expr : out Irep)
+   with Pre  => Nkind (Variants) = N_Variant_Part and then
+                Nkind (Chosen_Var) = N_Variant,
+        Post => Kind (Union_Expr) = I_Union_Expr and then
+                Kind (Struct_Expr) = I_Struct_Expr;
 
    function Maybe_Make_Typecast (Expr     : Irep;
                                  Old_Type : Entity_Id;
@@ -569,53 +589,19 @@ package body Tree_Walk is
          --  Extract variant members
          if Present (Variant_Node) then
             declare
-               Variant_Union_Name : constant String :=
-                 Get_Variant_Union_Member_Name (
-                   First (Constraints (Disc_Constraint)));
-               Union_Literal : constant Irep := New_Irep (I_Union_Expr);
-               Variant_Substruct : constant Irep := New_Irep (I_Struct_Expr);
-               Substruct_Component_List : Node_Id := Types.Empty;
-               Variant_Found : Node_Id := Types.Empty;
-               Variant_Iter : Node_Id := First (Variants (Variant_Node));
-
+               Actual_Discriminant : constant Node_Id :=
+                 First (Constraints (Disc_Constraint));
+               Variant_Found : constant Node_Id :=
+                 Find_Record_Variant (Variant_Node, Actual_Discriminant);
+               Union_Literal : Irep;
+               Variant_Substruct : Irep;
+               Substruct_Component_List : Node_Id :=
+                 First (Component_Items (Component_List (Variant_Found)));
             begin
-               Set_Type (Union_Literal,
-                         Anonymous_Type_Map.Element (Variant_Node));
-               Set_Component_Name (Union_Literal, Variant_Union_Name);
-
-               --  Try to find a subrecord matching the aggregate's actual
-               --  discriminant.
-               while Present (Variant_Iter)
-                 and then Substruct_Component_List = 0
-               loop
-                  declare
-                     Choice_Iter : Node_Id :=
-                       First (Discrete_Choices (Variant_Iter));
-                  begin
-                     while Present (Choice_Iter) and then
-                       Substruct_Component_List = 0
-                     loop
-                        if Entity (Choice_Iter) =
-                          Entity (First (Constraints (Disc_Constraint)))
-                        then
-                           Substruct_Component_List :=
-                             First (
-                               Component_Items (
-                                 Component_List (Variant_Iter)));
-                           Variant_Found := Variant_Iter;
-                        end if;
-                        Next (Choice_Iter);
-                     end loop;
-                     Next (Variant_Iter);
-                  end;
-               end loop;
-
-               --  Check we found a matching subrecord
                pragma Assert (Present (Variant_Found));
-
-               Set_Type (Variant_Substruct,
-                         Anonymous_Type_Map.Element (Variant_Found));
-
+               --  Initialises last two parameters:
+               Make_Variant_Literal (Variant_Node, Variant_Found,
+                                     Union_Literal, Variant_Substruct);
                --  Try to parse remaining aggregate parts according to that
                --  subrecord.
                while Present (Substruct_Component_List) loop
@@ -629,9 +615,7 @@ package body Tree_Walk is
                   Next (Substruct_Component_List);
                   Next (Actual_Iter);
                end loop;
-
                --  Add union literal to the outer struct:
-               Set_Op0 (Union_Literal, Variant_Substruct);
                Append_Struct_Member (Struct_Expr, Union_Literal);
             end;
 
@@ -1455,6 +1439,14 @@ package body Tree_Walk is
       Init_Expr : Irep := Ireps.Empty;
 
       function Has_Defaulted_Components (E : Entity_Id) return Boolean;
+      function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
+      function Disc_Expr (N : Node_Id) return Node_Id;
+      function Make_Array_Default_Initialiser (E : Entity_Id) return Irep;
+      function Make_Record_Default_Initialiser (E : Entity_Id;
+                                                DCs : Node_Id) return Irep;
+      function Make_Default_Initialiser (E : Entity_Id;
+                                         DCs : Node_Id) return Irep;
+
       function Has_Defaulted_Components (E : Entity_Id) return Boolean is
          Record_E : Entity_Id := E;
          Record_Def : Node_Id;
@@ -1478,125 +1470,180 @@ package body Tree_Walk is
          return False;
       end Has_Defaulted_Components;
 
-      function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
       function Needs_Default_Initialisation (E : Entity_Id) return Boolean is
       begin
          return Has_Defaulted_Discriminants (E)
            or else Has_Defaulted_Components (E);
       end Needs_Default_Initialisation;
 
-      function Make_Default_Initialiser (E : Entity_Id;
-                                         DCs : Node_Id) return Irep;
-      function Make_Default_Initialiser (E : Entity_Id;
-                                         DCs : Node_Id) return Irep is
+      function Disc_Expr (N : Node_Id) return Node_Id is
+         (if Nkind (N) = N_Discriminant_Association
+            then Expression (N)
+            else N);
+
+      function Make_Array_Default_Initialiser (E : Entity_Id) return Irep is
+         Idx : constant Node_Id := First_Index (E);
+         Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
+         Hbound : constant Irep := Do_Expression (High_Bound (Idx));
+         Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
+         Len : constant Irep :=
+           Make_Array_Length_Expr (Lbound, Hbound, Idx_Type);
+         Component_Type : constant Irep :=
+           Do_Type_Reference (Get_Array_Component_Type (E));
+         Alloc : constant Irep :=
+           Make_Side_Effect_Expr_Cpp_New_Array
+           (Size => Len, I_Type => Make_Pointer_Type (Component_Type),
+            Source_Location => Sloc (E));
          Ret : constant Irep := New_Irep (I_Struct_Expr);
-         Record_E : Entity_Id := E;
       begin
-         if Ekind (E) in Array_Kind then
-            declare
-               Idx : constant Node_Id := First_Index (E);
-               Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
-               Hbound : constant Irep := Do_Expression (High_Bound (Idx));
-               Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
-               Len : constant Irep :=
-                 Make_Array_Length_Expr (Lbound, Hbound, Idx_Type);
-               Component_Type : constant Irep :=
-                 Do_Type_Reference (Get_Array_Component_Type (E));
-               Alloc : constant Irep :=
-                 Make_Side_Effect_Expr_Cpp_New_Array
-                 (Size => Len, I_Type => Make_Pointer_Type (Component_Type),
-                  Source_Location => Sloc (E));
-            begin
-               Append_Struct_Member (Ret, Lbound);
-               Append_Struct_Member (Ret, Hbound);
-               Append_Struct_Member (Ret, Alloc);
-            end;
-         elsif Ekind (E) in Record_Kind then
-            --  Find underlying Record_Type, for component defaults
-            while Ekind (Record_E) = E_Record_Subtype loop
-               Record_E := Etype (Record_E);
-            end loop;
-            --  First the discriminants:
-            if Has_Discriminants (E) then
-               declare
-                  Iter : Entity_Id := First_Discriminant (E);
-                  Disc_Constraint_Iter : Node_Id := Types.Empty;
-                  New_Expr : Irep;
-               begin
-                  if Present (DCs) then
-                     Disc_Constraint_Iter := First (Constraints (DCs));
-                  end if;
-                  while Present (Iter) loop
-                     if Present (DCs) then
-                        pragma Assert (Present (Disc_Constraint_Iter));
-                        New_Expr := Do_Expression (Disc_Constraint_Iter);
-                        Next (Disc_Constraint_Iter);
-                     else
+         Append_Struct_Member (Ret, Lbound);
+         Append_Struct_Member (Ret, Hbound);
+         Append_Struct_Member (Ret, Alloc);
+         Set_Type (Ret, Do_Type_Reference (E));
+         return Ret;
+      end Make_Array_Default_Initialiser;
+
+      function Make_Record_Default_Initialiser (E : Entity_Id;
+                                                DCs : Node_Id) return Irep is
+
+         procedure Add_Components (Components : Node_Id; Result : Irep);
+         procedure Add_Components (Components : Node_Id; Result : Irep)
+         is
+            Component_Iter : Node_Id :=
+              First (Component_Items (Components));
+            New_Expr : Irep;
+         begin
+            while Present (Component_Iter) loop
+               if Present (Expression (Component_Iter)) then
+                  New_Expr := Do_Expression (Expression (Component_Iter));
+               else
+                  declare
+                     Component_Type : constant Entity_Id :=
+                       Etype (Defining_Identifier (Component_Iter));
+                  begin
+                     if Ekind (Component_Type) in Aggregate_Kind then
                         New_Expr :=
-                          Do_Expression (Discriminant_Default_Value (Iter));
+                          Make_Default_Initialiser (Component_Type,
+                                                    Types.Empty);
+                     else
+                        New_Expr := Make_Side_Effect_Expr_Nondet
+                          (I_Type => Do_Type_Reference (Component_Type),
+                           Source_Location => Sloc (E));
                      end if;
-                     Append_Struct_Member (Ret, New_Expr);
-                     --  Substitute uses of the discriminant in the record
-                     --  initialiser for its actual value:
-                     Add_Entity_Substitution (Original_Record_Component (Iter),
-                                              New_Expr);
-                     Next_Discriminant (Iter);
-                  end loop;
-               end;
-            end if;
-            --  Next defaulted components:
+                  end;
+               end if;
+               Append_Struct_Member (Result, New_Expr);
+               Next (Component_Iter);
+            end loop;
+         end Add_Components;
+
+         Record_E : constant Entity_Id := Root_Type (E);
+         Record_Def : constant Node_Id :=
+           Type_Definition (Parent (Record_E));
+         Record_Comps : constant Node_Id :=
+           Component_List (Record_Def);
+         Variant_Disc_Value : Node_Id;
+         Ret : constant Irep := New_Irep (I_Struct_Expr);
+
+      --  begin processing for Make_Record_Default_Initialiser
+
+      begin
+         --  First the discriminants:
+         if Has_Discriminants (E) then
             declare
-               Record_Def : constant Node_Id :=
-                 Type_Definition (Parent (Record_E));
-               Component_Iter : Node_Id :=
-                 First (Component_Items (Component_List (Record_Def)));
+               Iter : Entity_Id := First_Discriminant (E);
+               Disc_Constraint_Iter : Node_Id := Types.Empty;
+               Disc_Actual : Node_Id;
                New_Expr : Irep;
             begin
-               while Present (Component_Iter) loop
-                  if Present (Expression (Component_Iter)) then
-                     New_Expr := Do_Expression (Expression (Component_Iter));
+               if Present (DCs) then
+                  Disc_Constraint_Iter := First (Constraints (DCs));
+               end if;
+               while Present (Iter) loop
+                  if Present (DCs) then
+                     pragma Assert (Present (Disc_Constraint_Iter));
+                     Disc_Actual := Disc_Expr (Disc_Constraint_Iter);
+                     Next (Disc_Constraint_Iter);
                   else
-                     declare
-                        Component_Type : constant Entity_Id :=
-                          Etype (Defining_Identifier (Component_Iter));
-                     begin
-                        if Ekind (Component_Type) in Aggregate_Kind then
-                           New_Expr :=
-                             Make_Default_Initialiser (Component_Type,
-                                                       Types.Empty);
-                        else
-                           New_Expr := Make_Side_Effect_Expr_Nondet
-                             (I_Type => Do_Type_Reference (Component_Type),
-                              Source_Location => Sloc (E));
-                        end if;
-                     end;
+                     Disc_Actual := Discriminant_Default_Value (Iter);
                   end if;
+
+                  --  If this assignment picks a variant, save the actual
+                  --  value for later:
+                  if Present (Variant_Part (Record_Comps)) and then
+                    Entity (Name (Variant_Part (Record_Comps))) =
+                      Original_Record_Component (Iter)
+                  then
+                     Variant_Disc_Value := Disc_Actual;
+                  end if;
+
+                  New_Expr := Do_Expression (Disc_Actual);
                   Append_Struct_Member (Ret, New_Expr);
-                  Next (Component_Iter);
+                  --  Substitute uses of the discriminant in the record
+                  --  initialiser for its actual value:
+                  Add_Entity_Substitution (Original_Record_Component (Iter),
+                                           New_Expr);
+                  Next_Discriminant (Iter);
                end loop;
             end;
+         end if;
 
-            --  TODO: variant part
+         --  Next defaulted components:
+         Add_Components (Record_Comps, Ret);
 
-            --  Remove discriminant substitutions:
-            if Has_Discriminants (E) then
-               declare
-                  Iter : Entity_Id := First_Discriminant (E);
-               begin
-                  while Present (Iter) loop
-                     Remove_Entity_Substitution
-                       (Original_Record_Component (Iter));
-                     Next_Discriminant (Iter);
-                  end loop;
-               end;
-            end if;
+         --  Now the variant part:
+         if Present (Variant_Part (Record_Comps)) then
+            --  Should have found the variant discriminant's
+            --  actual value earlier:
+            pragma Assert (Present (Variant_Disc_Value));
+            declare
+               Var_Part : constant Node_Id := Variant_Part (Record_Comps);
+               Variant : constant Node_Id :=
+                 Find_Record_Variant (Var_Part, Variant_Disc_Value);
+               Union_Expr : Irep;
+               Substruct_Expr : Irep;
+            begin
+               --  Initialises the last two arguments:
+               Make_Variant_Literal (Var_Part, Variant,
+                                     Union_Expr, Substruct_Expr);
+               --  Populate substructure:
+               Add_Components (Component_List (Variant), Substruct_Expr);
+               --  Add union initialiser to outer struct:
+               Append_Struct_Member (Ret, Substruct_Expr);
+            end;
+         end if;
 
+         --  Remove discriminant substitutions:
+         if Has_Discriminants (E) then
+            declare
+               Iter : Entity_Id := First_Discriminant (E);
+            begin
+               while Present (Iter) loop
+                  Remove_Entity_Substitution
+                    (Original_Record_Component (Iter));
+                  Next_Discriminant (Iter);
+               end loop;
+            end;
          end if;
 
          Set_Type (Ret, Do_Type_Reference (E));
          return Ret;
 
+      end Make_Record_Default_Initialiser;
+
+      function Make_Default_Initialiser (E : Entity_Id;
+                                         DCs : Node_Id) return Irep is
+      begin
+         if Ekind (E) in Array_Kind then
+            return Make_Array_Default_Initialiser (E);
+         elsif Ekind (E) in Record_Kind then
+            return Make_Record_Default_Initialiser (E, DCs);
+         else
+            raise Program_Error;
+         end if;
       end Make_Default_Initialiser;
+
+      --  Begin processing for Do_Object_Declaration
 
    begin
       Set_Source_Location (Decl, (Sloc (N)));
@@ -2591,6 +2638,34 @@ package body Tree_Walk is
 
    end Do_Unconstrained_Array_Definition;
 
+   -------------------------
+   -- Find_Record_Variant --
+   -------------------------
+
+   --  Tries to find an N_Variant that applies when discriminant == Actual_Disc
+   function Find_Record_Variant (Variant_Part : Node_Id;
+                                 Actual_Disc : Node_Id) return Node_Id
+   is
+      Variant_Iter : Node_Id := First (Variants (Variant_Part));
+   begin
+      while Present (Variant_Iter) loop
+         declare
+            Choice_Iter : Node_Id :=
+              First (Discrete_Choices (Variant_Iter));
+         begin
+            while Present (Choice_Iter) loop
+               if Entity (Choice_Iter) = Entity (Actual_Disc) then
+                  return Variant_Iter;
+               end if;
+               Next (Choice_Iter);
+            end loop;
+            Next (Variant_Iter);
+         end;
+      end loop;
+      --  Not found?
+      return Types.Empty;
+   end Find_Record_Variant;
+
    ------------------------------
    -- Get_Array_Component_Type --
    ------------------------------
@@ -3086,6 +3161,27 @@ package body Tree_Walk is
        Mode => Intern ("C"),
        IsType => True,
        others => <>);
+
+   ----------------------------
+   --  Make_Variant_Literal  --
+   ----------------------------
+
+   procedure Make_Variant_Literal (Variants : Node_Id;
+                                   Chosen_Var : Node_Id;
+                                   Union_Expr : out Irep;
+                                   Struct_Expr : out Irep) is
+      Variant_Union_Name : constant String :=
+        Get_Variant_Union_Member_Name (First (Discrete_Choices (Chosen_Var)));
+   begin
+      Struct_Expr := Make_Struct_Expr
+        (I_Type => Anonymous_Type_Map.Element (Chosen_Var),
+         Source_Location => 0);
+      Union_Expr := Make_Union_Expr
+        (I_Type          => Anonymous_Type_Map.Element (Variants),
+         Component_Name  => Variant_Union_Name,
+         Source_Location => 0,
+         Op0             => Struct_Expr);
+   end Make_Variant_Literal;
 
    ---------------------------
    --  Maybe_Make_Typecast  --
