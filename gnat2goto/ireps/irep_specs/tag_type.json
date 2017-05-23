@@ -1,0 +1,6 @@
+{
+  "parent": "type",
+  "namedSub": {
+    "identifier": {"type": "string"}
+  }
+}

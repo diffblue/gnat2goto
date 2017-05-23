@@ -1,0 +1,8 @@
+{
+  "parent": "unary_expr",
+  "id": "union",
+  "namedSub": {
+    "component_name": {"type": "string"},
+    "component_number": {"type": "integer", "default": -1}
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "parent": "expr",
+  "id": "if",
+  "sub": [
+    {"schema": "expr", "friendly_name": "cond"},
+    {"schema": "expr", "friendly_name": "true_case"},
+    {"schema": "expr", "friendly_name": "false_case"}
+  ]
+}

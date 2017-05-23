@@ -1,0 +1,9 @@
+{
+  "parent": "code",
+  "sub": [
+    {"schema": "expr", "friendly_name": "assumption"}
+  ],
+  "namedSub": {
+    "statement": {"constant": "assume", "type": "string"}
+  }
+}

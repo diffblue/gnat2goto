@@ -1,0 +1,7 @@
+{
+  "parent": "expr",
+  "id": "side_effect",
+  "namedSub": {
+    "statement": {"constant": "nondet"}
+  }
+}

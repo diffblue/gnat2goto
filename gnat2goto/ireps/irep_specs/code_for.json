@@ -1,0 +1,12 @@
+{
+  "parent": "code",
+  "sub": [
+    {"schema": "expr", "friendly_name": "init"},
+    {"schema": "expr", "friendly_name": "cond"},
+    {"schema": "expr", "friendly_name": "iter"},
+    {"schema": "code", "friendly_name": "loop_body"}
+  ],
+  "namedSub": {
+    "statement": {"constant": "for", "type": "string"}
+  }
+}

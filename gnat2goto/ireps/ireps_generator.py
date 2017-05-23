@@ -27,6 +27,7 @@
 # * refactor so not everything is nested in main()
 
 import os
+import os.path
 import sys
 import json
 import argparse
@@ -2271,20 +2272,12 @@ def main():
     ap.add_argument("-O", "--optimize",
                     action="store_true",
                     help="Optimise table layout. Requires CVC4 binary on path.")
-    ap.add_argument("cbmc_root",
-                    metavar="<CBMC_ROOT>",
-                    help="Path to a checkout of CBMC.")
 
     args = ap.parse_args()
 
-    if not os.path.isdir(args.cbmc_root):
-        print args.cbmc_root
-        ap.error("CBMC_ROOT must be a directory")
-    if not os.path.isfile(os.path.join(args.cbmc_root, "README.md")):
-        ap.error("CBMC_ROOT does not look like the root of a cbmc checkout")
-    schema_files = glob(os.path.join(args.cbmc_root,
-                                     "src", "util", "irep_specs",
-                                     "*.json"))
+    mypath = os.path.dirname(os.path.realpath(__file__))
+
+    schema_files = glob(os.path.join(mypath, "irep_specs", "*.json"))
 
     generate_code(optimize          = args.optimize,
                   schema_file_names = schema_files)

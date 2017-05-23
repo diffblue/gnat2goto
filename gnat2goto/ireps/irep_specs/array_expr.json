@@ -1,0 +1,5 @@
+{
+  "parent": "expr",
+  "id": "array",
+  "sub": [ { "schema": "expr", "number": "*", "friendly_name": "operand" } ]
+}

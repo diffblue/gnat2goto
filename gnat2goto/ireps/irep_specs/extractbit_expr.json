@@ -1,0 +1,8 @@
+{
+  "parent": "expr",
+  "id": "extractbit",
+  "sub": [
+    {"schema": "expr", "friendly_name": "src"},
+    {"schema": "expr", "friendly_name": "index"}
+  ]
+}

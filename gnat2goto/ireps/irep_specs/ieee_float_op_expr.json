@@ -1,0 +1,8 @@
+{
+  "parent": "expr",
+  "sub": [
+    {"schema": "expr", "friendly_name": "lhs"},
+    {"schema": "expr", "friendly_name": "rhs"},
+    {"schema": "expr", "friendly_name": "rounding_mode"}
+  ]
+}

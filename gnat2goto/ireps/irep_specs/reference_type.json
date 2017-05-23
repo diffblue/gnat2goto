@@ -1,0 +1,6 @@
+{
+  "parent": "pointer_type",
+  "comment": {
+    "reference": {"constant": "1" }
+  }
+}

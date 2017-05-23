@@ -1,0 +1,7 @@
+{
+  "parent": "binary_expr",
+  "namedSub": {
+    "div_by_zero_check": {"type": "bool"}
+  },
+  "trivial_subclass_ids": [ "/", "mod", "rem" ]
+}

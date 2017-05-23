@@ -1,0 +1,9 @@
+{
+  "namedSub": {
+    "type": {"schema": "type", "default": "nil"},
+    "range_check": {"type": "bool", "default": false}
+  },
+  "comment": {
+    "source_location": {"schema": "source_location"}
+  }
+}

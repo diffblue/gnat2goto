@@ -1,0 +1,11 @@
+{
+  "parent": "expr",
+  "id": "side_effect",
+  "sub": [
+    {"friendly_name": "function", "schema": "expr"},
+    {"friendly_name": "arguments", "schema": "argument_list"}
+  ],
+  "namedSub": {
+    "statement": {"constant": "function_call"}
+  }
+}

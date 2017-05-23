@@ -1,0 +1,7 @@
+{
+  "parent": "bitvector_type",
+  "id": "fixedbv",
+  "namedSub": {
+    "integer_bits": {"type": "integer"}
+  }
+}

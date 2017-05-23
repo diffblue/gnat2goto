@@ -1,0 +1,5 @@
+{
+  "parent": "expr",
+  "id": "struct",
+  "sub": [ { "schema": "expr", "number": "*", "friendly_name": "struct_member" } ]
+}

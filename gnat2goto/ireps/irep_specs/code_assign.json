@@ -1,0 +1,10 @@
+{
+  "parent": "code",
+  "sub": [
+    {"schema": "expr", "friendly_name": "lhs"},
+    {"schema": "expr", "friendly_name": "rhs"}
+  ],
+  "namedSub": {
+    "statement": {"constant": "assign", "type": "string"}
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "type",
+  "id": "range",
+  "namedSub": {
+    "from": {"type": "string"},
+    "to": {"type": "string"}
+  }
+}

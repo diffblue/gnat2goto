@@ -1,0 +1,7 @@
+{
+  "parent": "expr",
+  "id": "constant",
+  "namedSub": {
+    "value": {"type": "string"}
+  }
+}

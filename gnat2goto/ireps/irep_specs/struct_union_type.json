@@ -1,0 +1,7 @@
+{
+  "parent": "type",
+  "namedSub": {
+    "tag": {"type": "string"},
+    "components": {"schema": "struct_union_components"}
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "parent": "expr",
+  "id": "parameter",
+  "comment": {
+    "default_value": {"schema": "expr"},
+    "identifier": {"type": "string"},
+    "base_name": {"type": "string"},
+    "this": {"type": "bool"}
+  }
+}

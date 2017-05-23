@@ -1,0 +1,5 @@
+{
+  "parent": "expr",
+  "id": "dereference",
+  "sub": [ { "schema": "expr", "friendly_name": "object" } ]
+}

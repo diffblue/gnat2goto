@@ -1,0 +1,5 @@
+{
+  "parent": "expr",
+  "id": "address_of",
+  "sub": [ { "schema": "expr", "friendly_name": "object" } ]
+}

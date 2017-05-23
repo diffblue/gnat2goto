@@ -1,0 +1,11 @@
+{
+  "parent": "expr",
+  "id": "side_effect",
+  "sub": [
+    {"friendly_name": "lhs", "schema": "expr"},
+    {"friendly_name": "rhs", "schema": "expr"}
+  ],
+  "namedSub": {
+    "statement": {"constant": "assign"}
+  }
+}

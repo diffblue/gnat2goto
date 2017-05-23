@@ -1,0 +1,4 @@
+{
+  "parent": "bitvector_type",
+  "id": "pointer"
+}

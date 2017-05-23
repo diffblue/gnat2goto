@@ -1,0 +1,10 @@
+{
+  "parent": "struct_type",
+  "namedSub": {
+    "methods": {"schema": "struct_union_components"},
+    "bases": {"schema": "base_list"}
+  },
+  "comment": {
+    "class": {"constant": "1"}
+  }
+}

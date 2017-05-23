@@ -1,0 +1,11 @@
+{
+  "parent": "code",
+  "sub": [
+    {"schema": "expr", "friendly_name": "case_op"},
+    {"schema": "code", "friendly_name": "code"}
+  ],
+  "namedSub":  {
+    "statement": {"constant": "switch_case", "type": "string"},
+    "default": {"type": "bool"}
+  }
+}

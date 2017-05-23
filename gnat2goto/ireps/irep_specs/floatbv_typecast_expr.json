@@ -1,0 +1,5 @@
+{
+  "parent": "binary_expr",
+  "sub": [ {"schema": "expr", "friendly_name": "float_op" },
+           {"schema": "expr", "friendly_name": "rounding_mode" } ]
+}

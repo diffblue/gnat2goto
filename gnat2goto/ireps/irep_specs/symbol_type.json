@@ -1,0 +1,7 @@
+{
+  "parent": "type",
+  "id": "symbol",
+  "namedSub": {
+    "identifier": {"type": "string"}
+  }
+}

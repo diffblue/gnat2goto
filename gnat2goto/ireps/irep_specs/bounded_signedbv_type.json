@@ -1,0 +1,7 @@
+{
+  "parent": "signedbv_type",
+  "namedSub": {
+    "lower_bound": {"schema": "constant_expr"},
+    "upper_bound": {"schema": "constant_expr"}
+  }
+}

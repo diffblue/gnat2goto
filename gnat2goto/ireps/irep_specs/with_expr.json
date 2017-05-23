@@ -1,0 +1,9 @@
+{
+  "parent": "expr",
+  "id": "with",
+  "sub": [
+    {"schema": "expr", "friendly_name": "old"},
+    {"schema": "expr", "friendly_name": "where"},
+    {"schema": "expr", "friendly_name": "new_value"}
+  ]
+}

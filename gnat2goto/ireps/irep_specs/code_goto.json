@@ -1,0 +1,7 @@
+{
+  "parent": "code",
+  "namedSub": {
+    "statement": {"constant": "goto"},
+    "destination": {"type": "string"}
+  }
+}

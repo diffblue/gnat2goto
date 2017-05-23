@@ -1,0 +1,13 @@
+{
+  "parent": "type",
+  "id": "code",
+  "namedSub": {
+    "ellipsis": {"type": "bool"},
+    "return_type": {"schema": "type"},
+    "parameters": {"schema": "parameter_list"}
+  },
+  "comment": {
+    "KnR": {"type": "bool"},
+    "inlined": {"type": "bool"}
+  }
+}

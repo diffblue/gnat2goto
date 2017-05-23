@@ -1,0 +1,9 @@
+{
+  "id": "let",
+  "parent": "expr",
+  "sub": [
+    {"schema": "symbol_expr", "friendly_name": "symbol"},
+    {"schema": "expr", "friendly_name": "value"},
+    {"schema": "expr", "friendly_name": "where"}
+  ]
+}

@@ -1,5 +1,3 @@
-CBMC_ROOT?=~/gnat/src/cbmc
-CBMC?=$(CBMC_ROOT)
 SYMLINKS=table.ads table.adb types.ads types.adb alloc.ads stringt.ads stringt.adb namet.ads namet.adb debug.ads debug.adb output.ads output.adb tree_io.ads tree_io.adb opt.ads opt.adb hostparm.ads widechar.ads widechar.adb gnatvsn.ads gnatvsn.adb
 CVC4:=$(shell which cvc4)
 
@@ -23,7 +21,7 @@ gnatvsn.adb: ../driver/gnatvsn.adb
 	ln -s ../gnat_src/$@
 
 rebuild_ireps:
-	./ireps_generator.py $(GEN_FLAGS) $(CBMC)
+	./ireps_generator.py $(GEN_FLAGS)
 
 unit_test: unit_test.adb $(SYMLINKS) ireps.ads ireps-*.adb
 	gprbuild -P unit_test.gpr -j0 -gnatg -g -gnata

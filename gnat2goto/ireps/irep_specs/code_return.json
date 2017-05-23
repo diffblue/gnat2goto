@@ -1,0 +1,9 @@
+{
+  "parent": "code",
+  "sub": [
+    {"schema": "expr", "friendly_name": "return_value"}
+  ],
+  "namedSub":  {
+    "statement": {"constant": "return", "type": "string"}
+  }
+}

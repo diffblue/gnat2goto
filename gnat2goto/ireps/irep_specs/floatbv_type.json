@@ -1,0 +1,7 @@
+{
+  "parent": "bitvector_type",
+  "id": "floatbv",
+  "namedSub": {
+    "f": {"type": "integer"}
+  }
+}

@@ -5,7 +5,6 @@
 #
 
 GPRBUILD=gprbuild
-CBMC_SOURCE?=~/gnat/src/cbmc
 
 # number of processors
 PROCS=0
@@ -84,7 +83,7 @@ obj/%: gnat_src/% | obj
 	cp -p $< $@
 
 rebuild_ireps:
-	make -C ireps rebuild_ireps CBMC=$(CBMC_SOURCE)
+	make -C ireps rebuild_ireps
 
 build: $(GENERATED_FILES) $(addprefix obj/, $(FE_FILES_TO_COPY)) rebuild_ireps
 	@mkdir -p install/bin

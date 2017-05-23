@@ -1,0 +1,9 @@
+{
+  "parent": "code",
+  "sub": [
+    {"number": "*", "schema": "code", "friendly_name": "op"}
+  ],
+  "namedSub": {
+    "statement": {"constant": "block", "type": "string"}
+  }
+}

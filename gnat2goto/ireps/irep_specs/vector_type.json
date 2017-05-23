@@ -1,0 +1,7 @@
+{
+  "parent": "type_with_subtype",
+  "id": "vector",
+  "namedSub": {
+    "size": {"type": "integer"}
+  }
+}

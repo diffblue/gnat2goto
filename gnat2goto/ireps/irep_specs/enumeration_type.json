@@ -1,0 +1,6 @@
+{
+  "parent": "type",
+  "namedSub": {
+    "elements": {"schema": "element_list"}
+  }
+}

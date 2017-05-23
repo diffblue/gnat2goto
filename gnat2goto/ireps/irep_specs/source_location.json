@@ -1,0 +1,14 @@
+{
+  "namedSub": {
+    "file": {"type": "string"},
+    "working_directory": {"type": "string"},
+    "line": {"type": "string"},
+    "column": {"type": "string"},
+    "function": {"type": "string"},
+    "property_id": {"type": "string"},
+    "property_class": {"type": "string"},
+    "comment": {"type": "string"},
+    "java_bytecode_index": {"type": "string"}
+  }
+}
+						      

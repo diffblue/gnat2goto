@@ -1,0 +1,8 @@
+{
+  "parent": "expr",
+  "sub": [ {"schema": "expr", "friendly_name": "op0" } ],
+  "trivial_subclass_ids": [
+    "abs", "unary-", "sign", "array_of", "typecast", "bitnot", "not",
+    "isnan", "isinf", "isfinite", "isnormal"
+  ]
+}

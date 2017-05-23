@@ -1,0 +1,10 @@
+{
+  "parent": "code",
+  "sub": [
+    {"schema": "expr", "friendly_name": "asm"}
+  ],
+  "namedSub":  {
+    "statement": {"constant": "asm", "type": "string"},
+    "flavor": {"type": "string"}
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "parent": "expr",
+  "id": "extractbits",
+  "sub": [
+    {"schema": "expr", "friendly_name": "src"},
+    {"schema": "expr", "friendly_name": "upper"},
+    {"schema": "expr", "friendly_name": "lower"}
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "sub": [ { "schema": "struct_union_component", "number": "*", "friendly_name": "component" } ]
+}

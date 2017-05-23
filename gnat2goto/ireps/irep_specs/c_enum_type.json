@@ -1,0 +1,7 @@
+{
+  "parent": "type_with_subtype",
+  "id": "c_enum",
+  "namedSub": {
+    "body": {"schema": "c_enum_members"}
+  }
+}
