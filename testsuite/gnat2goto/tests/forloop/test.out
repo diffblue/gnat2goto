@@ -1,0 +1,38 @@
+CBMC version 5.6 64-bit x86_64 linux
+Parsing forloop.json_symtab
+Converting
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Partial Inlining
+Generic Property Instrumentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_start /* _start */
+        // 0 
+        void return';
+        // 1 
+        return'=forloop();
+        // 2 no location
+        dead return';
+        // 3 no location
+        END_FUNCTION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+forloop /* forloop */
+        // 4 file forloop.adb line 2 column 3
+        int forloop__a;
+        // 5 file forloop.adb line 2 column 3
+        forloop__a = 1;
+        // 6 no location
+     1: IF !irep("(\"nil\" \"type\" (\"\"))") THEN GOTO 2
+        // 7 file forloop.adb line 5 column 14
+        ASSERT !overflow("+", int, forloop__a, forloop__L_1__i) // arithmetic overflow on signed + in forloop__a + forloop__L_1__i
+        // 8 file forloop.adb line 5 column 9
+        forloop__a = forloop__a + forloop__L_1__i;
+        // 9 file forloop.adb line 4 column 20
+        GOTO 1
+        // 10 no location
+     2: dead forloop__a;
+        // 11 no location
+        END_FUNCTION
