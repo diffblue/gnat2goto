@@ -1378,7 +1378,7 @@ package body Tree_Walk is
       function Do_For_Statement return Irep is
          Ret : constant Irep := New_Irep (I_Code_For);
       begin
-         --  ??? What happens to Body_Block here?
+         --  body block done in caller
          Set_Source_Location (Ret, Sloc (N));
          return Ret;
       end Do_For_Statement;
@@ -1390,11 +1390,13 @@ package body Tree_Walk is
       function Do_While_Statement (Cond : Irep) return Irep is
          Ret : constant Irep := New_Irep (I_Code_While);
       begin
+         --  body block done in caller
          Set_Source_Location (Ret, Sloc (N));
          Set_Cond (Ret, Cond);
-         Set_Body (Ret, Body_Block);
          return Ret;
       end Do_While_Statement;
+
+      Ret : Irep;
 
    begin
 
@@ -1405,17 +1407,20 @@ package body Tree_Walk is
             --  mimic C-style 8-bit bool; this might also work with 1-bit type
             Set_Value (Const_True, "00000001");
             Set_Type (Const_True, Make_Int_Type (8));
-            return Do_While_Statement (Const_True);
+            Ret := Do_While_Statement (Const_True);
          end;
       elsif Present (Condition (Iter_Scheme)) then
          declare
             Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
          begin
-            return Do_While_Statement (Cond);
+            Ret := Do_While_Statement (Cond);
          end;
       else
-         return Do_For_Statement;
+         Ret := Do_For_Statement;
       end if;
+
+      Set_Loop_Body (Ret, Body_Block);
+      return Ret;
 
    end Do_Loop_Statement;
 
