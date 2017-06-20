@@ -1367,19 +1367,25 @@ package body Tree_Walk is
 
       Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
       Body_Block  : constant Irep := Process_Statements (Statements (N));
+      --  TODO: Use loop identifiers to allow break (exit loop_id)
+      function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
+                                 return Irep;
 
-      function Do_For_Statement return Irep;
       function Do_While_Statement (Cond : Irep) return Irep;
 
       ----------------------
       -- Do_For_Statement --
       ----------------------
 
-      function Do_For_Statement return Irep is
+      function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
+                                 return Irep is
          Ret : constant Irep := New_Irep (I_Code_For);
       begin
-         --  body block done in caller
          Set_Source_Location (Ret, Sloc (N));
+         Set_Init (Ret, Param);
+         Set_Cond (Ret, Cond);
+         Set_Iter (Ret, Post);
+         --  body block done in caller
          return Ret;
       end Do_For_Statement;
 
@@ -1397,26 +1403,92 @@ package body Tree_Walk is
       end Do_While_Statement;
 
       Ret : Irep;
-
    begin
-
       if not Present (Iter_Scheme) then
+         --  infinite loop
          declare
             Const_True : constant Irep := New_Irep (I_Constant_Expr);
          begin
-            --  mimic C-style 8-bit bool; this might also work with 1-bit type
-            Set_Value (Const_True, "00000001");
-            Set_Type (Const_True, Make_Int_Type (8));
+            Set_Value (Const_True, "true");
+            Set_Type (Const_True, Make_Bool_Type);
             Ret := Do_While_Statement (Const_True);
          end;
-      elsif Present (Condition (Iter_Scheme)) then
-         declare
-            Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
-         begin
-            Ret := Do_While_Statement (Cond);
-         end;
       else
-         Ret := Do_For_Statement;
+         if Present (Condition (Iter_Scheme)) then
+            --  WHILE loop
+            declare
+               Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
+            begin
+               Ret := Do_While_Statement (Cond);
+            end;
+         else
+            --  FOR loop.
+            --   Ada 1995: loop_parameter_specification
+            --   Ada 2012: +iterator_specification
+            if Present (Loop_Parameter_Specification (Iter_Scheme)) then
+               declare
+                  Spec : constant Node_Id :=
+                    Loop_Parameter_Specification (Iter_Scheme);
+                  Loopvar_Name : constant String :=
+                    Get_Name_String (Chars (Defining_Identifier (Spec)));
+                  Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
+                  --  Loopvar_Type_Irep : constant Irep :=
+                  --  Do_Type_Reference (Etype (Low_Bound (Dsd)));
+
+                  Sym_Loopvar : constant Irep :=
+                    Fresh_Var_Symbol_Expr
+                      (Do_Type_Reference
+                         (Etype (Low_Bound (Dsd))), Loopvar_Name);
+                  --  FIXME: ^^ is this correct?
+
+                  Init : constant Irep := New_Irep (I_Code_Assign);
+                  Cond : Irep;
+                  Post : Irep;
+
+                  Bound_Low  : constant Irep :=
+                    Do_Expression (Low_Bound (Dsd));
+                  Bound_High : constant Irep :=
+                    Do_Expression (High_Bound (Dsd));
+
+                  --  One : constant Irep :=
+                  --    Make_Integer_Constant (1, Etype (Low_Bound (Dsd)));
+               begin
+                  --  TODO: needs generalization to support enums
+                  if Reverse_Present (Spec) then
+                     Set_Lhs (Init, Sym_Loopvar);
+                     Set_Rhs (Init, Bound_High);
+                     Cond := Make_Op_Geq
+                       (Rhs             => Bound_Low,
+                        Lhs             => Sym_Loopvar,
+                        Source_Location => Sloc (Spec),
+                        Overflow_Check  => False,
+                        I_Type          => Make_Bool_Type,
+                        Range_Check     => False);
+                     Post := Make_Increment
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
+                  else
+                     Set_Lhs (Init, Sym_Loopvar);
+                     Set_Rhs (Init, Bound_Low);
+                     Cond := Make_Op_Leq
+                       (Rhs             => Bound_High,
+                        Lhs             => Sym_Loopvar,
+                        Source_Location => Sloc (Spec),
+                        Overflow_Check  => False,
+                        I_Type          => Make_Bool_Type,
+                        Range_Check     => False);
+                     Post := Make_Increment
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), 1);
+                  end if;
+                  Set_Source_Location (Init, Sloc (Spec));
+                  Set_Source_Location (Post, Sloc (Spec));
+                  Ret := Do_For_Statement (Init, Cond, Post);
+               end;
+            else
+               pragma Assert
+                 (Present (Iterator_Specification (Iter_Scheme)));
+               raise Program_Error; -- TODO: implement loop iterators
+            end if;
+         end if;
       end if;
 
       Set_Loop_Body (Ret, Body_Block);
