@@ -110,6 +110,10 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
+   function Do_Exit_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Exit_Statement,
+        Post => Kind (Do_Exit_Statement'Result) in Class_Code;
+
    function Do_Indexed_Component (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Indexed_Component;
 
@@ -1186,6 +1190,48 @@ package body Tree_Walk is
       end if;
    end Do_Identifier;
 
+   -----------------------
+   -- Do_Exit_Statement --
+   -----------------------
+
+   function Do_Exit_Statement (N : Node_Id) return Irep is
+
+      -------------
+      -- Do_When --
+      -------------
+
+      function Do_When (N : Node_Id) return Irep with
+        Pre => Nkind (N) in N_Subexpr,
+        Post => Kind (Do_When'Result) in Class_Code;
+
+      function Do_When (N : Node_Id) return Irep is
+         Cond_Expr : constant Irep := Do_Expression (N);
+         Ret       : constant Irep := New_Irep (I_Code_Ifthenelse);
+      begin
+         Set_Source_Location (Ret, Sloc (N));
+         Set_Cond (Ret, Cond_Expr);
+         return Ret;
+      end Do_When;
+
+      Jump_Irep : Irep;
+   begin
+      if Present (Name (N)) then
+         Jump_Irep := Make_Code_Goto
+           (Source_Location => Sloc (N),
+            Destination     =>
+              Get_Name_String (Chars (Name (N))) & "_exit");
+      else
+         Jump_Irep := Make_Code_Break (Source_Location => Sloc (N));
+      end if;
+      if Present (Condition (N)) then
+         return R : constant Irep := Do_When (Condition (N)) do
+            Set_Then_Case (R, Jump_Irep);
+         end return;
+      else
+         return Jump_Irep;
+      end if;
+   end Do_Exit_Statement;
+
    ---------------------
    -- Do_If_Statement --
    ---------------------
@@ -1364,10 +1410,9 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Loop_Statement (N : Node_Id) return Irep is
+      Iter_Scheme  : constant Node_Id := Iteration_Scheme (N);
+      Body_Block   : constant Irep := Process_Statements (Statements (N));
 
-      Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
-      Body_Block  : constant Irep := Process_Statements (Statements (N));
-      --  TODO: Use loop identifiers to allow break (exit loop_id)
       function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
                                  return Irep;
 
@@ -1402,7 +1447,7 @@ package body Tree_Walk is
          return Ret;
       end Do_While_Statement;
 
-      Ret : Irep;
+      Loop_Irep : Irep;
    begin
       if not Present (Iter_Scheme) then
          --  infinite loop
@@ -1411,7 +1456,7 @@ package body Tree_Walk is
          begin
             Set_Value (Const_True, "true");
             Set_Type (Const_True, Make_Bool_Type);
-            Ret := Do_While_Statement (Const_True);
+            Loop_Irep := Do_While_Statement (Const_True);
          end;
       else
          if Present (Condition (Iter_Scheme)) then
@@ -1419,7 +1464,7 @@ package body Tree_Walk is
             declare
                Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
             begin
-               Ret := Do_While_Statement (Cond);
+               Loop_Irep := Do_While_Statement (Cond);
             end;
          else
             --  FOR loop.
@@ -1430,16 +1475,17 @@ package body Tree_Walk is
                   Spec : constant Node_Id :=
                     Loop_Parameter_Specification (Iter_Scheme);
                   Loopvar_Name : constant String :=
-                    Get_Name_String (Chars (Defining_Identifier (Spec)));
-                  Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
-                  --  Loopvar_Type_Irep : constant Irep :=
-                  --  Do_Type_Reference (Etype (Low_Bound (Dsd)));
+                    Unique_Name (Defining_Identifier (Spec));
 
-                  Sym_Loopvar : constant Irep :=
-                    Fresh_Var_Symbol_Expr
-                      (Do_Type_Reference
-                         (Etype (Low_Bound (Dsd))), Loopvar_Name);
-                  --  FIXME: ^^ is this correct?
+                  Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
+
+                  Sym_Loopvar : constant Irep := Make_Symbol_Expr
+                    (Source_Location => Sloc (Defining_Identifier (Spec)),
+                     I_Type          => Do_Type_Reference
+                       (Etype (Defining_Identifier (Spec))),
+                     Identifier      => Loopvar_Name);
+                  --  FIXME: is this a good idea? Loop var becomes a global sym
+                  --  rather prepend a new type decl to loop
 
                   Init : constant Irep := New_Irep (I_Code_Assign);
                   Cond : Irep;
@@ -1481,7 +1527,7 @@ package body Tree_Walk is
                   end if;
                   Set_Source_Location (Init, Sloc (Spec));
                   Set_Source_Location (Post, Sloc (Spec));
-                  Ret := Do_For_Statement (Init, Cond, Post);
+                  Loop_Irep := Do_For_Statement (Init, Cond, Post);
                end;
             else
                pragma Assert
@@ -1491,9 +1537,21 @@ package body Tree_Walk is
          end if;
       end if;
 
-      Set_Loop_Body (Ret, Body_Block);
-      return Ret;
+      Set_Loop_Body (Loop_Irep, Body_Block);
 
+      if not Has_Created_Identifier (N) then
+         return Loop_Wrapper : constant Irep := New_Irep (I_Code_Block) do
+            Append_Op (Loop_Wrapper, Loop_Irep);
+            Append_Op (Loop_Wrapper,
+                       Make_Code_Label
+                         (Code => New_Irep (I_Code_Skip),
+                          Source_Location => Sloc (Identifier (N)),
+                          Label => Get_Name_String (Chars (Identifier (N)))
+                          & "_exit"));
+         end return;
+      else
+         return Loop_Irep;
+      end if;
    end Do_Loop_Statement;
 
    ---------------------------
@@ -3327,6 +3385,9 @@ package body Tree_Walk is
 
          when N_Null_Statement =>
             null;
+
+         when N_Exit_Statement =>
+            Append_Op (Block, Do_Exit_Statement (N));
 
          when others =>
             pp (Union_Id (N));
