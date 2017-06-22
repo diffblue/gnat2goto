@@ -15,7 +15,13 @@ package GNAT_Utils is
    generic
       with procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id);
    procedure Iterate_Call_Parameters (Call : Node_Id)
-   with Pre => Nkind (Call) in N_Subprogram_Call | N_Entry_Call_Statement;
+     with Pre => Nkind (Call) in N_Subprogram_Call | N_Entry_Call_Statement;
+
+   generic
+      with procedure Handle_Arg
+        (Arg_Pos : Positive; Arg_Name : String; Expr : Node_Id);
+   procedure Iterate_Pragma_Parameters (The_Pragma : Node_Id)
+     with Pre => Nkind (The_Pragma) in N_Pragma;
 
    function Get_Called_Entity (N : Node_Id) return Entity_Id;
 

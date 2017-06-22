@@ -144,6 +144,10 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Object_Declaration
                  and then Kind (Block) = I_Code_Block;
 
+   procedure Do_Pragma (N : Node_Id; Block : Irep)
+   with Pre => Nkind (N) = N_Pragma
+     and then Kind (Block) = I_Code_Block; -- FIXME: what about decls?
+
    function Do_Op_Concat (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Op_Concat;
 
@@ -1560,6 +1564,62 @@ package body Tree_Walk is
       end if;
       return Loop_Wrapper;
    end Do_Loop_Statement;
+
+   ---------------
+   -- Do_Pragma --
+   ---------------
+
+   procedure Do_Pragma (N : Node_Id; Block : Irep) is
+
+      ----------------------
+      -- Do_Pragma_Assert --
+      ----------------------
+
+      procedure Do_Pragma_Assert (N : Node_Id; Block : Irep);
+      procedure Do_Pragma_Assert (N : Node_Id; Block : Irep) is
+         Assert_Irep : constant Irep := New_Irep (I_Code_Assert);
+
+         --  To be set by iterator:
+         Check : Irep := Ireps.Empty;
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : String; Expr : Node_Id);
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : String; Expr : Node_Id) is
+         begin
+            if Arg_Name = "check" or (Arg_Name = "" and Arg_Pos = 1) then
+               Check := Do_Expression (Expr);
+            elsif Arg_Name = "message" or (Arg_Name = "" and Arg_Pos = 2) then
+               null; -- ignore, since assert irep has no msg
+            else
+               raise Program_Error;
+            end if;
+         end Handle_Arg;
+
+         procedure Iterate_Args is new
+           Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
+      begin
+         Iterate_Args (N);
+         pragma Assert (Check /= Ireps.Empty);
+         Set_Assertion (Assert_Irep, Check);
+         Append_Op (Block, Assert_Irep);
+      end Do_Pragma_Assert;
+
+      N_Orig : constant Node_Id := Original_Node (N);
+   begin
+
+      pragma Assert (Present (N_Orig));
+      declare
+         Identifier : constant String :=
+           Get_Name_String (Chars (Pragma_Identifier (N_Orig)));
+      begin
+         if Identifier = "assert" then
+            Do_Pragma_Assert (N_Orig, Block);
+         else
+            raise Program_Error; -- unsupported pragma
+         end if;
+      end;
+   end Do_Pragma;
 
    ---------------------------
    -- Do_Object_Declaration --
@@ -3403,6 +3463,9 @@ package body Tree_Walk is
 
          when N_Exit_Statement =>
             Append_Op (Block, Do_Exit_Statement (N));
+
+         when N_Pragma =>
+            Do_Pragma (N, Block);
 
          when others =>
             pp (Union_Id (N));

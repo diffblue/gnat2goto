@@ -1,5 +1,6 @@
 with Einfo;  use Einfo;
 with Nlists; use Nlists;
+with Namet;  use Namet;
 
 package body GNAT_Utils is
 
@@ -68,5 +69,34 @@ package body GNAT_Utils is
          end if;
       end loop;
    end Iterate_Call_Parameters;
+
+   -------------------------------
+   -- Iterate_Pragma_Parameters --
+   -------------------------------
+
+   procedure Iterate_Pragma_Parameters (The_Pragma : Node_Id)
+   is
+      Params  : constant List_Id := Pragma_Argument_Associations (The_Pragma);
+      Param   : Node_Id := First (Params);
+      Arg_Pos : Positive := 1;
+   begin
+      pragma Assert (Is_Non_Empty_List (Params));
+      loop_arg_walk :
+      while Param /= Empty loop
+         pragma Assert (Nkind (Param) = N_Pragma_Argument_Association);
+         declare
+            Arg_Name_Id : constant Name_Id := Chars (Param);
+            Arg_Name : constant String := (if Arg_Name_Id /= No_Name
+                                           then Get_Name_String (Arg_Name_Id)
+                                           else "");
+         begin
+            Handle_Arg (Arg_Pos => Arg_Pos,
+                        Arg_Name => Arg_Name,
+                        Expr => Expression (Param));
+         end;
+         Arg_Pos := Arg_Pos + 1;
+         Param := Next (Param);
+      end loop loop_arg_walk;
+   end Iterate_Pragma_Parameters;
 
 end GNAT_Utils;
