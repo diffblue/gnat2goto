@@ -1575,9 +1575,13 @@ package body Tree_Walk is
       -- Do_Pragma_Assert --
       ----------------------
 
-      procedure Do_Pragma_Assert (N : Node_Id; Block : Irep);
-      procedure Do_Pragma_Assert (N : Node_Id; Block : Irep) is
-         Assert_Irep : constant Irep := New_Irep (I_Code_Assert);
+      procedure Do_Pragma_Assert_or_Assume
+        (N : Node_Id; Block : Irep; Which : String);
+      procedure Do_Pragma_Assert_or_Assume
+        (N : Node_Id; Block : Irep; Which : String) is
+         A_Irep : constant Irep := (if Which = "assert"
+                                    then New_Irep (I_Code_Assert)
+                                    else New_Irep (I_Code_Assume));
 
          --  To be set by iterator:
          Check : Irep := Ireps.Empty;
@@ -1601,9 +1605,14 @@ package body Tree_Walk is
       begin
          Iterate_Args (N);
          pragma Assert (Check /= Ireps.Empty);
-         Set_Assertion (Assert_Irep, Check);
-         Append_Op (Block, Assert_Irep);
-      end Do_Pragma_Assert;
+
+         if Which = "assert" then
+            Set_Assertion (A_Irep, Check);
+         else
+            Set_Assumption (A_Irep, Check);
+         end if;
+         Append_Op (Block, A_Irep);
+      end Do_Pragma_Assert_or_Assume;
 
       N_Orig : constant Node_Id := Original_Node (N);
    begin
@@ -1613,8 +1622,8 @@ package body Tree_Walk is
          Identifier : constant String :=
            Get_Name_String (Chars (Pragma_Identifier (N_Orig)));
       begin
-         if Identifier = "assert" then
-            Do_Pragma_Assert (N_Orig, Block);
+         if Identifier in "assert" | "assume" then
+            Do_Pragma_Assert_or_Assume (N_Orig, Block, Identifier);
          else
             raise Program_Error; -- unsupported pragma
          end if;
