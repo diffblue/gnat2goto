@@ -1448,6 +1448,7 @@ package body Tree_Walk is
       end Do_While_Statement;
 
       Loop_Irep : Irep;
+      Loop_Wrapper : constant Irep := New_Irep (I_Code_Block);
    begin
       if not Present (Iter_Scheme) then
          --  infinite loop
@@ -1479,13 +1480,14 @@ package body Tree_Walk is
 
                   Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
 
-                  Sym_Loopvar : constant Irep := Make_Symbol_Expr
-                    (Source_Location => Sloc (Defining_Identifier (Spec)),
-                     I_Type          => Do_Type_Reference
-                       (Etype (Defining_Identifier (Spec))),
-                     Identifier      => Loopvar_Name);
-                  --  FIXME: is this a good idea? Loop var becomes a global sym
-                  --  rather prepend a new type decl to loop
+                  Type_Loopvar : constant Irep := Do_Type_Reference
+                    (Etype (Etype (Defining_Identifier (Spec))));
+
+                  Sym_Loopvar : constant Irep :=
+                    Make_Symbol_Expr
+                      (Source_Location => Sloc (Defining_Identifier (Spec)),
+                       I_Type          => Type_Loopvar,
+                       Identifier      => Loopvar_Name);
 
                   Init : constant Irep := New_Irep (I_Code_Assign);
                   Cond : Irep;
@@ -1496,9 +1498,13 @@ package body Tree_Walk is
                   Bound_High : constant Irep :=
                     Do_Expression (High_Bound (Dsd));
 
-                  --  One : constant Irep :=
-                  --    Make_Integer_Constant (1, Etype (Low_Bound (Dsd)));
                begin
+                  --  Loop var decl
+                  Append_Op (Loop_Wrapper, Make_Code_Decl
+                             (Symbol => Sym_Loopvar,
+                              Source_Location =>
+                                Sloc (Defining_Identifier (Spec))));
+
                   --  TODO: needs generalization to support enums
                   if Reverse_Present (Spec) then
                      Set_Lhs (Init, Sym_Loopvar);
@@ -1539,19 +1545,16 @@ package body Tree_Walk is
 
       Set_Loop_Body (Loop_Irep, Body_Block);
 
+      Append_Op (Loop_Wrapper, Loop_Irep);
       if not Has_Created_Identifier (N) then
-         return Loop_Wrapper : constant Irep := New_Irep (I_Code_Block) do
-            Append_Op (Loop_Wrapper, Loop_Irep);
-            Append_Op (Loop_Wrapper,
-                       Make_Code_Label
-                         (Code => New_Irep (I_Code_Skip),
-                          Source_Location => Sloc (Identifier (N)),
-                          Label => Get_Name_String (Chars (Identifier (N)))
-                          & "_exit"));
-         end return;
-      else
-         return Loop_Irep;
+         Append_Op (Loop_Wrapper,
+                    Make_Code_Label
+                      (Code => New_Irep (I_Code_Skip),
+                       Source_Location => Sloc (Identifier (N)),
+                       Label => Get_Name_String (Chars (Identifier (N)))
+                       & "_exit"));
       end if;
+      return Loop_Wrapper;
    end Do_Loop_Statement;
 
    ---------------------------
