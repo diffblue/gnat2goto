@@ -1146,23 +1146,35 @@ package body Tree_Walk is
    is
       Func_Name    : constant Symbol_Id :=
         Intern (Unique_Name (Entity (Name (N))));
-
-      Func_Symbol  : Symbol renames Global_Symbol_Table (Func_Name);
-
-      The_Function : constant Irep := New_Irep (I_Symbol_Expr);
+      Func_Symbol  : Symbol;
+      The_Function : Irep;
 
    begin
-      Set_Identifier (The_Function, Unintern (Func_Name));
-      Set_Type       (The_Function, Func_Symbol.SymType);
-      --  ??? why not get this from the entity
 
-      return R : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call)
-      do
-         Set_Source_Location (R, Sloc (N));
-         Set_Function        (R, The_Function);
-         Set_Arguments       (R, Do_Call_Parameters (N));
-         Set_Type (R, Get_Return_Type (Func_Symbol.SymType));
-      end return;
+      if Global_Symbol_Table.Contains (Func_Name) then
+         Func_Symbol := Global_Symbol_Table (Func_Name);
+         The_Function := New_Irep (I_Symbol_Expr);
+
+         Set_Identifier (The_Function, Unintern (Func_Name));
+         Set_Type       (The_Function, Func_Symbol.SymType);
+         --  ??? why not get this from the entity
+
+         return R : constant Irep :=
+           New_Irep (I_Side_Effect_Expr_Function_Call)
+         do
+            Set_Source_Location (R, Sloc (N));
+            Set_Function        (R, The_Function);
+            Set_Arguments       (R, Do_Call_Parameters (N));
+            Set_Type (R, Get_Return_Type (Func_Symbol.SymType));
+         end return;
+      else
+         --  no body => TODO: make nondet. Does this case even happen?
+         return R : constant Irep := New_Irep (I_Nondet_Expr) do
+            Set_Source_Location (R, Sloc (N));
+            --  Range_Check
+            --  Type: from spec
+         end return;
+      end if;
    end Do_Function_Call;
 
    ---------------------------------------
@@ -2587,8 +2599,9 @@ package body Tree_Walk is
       Proc_Type : constant Irep :=
         Do_Subprogram_Specification (Specification (N));
 
-      Proc_Name : constant Symbol_Id :=
-        Intern (Unique_Name (Corresponding_Body (N)));
+      Proc_Name : constant Symbol_Id := Intern
+        (Unique_Name (Defining_Unit_Name (Specification (N))));
+      --  take from spec, because body could be absent (null procedure)
 
       Proc_Symbol : Symbol;
 
