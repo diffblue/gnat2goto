@@ -1218,10 +1218,13 @@ package body Tree_Walk is
          Func_Symbol := Global_Symbol_Table (Func_Name);
          --  ??? why not get this from the entity
 
-         --  two options here:
-         --  1. use let expression (nondet; assume ranges) or
-         --  2. just place I_Nondet_Expr, set type, and
-         --     implement ranges in cbmc
+         --  Two implementation options here:
+         --  1. Trickery: Use LET expression to create a tmp variable and
+         --     assign nondet with ranges (side effect with function call
+         --     to assume). However, cannot use I_Code_Assume directly,
+         --     because cbmc considers this a statement.
+         --  2. Future: Just place I_Nondet_Expr, set type, let cbmc
+         --     place the assume on ranges.
          --  Due to lack of insight into cbmc, we implement 1.
          declare
             Type_Irep  : constant Irep :=
@@ -1229,21 +1232,30 @@ package body Tree_Walk is
             Sym_Nondet : constant Irep :=
               Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
             Assume_And_Yield : constant Irep := New_Irep (I_Op_Comma);
-            Assume_Irep : constant Irep := New_Irep (I_Code_Assume);
-            Nondet_Expr : constant Irep :=
+
+            SE_Call_Expr : constant Irep :=
+              New_Irep (I_Side_Effect_Expr_Function_Call);
+            Nondet_Expr  : constant Irep :=
               New_Irep (I_Side_Effect_Expr_Nondet);
-
+            Sym_Assume   : constant Irep := New_Irep (I_Symbol_Expr);
+            Assume_Args  : constant Irep := New_Irep (I_Argument_List);
          begin
-            Set_Source_Location (Sym_Nondet, Sloc (N));
+            Set_Identifier (Sym_Assume, "__CPROVER_assume");
+            Set_Type (Sym_Assume, New_Irep (I_Code_Type));
 
+            Append_Argument (Assume_Args,
+                             Make_Sym_Range_Expression (Sym_Nondet));
+
+            Set_Source_Location (SE_Call_Expr, Sloc (N));
+            Set_Function        (SE_Call_Expr, Sym_Assume);
+            Set_Arguments       (SE_Call_Expr, Assume_Args);
+            Set_Type            (SE_Call_Expr, Make_Void_Type);
+
+            Set_Source_Location (Sym_Nondet, Sloc (N));
             Set_Type (Nondet_Expr, Type_Irep);
             Set_Source_Location (Nondet_Expr, Sloc (N));
 
-            Set_Assumption (Assume_Irep,
-                            Make_Sym_Range_Expression (Sym_Nondet));
-            Set_Source_Location (Assume_Irep, Sloc (N));
-
-            Set_Lhs (Assume_And_Yield, Assume_Irep);
+            Set_Lhs (Assume_And_Yield, SE_Call_Expr);
             Set_Rhs (Assume_And_Yield, Sym_Nondet);
             Set_Source_Location (Assume_And_Yield, Sloc (N));
             return Make_Let_Expr
