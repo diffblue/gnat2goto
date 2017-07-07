@@ -200,7 +200,7 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Subtype_Declaration;
 
    function Do_Subtype_Indication (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Subtype_Indication,
+   with Pre  => Nkind (N) in N_Subtype_Indication | N_Identifier,
         Post => Kind (Do_Subtype_Indication'Result) in Class_Type;
 
    function Do_Type_Conversion (N : Node_Id) return Irep
@@ -2473,14 +2473,14 @@ package body Tree_Walk is
 
    function Do_Subtype_Indication (N : Node_Id) return Irep
    is
-      Underlying : constant Irep :=
-        Do_Type_Reference (Etype (Subtype_Mark (N)));
-
-      Constr : constant Node_Id := Constraint (N);
-
+      Underlying : Irep;
+      Constr : Node_Id;
    begin
-      if Present (Constr) then
-         case Nkind (Constr) is
+      if Nkind (N) = N_Subtype_Indication then
+         Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
+         Constr := Constraint (N);
+         if Present (Constr) then
+            case Nkind (Constr) is
             when N_Range_Constraint =>
                return Do_Range_Constraint (Constr, Underlying);
             when N_Index_Or_Discriminant_Constraint =>
@@ -2488,9 +2488,17 @@ package body Tree_Walk is
             when others =>
                Print_Tree_Node (N);
                raise Program_Error;
-         end case;
-      else
+            end case;
+         else
+            return Underlying;
+         end if;
+      elsif Nkind (N) = N_Identifier then
+         --  subtype indications w/o constraint are given only as identifier
+         Underlying := Do_Type_Reference (Etype (N));
          return Underlying;
+      else
+         Print_Tree_Node (N);
+         raise Program_Error;
       end if;
    end Do_Subtype_Indication;
 
