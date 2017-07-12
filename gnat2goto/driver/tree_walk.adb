@@ -1611,6 +1611,7 @@ package body Tree_Walk is
          else
             Set_Assumption (A_Irep, Check);
          end if;
+         Set_Source_Location (A_Irep, Sloc (N));
          Append_Op (Block, A_Irep);
       end Do_Pragma_Assert_or_Assume;
 
