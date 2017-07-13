@@ -1201,7 +1201,7 @@ package body Tree_Walk is
       -------------
 
       function Do_When (N : Node_Id) return Irep with
-        Pre => Nkind (N) in N_Subexpr,
+        Pre  => Nkind (N) in N_Subexpr,
         Post => Kind (Do_When'Result) in Class_Code;
 
       function Do_When (N : Node_Id) return Irep is
@@ -1423,7 +1423,8 @@ package body Tree_Walk is
       ----------------------
 
       function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
-                                 return Irep is
+                                 return Irep
+      is
          Ret : constant Irep := New_Irep (I_Code_For);
       begin
          Set_Source_Location (Ret, Sloc (N));
@@ -1501,9 +1502,9 @@ package body Tree_Walk is
                begin
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
-                             (Symbol => Sym_Loopvar,
-                              Source_Location =>
-                                Sloc (Defining_Identifier (Spec))));
+                             (Symbol          => Sym_Loopvar,
+                              Source_Location => Sloc
+                                (Defining_Identifier (Spec))));
 
                   --  TODO: needs generalization to support enums
                   if Reverse_Present (Spec) then
@@ -1546,13 +1547,16 @@ package body Tree_Walk is
       Set_Loop_Body (Loop_Irep, Body_Block);
 
       Append_Op (Loop_Wrapper, Loop_Irep);
+
+      --  if GNAT has created the loop identifier, we do not
+      --  need a label because the user cannot reference it
       if not Has_Created_Identifier (N) then
          Append_Op (Loop_Wrapper,
                     Make_Code_Label
-                      (Code => New_Irep (I_Code_Skip),
+                      (Code            => New_Irep (I_Code_Skip),
                        Source_Location => Sloc (Identifier (N)),
-                       Label => Get_Name_String (Chars (Identifier (N)))
-                       & "_exit"));
+                       Label           => Get_Name_String
+                         (Chars (Identifier (N))) & "_exit"));
       end if;
       return Loop_Wrapper;
    end Do_Loop_Statement;

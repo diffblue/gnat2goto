@@ -13,14 +13,14 @@ begin
    --  loop with no label (implicit target for 'exit')
    for i in reverse 1 .. 3 loop
       z := 1;
-      exit when i=2;
+      exit when i = 2;
    end loop;
    
    --  loop with label and unconditional 'exit'
    myloop : 
    for i in cnt'Range loop
       if i = cnt'Last then
-	exit myloop;
+         exit myloop;
       end if;
       z := 2;
    end loop myloop;
