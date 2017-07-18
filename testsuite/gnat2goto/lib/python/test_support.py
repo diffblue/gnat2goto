@@ -28,7 +28,7 @@ def filter_timing(results):
     return re.sub(skip, r'', results)
 
 
-def process(file):
+def process(file, cbmcargs):
     """Process Ada file with gnat2goto and cbmc"""
     unit = os.path.splitext(file)[0]
 
@@ -43,16 +43,18 @@ def process(file):
     # ??? only run the following if gnat2goto succeeded
     Run(["cbmc", jsout, "--show-symbol-table"], output=symtab)
     Run(["cbmc", jsout, "--show-goto-functions"], output=gotoprog)
-    results = Run(["cbmc", jsout])
+    cmdline = ["cbmc", jsout]
+    if cbmcargs: cmdline += cbmcargs.split(" ")
+    results = Run(cmdline)
 
     return filter_timing(results.out)
 
 
-def prove():
+def prove(cbmcargs=""):
     """Call gnat2goto (and cbmc) on all *.adb files from the current directory
 
     PARAMETERS
       none: yet
     """
     for file in ada_body_files():
-        print process (file)
+        print process (file, cbmcargs)

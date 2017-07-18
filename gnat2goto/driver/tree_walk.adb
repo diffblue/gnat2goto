@@ -110,6 +110,10 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
+   function Do_Exit_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Exit_Statement,
+        Post => Kind (Do_Exit_Statement'Result) in Class_Code;
+
    function Do_Indexed_Component (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Indexed_Component;
 
@@ -1186,6 +1190,48 @@ package body Tree_Walk is
       end if;
    end Do_Identifier;
 
+   -----------------------
+   -- Do_Exit_Statement --
+   -----------------------
+
+   function Do_Exit_Statement (N : Node_Id) return Irep is
+
+      -------------
+      -- Do_When --
+      -------------
+
+      function Do_When (N : Node_Id) return Irep with
+        Pre  => Nkind (N) in N_Subexpr,
+        Post => Kind (Do_When'Result) in Class_Code;
+
+      function Do_When (N : Node_Id) return Irep is
+         Cond_Expr : constant Irep := Do_Expression (N);
+         Ret       : constant Irep := New_Irep (I_Code_Ifthenelse);
+      begin
+         Set_Source_Location (Ret, Sloc (N));
+         Set_Cond (Ret, Cond_Expr);
+         return Ret;
+      end Do_When;
+
+      Jump_Irep : Irep;
+   begin
+      if Present (Name (N)) then
+         Jump_Irep := Make_Code_Goto
+           (Source_Location => Sloc (N),
+            Destination     =>
+              Get_Name_String (Chars (Name (N))) & "_exit");
+      else
+         Jump_Irep := Make_Code_Break (Source_Location => Sloc (N));
+      end if;
+      if Present (Condition (N)) then
+         return R : constant Irep := Do_When (Condition (N)) do
+            Set_Then_Case (R, Jump_Irep);
+         end return;
+      else
+         return Jump_Irep;
+      end if;
+   end Do_Exit_Statement;
+
    ---------------------
    -- Do_If_Statement --
    ---------------------
@@ -1364,22 +1410,28 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Loop_Statement (N : Node_Id) return Irep is
+      Iter_Scheme  : constant Node_Id := Iteration_Scheme (N);
+      Body_Block   : constant Irep := Process_Statements (Statements (N));
 
-      Iter_Scheme : constant Node_Id := Iteration_Scheme (N);
-      Body_Block  : constant Irep := Process_Statements (Statements (N));
+      function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
+                                 return Irep;
 
-      function Do_For_Statement return Irep;
       function Do_While_Statement (Cond : Irep) return Irep;
 
       ----------------------
       -- Do_For_Statement --
       ----------------------
 
-      function Do_For_Statement return Irep is
+      function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
+                                 return Irep
+      is
          Ret : constant Irep := New_Irep (I_Code_For);
       begin
-         --  ??? What happens to Body_Block here?
          Set_Source_Location (Ret, Sloc (N));
+         Set_Init (Ret, Param);
+         Set_Cond (Ret, Cond);
+         Set_Iter (Ret, Post);
+         --  body block done in caller
          return Ret;
       end Do_For_Statement;
 
@@ -1390,33 +1442,123 @@ package body Tree_Walk is
       function Do_While_Statement (Cond : Irep) return Irep is
          Ret : constant Irep := New_Irep (I_Code_While);
       begin
+         --  body block done in caller
          Set_Source_Location (Ret, Sloc (N));
          Set_Cond (Ret, Cond);
-         Set_Body (Ret, Body_Block);
          return Ret;
       end Do_While_Statement;
 
+      Loop_Irep : Irep;
+      Loop_Wrapper : constant Irep := New_Irep (I_Code_Block);
    begin
-
       if not Present (Iter_Scheme) then
+         --  infinite loop
          declare
             Const_True : constant Irep := New_Irep (I_Constant_Expr);
          begin
-            --  mimic C-style 8-bit bool; this might also work with 1-bit type
-            Set_Value (Const_True, "00000001");
-            Set_Type (Const_True, Make_Int_Type (8));
-            return Do_While_Statement (Const_True);
-         end;
-      elsif Present (Condition (Iter_Scheme)) then
-         declare
-            Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
-         begin
-            return Do_While_Statement (Cond);
+            Set_Value (Const_True, "true");
+            Set_Type (Const_True, Make_Bool_Type);
+            Loop_Irep := Do_While_Statement (Const_True);
          end;
       else
-         return Do_For_Statement;
+         if Present (Condition (Iter_Scheme)) then
+            --  WHILE loop
+            declare
+               Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
+            begin
+               Loop_Irep := Do_While_Statement (Cond);
+            end;
+         else
+            --  FOR loop.
+            --   Ada 1995: loop_parameter_specification
+            --   Ada 2012: +iterator_specification
+            if Present (Loop_Parameter_Specification (Iter_Scheme)) then
+               declare
+                  Spec : constant Node_Id :=
+                    Loop_Parameter_Specification (Iter_Scheme);
+                  Loopvar_Name : constant String :=
+                    Unique_Name (Defining_Identifier (Spec));
+
+                  Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
+
+                  Type_Loopvar : constant Irep := Do_Type_Reference
+                    (Etype (Etype (Defining_Identifier (Spec))));
+
+                  Sym_Loopvar : constant Irep :=
+                    Make_Symbol_Expr
+                      (Source_Location => Sloc (Defining_Identifier (Spec)),
+                       I_Type          => Type_Loopvar,
+                       Identifier      => Loopvar_Name);
+
+                  Init : constant Irep := New_Irep (I_Code_Assign);
+                  Cond : Irep;
+                  Post : Irep;
+
+                  Bound_Low  : constant Irep :=
+                    Do_Expression (Low_Bound (Dsd));
+                  Bound_High : constant Irep :=
+                    Do_Expression (High_Bound (Dsd));
+
+               begin
+                  --  Loop var decl
+                  Append_Op (Loop_Wrapper, Make_Code_Decl
+                             (Symbol          => Sym_Loopvar,
+                              Source_Location => Sloc
+                                (Defining_Identifier (Spec))));
+
+                  --  TODO: needs generalization to support enums
+                  if Reverse_Present (Spec) then
+                     Set_Lhs (Init, Sym_Loopvar);
+                     Set_Rhs (Init, Bound_High);
+                     Cond := Make_Op_Geq
+                       (Rhs             => Bound_Low,
+                        Lhs             => Sym_Loopvar,
+                        Source_Location => Sloc (Spec),
+                        Overflow_Check  => False,
+                        I_Type          => Make_Bool_Type,
+                        Range_Check     => False);
+                     Post := Make_Increment
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
+                  else
+                     Set_Lhs (Init, Sym_Loopvar);
+                     Set_Rhs (Init, Bound_Low);
+                     Cond := Make_Op_Leq
+                       (Rhs             => Bound_High,
+                        Lhs             => Sym_Loopvar,
+                        Source_Location => Sloc (Spec),
+                        Overflow_Check  => False,
+                        I_Type          => Make_Bool_Type,
+                        Range_Check     => False);
+                     Post := Make_Increment
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), 1);
+                  end if;
+                  Set_Source_Location (Init, Sloc (Spec));
+                  Set_Source_Location (Post, Sloc (Spec));
+                  Loop_Irep := Do_For_Statement (Init, Cond, Post);
+               end;
+            else
+               pragma Assert
+                 (Present (Iterator_Specification (Iter_Scheme)));
+               raise Program_Error; -- TODO: implement loop iterators
+            end if;
+         end if;
       end if;
 
+      Set_Loop_Body (Loop_Irep, Body_Block);
+
+      Append_Op (Loop_Wrapper, Loop_Irep);
+
+      --  if GNAT has created the loop identifier, we do not
+      --  need a label because the user cannot reference it
+      if not Has_Created_Identifier (N) then
+         Append_Op (Loop_Wrapper,
+                    Make_Code_Label
+                      (Code            => New_Irep (I_Code_Skip),
+                       Source_Location => Sloc (Identifier (N)),
+                       Label           => Get_Name_String
+                         (Chars (Identifier (N))) & "_exit"));
+      end if;
+      return Loop_Wrapper;
    end Do_Loop_Statement;
 
    ---------------------------
@@ -3258,6 +3400,9 @@ package body Tree_Walk is
 
          when N_Null_Statement =>
             null;
+
+         when N_Exit_Statement =>
+            Append_Op (Block, Do_Exit_Statement (N));
 
          when others =>
             pp (Union_Id (N));
