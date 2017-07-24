@@ -1571,42 +1571,57 @@ package body Tree_Walk is
 
    procedure Do_Pragma (N : Node_Id; Block : Irep) is
 
-      ----------------------
-      -- Do_Pragma_Assert --
-      ----------------------
+      --------------------------------
+      -- Do_Pragma_Assert_or_Assume --
+      --------------------------------
 
       procedure Do_Pragma_Assert_or_Assume
-        (N : Node_Id; Block : Irep; Which : String);
+        (N_Orig : Node_Id; Block : Irep);
+
       procedure Do_Pragma_Assert_or_Assume
-        (N : Node_Id; Block : Irep; Which : String) is
-         A_Irep : constant Irep := (if Which = "assert"
-                                    then New_Irep (I_Code_Assert)
-                                    else New_Irep (I_Code_Assume));
+        (N_Orig : Node_Id; Block : Irep)
+      is
+
+         Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
+         A_Irep : constant Irep := New_Irep
+           ((if Which = Pragma_Assert then I_Code_Assert else I_Code_Assume));
 
          --  To be set by iterator:
          Check : Irep := Ireps.Empty;
 
+         ----------------
+         -- Handle_Arg --
+         ----------------
+
          procedure Handle_Arg
-           (Arg_Pos : Positive; Arg_Name : String; Expr : Node_Id);
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
+
          procedure Handle_Arg
-           (Arg_Pos : Positive; Arg_Name : String; Expr : Node_Id) is
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id) is
          begin
-            if Arg_Name = "check" or (Arg_Name = "" and Arg_Pos = 1) then
+
+            if Arg_Name = Name_Check
+              or else (Arg_Name = No_Name and then Arg_Pos = 1)
+            then
                Check := Do_Expression (Expr);
-            elsif Arg_Name = "message" or (Arg_Name = "" and Arg_Pos = 2) then
+            elsif Arg_Name = Name_Message
+              or else (Arg_Name = No_Name and then Arg_Pos = 2)
+            then
                null; -- ignore, since assert irep has no msg
             else
+               pp (Union_Id (N));
                raise Program_Error;
             end if;
          end Handle_Arg;
 
          procedure Iterate_Args is new
            Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
+
       begin
-         Iterate_Args (N);
+         Iterate_Args (N_Orig);
          pragma Assert (Check /= Ireps.Empty);
 
-         if Which = "assert" then
+         if Which = Pragma_Assert then
             Set_Assertion (A_Irep, Check);
          else
             Set_Assumption (A_Irep, Check);
@@ -1615,20 +1630,16 @@ package body Tree_Walk is
          Append_Op (Block, A_Irep);
       end Do_Pragma_Assert_or_Assume;
 
+      pragma Assert (Present (Original_Node (N)));
       N_Orig : constant Node_Id := Original_Node (N);
-   begin
 
-      pragma Assert (Present (N_Orig));
-      declare
-         Identifier : constant String :=
-           Get_Name_String (Chars (Pragma_Identifier (N_Orig)));
-      begin
-         if Identifier in "assert" | "assume" then
-            Do_Pragma_Assert_or_Assume (N_Orig, Block, Identifier);
-         else
-            raise Program_Error; -- unsupported pragma
-         end if;
-      end;
+   begin
+      if Pragma_Name (N_Orig) in Name_Assert | Name_Assume then
+         Do_Pragma_Assert_or_Assume (N_Orig, Block);
+      else
+         pp (Union_Id (N));
+         raise Program_Error; -- unsupported pragma
+      end if;
    end Do_Pragma;
 
    ---------------------------

@@ -1,6 +1,7 @@
 with Atree; use Atree;
 with Sinfo; use Sinfo;
 with Types; use Types;
+with Namet; use Namet;
 
 package GNAT_Utils is
 
@@ -19,7 +20,7 @@ package GNAT_Utils is
 
    generic
       with procedure Handle_Arg
-        (Arg_Pos : Positive; Arg_Name : String; Expr : Node_Id);
+        (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
    procedure Iterate_Pragma_Parameters (The_Pragma : Node_Id)
      with Pre => Nkind (The_Pragma) in N_Pragma;
 
