@@ -1,5 +1,7 @@
 with Ireps;             use Ireps;
 with Types;             use Types;
+with Atree;             use Atree;
+with Sinfo;             use Sinfo;
 with Symbol_Table_Info; use Symbol_Table_Info;
 
 package GOTO_Utils is
@@ -28,5 +30,12 @@ package GOTO_Utils is
    with Post => Kind (Symbol_Expr'Result) = I_Symbol_Expr;
 
    function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
+
+   function Has_GNAT2goto_Annotation
+     (Def_Id : Entity_Id;
+      Annot  : String) return Boolean
+   with Pre => Nkind (Def_Id) = N_Defining_Identifier;
+   --  checks whether an entity has a certain GNAT2goto annotation.
+   --  This can be either an aspect, or a pragma.
 
 end GOTO_Utils;

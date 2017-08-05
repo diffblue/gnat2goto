@@ -1257,17 +1257,13 @@ package body Tree_Walk is
 
    function Do_Function_Call (N : Node_Id) return Irep
    is
-      Func_Name    : constant Symbol_Id :=
-        Intern (Unique_Name (Entity (Name (N))));
+      Func_Ent     : constant Entity_Id := Entity (Name (N));
+      Func_Name    : constant Symbol_Id := Intern (Unique_Name (Func_Ent));
       Func_Symbol  : Symbol;
       The_Function : Irep;
 
-      --  Pragmas : constant String := Get_Entity_Pragmas (N);
-
-      function Has_Pragma_Nondet (N : Node_Id) return Boolean is
-        (False);
-
    begin
+
       --  TODO: in general, the Ada program must be able to
       --  use cbm's built-in functions, like "__cprover_assume".
       --  However, there are several problems:
@@ -1281,7 +1277,9 @@ package body Tree_Walk is
 
       --  For now, we only handle "nondet" prefixes here.
 
-      if Name_Has_Prefix (N, "nondet") or else Has_Pragma_Nondet (N) then
+      if Name_Has_Prefix (N, "nondet") or else
+        Has_GNAT2goto_Annotation (Func_Ent, "nondet")
+      then
          return Do_Nondet_Function_Call (N);
       else
          The_Function := New_Irep (I_Symbol_Expr);
@@ -1779,6 +1777,8 @@ package body Tree_Walk is
    begin
       if Pragma_Name (N_Orig) in Name_Assert | Name_Assume then
          Do_Pragma_Assert_or_Assume (N_Orig, Block);
+      elsif Pragma_Name (N_Orig) in Name_Annotate then
+         null; -- ignore here. Rather look for those when we process a node.
       else
          pp (Union_Id (N));
          raise Program_Error; -- unsupported pragma
