@@ -1,3 +1,7 @@
+with Namet; use Namet;
+with Sinfo; use Sinfo;
+with Atree; use Atree;
+
 package body GOTO_Utils is
 
    ---------------------
@@ -76,9 +80,9 @@ package body GOTO_Utils is
       return Ret;
    end Param_Symbol;
 
-   ------------------
+   -----------------
    -- Symbol_Expr --
-   ------------------
+   -----------------
 
    function Symbol_Expr (Sym : Symbol) return Irep is
       Ret : constant Irep := New_Irep (I_Symbol_Expr);
@@ -87,5 +91,25 @@ package body GOTO_Utils is
       Set_Type (Ret, Sym.SymType);
       return Ret;
    end Symbol_Expr;
+
+   ---------------------
+   -- Name_Has_Prefix --
+   ---------------------
+
+   function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean is
+   begin
+      if not Present (Name (N)) then
+         return False;
+      else
+         declare
+            Short_Name : constant String :=
+              Get_Name_String (Chars (Name (N)));
+         begin
+            return Prefix'Length <= Short_Name'Length and then
+              Prefix = Short_Name
+                (Short_Name'First .. Short_Name'First - 1 + Prefix'Length);
+         end;
+      end if;
+   end Name_Has_Prefix;
 
 end GOTO_Utils;

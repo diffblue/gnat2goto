@@ -1,4 +1,5 @@
-with Ireps; use Ireps;
+with Ireps;             use Ireps;
+with Types;             use Types;
 with Symbol_Table_Info; use Symbol_Table_Info;
 
 package GOTO_Utils is
@@ -25,5 +26,7 @@ package GOTO_Utils is
 
    function Symbol_Expr (Sym : Symbol) return Irep
    with Post => Kind (Symbol_Expr'Result) = I_Symbol_Expr;
+
+   function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
 
 end GOTO_Utils;

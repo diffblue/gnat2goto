@@ -103,9 +103,9 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Function_Call,
         Post => Kind (Do_Nondet_Function_Call'Result) in Class_Expr;
 
-   function Make_Sym_Range_Expression (I : Irep) return Irep with
-     Pre => Kind (I) = I_Symbol_Expr,
-     Post => Kind (Make_Sym_Range_Expression'Result) in Class_Expr;
+   function Make_Sym_Range_Expression (I : Irep) return Irep
+   with Pre  => Kind (I) = I_Symbol_Expr,
+        Post => Kind (Make_Sym_Range_Expression'Result) in Class_Expr;
 
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
@@ -1146,25 +1146,6 @@ package body Tree_Walk is
       end if;
    end Do_Full_Type_Declaration;
 
-   ---------------------
-   -- Name_Has_Prefix --
-   ---------------------
-
-   function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean
-     with Pre => Present (Name (N));
-
-   function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean is
-      Short_Name : constant String :=
-        Get_Name_String (Chars (Name (N)));
-   begin
-      if Prefix'Length > Short_Name'Length then
-         return False;
-      else
-         return Prefix = Short_Name
-           (Short_Name'First .. Short_Name'First - 1 + Prefix'Length);
-      end if;
-   end Name_Has_Prefix;
-
    -------------------------------
    -- Make_Sym_Range_Expression --
    -------------------------------
@@ -1181,8 +1162,8 @@ package body Tree_Walk is
 
       if Kind (Sym_Type) = I_Bounded_Signedbv_Type then
          declare
-            Op_Geq   : constant Irep := New_Irep (I_Op_Geq);
-            Op_Leq   : constant Irep := New_Irep (I_Op_Leq);
+            Op_Geq : constant Irep := New_Irep (I_Op_Geq);
+            Op_Leq : constant Irep := New_Irep (I_Op_Leq);
          begin
             Set_Lhs (Op_Geq, I);
             Set_Rhs (Op_Geq, Get_Lower_Bound (Sym_Type));
@@ -1212,10 +1193,8 @@ package body Tree_Walk is
    function Do_Nondet_Function_Call (N : Node_Id) return Irep is
       Func_Str     : constant String := Unique_Name (Entity (Name (N)));
       Func_Name    : constant Symbol_Id := Intern (Func_Str);
-      Func_Symbol  : Symbol;
    begin
       if Global_Symbol_Table.Contains (Func_Name) then
-         Func_Symbol := Global_Symbol_Table (Func_Name);
          --  ??? why not get this from the entity
 
          --  Two implementation options here:
@@ -1227,18 +1206,20 @@ package body Tree_Walk is
          --     place the assume on ranges.
          --  Due to lack of insight into cbmc, we implement 1.
          declare
-            Type_Irep  : constant Irep :=
-              Get_Return_Type (Func_Symbol.SymType);
-            Sym_Nondet : constant Irep :=
-              Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
-            Assume_And_Yield : constant Irep := New_Irep (I_Op_Comma);
+            Func_Symbol : constant Symbol := Global_Symbol_Table (Func_Name);
 
+            Type_Irep    : constant Irep :=
+              Get_Return_Type (Func_Symbol.SymType);
+            Sym_Nondet   : constant Irep :=
+              Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
             SE_Call_Expr : constant Irep :=
               New_Irep (I_Side_Effect_Expr_Function_Call);
             Nondet_Expr  : constant Irep :=
               New_Irep (I_Side_Effect_Expr_Nondet);
             Sym_Assume   : constant Irep := New_Irep (I_Symbol_Expr);
             Assume_Args  : constant Irep := New_Irep (I_Argument_List);
+            Assume_And_Yield : constant Irep := New_Irep (I_Op_Comma);
+
          begin
             Set_Identifier (Sym_Assume, "__CPROVER_assume");
             Set_Type (Sym_Assume, New_Irep (I_Code_Type));
@@ -1281,6 +1262,11 @@ package body Tree_Walk is
       Func_Symbol  : Symbol;
       The_Function : Irep;
 
+      --  Pragmas : constant String := Get_Entity_Pragmas (N);
+
+      function Has_Pragma_Nondet (N : Node_Id) return Boolean is
+        (False);
+
    begin
       --  TODO: in general, the Ada program must be able to
       --  use cbm's built-in functions, like "__cprover_assume".
@@ -1295,7 +1281,7 @@ package body Tree_Walk is
 
       --  For now, we only handle "nondet" prefixes here.
 
-      if Name_Has_Prefix (N, "nondet") then
+      if Name_Has_Prefix (N, "nondet") or else Has_Pragma_Nondet (N) then
          return Do_Nondet_Function_Call (N);
       else
          The_Function := New_Irep (I_Symbol_Expr);
@@ -1316,6 +1302,7 @@ package body Tree_Walk is
             end return;
          else
             --  This can happen for RTS functions (body not parsed by us)
+            pp (Union_Id (N));
             raise Program_Error; --  TODO: be clever
          end if;
       end if;
@@ -2736,7 +2723,9 @@ package body Tree_Walk is
 
    procedure Do_Subprogram_Body (N : Node_Id) is
       Proc_Name   : constant Symbol_Id :=
-        Intern (Unique_Name (Corresponding_Spec (N)));
+        Intern (Unique_Name (Defining_Entity (N)));
+      --  Intern (Unique_Name (Corresponding_Spec (N)));
+
       Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
       Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
    begin
