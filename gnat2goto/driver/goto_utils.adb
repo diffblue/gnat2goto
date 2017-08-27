@@ -1,3 +1,7 @@
+with Namet;   use Namet;
+with Nlists;  use Nlists;
+with Aspects; use Aspects;
+
 package body GOTO_Utils is
 
    ---------------------
@@ -76,9 +80,9 @@ package body GOTO_Utils is
       return Ret;
    end Param_Symbol;
 
-   ------------------
+   -----------------
    -- Symbol_Expr --
-   ------------------
+   -----------------
 
    function Symbol_Expr (Sym : Symbol) return Irep is
       Ret : constant Irep := New_Irep (I_Symbol_Expr);
@@ -87,5 +91,77 @@ package body GOTO_Utils is
       Set_Type (Ret, Sym.SymType);
       return Ret;
    end Symbol_Expr;
+
+   ---------------------
+   -- Name_Has_Prefix --
+   ---------------------
+
+   function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean is
+   begin
+      if not Present (Name (N)) then
+         return False;
+      else
+         declare
+            Short_Name : constant String :=
+              Get_Name_String (Chars (Name (N)));
+         begin
+            return Prefix'Length <= Short_Name'Length and then
+              Prefix = Short_Name
+                (Short_Name'First .. Short_Name'First - 1 + Prefix'Length);
+         end;
+      end if;
+   end Name_Has_Prefix;
+
+   ---------------------------
+   -- Has_Nondet_Annotation --
+   ---------------------------
+
+   function Has_GNAT2goto_Annotation
+     (Def_Id : Entity_Id;
+      Annot  : String) return Boolean
+   is
+      Ent_Spec : constant Node_Id := Parent (Def_Id);
+      Ent_Decl : constant Node_Id := Parent (Ent_Spec);
+
+      function List_Contains_Annot (L : List_Id) return Boolean;
+
+      --------------------------
+      -- List_Contains_Annot --
+      --------------------------
+
+      function List_Contains_Annot (L : List_Id) return Boolean is
+         E : Node_Id;
+
+      begin
+         if Is_Non_Empty_List (L) then
+            E := First (L);
+            if Nkind (E) = N_Identifier and then
+              Get_Name_String (Chars (E)) = "gnat2goto"
+            then
+               Next (E);
+               return Present (E) and then
+                 Nkind (E) = N_Identifier and then
+                 Get_Name_String (Chars (E)) = Annot;
+            end if;
+         end if;
+         return False;
+      end List_Contains_Annot;
+
+   begin
+      if Has_Aspects (Ent_Decl) then
+         declare
+            Asp : constant Node_Id := Find_Aspect (Def_Id, Aspect_Annotate);
+            Expr : Node_Id;
+         begin
+            if Present (Asp) and then Present (Expression (Asp)) then
+               Expr := Expression (Asp);
+               return Present (Expressions (Expr)) and then
+                 List_Contains_Annot (Expressions (Expr));
+            end if;
+         end;
+      end if;
+      --  TODO: handle annotations through pragma
+      return False;
+   end Has_GNAT2goto_Annotation;
 
 end GOTO_Utils;
