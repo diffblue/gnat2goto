@@ -63,7 +63,7 @@ package body Driver is
 
       Void_Type : constant Irep := New_Irep (I_Void_Type);
 
-      Start_Name : constant Symbol_Id := Intern ("_start");
+      Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
 
       Start_Symbol      : Symbol;
       Start_Type        : constant Irep := New_Irep (I_Code_Type);
