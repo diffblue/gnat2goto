@@ -38,6 +38,8 @@ with Gather_Irep_Symbols;
 
 with GNATCOLL.JSON;         use GNATCOLL.JSON;
 
+with Sinfo;                 use Sinfo;
+
 package body Driver is
 
    procedure Translate_Standard_Types;
@@ -51,15 +53,16 @@ package body Driver is
 
    procedure Translate_Compilation_Unit (GNAT_Root : Node_Id)
    is
+      pragma Assert (Nkind (GNAT_Root) = N_Compilation_Unit);
+      Add_Start : Boolean;
+      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root,
+                                                               Add_Start);
 
-      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root);
+      Program_Expr        : Irep;
+      Program_Type        : Irep;
+      Program_Return_Type : Irep;
 
-      Program_Expr        : constant Irep := New_Irep (I_Symbol_Expr);
-      Program_Type        : constant Irep := Program_Symbol.SymType;
-      Program_Return_Type : constant Irep := Get_Return_Type (Program_Type);
-
-      Program_Args        : constant Irep_List :=
-        Get_Parameter (Get_Parameters (Program_Type));
+      Program_Args        : Irep_List;
 
       Void_Type : constant Irep := New_Irep (I_Void_Type);
 
@@ -96,6 +99,16 @@ package body Driver is
             end;
          end loop;
       end;
+
+      if not Add_Start then
+         Put_Line (Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+         return;
+      end if;
+
+      Program_Expr := New_Irep (I_Symbol_Expr);
+      Program_Type := Program_Symbol.SymType;
+      Program_Return_Type := Get_Return_Type (Program_Type);
+      Program_Args := Get_Parameter (Get_Parameters (Program_Type));
 
       --  Generate a simple _start function that calls the entry point
       declare

@@ -13,6 +13,8 @@ with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
 with Uint_To_Binary;        use Uint_To_Binary;
 
+with Ada.Text_IO;           use Ada.Text_IO;
+
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
@@ -137,6 +139,9 @@ package body Tree_Walk is
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep
    with Pre => Is_Itype (N) and then Ekind (N) = E_Signed_Integer_Subtype;
+
+   function Do_Itype_Integer_Type (N : Entity_Id) return Irep
+   with Pre => Is_Itype (N) and then Ekind (N) = E_Signed_Integer_Type;
 
    function Do_Itype_Record_Subtype (N : Entity_Id) return Irep
    with Pre => Is_Itype (N) and then Ekind (N) = E_Record_Subtype;
@@ -922,7 +927,8 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id) return Symbol
+   function Do_Compilation_Unit (N : Node_Id; Add_Start : out Boolean)
+     return Symbol
    is
       U           : constant Node_Id := Unit (N);
       Unit_Symbol : Symbol;
@@ -946,9 +952,25 @@ package body Tree_Walk is
 
                Unit_Symbol.Value      := Do_Subprogram_Or_Block (U);
                Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+               Add_Start := True;
             end;
 
+         when N_Package_Body =>
+            declare
+               Dummy : constant Irep := Do_Subprogram_Or_Block (U);
+               pragma Unreferenced (Dummy);
+            begin
+               Add_Start := False;
+            end;
+            --  declare
+            --     HSS   : constant Node_Id := Handled_Statement_Sequence (U);
+            --     pragma Unreferenced (HSS);
+            --  begin
+            --     Add_Start := False;
+            --  end;
+
          when others =>
+            Put_Line ("Unknown tree node");
             Print_Tree_Node (U);
             raise Program_Error;
       end case;
@@ -1105,6 +1127,13 @@ package body Tree_Walk is
    -------------------
 
    function Do_Expression (N : Node_Id) return Irep is
+      function Create_Dummy_Irep return Irep;
+      function Create_Dummy_Irep return Irep is
+         ir : constant Irep := New_Irep (I_Constant_Expr);
+      begin
+         Set_Value (ir, "0");
+         return ir;
+      end Create_Dummy_Irep;
    begin
       Declare_Itype (Etype (N));
       return
@@ -1119,12 +1148,16 @@ package body Tree_Walk is
                (case Get_Attribute_Id (Attribute_Name (N)) is
                   when Attribute_Access => Do_Address_Of (N),
                   when Attribute_Length => Do_Array_Length (N),
+                  when Attribute_Range => Create_Dummy_Irep,
+                  when Attribute_First => Create_Dummy_Irep,
+                  when Attribute_Last => Create_Dummy_Irep,
                   when others           => raise Program_Error),
             when N_Explicit_Dereference => Do_Dereference (N),
             when N_Case_Expression      => Do_Case_Expression (N),
             when N_Aggregate            => Do_Aggregate_Literal (N),
             when N_Indexed_Component    => Do_Indexed_Component (N),
             when N_Slice                => Do_Slice (N),
+            when N_In => Create_Dummy_Irep,
             when others                 => raise Program_Error);
    end Do_Expression;
 
@@ -1493,6 +1526,7 @@ package body Tree_Walk is
          when E_Array_Subtype => Do_Itype_Array_Subtype (N),
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
+         when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
          when others => raise Program_Error);
    end Do_Itype_Definition;
 
@@ -1501,6 +1535,17 @@ package body Tree_Walk is
    ------------------------------
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep is
+      (Make_Bounded_Signedbv_Type (
+         Lower_Bound => Do_Expression (Low_Bound (Scalar_Range (N))),
+         Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
+         Width => Positive (UI_To_Int (Esize (N))),
+         I_Subtype => Ireps.Empty));
+
+   ------------------------------
+   -- Do_Itype_Integer_Type --
+   ------------------------------
+
+   function Do_Itype_Integer_Type (N : Entity_Id) return Irep is
       (Make_Bounded_Signedbv_Type (
          Lower_Bound => Do_Expression (Low_Bound (Scalar_Range (N))),
          Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
@@ -1639,12 +1684,14 @@ package body Tree_Walk is
                   Cond : Irep;
                   Post : Irep;
 
-                  Bound_Low  : constant Irep :=
-                    Do_Expression (Low_Bound (Dsd));
-                  Bound_High : constant Irep :=
-                    Do_Expression (High_Bound (Dsd));
+                  Bound_Low  : Irep;
+                  Bound_High : Irep;
 
                begin
+                  Bound_Low := Do_Expression (Low_Bound (Dsd));
+                  Bound_High :=
+                     Do_Expression (High_Bound (Dsd));
+
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
                              (Symbol          => Sym_Loopvar,
@@ -1779,6 +1826,11 @@ package body Tree_Walk is
          Do_Pragma_Assert_or_Assume (N_Orig, Block);
       elsif Pragma_Name (N_Orig) in Name_Annotate then
          null; -- ignore here. Rather look for those when we process a node.
+      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
+      Name_Postcondition | Name_Refined_State | Name_Refined_Global |
+      Name_Precondition | Name_Loop_Invariant
+      then
+         null;
       else
          pp (Union_Id (N));
          raise Program_Error; -- unsupported pragma
@@ -2727,8 +2779,25 @@ package body Tree_Walk is
       --  Intern (Unique_Name (Corresponding_Spec (N)));
 
       Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
-      Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
+      Proc_Symbol : Symbol;
    begin
+      if not Global_Symbol_Table.Contains (Proc_Name) then
+         declare
+            Proc_Type : constant Irep :=
+               Do_Subprogram_Specification (Specification (N));
+            New_Proc_Symbol : Symbol;
+         begin
+            New_Proc_Symbol.Name       := Proc_Name;
+            New_Proc_Symbol.BaseName   := Proc_Name;
+            New_Proc_Symbol.PrettyName := Proc_Name;
+            New_Proc_Symbol.SymType    := Proc_Type;
+            New_Proc_Symbol.Mode       := Intern ("C");
+
+            Global_Symbol_Table.Insert (Proc_Name, New_Proc_Symbol);
+         end;
+      end if;
+      pragma Assert (Global_Symbol_Table.Contains (Proc_Name));
+      Proc_Symbol := Global_Symbol_Table (Proc_Name);
       Proc_Symbol.Value := Proc_Body;
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
