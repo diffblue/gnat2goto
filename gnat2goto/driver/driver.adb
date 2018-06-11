@@ -234,7 +234,10 @@ package body Driver is
               (case Ekind (Builtin_Node) is
                  when E_Floating_Point_Type    => I_Floatbv_Type,
                  when E_Signed_Integer_Subtype => I_Signedbv_Type,
-                 when E_Enumeration_Type       => I_Unsignedbv_Type,
+                 when E_Enumeration_Type       =>
+                                                (if Standard_Type /= S_Boolean
+                                                then I_Unsignedbv_Type
+                                                else I_Bool_Type),
                  when others                   => I_Empty);
 
          begin
@@ -247,7 +250,9 @@ package body Driver is
                     UI_To_Int (Esize (Builtin_Node));
 
                begin
-                  Set_Width (Type_Irep, Integer (Esize_Width));
+                  if Kind (Type_Irep) in Class_Bitvector_Type then
+                     Set_Width (Type_Irep, Integer (Esize_Width));
+                  end if;
 
                   if Type_Kind = I_Floatbv_Type then
                      --  Ada's floating-point types are interesting, as they're
