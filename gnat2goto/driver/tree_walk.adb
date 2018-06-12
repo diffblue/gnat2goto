@@ -1224,35 +1224,6 @@ package body Tree_Walk is
             return Create_Dummy_Irep;
          when others                 => raise Program_Error;
       end case;
---        return
---          (case Nkind (N) is
---              when N_Identifier           => Do_Identifier (N),
---              when N_Selected_Component   => Do_Selected_Component (N),
---              when N_Op                   => Do_Operator_General (N),
---              when N_Integer_Literal      => Do_Constant (N),
---              when N_Type_Conversion      => Do_Type_Conversion (N),
---              when N_Function_Call        => Do_Function_Call (N),
---              when N_Attribute_Reference  =>
---                 (case Get_Attribute_Id (Attribute_Name (N)) is
---                    when Attribute_Access => Do_Address_Of (N),
---                    when Attribute_Length => Do_Array_Length (N),
---                    when Attribute_Range => Create_Dummy_Irep,
---                    when Attribute_First => Create_Dummy_Irep,
---                    when Attribute_Last => Create_Dummy_Irep,
---                    when others           => raise Program_Error),
---              when N_Explicit_Dereference => Do_Dereference (N),
---              when N_Case_Expression      => Do_Case_Expression (N),
---              when N_Aggregate            => Do_Aggregate_Literal (N),
---              when N_Indexed_Component    => Do_Indexed_Component (N),
---              when N_Slice                => Do_Slice (N),
---              when N_In => Create_Dummy_Irep,
---              when N_Real_Literal => Do_Real_Constant (N),
---              when N_If_Expression => Do_If_Expression (N),
---              when N_And_Then => Create_Dummy_Irep,
---              when N_Or_Else => Create_Dummy_Irep,
---              when N_Qualified_Expression => Create_Dummy_Irep,
---              when N_Quantified_Expression => Create_Dummy_Irep,
---              when others                 => raise Program_Error);
    end Do_Expression;
 
    ------------------------------
