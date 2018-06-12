@@ -69,6 +69,10 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
 
+   function Do_Real_Constant (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Real_Literal,
+        Post => Kind (Do_Real_Constant'Result) = I_Constant_Expr;
+
    function Do_Constrained_Array_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Array_Type_Definition,
         Post => Kind (Do_Constrained_Array_Definition'Result) = I_Struct_Type;
@@ -993,6 +997,21 @@ package body Tree_Walk is
       return Ret;
    end Do_Constant;
 
+   ----------------------
+   -- Do_Real_Constant --
+   ----------------------
+
+   function Do_Real_Constant (N : Node_Id) return Irep is
+      Ret           : constant Irep := New_Irep (I_Constant_Expr);
+      Real_Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      Set_Source_Location (Ret, Sloc (N));
+      Set_Type (Ret, Real_Constant_Type);
+      --  ??? FIXME
+      Set_Value (Ret, "0");
+      return Ret;
+   end Do_Real_Constant;
+
    -------------------------------------
    -- Do_Constrained_Array_Definition --
    -------------------------------------
@@ -1126,14 +1145,15 @@ package body Tree_Walk is
    -- Do_Expression --
    -------------------
 
+   function Create_Dummy_Irep return Irep;
+   function Create_Dummy_Irep return Irep is
+      ir : constant Irep := New_Irep (I_Constant_Expr);
+   begin
+      Set_Value (ir, "0");
+      return ir;
+   end Create_Dummy_Irep;
+
    function Do_Expression (N : Node_Id) return Irep is
-      function Create_Dummy_Irep return Irep;
-      function Create_Dummy_Irep return Irep is
-         ir : constant Irep := New_Irep (I_Constant_Expr);
-      begin
-         Set_Value (ir, "0");
-         return ir;
-      end Create_Dummy_Irep;
    begin
       Declare_Itype (Etype (N));
       return
@@ -1158,6 +1178,12 @@ package body Tree_Walk is
             when N_Indexed_Component    => Do_Indexed_Component (N),
             when N_Slice                => Do_Slice (N),
             when N_In => Create_Dummy_Irep,
+            when N_Real_Literal => Do_Real_Constant (N),
+            when N_If_Expression => Create_Dummy_Irep,
+            when N_And_Then => Create_Dummy_Irep,
+            when N_Or_Else => Create_Dummy_Irep,
+            when N_Qualified_Expression => Create_Dummy_Irep,
+            when N_Quantified_Expression => Create_Dummy_Irep,
             when others                 => raise Program_Error);
    end Do_Expression;
 
@@ -1527,6 +1553,7 @@ package body Tree_Walk is
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
+         when E_Floating_Point_Type => Create_Dummy_Irep,
          when others => raise Program_Error);
    end Do_Itype_Definition;
 
@@ -3012,6 +3039,8 @@ package body Tree_Walk is
             return Do_Constrained_Array_Definition (N);
          when N_Unconstrained_Array_Definition =>
             return Do_Unconstrained_Array_Definition (N);
+         when N_Modular_Type_Definition =>
+            return Create_Dummy_Irep;
          when others =>
             pp (Union_Id (N));
             raise Program_Error;
@@ -3721,6 +3750,12 @@ package body Tree_Walk is
             Do_Pragma (N, Block);
 
          when N_Raise_Statement =>
+            null;
+
+         when N_Number_Declaration =>
+            null;
+
+         when N_Case_Statement =>
             null;
 
          when others =>
