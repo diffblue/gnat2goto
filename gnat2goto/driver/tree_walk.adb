@@ -1687,10 +1687,18 @@ package body Tree_Walk is
                   Bound_Low  : Irep;
                   Bound_High : Irep;
 
+                  Dsd2 : Node_Id := Dsd;
                begin
-                  Bound_Low := Do_Expression (Low_Bound (Dsd));
+                  --  Produce something on which we can call Low_Bound and
+                  --  High_Bound
+                  if Nkind (Dsd2) = N_Subtype_Indication then
+                     Dsd2 := Range_Expression (Constraint (Dsd2));
+                  end if;
+
+                  Bound_Low :=
+                     Do_Expression (Low_Bound (Dsd2));
                   Bound_High :=
-                     Do_Expression (High_Bound (Dsd));
+                     Do_Expression (High_Bound (Dsd2));
 
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
@@ -1710,7 +1718,7 @@ package body Tree_Walk is
                         I_Type          => Make_Bool_Type,
                         Range_Check     => False);
                      Post := Make_Increment
-                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd2)), -1);
                   else
                      Set_Lhs (Init, Sym_Loopvar);
                      Set_Rhs (Init, Bound_Low);
@@ -1722,7 +1730,7 @@ package body Tree_Walk is
                         I_Type          => Make_Bool_Type,
                         Range_Check     => False);
                      Post := Make_Increment
-                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), 1);
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd2)), 1);
                   end if;
                   Set_Source_Location (Init, Sloc (Spec));
                   Set_Source_Location (Post, Sloc (Spec));
@@ -3711,6 +3719,9 @@ package body Tree_Walk is
 
          when N_Pragma =>
             Do_Pragma (N, Block);
+
+         when N_Raise_Statement =>
+            null;
 
          when others =>
             pp (Union_Id (N));
