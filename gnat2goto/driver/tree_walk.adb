@@ -1006,11 +1006,14 @@ package body Tree_Walk is
    function Do_Constant (N : Node_Id) return Irep is
       Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Constant_Resolved_Type : constant Irep := Follow_Symbol_Type
+        (Constant_Type, Global_Symbol_Table);
+      Constant_Width : constant Integer := Get_Width (Constant_Resolved_Type);
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Constant_Type);
-      --  ??? FIXME
-      Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
+      Set_Value (Ret,
+                 Convert_Uint_To_Binary (Intval (N), Pos (Constant_Width)));
       return Ret;
    end Do_Constant;
 
