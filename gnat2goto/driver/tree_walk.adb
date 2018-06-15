@@ -1161,6 +1161,9 @@ package body Tree_Walk is
       return Ret;
    end Do_Enumeration_Definition;
 
+   function Do_And_Then (N : Node_Id) return Irep
+   with Pre => (Nkind (N) = N_And_Then);
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1213,9 +1216,7 @@ package body Tree_Walk is
             return Create_Dummy_Irep;
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
-         when N_And_Then =>
-            Warn_Unhandled_Expression ("And then");
-            return Create_Dummy_Irep;
+         when N_And_Then => return Do_And_Then (N);
          when N_Or_Else =>
             Warn_Unhandled_Expression ("Or else");
             return Create_Dummy_Irep;
@@ -1228,6 +1229,18 @@ package body Tree_Walk is
          when others                 => raise Program_Error;
       end case;
    end Do_Expression;
+
+   function Do_And_Then (N : Node_Id) return Irep is
+      L : constant Node_Id := Left_Opnd (N);
+      R : constant Node_Id := Right_Opnd (N);
+      Expr : constant Irep := New_Irep (I_Op_And);
+   begin
+      Append_Op (Expr, Do_Expression (L));
+      Append_Op (Expr, Do_Expression (R));
+      Set_Type (Expr, Make_Bool_Type);
+      Set_Source_Location (Expr, Sloc (N));
+      return Expr;
+   end Do_And_Then;
 
    ------------------------------
    -- Do_Full_Type_Declaration --
