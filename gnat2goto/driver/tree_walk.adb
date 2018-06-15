@@ -61,6 +61,9 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
         Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
 
+   function Do_If_Expression (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_If_Expression;
+
    function Do_Case_Expression (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Case_Expression,
         Post => Kind (Do_Case_Expression'Result) = I_Let_Expr;
@@ -840,6 +843,26 @@ package body Tree_Walk is
    end Do_Call_Parameters;
 
    ------------------------
+   -- Do_If_Expression --
+   ------------------------
+
+   function Do_If_Expression (N : Node_Id) return Irep is
+      Expr : Node_Id := First (Expressions (N));
+      Cond : constant Irep := Do_Expression (Expr);
+      First : Irep;
+      Second : Irep;
+      Expr_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      Next (Expr);
+      First := Do_Expression (Expr);
+
+      Next (Expr);
+      Second := Do_Expression (Expr);
+
+      return Make_If_Expr (Cond, Second, First, Sloc (N), Expr_Type);
+   end Do_If_Expression;
+
+   ------------------------
    -- Do_Case_Expression --
    ------------------------
 
@@ -1179,7 +1202,7 @@ package body Tree_Walk is
             when N_Slice                => Do_Slice (N),
             when N_In => Create_Dummy_Irep,
             when N_Real_Literal => Do_Real_Constant (N),
-            when N_If_Expression => Create_Dummy_Irep,
+            when N_If_Expression => Do_If_Expression (N),
             when N_And_Then => Create_Dummy_Irep,
             when N_Or_Else => Create_Dummy_Irep,
             when N_Qualified_Expression => Create_Dummy_Irep,
