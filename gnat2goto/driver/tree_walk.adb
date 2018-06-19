@@ -849,17 +849,17 @@ package body Tree_Walk is
    function Do_If_Expression (N : Node_Id) return Irep is
       Expr : Node_Id := First (Expressions (N));
       Cond : constant Irep := Do_Expression (Expr);
-      First : Irep;
-      Second : Irep;
+      Then_Expr : Irep;
+      Else_Expr : Irep;
       Expr_Type : constant Irep := Do_Type_Reference (Etype (N));
    begin
       Next (Expr);
-      First := Do_Expression (Expr);
+      Then_Expr := Do_Expression (Expr);
 
       Next (Expr);
-      Second := Do_Expression (Expr);
+      Else_Expr := Do_Expression (Expr);
 
-      return Make_If_Expr (Cond, Second, First, Sloc (N), Expr_Type);
+      return Make_If_Expr (Cond, Else_Expr, Then_Expr, Sloc (N), Expr_Type);
    end Do_If_Expression;
 
    ------------------------
@@ -989,15 +989,9 @@ package body Tree_Walk is
             begin
                Add_Start := False;
             end;
-            --  declare
-            --     HSS   : constant Node_Id := Handled_Statement_Sequence (U);
-            --     pragma Unreferenced (HSS);
-            --  begin
-            --     Add_Start := False;
-            --  end;
 
          when others =>
-            Put_Line ("Unknown tree node");
+            Put_Line (Standard_Error, "Unknown tree node");
             Print_Tree_Node (U);
             raise Program_Error;
       end case;
@@ -1718,7 +1712,7 @@ package body Tree_Walk is
                   Loopvar_Name : constant String :=
                     Unique_Name (Defining_Identifier (Spec));
 
-                  Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
+                  Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
 
                   Type_Loopvar : constant Irep := Do_Type_Reference
                     (Etype (Etype (Defining_Identifier (Spec))));
@@ -1735,19 +1729,17 @@ package body Tree_Walk is
 
                   Bound_Low  : Irep;
                   Bound_High : Irep;
-
-                  Dsd2 : Node_Id := Dsd;
                begin
                   --  Produce something on which we can call Low_Bound and
                   --  High_Bound
-                  if Nkind (Dsd2) = N_Subtype_Indication then
-                     Dsd2 := Range_Expression (Constraint (Dsd2));
+                  if Nkind (Dsd) = N_Subtype_Indication then
+                     Dsd := Range_Expression (Constraint (Dsd));
                   end if;
 
                   Bound_Low :=
-                     Do_Expression (Low_Bound (Dsd2));
+                     Do_Expression (Low_Bound (Dsd));
                   Bound_High :=
-                     Do_Expression (High_Bound (Dsd2));
+                     Do_Expression (High_Bound (Dsd));
 
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
@@ -1767,7 +1759,7 @@ package body Tree_Walk is
                         I_Type          => Make_Bool_Type,
                         Range_Check     => False);
                      Post := Make_Increment
-                       (Sym_Loopvar, Etype (Low_Bound (Dsd2)), -1);
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
                   else
                      Set_Lhs (Init, Sym_Loopvar);
                      Set_Rhs (Init, Bound_Low);
@@ -1779,7 +1771,7 @@ package body Tree_Walk is
                         I_Type          => Make_Bool_Type,
                         Range_Check     => False);
                      Post := Make_Increment
-                       (Sym_Loopvar, Etype (Low_Bound (Dsd2)), 1);
+                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), 1);
                   end if;
                   Set_Source_Location (Init, Sloc (Spec));
                   Set_Source_Location (Post, Sloc (Spec));
@@ -1881,13 +1873,16 @@ package body Tree_Walk is
    begin
       if Pragma_Name (N_Orig) in Name_Assert | Name_Assume then
          Do_Pragma_Assert_or_Assume (N_Orig, Block);
+      --  Ignore here. Rather look for those when we process a node.
       elsif Pragma_Name (N_Orig) in Name_Annotate then
-         null; -- ignore here. Rather look for those when we process a node.
-      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
-      Name_Postcondition | Name_Refined_State | Name_Refined_Global |
-      Name_Precondition | Name_Loop_Invariant
-      then
          null;
+      --  The following pragmas are currently unimplemented, we ignore them
+      --  here
+      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
+         Name_Postcondition | Name_Refined_State | Name_Refined_Global |
+         Name_Precondition | Name_Loop_Invariant
+      then
+         Put_Line (Standard_Error, "Warning: Ignoring unsupported pragma");
       else
          pp (Union_Id (N));
          raise Program_Error; -- unsupported pragma
@@ -2839,6 +2834,8 @@ package body Tree_Walk is
       Proc_Symbol : Symbol;
    begin
       if not Global_Symbol_Table.Contains (Proc_Name) then
+         Put_Line (Standard_Error, "Warning: Subprogram " &
+            Unintern (Proc_Name) & "not in symbol table");
          declare
             Proc_Type : constant Irep :=
                Do_Subprogram_Specification (Specification (N));
@@ -3772,13 +3769,16 @@ package body Tree_Walk is
             Do_Pragma (N, Block);
 
          when N_Raise_Statement =>
-            null;
+            Put_Line (Standard_Error,
+               "Warning: Ignoring unsupported raise statement");
 
          when N_Number_Declaration =>
-            null;
+            Put_Line (Standard_Error,
+               "Warning: Ignoring unsupported number declaration statement");
 
          when N_Case_Statement =>
-            null;
+            Put_Line (Standard_Error,
+               "Warning: Ignoring unsupported case statement");
 
          when others =>
             pp (Union_Id (N));
