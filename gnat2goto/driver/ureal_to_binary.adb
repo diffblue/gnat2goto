@@ -1,9 +1,7 @@
 with Uintp; use Uintp;
 with Types; use Types;
-with Ada.Text_IO;
 
 package body Ureal_To_Binary is
-   package IO renames Ada.Text_IO;
 
    procedure Get_Integer_And_Fractional_Parts (Number : Ureal;
                                               Int_Part : out String;
@@ -17,8 +15,8 @@ package body Ureal_To_Binary is
                                                Frac_Part : out String;
                                                Int_End : out Integer;
                                                Frac_End : out Integer) is
-      Num : Uint := Numerator (Number);
-      Den : constant Uint := Denominator (Number);
+      Num : Uint := Norm_Num (Number);
+      Den : constant Uint := Norm_Den (Number);
 
       function Get_Next_Exponent return Int;
       procedure Do_Integer_Part;
@@ -113,8 +111,8 @@ package body Ureal_To_Binary is
                                          Exponent_Bias : Positive := 127)
                                          return String is
       Is_Negative : constant Boolean := Number < Ureal_0;
-      Int_Part : String (1 .. 2**Exponent_Bits);
-      Frac_Part : String (1 .. 2**Exponent_Bits);
+      Int_Part : String (1 .. 2**(Exponent_Bits - 1));
+      Frac_Part : String (1 .. 2**(Exponent_Bits - 1));
       Abs_Number : constant Ureal := (if Is_Negative then -Number else Number);
       Result : String (1 .. Fraction_Bits + Exponent_Bits + 1)
           := (others => '0');
@@ -209,6 +207,9 @@ package body Ureal_To_Binary is
          end loop;
       end Do_Exponent;
    begin
+      if Number = Ureal_0 then
+         return Result;
+      end if;
       Result (Sign_Bit_Index) := (if Is_Negative then '1' else '0');
       Get_Integer_And_Fractional_Parts (Abs_Number,
                                       Int_Part,
