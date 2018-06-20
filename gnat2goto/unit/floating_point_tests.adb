@@ -15,6 +15,8 @@ package body Floating_Point_Tests is
    procedure Test_Negative_Between_0_And_1;
    procedure Test_Negative_General;
 
+   procedure Test_Zero;
+
    procedure Test_Suite;
 
    procedure Do_Test_Suite is
@@ -105,6 +107,18 @@ package body Floating_Point_Tests is
                        = IEEE_Bits);
    end Test_Negative_General;
 
+   procedure Test_Zero is
+      IEEE_Bits : constant String :=
+        "0" -- Sign Bit
+        & "00000000" -- Exponent -127
+        & "00000000" -- everything 0 is 1.0*2^-127,
+        & "00000000" -- which is the closest we get to 0 with 32 bit float
+        & "0000000";
+   begin
+      pragma Assert (Convert_Ureal_To_Binary_IEEE (Ureal_0)
+                    = IEEE_Bits);
+   end Test_Zero;
+
    procedure Test_Suite is
    begin
 
@@ -120,6 +134,9 @@ package body Floating_Point_Tests is
                           Test_Negative_Between_0_And_1'Access);
       Test_Util.Run_Test ("General negative number",
                           Test_Negative_General'Access);
+
+      Test_Util.Run_Test ("Zero",
+                         Test_Zero'Access);
    end Test_Suite;
 
 end Floating_Point_Tests;
