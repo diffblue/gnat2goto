@@ -43,13 +43,42 @@ with Sinfo;                 use Sinfo;
 package body Driver is
 
    procedure Translate_Standard_Types;
+   procedure Initialize_CProver_Internal_Variables (Start_Body : Irep);
+   procedure Add_CProver_Internal_Symbols;
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
    begin
       Translate_Standard_Types;
+      Add_CProver_Internal_Symbols;
       Translate_Compilation_Unit (GNAT_Root);
    end GNAT_To_Goto;
+
+   procedure Initialize_CProver_Internal_Variables (Start_Body : Irep) is
+      Int_32_T : constant Irep := Make_Signedbv_Type (Ireps.Empty, 32);
+
+      procedure Initialize_CProver_Rounding_Mode;
+      procedure Initialize_CProver_Rounding_Mode is
+         Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Int_32_T,
+            Identifier => "__CPROVER_rounding_mode",
+            Source_Location => No_Location);
+         Rounding_Mode_Val_Bits : constant String (1 .. 32) := (others => '0');
+         Rounding_Mode_Val : constant Irep := Make_Constant_Expr
+           (I_Type => Int_32_T,
+            Value => Rounding_Mode_Val_Bits,
+            Source_Location => No_Location);
+         Initialization_Statement : constant Irep := Make_Code_Assign
+           (Lhs => Rounding_Mode_Sym,
+            Rhs => Rounding_Mode_Val,
+            Source_Location => No_Location);
+      begin
+         Append_Op (Start_Body, Initialization_Statement);
+      end Initialize_CProver_Rounding_Mode;
+
+   begin
+      Initialize_CProver_Rounding_Mode;
+   end Initialize_CProver_Internal_Variables;
 
    procedure Translate_Compilation_Unit (GNAT_Root : Node_Id)
    is
@@ -99,6 +128,7 @@ package body Driver is
          return;
       end if;
 
+      Initialize_CProver_Internal_Variables (Start_Body);
       declare
          Program_Expr : constant Irep := New_Irep (I_Symbol_Expr);
          Program_Type : constant Irep := Program_Symbol.SymType;
@@ -283,5 +313,28 @@ package body Driver is
          end;
       end loop;
    end Translate_Standard_Types;
+
+   procedure Add_CProver_Internal_Symbols is
+      procedure Add_Global_Sym (Name : Symbol_Id; Sym_Type : Irep);
+      procedure Add_Global_Sym (Name : Symbol_Id; Sym_Type : Irep) is
+         Sym : constant Symbol :=
+           (Name => Name,
+            BaseName => Name,
+            PrettyName => Name,
+            SymType => Sym_Type,
+            Module => Intern (""),
+            Mode => Intern ("C"),
+            IsStaticLifetime => True,
+            IsLValue => True,
+            others => <>
+           );
+      begin
+         Global_Symbol_Table.Insert (Name, Sym);
+      end Add_Global_Sym;
+
+      Int_32_T : constant Irep := Make_Signedbv_Type (Ireps.Empty, 32);
+   begin
+      Add_Global_Sym (Intern ("__CPROVER_rounding_mode"), Int_32_T);
+   end Add_CProver_Internal_Symbols;
 
 end Driver;
