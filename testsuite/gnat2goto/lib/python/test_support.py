@@ -50,6 +50,16 @@ def process(file, cbmcargs):
     return filter_timing(results.out)
 
 
+def cbmc_match(line):
+    return ('FAILURE' in line or
+           'SUCCESS' in line or
+           'SUCCEEDED' in line or
+           'FAILED' in line)
+
+def filter_cbmc_output(cbmc_output):
+    lines = cbmc_output.split("\n")
+    return "\n".join(filter(cbmc_match, lines))
+
 def prove(cbmcargs=""):
     """Call gnat2goto (and cbmc) on all *.adb files from the current directory
 
@@ -57,4 +67,4 @@ def prove(cbmcargs=""):
       none: yet
     """
     for file in ada_body_files():
-        print process (file, cbmcargs)
+        print filter_cbmc_output(process(file, cbmcargs))
