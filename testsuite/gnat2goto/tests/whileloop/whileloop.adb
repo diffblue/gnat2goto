@@ -4,6 +4,8 @@ procedure Whileloop is
   c : constant Integer := 1;
 begin
    while A <= B loop
+     pragma Assert (A <= B);
       A := A + C;
+     pragma Assert (A - C <= B);
    end loop;
 end;
