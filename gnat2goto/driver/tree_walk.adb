@@ -12,7 +12,7 @@ with Follow;                use Follow;
 with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
 with Uint_To_Binary;        use Uint_To_Binary;
-
+with Stand;
 with Ada.Text_IO;           use Ada.Text_IO;
 
 package body Tree_Walk is
@@ -1006,10 +1006,11 @@ package body Tree_Walk is
    function Do_Constant (N : Node_Id) return Irep is
       Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Is_Integer_Literal : constant Boolean := Nkind (N) = N_Integer_Literal;
+      Is_Integer_Literal : constant Boolean :=
+        Etype (N) = Stand.Universal_Integer;
       Constant_Resolved_Type : constant Irep :=
         (if Is_Integer_Literal then
-            New_Irep (I_Constant_Expr)
+            New_Irep (I_Signedbv_Type)
          else
             Follow_Symbol_Type (Constant_Type, Global_Symbol_Table));
       Constant_Width : constant Integer :=
