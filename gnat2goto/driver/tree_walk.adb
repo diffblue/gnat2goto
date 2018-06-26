@@ -13,6 +13,8 @@ with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
 with Uint_To_Binary;        use Uint_To_Binary;
 
+with Ada.Text_IO;           use Ada.Text_IO;
+
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
@@ -59,6 +61,9 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
         Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
 
+   function Do_If_Expression (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_If_Expression;
+
    function Do_Case_Expression (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Case_Expression,
         Post => Kind (Do_Case_Expression'Result) = I_Let_Expr;
@@ -66,6 +71,10 @@ package body Tree_Walk is
    function Do_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
+
+   function Do_Real_Constant (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Real_Literal,
+        Post => Kind (Do_Real_Constant'Result) = I_Constant_Expr;
 
    function Do_Constrained_Array_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Array_Type_Definition,
@@ -137,6 +146,9 @@ package body Tree_Walk is
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep
    with Pre => Is_Itype (N) and then Ekind (N) = E_Signed_Integer_Subtype;
+
+   function Do_Itype_Integer_Type (N : Entity_Id) return Irep
+   with Pre => Is_Itype (N) and then Ekind (N) = E_Signed_Integer_Type;
 
    function Do_Itype_Record_Subtype (N : Entity_Id) return Irep
    with Pre => Is_Itype (N) and then Ekind (N) = E_Record_Subtype;
@@ -831,6 +843,26 @@ package body Tree_Walk is
    end Do_Call_Parameters;
 
    ------------------------
+   -- Do_If_Expression --
+   ------------------------
+
+   function Do_If_Expression (N : Node_Id) return Irep is
+      Expr : Node_Id := First (Expressions (N));
+      Cond : constant Irep := Do_Expression (Expr);
+      Then_Expr : Irep;
+      Else_Expr : Irep;
+      Expr_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      Next (Expr);
+      Then_Expr := Do_Expression (Expr);
+
+      Next (Expr);
+      Else_Expr := Do_Expression (Expr);
+
+      return Make_If_Expr (Cond, Else_Expr, Then_Expr, Sloc (N), Expr_Type);
+   end Do_If_Expression;
+
+   ------------------------
    -- Do_Case_Expression --
    ------------------------
 
@@ -922,7 +954,8 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id) return Symbol
+   function Do_Compilation_Unit (N : Node_Id; Add_Start : out Boolean)
+     return Symbol
    is
       U           : constant Node_Id := Unit (N);
       Unit_Symbol : Symbol;
@@ -946,9 +979,19 @@ package body Tree_Walk is
 
                Unit_Symbol.Value      := Do_Subprogram_Or_Block (U);
                Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+               Add_Start := True;
+            end;
+
+         when N_Package_Body =>
+            declare
+               Dummy : constant Irep := Do_Subprogram_Or_Block (U);
+               pragma Unreferenced (Dummy);
+            begin
+               Add_Start := False;
             end;
 
          when others =>
+            Put_Line (Standard_Error, "Unknown tree node");
             Print_Tree_Node (U);
             raise Program_Error;
       end case;
@@ -970,6 +1013,21 @@ package body Tree_Walk is
       Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
       return Ret;
    end Do_Constant;
+
+   ----------------------
+   -- Do_Real_Constant --
+   ----------------------
+
+   function Do_Real_Constant (N : Node_Id) return Irep is
+      Ret           : constant Irep := New_Irep (I_Constant_Expr);
+      Real_Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      Set_Source_Location (Ret, Sloc (N));
+      Set_Type (Ret, Real_Constant_Type);
+      --  ??? FIXME
+      Set_Value (Ret, "0");
+      return Ret;
+   end Do_Real_Constant;
 
    -------------------------------------
    -- Do_Constrained_Array_Definition --
@@ -1104,28 +1162,97 @@ package body Tree_Walk is
    -- Do_Expression --
    -------------------
 
+   function Create_Dummy_Irep return Irep;
+   function Create_Dummy_Irep return Irep is
+      ir : constant Irep := New_Irep (I_Constant_Expr);
+   begin
+      Set_Value (ir, "0");
+      return ir;
+   end Create_Dummy_Irep;
+
    function Do_Expression (N : Node_Id) return Irep is
+      procedure Warn_Unhandled_Expression (M : String);
+      procedure Warn_Unhandled_Expression (M : String) is
+      begin
+         Put_Line (Standard_Error, "Warning: " & M & "expressions unhandled");
+      end Warn_Unhandled_Expression;
    begin
       Declare_Itype (Etype (N));
-      return
-        (case Nkind (N) is
-            when N_Identifier           => Do_Identifier (N),
-            when N_Selected_Component   => Do_Selected_Component (N),
-            when N_Op                   => Do_Operator_General (N),
-            when N_Integer_Literal      => Do_Constant (N),
-            when N_Type_Conversion      => Do_Type_Conversion (N),
-            when N_Function_Call        => Do_Function_Call (N),
-            when N_Attribute_Reference  =>
-               (case Get_Attribute_Id (Attribute_Name (N)) is
-                  when Attribute_Access => Do_Address_Of (N),
-                  when Attribute_Length => Do_Array_Length (N),
-                  when others           => raise Program_Error),
-            when N_Explicit_Dereference => Do_Dereference (N),
-            when N_Case_Expression      => Do_Case_Expression (N),
-            when N_Aggregate            => Do_Aggregate_Literal (N),
-            when N_Indexed_Component    => Do_Indexed_Component (N),
-            when N_Slice                => Do_Slice (N),
-            when others                 => raise Program_Error);
+      case Nkind (N) is
+         when N_Identifier           => return Do_Identifier (N);
+         when N_Selected_Component   => return Do_Selected_Component (N);
+         when N_Op                   => return Do_Operator_General (N);
+         when N_Integer_Literal      => return Do_Constant (N);
+         when N_Type_Conversion      => return Do_Type_Conversion (N);
+         when N_Function_Call        => return Do_Function_Call (N);
+         when N_Attribute_Reference  =>
+            case Get_Attribute_Id (Attribute_Name (N)) is
+               when Attribute_Access => return Do_Address_Of (N);
+               when Attribute_Length => return Do_Array_Length (N);
+               when Attribute_Range  =>
+                  Warn_Unhandled_Expression ("Range attribute");
+                  return Create_Dummy_Irep;
+               when Attribute_First  =>
+                  Warn_Unhandled_Expression ("First attribute");
+                  return Create_Dummy_Irep;
+               when Attribute_Last   =>
+                  Warn_Unhandled_Expression ("Last attribute");
+                  return Create_Dummy_Irep;
+               when others           => raise Program_Error;
+            end case;
+         when N_Explicit_Dereference => return Do_Dereference (N);
+         when N_Case_Expression      => return Do_Case_Expression (N);
+         when N_Aggregate            => return Do_Aggregate_Literal (N);
+         when N_Indexed_Component    => return Do_Indexed_Component (N);
+         when N_Slice                => return Do_Slice (N);
+         when N_In =>
+            Warn_Unhandled_Expression ("In");
+            return Create_Dummy_Irep;
+         when N_Real_Literal => return Do_Real_Constant (N);
+         when N_If_Expression => return Do_If_Expression (N);
+         when N_And_Then =>
+            Warn_Unhandled_Expression ("And then");
+            return Create_Dummy_Irep;
+         when N_Or_Else =>
+            Warn_Unhandled_Expression ("Or else");
+            return Create_Dummy_Irep;
+         when N_Qualified_Expression =>
+            Warn_Unhandled_Expression ("Qualified");
+            return Create_Dummy_Irep;
+         when N_Quantified_Expression =>
+            Warn_Unhandled_Expression ("Quantified");
+            return Create_Dummy_Irep;
+         when others                 => raise Program_Error;
+      end case;
+--        return
+--          (case Nkind (N) is
+--              when N_Identifier           => Do_Identifier (N),
+--              when N_Selected_Component   => Do_Selected_Component (N),
+--              when N_Op                   => Do_Operator_General (N),
+--              when N_Integer_Literal      => Do_Constant (N),
+--              when N_Type_Conversion      => Do_Type_Conversion (N),
+--              when N_Function_Call        => Do_Function_Call (N),
+--              when N_Attribute_Reference  =>
+--                 (case Get_Attribute_Id (Attribute_Name (N)) is
+--                    when Attribute_Access => Do_Address_Of (N),
+--                    when Attribute_Length => Do_Array_Length (N),
+--                    when Attribute_Range => Create_Dummy_Irep,
+--                    when Attribute_First => Create_Dummy_Irep,
+--                    when Attribute_Last => Create_Dummy_Irep,
+--                    when others           => raise Program_Error),
+--              when N_Explicit_Dereference => Do_Dereference (N),
+--              when N_Case_Expression      => Do_Case_Expression (N),
+--              when N_Aggregate            => Do_Aggregate_Literal (N),
+--              when N_Indexed_Component    => Do_Indexed_Component (N),
+--              when N_Slice                => Do_Slice (N),
+--              when N_In => Create_Dummy_Irep,
+--              when N_Real_Literal => Do_Real_Constant (N),
+--              when N_If_Expression => Do_If_Expression (N),
+--              when N_And_Then => Create_Dummy_Irep,
+--              when N_Or_Else => Create_Dummy_Irep,
+--              when N_Qualified_Expression => Create_Dummy_Irep,
+--              when N_Quantified_Expression => Create_Dummy_Irep,
+--              when others                 => raise Program_Error);
    end Do_Expression;
 
    ------------------------------
@@ -1493,6 +1620,8 @@ package body Tree_Walk is
          when E_Array_Subtype => Do_Itype_Array_Subtype (N),
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
+         when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
+         when E_Floating_Point_Type => Create_Dummy_Irep,
          when others => raise Program_Error);
    end Do_Itype_Definition;
 
@@ -1501,6 +1630,17 @@ package body Tree_Walk is
    ------------------------------
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep is
+      (Make_Bounded_Signedbv_Type (
+         Lower_Bound => Do_Expression (Low_Bound (Scalar_Range (N))),
+         Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
+         Width => Positive (UI_To_Int (Esize (N))),
+         I_Subtype => Ireps.Empty));
+
+   ------------------------------
+   -- Do_Itype_Integer_Type --
+   ------------------------------
+
+   function Do_Itype_Integer_Type (N : Entity_Id) return Irep is
       (Make_Bounded_Signedbv_Type (
          Lower_Bound => Do_Expression (Low_Bound (Scalar_Range (N))),
          Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
@@ -1624,7 +1764,28 @@ package body Tree_Walk is
                   Loopvar_Name : constant String :=
                     Unique_Name (Defining_Identifier (Spec));
 
-                  Dsd : constant Node_Id := Discrete_Subtype_Definition (Spec);
+                  function Get_Range (Spec : Node_Id)
+                     return Node_Id;
+
+                  function Get_Range (Spec : Node_Id)
+                     return Node_Id
+                  is
+                     Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
+                  begin
+                     if Nkind (Dsd) = N_Subtype_Indication then
+                        Dsd := Range_Expression (Constraint (Dsd));
+                     end if;
+
+                     pragma Assert (False
+                        or else Nkind (Dsd) = N_Range
+                        or else Nkind (Dsd) = N_Real_Range_Specification
+                        or else
+                           Nkind (Dsd) = N_Signed_Integer_Type_Definition);
+
+                     return Dsd;
+                  end Get_Range;
+
+                  Dsd : constant Node_Id := Get_Range (Spec);
 
                   Type_Loopvar : constant Irep := Do_Type_Reference
                     (Etype (Etype (Defining_Identifier (Spec))));
@@ -1639,11 +1800,9 @@ package body Tree_Walk is
                   Cond : Irep;
                   Post : Irep;
 
-                  Bound_Low  : constant Irep :=
-                    Do_Expression (Low_Bound (Dsd));
+                  Bound_Low : constant Irep := Do_Expression (Low_Bound (Dsd));
                   Bound_High : constant Irep :=
-                    Do_Expression (High_Bound (Dsd));
-
+                     Do_Expression (High_Bound (Dsd));
                begin
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
@@ -1777,8 +1936,16 @@ package body Tree_Walk is
    begin
       if Pragma_Name (N_Orig) in Name_Assert | Name_Assume then
          Do_Pragma_Assert_or_Assume (N_Orig, Block);
+      --  Ignore here. Rather look for those when we process a node.
       elsif Pragma_Name (N_Orig) in Name_Annotate then
-         null; -- ignore here. Rather look for those when we process a node.
+         null;
+      --  The following pragmas are currently unimplemented, we ignore them
+      --  here
+      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
+         Name_Postcondition | Name_Refined_State | Name_Refined_Global |
+         Name_Precondition | Name_Loop_Invariant
+      then
+         Put_Line (Standard_Error, "Warning: Ignoring unsupported pragma");
       else
          pp (Union_Id (N));
          raise Program_Error; -- unsupported pragma
@@ -2727,8 +2894,27 @@ package body Tree_Walk is
       --  Intern (Unique_Name (Corresponding_Spec (N)));
 
       Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
-      Proc_Symbol : Symbol := Global_Symbol_Table (Proc_Name);
+      Proc_Symbol : Symbol;
    begin
+      if not Global_Symbol_Table.Contains (Proc_Name) then
+         Put_Line (Standard_Error, "Warning: Subprogram " &
+            Unintern (Proc_Name) & " not in symbol table");
+         declare
+            Proc_Type : constant Irep :=
+               Do_Subprogram_Specification (Specification (N));
+            New_Proc_Symbol : Symbol;
+         begin
+            New_Proc_Symbol.Name       := Proc_Name;
+            New_Proc_Symbol.BaseName   := Proc_Name;
+            New_Proc_Symbol.PrettyName := Proc_Name;
+            New_Proc_Symbol.SymType    := Proc_Type;
+            New_Proc_Symbol.Mode       := Intern ("C");
+
+            Global_Symbol_Table.Insert (Proc_Name, New_Proc_Symbol);
+         end;
+      end if;
+      pragma Assert (Global_Symbol_Table.Contains (Proc_Name));
+      Proc_Symbol := Global_Symbol_Table (Proc_Name);
       Proc_Symbol.Value := Proc_Body;
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
@@ -2935,6 +3121,8 @@ package body Tree_Walk is
             return Do_Constrained_Array_Definition (N);
          when N_Unconstrained_Array_Definition =>
             return Do_Unconstrained_Array_Definition (N);
+         when N_Modular_Type_Definition =>
+            return Create_Dummy_Irep;
          when others =>
             pp (Union_Id (N));
             raise Program_Error;
@@ -3586,6 +3774,11 @@ package body Tree_Walk is
    -------------------------
 
    procedure Process_Statement (N : Node_Id; Block : Irep) is
+      procedure Warn_Unhandled_Statement (M : String);
+      procedure Warn_Unhandled_Statement (M : String) is
+      begin
+         Put_Line (Standard_Error, "Warning: " & M & "statements unhandled");
+      end Warn_Unhandled_Statement;
    begin
       --  Deal with the statement
       case Nkind (N) is
@@ -3642,6 +3835,15 @@ package body Tree_Walk is
 
          when N_Pragma =>
             Do_Pragma (N, Block);
+
+         when N_Raise_Statement =>
+            Warn_Unhandled_Statement ("Raise");
+
+         when N_Number_Declaration =>
+            Warn_Unhandled_Statement ("Number declaration");
+
+         when N_Case_Statement =>
+            Warn_Unhandled_Statement ("Case");
 
          when others =>
             pp (Union_Id (N));

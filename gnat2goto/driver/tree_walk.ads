@@ -72,7 +72,8 @@ package Tree_Walk is
 
    Check_Function_Symbol : Irep := Ireps.Empty;
 
-   function Do_Compilation_Unit (N : Node_Id) return Symbol
+   function Do_Compilation_Unit (N : Node_Id; Add_Start : out Boolean)
+     return Symbol
    with Pre => Nkind (N) = N_Compilation_Unit;
 
 end Tree_Walk;
