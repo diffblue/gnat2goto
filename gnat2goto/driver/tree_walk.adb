@@ -1875,6 +1875,8 @@ package body Tree_Walk is
       -- Do_Pragma_Assert_or_Assume --
       --------------------------------
 
+      --  Handle pragmas that result in a simple assert or assume statement in
+      --  the resulting goto program
       procedure Do_Pragma_Assert_or_Assume
         (N_Orig : Node_Id; Block : Irep);
 
@@ -1884,7 +1886,8 @@ package body Tree_Walk is
 
          Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
          A_Irep : constant Irep := New_Irep
-           ((if Which = Pragma_Assert then I_Code_Assert else I_Code_Assume));
+           (if Which in Pragma_Assert | Pragma_Loop_Invariant
+            then I_Code_Assert else I_Code_Assume);
 
          --  To be set by iterator:
          Check : Irep := Ireps.Empty;
@@ -1921,7 +1924,7 @@ package body Tree_Walk is
          Iterate_Args (N_Orig);
          pragma Assert (Check /= Ireps.Empty);
 
-         if Which = Pragma_Assert then
+         if Which in Pragma_Assert | Pragma_Loop_Invariant then
             Set_Assertion (A_Irep, Check);
          else
             Set_Assumption (A_Irep, Check);
@@ -1934,7 +1937,9 @@ package body Tree_Walk is
       N_Orig : constant Node_Id := Original_Node (N);
 
    begin
-      if Pragma_Name (N_Orig) in Name_Assert | Name_Assume then
+      if Pragma_Name (N_Orig) in Name_Assert | Name_Assume |
+         Name_Loop_Invariant
+      then
          Do_Pragma_Assert_or_Assume (N_Orig, Block);
       --  Ignore here. Rather look for those when we process a node.
       elsif Pragma_Name (N_Orig) in Name_Annotate then
@@ -1943,7 +1948,7 @@ package body Tree_Walk is
       --  here
       elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
          Name_Postcondition | Name_Refined_State | Name_Refined_Global |
-         Name_Precondition | Name_Loop_Invariant
+         Name_Precondition
       then
          Put_Line (Standard_Error, "Warning: Ignoring unsupported pragma");
       else
