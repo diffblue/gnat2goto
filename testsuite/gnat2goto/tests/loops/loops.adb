@@ -44,4 +44,9 @@ begin
    while z > 1 loop
       exit;
    end loop;
+
+   for i in 1..10 loop
+     pragma assert(i < 10);
+     null;
+   end loop;
 end Loops;

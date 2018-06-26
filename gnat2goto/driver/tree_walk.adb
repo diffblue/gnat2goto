@@ -1006,11 +1006,22 @@ package body Tree_Walk is
    function Do_Constant (N : Node_Id) return Irep is
       Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Is_Integer_Literal : constant Boolean := Nkind (N) = N_Integer_Literal;
+      Constant_Resolved_Type : constant Irep :=
+        (if Is_Integer_Literal then
+            New_Irep (I_Constant_Expr)
+         else
+            Follow_Symbol_Type (Constant_Type, Global_Symbol_Table));
+      Constant_Width : constant Integer :=
+        (if Is_Integer_Literal then
+            64  -- TODO: https://github.com/diffblue/gnat2goto/issues/29
+         else
+            Get_Width (Constant_Resolved_Type));
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Constant_Type);
-      --  ??? FIXME
-      Set_Value (Ret, Convert_Uint_To_Binary (Intval (N), 32));
+      Set_Value (Ret,
+                 Convert_Uint_To_Binary (Intval (N), Pos (Constant_Width)));
       return Ret;
    end Do_Constant;
 
@@ -1158,6 +1169,9 @@ package body Tree_Walk is
       return Ret;
    end Do_Enumeration_Definition;
 
+   function Do_And_Then (N : Node_Id) return Irep
+   with Pre => (Nkind (N) = N_And_Then);
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1210,9 +1224,7 @@ package body Tree_Walk is
             return Create_Dummy_Irep;
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
-         when N_And_Then =>
-            Warn_Unhandled_Expression ("And then");
-            return Create_Dummy_Irep;
+         when N_And_Then => return Do_And_Then (N);
          when N_Or_Else =>
             Warn_Unhandled_Expression ("Or else");
             return Create_Dummy_Irep;
@@ -1224,36 +1236,19 @@ package body Tree_Walk is
             return Create_Dummy_Irep;
          when others                 => raise Program_Error;
       end case;
---        return
---          (case Nkind (N) is
---              when N_Identifier           => Do_Identifier (N),
---              when N_Selected_Component   => Do_Selected_Component (N),
---              when N_Op                   => Do_Operator_General (N),
---              when N_Integer_Literal      => Do_Constant (N),
---              when N_Type_Conversion      => Do_Type_Conversion (N),
---              when N_Function_Call        => Do_Function_Call (N),
---              when N_Attribute_Reference  =>
---                 (case Get_Attribute_Id (Attribute_Name (N)) is
---                    when Attribute_Access => Do_Address_Of (N),
---                    when Attribute_Length => Do_Array_Length (N),
---                    when Attribute_Range => Create_Dummy_Irep,
---                    when Attribute_First => Create_Dummy_Irep,
---                    when Attribute_Last => Create_Dummy_Irep,
---                    when others           => raise Program_Error),
---              when N_Explicit_Dereference => Do_Dereference (N),
---              when N_Case_Expression      => Do_Case_Expression (N),
---              when N_Aggregate            => Do_Aggregate_Literal (N),
---              when N_Indexed_Component    => Do_Indexed_Component (N),
---              when N_Slice                => Do_Slice (N),
---              when N_In => Create_Dummy_Irep,
---              when N_Real_Literal => Do_Real_Constant (N),
---              when N_If_Expression => Do_If_Expression (N),
---              when N_And_Then => Create_Dummy_Irep,
---              when N_Or_Else => Create_Dummy_Irep,
---              when N_Qualified_Expression => Create_Dummy_Irep,
---              when N_Quantified_Expression => Create_Dummy_Irep,
---              when others                 => raise Program_Error);
    end Do_Expression;
+
+   function Do_And_Then (N : Node_Id) return Irep is
+      L : constant Node_Id := Left_Opnd (N);
+      R : constant Node_Id := Right_Opnd (N);
+      Expr : constant Irep := New_Irep (I_Op_And);
+   begin
+      Append_Op (Expr, Do_Expression (L));
+      Append_Op (Expr, Do_Expression (R));
+      Set_Type (Expr, Make_Bool_Type);
+      Set_Source_Location (Expr, Sloc (N));
+      return Expr;
+   end Do_And_Then;
 
    ------------------------------
    -- Do_Full_Type_Declaration --
