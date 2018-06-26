@@ -1,50 +1,5 @@
-CBMC version 5.6 64-bit x86_64 linux
-Parsing whileloop.json_symtab
-Converting
-Generating GOTO Program
-Adding CPROVER library (x86_64)
-Removal of function pointers and virtual functions
-Partial Inlining
-Generic Property Instrumentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-_start /* _start */
-        // 0 
-        void return';
-        // 1 
-        return'=whileloop();
-        // 2 no location
-        dead return';
-        // 3 no location
-        END_FUNCTION
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-whileloop /* whileloop */
-        // 4 file whileloop.adb line 2 column 3
-        int whileloop__a;
-        // 5 file whileloop.adb line 2 column 3
-        whileloop__a = 1;
-        // 6 file whileloop.adb line 3 column 3
-        int whileloop__b;
-        // 7 file whileloop.adb line 3 column 3
-        whileloop__b = 10;
-        // 8 file whileloop.adb line 4 column 3
-        int whileloop__c;
-        // 9 file whileloop.adb line 4 column 3
-        whileloop__c = 1;
-        // 10 file whileloop.adb line 6 column 17
-     1: IF !(whileloop__a <= whileloop__b) THEN GOTO 2
-        // 11 file whileloop.adb line 7 column 14
-        ASSERT !overflow("+", int, whileloop__a, whileloop__c) // arithmetic overflow on signed + in whileloop__a + whileloop__c
-        // 12 file whileloop.adb line 7 column 9
-        whileloop__a = whileloop__a + whileloop__c;
-        // 13 file whileloop.adb line 6 column 17
-        GOTO 1
-        // 14 no location
-     2: dead whileloop__c;
-        // 15 no location
-        dead whileloop__b;
-        // 16 no location
-        dead whileloop__a;
-        // 17 no location
-        END_FUNCTION
+[1] : SUCCESS
+[2] : SUCCESS
+[overflow.1] arithmetic overflow on signed + in whileloop__a + whileloop__c: SUCCESS
+[overflow.2] arithmetic overflow on signed - in whileloop__a - whileloop__c: SUCCESS
+VERIFICATION SUCCESSFUL

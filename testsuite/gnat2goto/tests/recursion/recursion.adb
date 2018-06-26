@@ -1,6 +1,6 @@
 procedure Recursion (A : Integer) is
 begin
-   if (A = 0) then
+   if (A <= 0) then
       return;
    else
       Recursion (A - 1);
