@@ -13,6 +13,7 @@ with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
 with Uint_To_Binary;        use Uint_To_Binary;
 with Stand;
+with Ureal_To_Binary;       use Ureal_To_Binary;
 with Ada.Text_IO;           use Ada.Text_IO;
 
 package body Tree_Walk is
@@ -1036,8 +1037,7 @@ package body Tree_Walk is
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Real_Constant_Type);
-      --  ??? FIXME
-      Set_Value (Ret, "0");
+      Set_Value (Ret, Convert_Ureal_To_Binary_IEEE (Realval (N)));
       return Ret;
    end Do_Real_Constant;
 
