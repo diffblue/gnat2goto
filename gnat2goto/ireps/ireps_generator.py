@@ -28,7 +28,6 @@
 
 import os
 import os.path
-import sys
 import json
 import argparse
 
@@ -36,12 +35,29 @@ from pprint import pprint
 from glob import glob
 from copy import copy
 
+
+# Helper functions
+
 irep_type_to_ada_type = {
-   "irep"      : "Irep",
-   "bool"      : "Boolean",
-   "integer"   : "Integer",
-   "string"    : "String",
-   "gnat:sloc" : "Source_Ptr"
+    "irep"      : "Irep",
+    "bool"      : "Boolean",
+    "integer"   : "Integer",
+    "string"    : "String",
+    "gnat:sloc" : "Source_Ptr"
+}
+
+special_names = {
+    "+"      : "op_add",
+    "-"      : "op_sub",
+    "*"      : "op_mul",
+    "/"      : "op_div",
+    "**"     : "op_exp",
+    "="      : "op_eq",
+    ">"      : "op_gt",
+    "<"      : "op_lt",
+    ">="     : "op_geq",
+    "<="     : "op_leq",
+    "unary-" : "op_neg",
 }
 
 def ada_casing(s):
@@ -214,8 +230,6 @@ def optimize_layout(layout, max_int, max_bool):
     for kind in accessors:
         accessors[kind] = sorted(accessors[kind])
 
-    cls = sorted(layout)
-
     for fld_kind, all_acc in accessors.iteritems():
         n = req_fld[fld_kind]
         f = new_file("%s_%u.smt2" % (fld_kind, n))
@@ -279,19 +293,6 @@ def optimize_layout(layout, max_int, max_bool):
     return layout, req_fld["int"], req_fld["bool"]
 
 def generate_code(optimize, schema_file_names):
-    special_names = {"+"      : "op_add",
-                     "-"      : "op_sub",
-                     "*"      : "op_mul",
-                     "/"      : "op_div",
-                     "**"     : "op_exp",
-                     "="      : "op_eq",
-                     ">"      : "op_gt",
-                     "<"      : "op_lt",
-                     ">="     : "op_geq",
-                     "<="     : "op_leq",
-                     "unary-" : "op_neg",
-                 }
-
     schemata = {}
     for schema_fn in schema_file_names:
         with open(schema_fn, "rU") as fd:
@@ -623,7 +624,7 @@ def generate_code(optimize, schema_file_names):
 
                 friendly_name = list_schema["friendly_name"]
                 element_type  = list_schema["schema"]
-                register_sub_setter(sn, i, friendly_name, element_type, True)
+                register_sub_setter(sn, i, friendly_name, element_type, True, None)
 
             elif "friendly_name" in sub:
                 friendly_name = sub["friendly_name"]
@@ -686,7 +687,8 @@ def generate_code(optimize, schema_file_names):
                     register_named_setter(sn,
                                           "list",
                                           friendly_name, list_type,
-                                          fld == "comment")
+                                          fld == "comment",
+                                          None)
 
                 else:
                     assert False
@@ -857,7 +859,6 @@ def generate_code(optimize, schema_file_names):
                                             coms[setter_name]))
 
         # cnst ::= schema -> id|namedSub|comment -> {name: value}
-        cons = {}
         for kind in const.get(sn, {}):
             for const_name, const_value in const[sn][kind].iteritems():
                 tmp = "constant %s: %s" % (ada_casing(const_name), const_value)
@@ -1130,7 +1131,6 @@ def generate_code(optimize, schema_file_names):
         assert fn_kind != "list" or value_type == "irep"
         is_list = fn_kind == "list"
         name = "Get_" + ada_casing(fn_name)
-        all_the_same = len(set(x for x in inputs.itervalues())) == 1
 
         if is_list:
             ada_value_type = "Irep_List"
@@ -1152,7 +1152,7 @@ def generate_code(optimize, schema_file_names):
 
         kind_slot_map = {}
         for sn in sorted(i_kinds):
-            layout_kind, layout_index, layout_typ = layout[sn][fn_name]
+            layout_kind, layout_index, _ = layout[sn][fn_name]
             if layout_index not in kind_slot_map:
                 kind_slot_map[layout_index] = []
             kind_slot_map[layout_index].append(sn)
@@ -1261,7 +1261,7 @@ def generate_code(optimize, schema_file_names):
 
         kind_slot_map = {}
         for sn in sorted(i_kinds):
-            layout_kind, layout_index, layout_typ = layout[sn][fn_name]
+            layout_kind, layout_index, _ = layout[sn][fn_name]
             if layout_index not in kind_slot_map:
                 kind_slot_map[layout_index] = []
             kind_slot_map[layout_index].append(sn)
@@ -1711,7 +1711,7 @@ def generate_code(optimize, schema_file_names):
                         assert kind in ("irep", "list", "trivial")
                         if sn in named_setters[setter_name][kind]:
                             needs_null = False
-                            is_comment, value_type, _ =\
+                            is_comment, _, _ =\
                               named_setters[setter_name][kind][sn]
                             layout_kind, layout_index, layout_typ =\
                               layout[sn][setter_name]
