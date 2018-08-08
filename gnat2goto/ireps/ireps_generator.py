@@ -242,6 +242,15 @@ class IrepsGenerator(object):
         for sc in sorted(self.schemata[sn]["subclasses"]):
             self.register_subclasses(sc, s, prefix_len)
 
+    def register_summary_classes(self, kind, todo, group):
+        group_name = self.schemata[kind].get("subclass_ada_name", None)
+        if group_name is not None:
+            if self.summary_classes[group_name] <= todo:
+                todo -= self.summary_classes[group_name]
+                group.append(group_name)
+        for sc in self.schemata[kind]["subclasses"]:
+            self.register_summary_classes(sc, todo, group)
+
     # Debug output of hierarchy
     def export_to_dot(self, filename):
         with open(filename + ".dot", "w") as fd:
@@ -504,15 +513,7 @@ class IrepsGenerator(object):
         def mk_precondition_in(param_name, kinds):
             todo = set(kinds)
             groups = []
-            def register_summary_classes(kind, todo):
-                group_name = self.schemata[kind].get("subclass_ada_name", None)
-                if group_name is not None:
-                    if self.summary_classes[group_name] <= todo:
-                        todo -= self.summary_classes[group_name]
-                        groups.append(group_name)
-                for sc in self.schemata[kind]["subclasses"]:
-                    register_summary_classes(sc, todo)
-            register_summary_classes("irep", todo)
+            self.register_summary_classes("irep", todo, groups)
             things = sorted(groups + [self.schemata[x]["ada_name"] for x in todo])
             assert len(things) >= 1
             if len(things) == 1 and things[0].startswith("I_"):
