@@ -588,14 +588,14 @@ class IrepsGenerator(object):
                                     is_comment,
                                     default_value)
 
-        const = {}
+        self.const = {}
         # cnst ::= schema -> id|namedSub|comment -> {name: value}
         def register_constant(root_schema, kind, friendly_name, string_value):
-            if root_schema not in const:
-                const[str(root_schema)] = {}
-            if kind not in const[root_schema]:
-                const[root_schema][kind] = {}
-            const[root_schema][kind][friendly_name] = string_value
+            if root_schema not in self.const:
+                self.const[str(root_schema)] = {}
+            if kind not in self.const[root_schema]:
+                self.const[root_schema][kind] = {}
+            self.const[root_schema][kind][friendly_name] = string_value
 
             # Also apply to all children
             for sc in self.schemata[root_schema].get("subclasses", None):
@@ -709,7 +709,7 @@ class IrepsGenerator(object):
             # namd ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
             # Delete setters for which we have a constant
             for kind in ("namedSub", "comment"):
-                data = const.get(sn, {}).get(kind, {})
+                data = self.const.get(sn, {}).get(kind, {})
                 for friendly_name, const_value in data.iteritems():
                     if (friendly_name in self.named_setters and
                         "trivial" in self.named_setters[friendly_name] and
@@ -1042,9 +1042,9 @@ class IrepsGenerator(object):
             write(b, "case Irep_Table.Table (I).Kind is")
             with indent(b):
                 for sn in self.top_sorted_sn:
-                    if sn in const and "id" in const[sn]:
+                    if sn in self.const and "id" in self.const[sn]:
                         write(b, "when %s =>" % self.schemata[sn]["ada_name"])
-                        write(b, '   return "%s";' % const[sn]["id"]["id"])
+                        write(b, '   return "%s";' % self.const[sn]["id"]["id"])
                         continuation(b)
                 write(b, 'when others => return "";')
             write(b, "end case;")
@@ -1698,7 +1698,7 @@ class IrepsGenerator(object):
 
 
                     # Set all constants
-                    for kind, data in const.get(sn, {}).iteritems():
+                    for kind, data in self.const.get(sn, {}).iteritems():
                         if kind == "id":
                             continue
                         elif kind == "namedSub":
@@ -1706,7 +1706,7 @@ class IrepsGenerator(object):
                         elif kind == "comment":
                             obj = "Comment"
                         else:
-                            print sn, kind, const[sn]
+                            print sn, kind, self.const[sn]
                             assert False
                         for const_name, const_value in data.iteritems():
                             needs_null = False
@@ -2221,7 +2221,6 @@ class IrepsGenerator(object):
         write(b, "end Ireps;")
         write_file(b)
 
-
     ##########################################################################
     # Documentation
     def generate_documentation(self, s):
@@ -2242,7 +2241,6 @@ class IrepsGenerator(object):
                     if sn in variants:
                         subs[variants[sn][0]] = (ada_casing(setter_name),
                                                 actual_type)
-
             if len(subs):
                 write(s, "--  subs")
                 for op in xrange(len(subs)):
