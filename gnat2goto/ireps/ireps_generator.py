@@ -238,6 +238,13 @@ class IrepsGenerator(object):
         set(self.top_sorted_sn[self.top_sorted_sn.index(first) :
                             self.top_sorted_sn.index(last) + 1])
 
+    def register_subclasses(self, sn, s, prefix_len):
+        if self.schemata[sn]["used"]:
+            write(s, " " * prefix_len + self.schemata[sn]["ada_name"] + ",")
+            self.top_sorted_sn.append(sn)
+        for sc in sorted(self.schemata[sn]["subclasses"]):
+            self.register_subclasses(sc, s, prefix_len)
+
     # Debug output of hierarchy
     def export_to_dot(self, filename):
         with open(filename + ".dot", "w") as fd:
@@ -478,15 +485,8 @@ class IrepsGenerator(object):
         # Emit kind enum
         self.top_sorted_sn = []
         prefix = "type Irep_Kind is ("
-        prefix_len = len(prefix)
         write(s, prefix + "I_Empty, --  For the Empty Irep")
-        def register_subclasses(sn):
-            if self.schemata[sn]["used"]:
-                write(s, " " * prefix_len + self.schemata[sn]["ada_name"] + ",")
-                self.top_sorted_sn.append(sn)
-            for sc in sorted(self.schemata[sn]["subclasses"]):
-                register_subclasses(sc)
-        register_subclasses("irep")
+        self.register_subclasses("irep", s, len(prefix))
         s["content"][-1]["text"] = s["content"][-1]["text"].rstrip(",") + ");"
         write(s, "")
 
