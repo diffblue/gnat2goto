@@ -478,9 +478,14 @@ class IrepsGenerator(object):
             subc = sorted(self.schemata[root]["subclasses"])
             first = subc[0]
             last = subc[-1]
+
+            while len(self.schemata[first]["subclasses"]) >= 1:
+            subc = sorted(self.schemata[first]["subclasses"])
+            first = subc[0]
             while len(self.schemata[last]["subclasses"]) >= 1:
                 subc = sorted(self.schemata[last]["subclasses"])
                 last = subc[-1]
+
             write(s, "subtype %s is Irep_Kind" % name)
             write(s, "  range %s .. %s;" % (self.schemata[first]["ada_name"],
                                             self.schemata[last]["ada_name"]))
