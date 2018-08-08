@@ -20,11 +20,10 @@
 ##                                                                          ##
 ##############################################################################
 
-# Features left to do:
+# Features left TODO:
 # * code_ifthenelse we need to deal with the "optional" flag
 # * recognize and remove Argument_List?
 # * do not serealise "sub", "comment" or "namedSub" if they are empty
-# * refactor so not everything is nested in main()
 
 import os
 import os.path
@@ -94,25 +93,25 @@ def write_file(f):
     instructions = f["content"]
     old_content = None
     try:
-       with open(f["name"], "r") as fd:
-          old_content = fd.read()
+        with open(f["name"], "r") as fd:
+            old_content = fd.read()
     except:
-       pass # For example, if the file doesn't exist, leave old_content = None
+        pass # For example, if the file doesn't exist, leave old_content = None
     to_write = ""
     for i in instructions:
-       if i["kind"] == "indent":
-          indent += 1
-       elif i["kind"] == "outdent":
-          indent -= 1
-       else:
-          assert i["kind"] == "text"
-          txt = "   " * indent + i["text"]
-          to_write += (txt.rstrip() + "\n")
+        if i["kind"] == "indent":
+            indent += 1
+        elif i["kind"] == "outdent":
+            indent -= 1
+        else:
+            assert i["kind"] == "text"
+            txt = "   " * indent + i["text"]
+            to_write += (txt.rstrip() + "\n")
     # Avoid altering the file's mtime if we would write an identical file.
     # Useful for make et al.
     if old_content != to_write:
-       with open(f["name"], "w") as fd:
-          fd.write(to_write)
+        with open(f["name"], "w") as fd:
+            fd.write(to_write)
     assert indent == 0
 
 def manual_indent(f):
@@ -240,7 +239,7 @@ class IrepsGenerator(object):
                     fd.write('%s -> %s;\n' % (sn, sc))
             fd.write("}\n")
         os.system("dot " + filename + ".dot -Tpdf > " + filename + ".pdf")
-        
+
     def optimize_layout(self, max_int, max_bool):
         accessors = {
             "int"  : set(),
@@ -259,7 +258,6 @@ class IrepsGenerator(object):
                 elif lo_typ in ("int", "str", "sloc"):
                     a_kind = "int"
                 else:
-                    lo_typ == "bool"
                     a_kind = "bool"
                 accessors[a_kind].add(friendly_name)
         assert len(accessors["int"] & accessors["bool"]) == 0
@@ -297,7 +295,7 @@ class IrepsGenerator(object):
             write_file(f)
 
             os.system("cvc4 %s_%u.smt2 > %s_%u.out" % (fld_kind, n,
-                                                    fld_kind, n))
+                                                       fld_kind, n))
 
             with open("%s_%u.out" % (fld_kind, n), "rU") as fd:
                 tmp = fd.read().strip()
@@ -396,9 +394,9 @@ class IrepsGenerator(object):
         # Flag nodes that will be supported
         for sn, schema in self.schemata.iteritems():
             schema["used"] = (len(schema["subclasses"]) == 0 or
-                            sn in ("struct_type",
-                                    "pointer_type",
-                                    "signedbv_type"))
+                              sn in ("struct_type",
+                                     "pointer_type",
+                                     "signedbv_type"))
             if sn == "source_location":
                 # We will be using the GNAT ones instead
                 schema["used"] = False
@@ -1007,9 +1005,9 @@ class IrepsGenerator(object):
         write(b, "type Irep_List_Node is record")
         with indent(b):
             write(b, "A : Integer;            "
-                "--  Element [or pointer to first list link]")
+                    "--  Element [or pointer to first list link]")
             write(b, "B : Internal_Irep_List; "
-                "--  Next [or pointer to last list link]")
+                    "--  Next [or pointer to last list link]")
         write(b, "end record;")
         write(b, "pragma Pack (Irep_List_Node);")
         write(b, "")
@@ -1688,6 +1686,7 @@ class IrepsGenerator(object):
         manual_indent(b)
         write(b, 'V.Set_Field ("id", Id (I));')
         write(b, "case N.Kind is")
+
         for sn in self.top_sorted_sn:
             schema = self.schemata[sn]
             with indent(b):
@@ -1803,25 +1802,25 @@ class IrepsGenerator(object):
 
         # Invert the sub_setter and named_setter maps:
         # (Omit list-typed subexpressions for now)
-        self.sub_setters_by_schema = {}
-        self.named_setters_by_schema = {}
+        sub_setters_by_schema = {}
+        named_setters_by_schema = {}
 
         for (friendly_name, kinds) in self.sub_setters.iteritems():
             for (kind, schema_names) in kinds.iteritems():
                 if kind == "list":
                     continue
                 for (schema_name, (_, _, default_value)) in schema_names.iteritems():
-                    if schema_name not in self.sub_setters_by_schema:
-                        self.sub_setters_by_schema[schema_name] = []
-                    self.sub_setters_by_schema[schema_name].append((friendly_name, default_value))
+                    if schema_name not in sub_setters_by_schema:
+                        sub_setters_by_schema[schema_name] = []
+                    sub_setters_by_schema[schema_name].append((friendly_name, default_value))
 
         for (friendly_name, kinds) in self.named_setters.iteritems():
             for (kind, schema_names) in kinds.iteritems():
                 for (schema_name, (is_comment, actual_type, default_val)) in schema_names.iteritems():
-                    if schema_name not in self.named_setters_by_schema:
-                        self.named_setters_by_schema[schema_name] = []
+                    if schema_name not in named_setters_by_schema:
+                        named_setters_by_schema[schema_name] = []
                     param_type = actual_type if kind == "trivial" else kind
-                    self.named_setters_by_schema[schema_name].append((friendly_name, param_type, default_val))
+                    named_setters_by_schema[schema_name].append((friendly_name, param_type, default_val))
 
         def escape_reserved_words(w):
             if w in ("type", "subtype", "function", "array", "access", "body"):
@@ -1858,12 +1857,12 @@ class IrepsGenerator(object):
 
             formal_args = []
             # Print args named for each non-list member:
-            if sn in self.sub_setters_by_schema:
-                for (friendly_name, default_value) in self.sub_setters_by_schema[sn]:
+            if sn in sub_setters_by_schema:
+                for (friendly_name, default_value) in sub_setters_by_schema[sn]:
                     formal_name = escape_reserved_words(friendly_name)
                     formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep", default_value))
-            if sn in self.named_setters_by_schema:
-                for (friendly_name, actual_type, default_value) in self.named_setters_by_schema[sn]:
+            if sn in named_setters_by_schema:
+                for (friendly_name, actual_type, default_value) in named_setters_by_schema[sn]:
                     formal_name = escape_reserved_words(friendly_name)
                     ada_type = IREP_TO_ADA_TYPE[actual_type]
                     formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), ada_type, default_value))
