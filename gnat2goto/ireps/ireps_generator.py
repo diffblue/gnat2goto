@@ -266,6 +266,44 @@ class IrepsGenerator(object):
                                    friendly_name,
                                    string_value)
 
+    # setter_name -> value|list|trivial -> {schema: (is_comment, type)}
+    def register_named_setter(self,
+                              root_schema,
+                              kind,
+                              friendly_name, value_type,
+                              is_comment,
+                              default_value):
+        schema = self.schemata[root_schema]
+        assert kind in ("trivial", "irep", "list")
+        assert not kind == "trivial" or value_type in ("bool",
+                                                    "string",
+                                                    "integer")
+        assert not kind != "trivial" or value_type in self.schemata
+
+        actual_kind = kind
+        actual_type = value_type
+        if kind == "irep" and value_type == "source_location":
+            # We magically map GNAT source locations to CPROVER source
+            # locations
+            actual_kind = "trivial"
+            actual_type = "gnat:sloc"
+
+        if friendly_name not in self.named_setters:
+            self.named_setters[friendly_name] = {}
+        if actual_kind not in self.named_setters[friendly_name]:
+            self.named_setters[friendly_name][actual_kind] = {}
+        self.named_setters[friendly_name][actual_kind][root_schema] = (is_comment,
+                                                                actual_type,
+                                                                default_value)
+
+        # Also apply to all children
+        for sc in schema.get("subclasses", None):
+            self.register_named_setter(sc,
+                                kind,
+                                friendly_name, value_type,
+                                is_comment,
+                                default_value)
+
     def mk_precondition_in(self, param_name, kinds):
         todo = set(kinds)
         groups = []
@@ -570,42 +608,6 @@ class IrepsGenerator(object):
                 register_sub_setter(sc, op_id, friendly_name, value_schema, is_list, default_value)
 
         self.named_setters = {}
-        # setter_name -> value|list|trivial -> {schema: (is_comment, type)}
-        def register_named_setter(root_schema,
-                                kind,
-                                friendly_name, value_type,
-                                is_comment,
-                                default_value):
-            schema = self.schemata[root_schema]
-            assert kind in ("trivial", "irep", "list")
-            assert not kind == "trivial" or value_type in ("bool",
-                                                        "string",
-                                                        "integer")
-            assert not kind != "trivial" or value_type in self.schemata
-
-            actual_kind = kind
-            actual_type = value_type
-            if kind == "irep" and value_type == "source_location":
-                # We magically map GNAT source locations to CPROVER source
-                # locations
-                actual_kind = "trivial"
-                actual_type = "gnat:sloc"
-
-            if friendly_name not in self.named_setters:
-                self.named_setters[friendly_name] = {}
-            if actual_kind not in self.named_setters[friendly_name]:
-                self.named_setters[friendly_name][actual_kind] = {}
-            self.named_setters[friendly_name][actual_kind][root_schema] = (is_comment,
-                                                                    actual_type,
-                                                                    default_value)
-
-            # Also apply to all children
-            for sc in schema.get("subclasses", None):
-                register_named_setter(sc,
-                                    kind,
-                                    friendly_name, value_type,
-                                    is_comment,
-                                    default_value)
 
         def register_schema(sn):
             if sn == "source_location":
@@ -673,7 +675,7 @@ class IrepsGenerator(object):
                     elif data.get("type", None) in ("string", "integer", "bool"):
                         # Trivial field
                         assert set(data.keys()) <= set(("type", "default"))
-                        register_named_setter(sn,
+                        self.register_named_setter(sn,
                                             "trivial",
                                             friendly_name, data["type"],
                                             fld == "comment",
@@ -684,7 +686,7 @@ class IrepsGenerator(object):
                         assert data["schema"] in self.schemata
                         assert set(data.keys()) <= set(("schema", "default"))
                         value_type = data["schema"]
-                        register_named_setter(sn,
+                        self.register_named_setter(sn,
                                             "irep",
                                             friendly_name, value_type,
                                             fld == "comment",
@@ -700,7 +702,7 @@ class IrepsGenerator(object):
                         assert data["number"] == "*"
                         friendly_name = data["friendly_name"]
                         list_type     = data["schema"]
-                        register_named_setter(sn,
+                        self.register_named_setter(sn,
                                             "list",
                                             friendly_name, list_type,
                                             fld == "comment",
