@@ -215,6 +215,31 @@ class IrepsGenerator(object):
         self.named_setters = {}
         self.const = {}
         self.layout = {}
+
+    # Debug output of hierarchy
+    def export_to_dot(self, filename):
+        with open(filename + ".dot", "w") as fd:
+            fd.write("digraph G {\n")
+            fd.write("graph [rankdir=LR,ranksep=3];\n")
+            for sn in sorted(self.schemata):
+                atr = []
+                lbl = self.schemata[sn].get("id", None)
+                if lbl is None or lbl == "":
+                    lbl = sn
+                if lbl != sn:
+                    atr.append('label="%s"' % lbl)
+                if not self.schemata[sn]["used"]:
+                    atr.append("fontcolor=red")
+                    atr.append("shape=none")
+                fd.write(sn)
+                if len(atr) > 0:
+                    fd.write(' [%s];' % ",".join(atr))
+                fd.write("\n")
+            for sn, schema in self.schemata.iteritems():
+                for sc in schema["subclasses"]:
+                    fd.write('%s -> %s;\n' % (sn, sc))
+            fd.write("}\n")
+        os.system("dot " + filename + ".dot -Tpdf > " + filename + ".pdf")
         
     def optimize_layout(self, max_int, max_bool):
         accessors = {
@@ -387,29 +412,7 @@ class IrepsGenerator(object):
                 rv.add(sn)
             return rv
 
-        # Debug output of hierarchy
-        with open("tree.dot", "w") as fd:
-            fd.write("digraph G {\n")
-            fd.write("graph [rankdir=LR,ranksep=3];\n")
-            for sn in sorted(self.schemata):
-                atr = []
-                lbl = self.schemata[sn].get("id", None)
-                if lbl is None or lbl == "":
-                    lbl = sn
-                if lbl != sn:
-                    atr.append('label="%s"' % lbl)
-                if not self.schemata[sn]["used"]:
-                    atr.append("fontcolor=red")
-                    atr.append("shape=none")
-                fd.write(sn)
-                if len(atr) > 0:
-                    fd.write(' [%s];' % ",".join(atr))
-                fd.write("\n")
-            for sn, schema in self.schemata.iteritems():
-                for sc in schema["subclasses"]:
-                    fd.write('%s -> %s;\n' % (sn, sc))
-            fd.write("}\n")
-        os.system("dot tree.dot -Tpdf > tree.pdf")
+        self.export_to_dot("tree")
 
         # Emit spec and body file
         s = new_file("ireps.ads")
