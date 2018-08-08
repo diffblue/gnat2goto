@@ -46,7 +46,7 @@ irep_type_to_ada_type = {
     "gnat:sloc" : "Source_Ptr"
 }
 
-special_names = {
+OP_NAME = {
     "+"      : "op_add",
     "-"      : "op_sub",
     "*"      : "op_mul",
@@ -375,8 +375,8 @@ class IrepsGenerator(object):
         to_add = {}
         for sn, schema in self.schemata.iteritems():
             for sc_id in schema.get("trivial_subclass_ids", []):
-                if sc_id in special_names:
-                    sc_name = special_names[sc_id]
+                if sc_id in OP_NAME:
+                    sc_name = OP_NAME[sc_id]
                     ada_name = ada_casing("i_" + sc_name)
                 else:
                     sc_name = sc_id
