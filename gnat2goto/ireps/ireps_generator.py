@@ -251,6 +251,22 @@ class IrepsGenerator(object):
         for sc in self.schemata[kind]["subclasses"]:
             self.register_summary_classes(sc, todo, group)
 
+    def mk_precondition_in(self, param_name, kinds):
+        todo = set(kinds)
+        groups = []
+        self.register_summary_classes("irep", todo, groups)
+        things = sorted(groups + [self.schemata[x]["ada_name"] for x in todo])
+        assert len(things) >= 1
+        if len(things) == 1 and things[0].startswith("I_"):
+            rv = ["Kind (%s) = %s" % (param_name, things[0])]
+        else:
+            prefix = "Kind (%s) in " % param_name
+            prefix_len = len(prefix) - 2
+            rv = [prefix + things[0]]
+            for thing in things[1:]:
+                rv.append(" " * prefix_len + "| " + thing)
+        return rv
+
     # Debug output of hierarchy
     def export_to_dot(self, filename):
         with open(filename + ".dot", "w") as fd:
@@ -509,22 +525,6 @@ class IrepsGenerator(object):
         self.make_class("expr", s)
         self.make_class("type", s)
         write(s, "")
-
-        def mk_precondition_in(param_name, kinds):
-            todo = set(kinds)
-            groups = []
-            self.register_summary_classes("irep", todo, groups)
-            things = sorted(groups + [self.schemata[x]["ada_name"] for x in todo])
-            assert len(things) >= 1
-            if len(things) == 1 and things[0].startswith("I_"):
-                rv = ["Kind (%s) = %s" % (param_name, things[0])]
-            else:
-                prefix = "Kind (%s) in " % param_name
-                prefix_len = len(prefix) - 2
-                rv = [prefix + things[0]]
-                for thing in things[1:]:
-                    rv.append(" " * prefix_len + "| " + thing)
-            return rv
 
         # Collect and consolidate setters (subs, named and comment)
 
@@ -1098,7 +1098,7 @@ class IrepsGenerator(object):
             i_kinds = set()
             for kind in inputs:
                 i_kinds |= all_used_subclasses(kind)
-            precon += mk_precondition_in("I", i_kinds)
+            precon += self.mk_precondition_in("I", i_kinds)
             precon[-1] += ";"
 
             write(s, "function %s (I : Irep) return %s " % (name,
@@ -1197,7 +1197,7 @@ class IrepsGenerator(object):
             i_kinds = set()
             for kind in inputs:
                 i_kinds |= all_used_subclasses(kind)
-            precon += mk_precondition_in("I", i_kinds)
+            precon += self.mk_precondition_in("I", i_kinds)
             if all_the_same:
                 v_kinds = set()
                 for kind in inputs.itervalues():
@@ -1205,7 +1205,7 @@ class IrepsGenerator(object):
                         v_kinds |= all_used_subclasses(kind)
                 if len(v_kinds) > 0:
                     precon[-1] += " and then"
-                    precon += mk_precondition_in("Value", v_kinds)
+                    precon += self.mk_precondition_in("Value", v_kinds)
             precon[-1] += ";"
 
             write(s, "procedure %s (I : Irep; Value : %s)" % (name,
