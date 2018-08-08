@@ -504,15 +504,15 @@ class IrepsGenerator(object):
         def mk_precondition_in(param_name, kinds):
             todo = set(kinds)
             groups = []
-            def rec(kind, todo):
+            def register_summary_classes(kind, todo):
                 group_name = self.schemata[kind].get("subclass_ada_name", None)
                 if group_name is not None:
                     if self.summary_classes[group_name] <= todo:
                         todo -= self.summary_classes[group_name]
                         groups.append(group_name)
                 for sc in self.schemata[kind]["subclasses"]:
-                    rec(sc, todo)
-            rec("irep", todo)
+                    register_summary_classes(sc, todo)
+            register_summary_classes("irep", todo)
             things = sorted(groups + [self.schemata[x]["ada_name"] for x in todo])
             assert len(things) >= 1
             if len(things) == 1 and things[0].startswith("I_"):
