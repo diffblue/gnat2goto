@@ -251,6 +251,21 @@ class IrepsGenerator(object):
         for sc in self.schemata[kind]["subclasses"]:
             self.register_summary_classes(sc, todo, group)
 
+    # const ::= schema -> id|namedSub|comment -> {name: value}
+    def register_constant(self, root_schema, kind, friendly_name, string_value):
+        if root_schema not in self.const:
+            self.const[str(root_schema)] = {}
+        if kind not in self.const[root_schema]:
+            self.const[root_schema][kind] = {}
+        self.const[root_schema][kind][friendly_name] = string_value
+
+        # Also apply to all children
+        for sc in self.schemata[root_schema].get("subclasses", None):
+            self.register_constant(sc,
+                                   kind,
+                                   friendly_name,
+                                   string_value)
+
     def mk_precondition_in(self, param_name, kinds):
         todo = set(kinds)
         groups = []
@@ -592,21 +607,6 @@ class IrepsGenerator(object):
                                     is_comment,
                                     default_value)
 
-        self.const = {}
-        # cnst ::= schema -> id|namedSub|comment -> {name: value}
-        def register_constant(root_schema, kind, friendly_name, string_value):
-            if root_schema not in self.const:
-                self.const[str(root_schema)] = {}
-            if kind not in self.const[root_schema]:
-                self.const[root_schema][kind] = {}
-            self.const[root_schema][kind][friendly_name] = string_value
-
-            # Also apply to all children
-            for sc in self.schemata[root_schema].get("subclasses", None):
-                register_constant(sc,
-                                kind,
-                                friendly_name, string_value)
-
         def register_schema(sn):
             if sn == "source_location":
                 return
@@ -625,7 +625,7 @@ class IrepsGenerator(object):
 
             if "id" in schema:
                 del tmp["id"]
-                register_constant(sn, "id", "id", schema["id"])
+                self.register_constant(sn, "id", "id", schema["id"])
 
             if "sub" in schema:
                 del tmp["sub"]
@@ -666,7 +666,7 @@ class IrepsGenerator(object):
                         assert len(data) == 1 or (len(data) == 2 and
                                                 data["type"] == "string")
                         const_value = data["constant"]
-                        register_constant(sn,
+                        self.register_constant(sn,
                                         fld,
                                         friendly_name, const_value)
 
