@@ -207,8 +207,16 @@ def mk_prefixed_lines(prefix, lines, join=""):
 
 
 class IrepsGenerator(object):
-    
-    def optimize_layout(self, layout, max_int, max_bool):
+    def __init__(self):
+        self.schemata = {}
+        self.top_sorted_sn = []
+        self.summary_classes = {}
+        self.sub_setters = {}
+        self.named_setters = {}
+        self.const = {}
+        self.layout = {}
+        
+    def optimize_layout(self, max_int, max_bool):
         accessors = {
             "int"  : set(),
             "bool" : set(),
@@ -218,9 +226,9 @@ class IrepsGenerator(object):
             "bool" : max_bool,
         }
 
-        for sn in layout:
-            for friendly_name in layout[sn]:
-                lo_typ, _, lo_kind = layout[sn][friendly_name]
+        for sn in self.layout:
+            for friendly_name in self.layout[sn]:
+                lo_typ, _, lo_kind = self.layout[sn][friendly_name]
                 if lo_kind in ("irep", "list"):
                     a_kind = "int"
                 elif lo_typ in ("int", "str", "sloc"):
@@ -249,9 +257,9 @@ class IrepsGenerator(object):
                 write(f, "(assert (<= 0 acc_%s %u))" % (acc, n - 1))
 
             # required accessors must be disjoint
-            for sn in layout:
+            for sn in self.layout:
                 tmp = []
-                for friendly_name in layout[sn]:
+                for friendly_name in self.layout[sn]:
                     if friendly_name in all_acc:
                         tmp.append("acc_" + friendly_name)
                 if len(tmp) >= 2:
@@ -285,25 +293,25 @@ class IrepsGenerator(object):
             #                                    index,
             #                                    irep|list|trivial)
 
-            for sn in layout:
-                for friendly_name in layout[sn]:
+            for sn in self.layout:
+                for friendly_name in self.layout[sn]:
                     if friendly_name in optimal_lo:
-                        lo_typ, lo_idx, lo_kind = layout[sn][friendly_name]
+                        lo_typ, lo_idx, lo_kind = self.layout[sn][friendly_name]
                         lo_idx = optimal_lo[friendly_name]
-                        layout[sn][friendly_name] = (lo_typ, lo_idx, lo_kind)
+                        self.layout[sn][friendly_name] = (lo_typ, lo_idx, lo_kind)
 
 
-        return layout, req_fld["int"], req_fld["bool"]
+        return req_fld["int"], req_fld["bool"]
 
     def generate_code(self, optimize, schema_file_names):
-        schemata = {}
+        self.schemata = {}
         for schema_fn in schema_file_names:
             with open(schema_fn, "rU") as fd:
                 sn = os.path.splitext(os.path.basename(schema_fn))[0]
                 # print "Loading %s" % sn
-                schemata[sn] = json.load(fd)
-                schemata[sn]["subclasses"] = set()
-                schemata[sn]["ada_name"] = ada_casing("i_" + sn)
+                self.schemata[sn] = json.load(fd)
+                self.schemata[sn]["subclasses"] = set()
+                self.schemata[sn]["ada_name"] = ada_casing("i_" + sn)
 
         # Schemata will contain the following. Things in <> we synthesise below.
         #   id           : string constant that identifies the kind
@@ -330,17 +338,17 @@ class IrepsGenerator(object):
         # class -> constant -> 1
 
         # Restore full hierarchy
-        for sn, schema in schemata.iteritems():
+        for sn, schema in self.schemata.iteritems():
             parent = schema.get("parent", None)
             if parent is None and sn != "irep":
                 parent = "irep"
                 schema["parent"] = parent
             if parent is not None:
-                schemata[parent]["subclasses"].add(sn)
+                self.schemata[parent]["subclasses"].add(sn)
 
         # Expand trivial subclasses
         to_add = {}
-        for sn, schema in schemata.iteritems():
+        for sn, schema in self.schemata.iteritems():
             for sc_id in schema.get("trivial_subclass_ids", []):
                 if sc_id in special_names:
                     sc_name = special_names[sc_id]
@@ -358,10 +366,10 @@ class IrepsGenerator(object):
                 to_add[sc_name] = new_schema
             if "trivial_subclass_ids" in schema:
                 del schema["trivial_subclass_ids"]
-        schemata.update(to_add)
+        self.schemata.update(to_add)
 
         # Flag nodes that will be supported
-        for sn, schema in schemata.iteritems():
+        for sn, schema in self.schemata.iteritems():
             schema["used"] = (len(schema["subclasses"]) == 0 or
                             sn in ("struct_type",
                                     "pointer_type",
@@ -373,9 +381,9 @@ class IrepsGenerator(object):
         def all_used_subclasses(sn):
             """ return the set of all subclasses of sn (and itself) """
             rv = set()
-            for sc in schemata[sn]["subclasses"]:
+            for sc in self.schemata[sn]["subclasses"]:
                 rv |= all_used_subclasses(sc)
-            if schemata[sn]["used"]:
+            if self.schemata[sn]["used"]:
                 rv.add(sn)
             return rv
 
@@ -383,21 +391,21 @@ class IrepsGenerator(object):
         with open("tree.dot", "w") as fd:
             fd.write("digraph G {\n")
             fd.write("graph [rankdir=LR,ranksep=3];\n")
-            for sn in sorted(schemata):
+            for sn in sorted(self.schemata):
                 atr = []
-                lbl = schemata[sn].get("id", None)
+                lbl = self.schemata[sn].get("id", None)
                 if lbl is None or lbl == "":
                     lbl = sn
                 if lbl != sn:
                     atr.append('label="%s"' % lbl)
-                if not schemata[sn]["used"]:
+                if not self.schemata[sn]["used"]:
                     atr.append("fontcolor=red")
                     atr.append("shape=none")
                 fd.write(sn)
                 if len(atr) > 0:
                     fd.write(' [%s];' % ",".join(atr))
                 fd.write("\n")
-            for sn, schema in schemata.iteritems():
+            for sn, schema in self.schemata.iteritems():
                 for sc in schema["subclasses"]:
                     fd.write('%s -> %s;\n' % (sn, sc))
             fd.write("}\n")
@@ -444,15 +452,15 @@ class IrepsGenerator(object):
         write(s, "")
 
         # Emit kind enum
-        top_sorted_sn = []
+        self.top_sorted_sn = []
         prefix = "type Irep_Kind is ("
         prefix_len = len(prefix)
         write(s, prefix + "I_Empty, --  For the Empty Irep")
         def rec(sn, depth=0):
-            if schemata[sn]["used"]:
-                write(s, " " * prefix_len + schemata[sn]["ada_name"] + ",")
-                top_sorted_sn.append(sn)
-            for sc in sorted(schemata[sn]["subclasses"]):
+            if self.schemata[sn]["used"]:
+                write(s, " " * prefix_len + self.schemata[sn]["ada_name"] + ",")
+                self.top_sorted_sn.append(sn)
+            for sc in sorted(self.schemata[sn]["subclasses"]):
                 rec(sc, depth+1)
         rec("irep")
         s["content"][-1]["text"] = s["content"][-1]["text"].rstrip(",") + ");"
@@ -463,23 +471,23 @@ class IrepsGenerator(object):
         write(s, "")
 
         # Emit subclasses for the enum
-        summary_classes = {}
+        self.summary_classes = {}
         def make_class(root):
-            name = schemata[root]["ada_name"].replace("I_", "Class_")
-            subc = sorted(schemata[root]["subclasses"])
+            name = self.schemata[root]["ada_name"].replace("I_", "Class_")
+            subc = sorted(self.schemata[root]["subclasses"])
             first = subc[0]
             last = subc[-1]
-            while len(schemata[last]["subclasses"]) >= 1:
-                subc = sorted(schemata[last]["subclasses"])
+            while len(self.schemata[last]["subclasses"]) >= 1:
+                subc = sorted(self.schemata[last]["subclasses"])
                 last = subc[-1]
             write(s, "subtype %s is Irep_Kind" % name)
-            write(s, "  range %s .. %s;" % (schemata[first]["ada_name"],
-                                            schemata[last]["ada_name"]))
+            write(s, "  range %s .. %s;" % (self.schemata[first]["ada_name"],
+                                            self.schemata[last]["ada_name"]))
             continuation(s)
-            schemata[root]["subclass_ada_name"] = name
-            summary_classes[name] =\
-            set(top_sorted_sn[top_sorted_sn.index(first) :
-                                top_sorted_sn.index(last) + 1])
+            self.schemata[root]["subclass_ada_name"] = name
+            self.summary_classes[name] =\
+            set(self.top_sorted_sn[self.top_sorted_sn.index(first) :
+                                self.top_sorted_sn.index(last) + 1])
         make_class("unary_expr")
         make_class("binary_expr")
         make_class("nary_expr")
@@ -493,15 +501,15 @@ class IrepsGenerator(object):
             todo = set(kinds)
             groups = []
             def rec(kind, todo):
-                group_name = schemata[kind].get("subclass_ada_name", None)
+                group_name = self.schemata[kind].get("subclass_ada_name", None)
                 if group_name is not None:
-                    if summary_classes[group_name] <= todo:
-                        todo -= summary_classes[group_name]
+                    if self.summary_classes[group_name] <= todo:
+                        todo -= self.summary_classes[group_name]
                         groups.append(group_name)
-                for sc in schemata[kind]["subclasses"]:
+                for sc in self.schemata[kind]["subclasses"]:
                     rec(sc, todo)
             rec("irep", todo)
-            things = sorted(groups + [schemata[x]["ada_name"] for x in todo])
+            things = sorted(groups + [self.schemata[x]["ada_name"] for x in todo])
             assert len(things) >= 1
             if len(things) == 1 and things[0].startswith("I_"):
                 rv = ["Kind (%s) = %s" % (param_name, things[0])]
@@ -515,7 +523,7 @@ class IrepsGenerator(object):
 
         # Collect and consolidate setters (subs, named and comment)
 
-        sub_setters = {} # setter_name -> value|list -> {schema: (op_id, type)}
+        self.sub_setters = {} # setter_name -> value|list -> {schema: (op_id, type)}
         def register_sub_setter(root_schema,
                                 op_id, friendly_name,
                                 value_schema,
@@ -526,14 +534,14 @@ class IrepsGenerator(object):
                 assert friendly_name[0] == "op%u" % op_id
                 friendly_name = friendly_name[1]
 
-            schema = schemata[root_schema]
+            schema = self.schemata[root_schema]
             setter_kind = "list" if is_list else "value"
 
-            if friendly_name not in sub_setters:
-                sub_setters[friendly_name] = {}
-            if setter_kind not in sub_setters[friendly_name]:
-                sub_setters[friendly_name][setter_kind] = {}
-            sub_setters[friendly_name][setter_kind][root_schema] = (op_id,
+            if friendly_name not in self.sub_setters:
+                self.sub_setters[friendly_name] = {}
+            if setter_kind not in self.sub_setters[friendly_name]:
+                self.sub_setters[friendly_name][setter_kind] = {}
+            self.sub_setters[friendly_name][setter_kind][root_schema] = (op_id,
                                                                     value_schema,
                                                                     default_value)
 
@@ -541,19 +549,19 @@ class IrepsGenerator(object):
             for sc in schema.get("subclasses", None):
                 register_sub_setter(sc, op_id, friendly_name, value_schema, is_list, default_value)
 
-        named_setters = {}
+        self.named_setters = {}
         # setter_name -> value|list|trivial -> {schema: (is_comment, type)}
         def register_named_setter(root_schema,
                                 kind,
                                 friendly_name, value_type,
                                 is_comment,
                                 default_value):
-            schema = schemata[root_schema]
+            schema = self.schemata[root_schema]
             assert kind in ("trivial", "irep", "list")
             assert not kind == "trivial" or value_type in ("bool",
                                                         "string",
                                                         "integer")
-            assert not kind != "trivial" or value_type in schemata
+            assert not kind != "trivial" or value_type in self.schemata
 
             actual_kind = kind
             actual_type = value_type
@@ -563,11 +571,11 @@ class IrepsGenerator(object):
                 actual_kind = "trivial"
                 actual_type = "gnat:sloc"
 
-            if friendly_name not in named_setters:
-                named_setters[friendly_name] = {}
-            if actual_kind not in named_setters[friendly_name]:
-                named_setters[friendly_name][actual_kind] = {}
-            named_setters[friendly_name][actual_kind][root_schema] = (is_comment,
+            if friendly_name not in self.named_setters:
+                self.named_setters[friendly_name] = {}
+            if actual_kind not in self.named_setters[friendly_name]:
+                self.named_setters[friendly_name][actual_kind] = {}
+            self.named_setters[friendly_name][actual_kind][root_schema] = (is_comment,
                                                                     actual_type,
                                                                     default_value)
 
@@ -589,7 +597,7 @@ class IrepsGenerator(object):
             const[root_schema][kind][friendly_name] = string_value
 
             # Also apply to all children
-            for sc in schemata[root_schema].get("subclasses", None):
+            for sc in self.schemata[root_schema].get("subclasses", None):
                 register_constant(sc,
                                 kind,
                                 friendly_name, string_value)
@@ -598,7 +606,7 @@ class IrepsGenerator(object):
             if sn == "source_location":
                 return
 
-            schema = schemata[sn]
+            schema = self.schemata[sn]
 
             tmp = copy(schema)
 
@@ -668,7 +676,7 @@ class IrepsGenerator(object):
 
                     elif "schema" in data:
                         # Irep of some type
-                        assert data["schema"] in schemata
+                        assert data["schema"] in self.schemata
                         assert set(data.keys()) <= set(("schema", "default"))
                         value_type = data["schema"]
                         register_named_setter(sn,
@@ -702,10 +710,10 @@ class IrepsGenerator(object):
             for kind in ("namedSub", "comment"):
                 data = const.get(sn, {}).get(kind, {})
                 for friendly_name, const_value in data.iteritems():
-                    if (friendly_name in named_setters and
-                        "trivial" in named_setters[friendly_name] and
-                        sn in named_setters[friendly_name]["trivial"]):
-                        del named_setters[friendly_name]["trivial"][sn]
+                    if (friendly_name in self.named_setters and
+                        "trivial" in self.named_setters[friendly_name] and
+                        sn in self.named_setters[friendly_name]["trivial"]):
+                        del self.named_setters[friendly_name]["trivial"][sn]
 
             if len(tmp) > 0:
                 print "error: unconsumed data for %s:" % sn
@@ -720,35 +728,35 @@ class IrepsGenerator(object):
         # Delete setters that only touch non-used classes (maybe we removed
         # some because they are always constant)
         setters_to_kill = []
-        for setter_name in named_setters:
+        for setter_name in self.named_setters:
             kinds_to_kill = []
-            for kind in named_setters[setter_name]:
+            for kind in self.named_setters[setter_name]:
                 all_unused = True
-                for sn in named_setters[setter_name][kind]:
-                    if schemata[sn]["used"]:
+                for sn in self.named_setters[setter_name][kind]:
+                    if self.schemata[sn]["used"]:
                         all_unused = False
                         break
                 if all_unused:
                     kinds_to_kill.append(kind)
             for kind in kinds_to_kill:
-                del named_setters[setter_name][kind]
-            if len(named_setters[setter_name]) == 0:
+                del self.named_setters[setter_name][kind]
+            if len(self.named_setters[setter_name]) == 0:
                 setters_to_kill.append(setter_name)
         for setter_name in setters_to_kill:
-            del named_setters[setter_name]
+            del self.named_setters[setter_name]
 
         ##########################################################################
         # Diagnostics after parsing schemata
 
-        for setter_name, data in sub_setters.iteritems():
+        for setter_name, data in self.sub_setters.iteritems():
             if len(data) > 1:
                 print "sub setter", setter_name, "conflicting kinds"
                 pprint(data)
 
-        for setter_name in (set(sub_setters) & set(named_setters)):
+        for setter_name in (set(self.sub_setters) & set(self.named_setters)):
             print "both a sub and named:", setter_name
-            print "> sub in  :", ", ".join(set(list(sub_setters[setter_name].itervalues())[0]))
-            print "> named in:", ", ".join(set(list(named_setters[setter_name].itervalues())[0]))
+            print "> sub in  :", ", ".join(set(list(self.sub_setters[setter_name].itervalues())[0]))
+            print "> named in:", ", ".join(set(list(self.named_setters[setter_name].itervalues())[0]))
 
         ##########################################################################
         # Layout
@@ -757,45 +765,45 @@ class IrepsGenerator(object):
         # schema -> int|str|bool
         #    where int includes irep, list, trivial integer
 
-        layout = {}
+        self.layout = {}
         # schema -> friendly_name -> (str|int|bool|sloc, index, irep|list|trivial)
 
-        for sn in top_sorted_sn:
+        for sn in self.top_sorted_sn:
             op_counts[sn] = {"int"  : 0,
                             "bool" : 0}
-            layout[sn] = {}
+            self.layout[sn] = {}
 
-            for setter_name, data in sub_setters.iteritems():
+            for setter_name, data in self.sub_setters.iteritems():
                 assert len(data) == 1
                 assert "value" in data or "list" in data
                 typ = "list" if "list" in data else "irep"
                 for kind, variants in data.iteritems():
                     if sn in variants:
-                        layout[sn][setter_name] = ("int", op_counts[sn]["int"], typ)
+                        self.layout[sn][setter_name] = ("int", op_counts[sn]["int"], typ)
                         op_counts[sn]["int"] += 1
 
-            for setter_name, setter_kinds in named_setters.iteritems():
+            for setter_name, setter_kinds in self.named_setters.iteritems():
                 for kind in setter_kinds:
                     if sn in setter_kinds[kind]:
                         is_comment, typ, _ = setter_kinds[kind][sn]
                         if kind in ("irep", "list") or typ == "integer":
                             l_typ = "trivial" if typ == "integer" else kind
-                            layout[sn][setter_name] = ("int",
+                            self.layout[sn][setter_name] = ("int",
                                                     op_counts[sn]["int"],
                                                     l_typ)
                             op_counts[sn]["int"] += 1
                         elif typ == "string":
-                            layout[sn][setter_name] = ("str",
+                            self.layout[sn][setter_name] = ("str",
                                                     op_counts[sn]["int"],
                                                     "trivial")
                             op_counts[sn]["int"] += 1
                         elif typ == "bool":
-                            layout[sn][setter_name] = ("bool",
+                            self.layout[sn][setter_name] = ("bool",
                                                     op_counts[sn]["bool"],
                                                     "trivial")
                             op_counts[sn]["bool"] += 1
                         elif typ == "gnat:sloc":
-                            layout[sn][setter_name] = ("sloc",
+                            self.layout[sn][setter_name] = ("sloc",
                                                     op_counts[sn]["int"],
                                                     "trivial")
                             op_counts[sn]["int"] += 1
@@ -807,15 +815,13 @@ class IrepsGenerator(object):
         MAX_BOOLS = max(x["bool"] for x in op_counts.itervalues())
 
         if optimize:
-            layout, MAX_INTS, MAX_BOOLS = self.optimize_layout(layout,
-                                                        MAX_INTS,
-                                                        MAX_BOOLS)
+            MAX_INTS, MAX_BOOLS = self.optimize_layout(MAX_INTS, MAX_BOOLS)
 
         ##########################################################################
         # Documentation
 
-        for sn in top_sorted_sn:
-            schema = schemata[sn]
+        for sn in self.top_sorted_sn:
+            schema = self.schemata[sn]
             assert schema["used"]
 
             write(s, "--  %s" % schema["ada_name"])
@@ -823,7 +829,7 @@ class IrepsGenerator(object):
             # sub_setters ::= setter_name -> value|list -> {schema: (op_id, type)}
             # subs        ::= op_id -> (setter_name, type)
             subs = {}
-            for setter_name, data in sub_setters.iteritems():
+            for setter_name, data in self.sub_setters.iteritems():
                 assert len(data) == 1
                 for typ, variants in data.iteritems():
                     actual_type = {"value" : "irep",
@@ -841,7 +847,7 @@ class IrepsGenerator(object):
 
             nams = {}
             coms = {}
-            for setter_name, setter_kinds in named_setters.iteritems():
+            for setter_name, setter_kinds in self.named_setters.iteritems():
                 for kind in setter_kinds:
                     if sn in setter_kinds[kind]:
                         is_comment, typ, _ = setter_kinds[kind][sn]
@@ -948,10 +954,10 @@ class IrepsGenerator(object):
         #                                    irep|list|trivial)
         # sem ::= sn -> index -> unused|irep|list|int|sloc|str
         semantics = {}
-        for sn in layout:
+        for sn in self.layout:
             semantics[sn] = {}
-            for friendly_name in layout[sn]:
-                lo_kind, lo_idx, lo_typ = layout[sn][friendly_name]
+            for friendly_name in self.layout[sn]:
+                lo_kind, lo_idx, lo_typ = self.layout[sn][friendly_name]
                 if lo_kind in ("str", "int", "sloc"):
                     if lo_typ == "irep":
                         semantics[sn][lo_idx] = "irep"
@@ -968,25 +974,25 @@ class IrepsGenerator(object):
                 for i in xrange(MAX_INTS):
                     if i not in semantics[sn]:
                         semantics[sn][i] = "unused"
-        for sn in top_sorted_sn:
+        for sn in self.top_sorted_sn:
             if sn not in semantics:
                 semantics[sn] = {}
             if len(semantics[sn]) == 0:
                 for i in xrange(MAX_INTS):
                     semantics[sn][i] = "unused"
 
-        max_len = max(map(len, (schemata[sn]["ada_name"] for sn in top_sorted_sn)))
+        max_len = max(map(len, (self.schemata[sn]["ada_name"] for sn in self.top_sorted_sn)))
         content = []
-        for sn in top_sorted_sn:
+        for sn in self.top_sorted_sn:
             tmp = []
             for i in sorted(semantics[sn]):
                 tmp.append("S_" + ada_casing(semantics[sn][i]))
             for i in xrange(len(tmp) - 1):
                 tmp[i] += ","
             tmp[-1] += ")"
-            content += mk_prefixed_lines("%-*s => (" % (max_len, schemata[sn]["ada_name"]),
+            content += mk_prefixed_lines("%-*s => (" % (max_len, self.schemata[sn]["ada_name"]),
                                         tmp)
-            if sn != top_sorted_sn[-1]:
+            if sn != self.top_sorted_sn[-1]:
                 content[-1] += ","
         content[-1] += ");"
 
@@ -1091,9 +1097,9 @@ class IrepsGenerator(object):
             write(b, "")
             write(b, "case Irep_Table.Table (I).Kind is")
             with indent(b):
-                for sn in top_sorted_sn:
+                for sn in self.top_sorted_sn:
                     if sn in const and "id" in const[sn]:
-                        write(b, "when %s =>" % schemata[sn]["ada_name"])
+                        write(b, "when %s =>" % self.schemata[sn]["ada_name"])
                         write(b, '   return "%s";' % const[sn]["id"]["id"])
                         continuation(b)
                 write(b, 'when others => return "";')
@@ -1155,7 +1161,7 @@ class IrepsGenerator(object):
 
             kind_slot_map = {}
             for sn in sorted(i_kinds):
-                layout_kind, layout_index, _ = layout[sn][fn_name]
+                layout_kind, layout_index, _ = self.layout[sn][fn_name]
                 if layout_index not in kind_slot_map:
                     kind_slot_map[layout_index] = []
                 kind_slot_map[layout_index].append(sn)
@@ -1201,10 +1207,10 @@ class IrepsGenerator(object):
                 for layout_index, i_kinds in kind_slot_map.iteritems():
                     if len(i_kinds) == 1:
                         write(b, "when %s =>" %
-                            ada_casing(schemata[i_kinds[0]]["ada_name"]))
+                            ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
                     else:
                         for l in mk_prefixed_lines("when ",
-                                                [schemata[x]["ada_name"]
+                                                [self.schemata[x]["ada_name"]
                                                     for x in i_kinds],
                                                 "| "):
                             write(b, l)
@@ -1264,7 +1270,7 @@ class IrepsGenerator(object):
 
             kind_slot_map = {}
             for sn in sorted(i_kinds):
-                layout_kind, layout_index, _ = layout[sn][fn_name]
+                layout_kind, layout_index, _ = self.layout[sn][fn_name]
                 if layout_index not in kind_slot_map:
                     kind_slot_map[layout_index] = []
                 kind_slot_map[layout_index].append(sn)
@@ -1317,10 +1323,10 @@ class IrepsGenerator(object):
                 for layout_index, i_kinds in kind_slot_map.iteritems():
                     if len(i_kinds) == 1:
                         write(b, "when %s =>" %
-                            ada_casing(schemata[i_kinds[0]]["ada_name"]))
+                            ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
                     else:
                         for l in mk_prefixed_lines("when ",
-                                                [schemata[x]["ada_name"]
+                                                [self.schemata[x]["ada_name"]
                                                     for x in i_kinds],
                                                 "| "):
                             write(b, l)
@@ -1359,16 +1365,16 @@ class IrepsGenerator(object):
 
             # Print all setters for 'subs'
             # sub ::= setter_name -> value|list         -> {schema: (op_id, type)}
-            for fn_name in sorted(sub_setters):
-                assert len(sub_setters[fn_name]) == 1
-                assert ("value" in sub_setters[fn_name] or
-                        "list"  in sub_setters[fn_name])
-                is_list = "list" in sub_setters[fn_name]
-                data    = list(sub_setters[fn_name].itervalues())[0]
+            for fn_name in sorted(self.sub_setters):
+                assert len(self.sub_setters[fn_name]) == 1
+                assert ("value" in self.sub_setters[fn_name] or
+                        "list"  in self.sub_setters[fn_name])
+                is_list = "list" in self.sub_setters[fn_name]
+                data    = list(self.sub_setters[fn_name].itervalues())[0]
 
                 fn(fn_name    = fn_name,
                 fn_kind    = ("irep"
-                                if "value" in sub_setters[fn_name]
+                                if "value" in self.sub_setters[fn_name]
                                 else "list"),
                 value_type = "irep",
                 inputs     = dict((sn, data[sn][1]) for sn in data))
@@ -1381,13 +1387,13 @@ class IrepsGenerator(object):
             # Print all setters for 'named' and 'comment'
             # nam ::= setter_name -> value|list|trivial ->
             #           {schema: (is_comment, type)}
-            for fn_name in sorted(named_setters):
-                assert len(named_setters[fn_name]) >= 1
-                assert set(named_setters[fn_name]) <= set(["trivial",
+            for fn_name in sorted(self.named_setters):
+                assert len(self.named_setters[fn_name]) >= 1
+                assert set(self.named_setters[fn_name]) <= set(["trivial",
                                                             "irep",
                                                             "list"])
-                for kind in named_setters[fn_name]:
-                    data = named_setters[fn_name][kind]
+                for kind in self.named_setters[fn_name]:
+                    data = self.named_setters[fn_name][kind]
 
                     if kind == "trivial":
                         vt = list(x[1] for x in data.itervalues())[0]
@@ -1679,8 +1685,8 @@ class IrepsGenerator(object):
         manual_indent(b)
         write(b, 'V.Set_Field ("id", Id (I));')
         write(b, "case N.Kind is")
-        for sn in top_sorted_sn:
-            schema = schemata[sn]
+        for sn in self.top_sorted_sn:
+            schema = self.schemata[sn]
             with indent(b):
                 write(b, "when %s =>" % schema["ada_name"])
                 with indent(b):
@@ -1688,17 +1694,17 @@ class IrepsGenerator(object):
 
                     # Set all subs
                     subs = {}
-                    for setter_name in sub_setters:
-                        for kind in sub_setters[setter_name]:
+                    for setter_name in self.sub_setters:
+                        for kind in self.sub_setters[setter_name]:
                             assert kind in ("value", "list")
-                            if sn in sub_setters[setter_name][kind]:
-                                op_id = sub_setters[setter_name][kind][sn][0]
+                            if sn in self.sub_setters[setter_name][kind]:
+                                op_id = self.sub_setters[setter_name][kind][sn][0]
                                 subs[op_id] = (setter_name, kind == "list")
                     for i in xrange(len(subs)):
                         needs_null = False
                         setter_name, is_list = subs[i]
                         layout_kind, layout_index, layout_typ =\
-                        layout[sn][setter_name]
+                        self.layout[sn][setter_name]
                         tbl_field = "N." + ada_component_name(layout_kind,
                                                             layout_index)
                         if is_list:
@@ -1709,15 +1715,15 @@ class IrepsGenerator(object):
                                 tbl_field)
 
                     # Set all namedSub and comments
-                    for setter_name in named_setters:
-                        for kind in named_setters[setter_name]:
+                    for setter_name in self.named_setters:
+                        for kind in self.named_setters[setter_name]:
                             assert kind in ("irep", "list", "trivial")
-                            if sn in named_setters[setter_name][kind]:
+                            if sn in self.named_setters[setter_name][kind]:
                                 needs_null = False
                                 is_comment, _, _ =\
-                                named_setters[setter_name][kind][sn]
+                                self.named_setters[setter_name][kind][sn]
                                 layout_kind, layout_index, layout_typ =\
-                                layout[sn][setter_name]
+                                self.layout[sn][setter_name]
                                 tbl_field = "N." + ada_component_name(layout_kind,
                                                                     layout_index)
 
@@ -1794,25 +1800,25 @@ class IrepsGenerator(object):
 
         # Invert the sub_setter and named_setter maps:
         # (Omit list-typed subexpressions for now)
-        sub_setters_by_schema = {}
-        named_setters_by_schema = {}
+        self.sub_setters_by_schema = {}
+        self.named_setters_by_schema = {}
 
-        for (friendly_name, kinds) in sub_setters.iteritems():
+        for (friendly_name, kinds) in self.sub_setters.iteritems():
             for (kind, schema_names) in kinds.iteritems():
                 if kind == "list":
                     continue
                 for (schema_name, (_, _, default_value)) in schema_names.iteritems():
-                    if schema_name not in sub_setters_by_schema:
-                        sub_setters_by_schema[schema_name] = []
-                    sub_setters_by_schema[schema_name].append((friendly_name, default_value))
+                    if schema_name not in self.sub_setters_by_schema:
+                        self.sub_setters_by_schema[schema_name] = []
+                    self.sub_setters_by_schema[schema_name].append((friendly_name, default_value))
 
-        for (friendly_name, kinds) in named_setters.iteritems():
+        for (friendly_name, kinds) in self.named_setters.iteritems():
             for (kind, schema_names) in kinds.iteritems():
                 for (schema_name, (is_comment, actual_type, default_val)) in schema_names.iteritems():
-                    if schema_name not in named_setters_by_schema:
-                        named_setters_by_schema[schema_name] = []
+                    if schema_name not in self.named_setters_by_schema:
+                        self.named_setters_by_schema[schema_name] = []
                     param_type = actual_type if kind == "trivial" else kind
-                    named_setters_by_schema[schema_name].append((friendly_name, param_type, default_val))
+                    self.named_setters_by_schema[schema_name].append((friendly_name, param_type, default_val))
 
         def escape_reserved_words(w):
             if w in ("type", "subtype", "function", "array", "access", "body"):
@@ -1843,18 +1849,18 @@ class IrepsGenerator(object):
             else:
                 return " := " + init_const
 
-        for sn in top_sorted_sn:
-            schema = schemata[sn]
+        for sn in self.top_sorted_sn:
+            schema = self.schemata[sn]
             proc_name = "Make_%s" % schema["ada_name"][2:]
 
             formal_args = []
             # Print args named for each non-list member:
-            if sn in sub_setters_by_schema:
-                for (friendly_name, default_value) in sub_setters_by_schema[sn]:
+            if sn in self.sub_setters_by_schema:
+                for (friendly_name, default_value) in self.sub_setters_by_schema[sn]:
                     formal_name = escape_reserved_words(friendly_name)
                     formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), "Irep", default_value))
-            if sn in named_setters_by_schema:
-                for (friendly_name, actual_type, default_value) in named_setters_by_schema[sn]:
+            if sn in self.named_setters_by_schema:
+                for (friendly_name, actual_type, default_value) in self.named_setters_by_schema[sn]:
                     formal_name = escape_reserved_words(friendly_name)
                     ada_type = irep_type_to_ada_type[actual_type]
                     formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), ada_type, default_value))
@@ -1939,9 +1945,9 @@ class IrepsGenerator(object):
             write(b, "case K is")
             with indent(b):
                 write(b, "when I_Empty => return \"I_Empty\";")
-                for sn in top_sorted_sn:
-                    write(b, "when %s =>" % schemata[sn]["ada_name"])
-                    write(b, "   return \"%s\";" % schemata[sn]["ada_name"])
+                for sn in self.top_sorted_sn:
+                    write(b, "when %s =>" % self.schemata[sn]["ada_name"])
+                    write(b, "   return \"%s\";" % self.schemata[sn]["ada_name"])
                     continuation(b)
             write(b, "end case;")
         write(b, "end To_String;")
@@ -2089,14 +2095,14 @@ class IrepsGenerator(object):
         write(b, "Indent;")
         write(b, "case N.Kind is")
         manual_indent(b)
-        for sn in top_sorted_sn:
-            write(b, "when %s =>" % schemata[sn]["ada_name"])
+        for sn in self.top_sorted_sn:
+            write(b, "when %s =>" % self.schemata[sn]["ada_name"])
             manual_indent(b)
             needs_null = True
             post = []
-            for friendly_name in sorted(layout[sn]):
+            for friendly_name in sorted(self.layout[sn]):
                 needs_null = False
-                layout_kind, layout_index, layout_typ = layout[sn][friendly_name]
+                layout_kind, layout_index, layout_typ = self.layout[sn][friendly_name]
                 cn = ada_component_name(layout_kind, layout_index)
                 write(b, 'Write_Str ("%s = ");' % ada_casing(friendly_name))
                 if layout_kind == "str":
