@@ -477,13 +477,13 @@ class IrepsGenerator(object):
         prefix = "type Irep_Kind is ("
         prefix_len = len(prefix)
         write(s, prefix + "I_Empty, --  For the Empty Irep")
-        def rec(sn, depth=0):
+        def register_subclasses(sn):
             if self.schemata[sn]["used"]:
                 write(s, " " * prefix_len + self.schemata[sn]["ada_name"] + ",")
                 self.top_sorted_sn.append(sn)
             for sc in sorted(self.schemata[sn]["subclasses"]):
-                rec(sc, depth+1)
-        rec("irep")
+                register_subclasses(sc)
+        register_subclasses("irep")
         s["content"][-1]["text"] = s["content"][-1]["text"].rstrip(",") + ");"
         write(s, "")
 
