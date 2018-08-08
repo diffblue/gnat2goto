@@ -607,7 +607,7 @@ class IrepsGenerator(object):
                                 kind,
                                 friendly_name, string_value)
 
-        def rec(sn):
+        def register_schema(sn):
             if sn == "source_location":
                 return
 
@@ -726,9 +726,9 @@ class IrepsGenerator(object):
                     print "   %s: %s" % (item, data)
 
             for sc in schema.get("subclasses", None):
-                rec(sc)
+                register_schema(sc)
 
-        rec("irep")
+        register_schema("irep")
 
         # Delete setters that only touch non-used classes (maybe we removed
         # some because they are always constant)
