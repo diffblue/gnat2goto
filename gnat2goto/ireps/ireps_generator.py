@@ -270,6 +270,15 @@ class IrepsGenerator(object):
                 rv.append(" " * prefix_len + "| " + thing)
         return rv
 
+    def all_used_subclasses(self, sn):
+        """ return the set of all subclasses of sn (and itself) """
+        rv = set()
+        for sc in self.schemata[sn]["subclasses"]:
+            rv |= self.all_used_subclasses(sc)
+        if self.schemata[sn]["used"]:
+            rv.add(sn)
+        return rv
+
     # Debug output of hierarchy
     def export_to_dot(self, filename):
         with open(filename + ".dot", "w") as fd:
@@ -455,15 +464,6 @@ class IrepsGenerator(object):
             if sn == "source_location":
                 # We will be using the GNAT ones instead
                 schema["used"] = False
-
-        def all_used_subclasses(sn):
-            """ return the set of all subclasses of sn (and itself) """
-            rv = set()
-            for sc in self.schemata[sn]["subclasses"]:
-                rv |= all_used_subclasses(sc)
-            if self.schemata[sn]["used"]:
-                rv.add(sn)
-            return rv
 
         self.export_to_dot("tree")
 
@@ -1100,7 +1100,7 @@ class IrepsGenerator(object):
             precon = []
             i_kinds = set()
             for kind in inputs:
-                i_kinds |= all_used_subclasses(kind)
+                i_kinds |= self.all_used_subclasses(kind)
             precon += self.mk_precondition_in("I", i_kinds)
             precon[-1] += ";"
 
@@ -1199,13 +1199,13 @@ class IrepsGenerator(object):
             precon = []
             i_kinds = set()
             for kind in inputs:
-                i_kinds |= all_used_subclasses(kind)
+                i_kinds |= self.all_used_subclasses(kind)
             precon += self.mk_precondition_in("I", i_kinds)
             if all_the_same:
                 v_kinds = set()
                 for kind in inputs.itervalues():
                     if kind is not None:
-                        v_kinds |= all_used_subclasses(kind)
+                        v_kinds |= self.all_used_subclasses(kind)
                 if len(v_kinds) > 0:
                     precon[-1] += " and then"
                     precon += self.mk_precondition_in("Value", v_kinds)
