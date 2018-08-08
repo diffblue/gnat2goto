@@ -38,7 +38,7 @@ from copy import copy
 
 # Helper functions
 
-irep_type_to_ada_type = {
+IREP_TO_ADA_TYPE = {
     "irep"      : "Irep",
     "bool"      : "Boolean",
     "integer"   : "Integer",
@@ -1147,7 +1147,7 @@ class IrepsGenerator(object):
             if is_list:
                 ada_value_type = "Irep_List"
             else:
-                ada_value_type = irep_type_to_ada_type[value_type]
+                ada_value_type = IREP_TO_ADA_TYPE[value_type]
 
             precon = []
             i_kinds = set()
@@ -1246,7 +1246,7 @@ class IrepsGenerator(object):
             name = ada_setter_name(fn_name, is_list)
             all_the_same = len(set(x for x in inputs.itervalues())) == 1
 
-            ada_value_type = irep_type_to_ada_type[value_type]
+            ada_value_type = IREP_TO_ADA_TYPE[value_type]
 
             precon = []
             i_kinds = set()
@@ -1865,7 +1865,7 @@ class IrepsGenerator(object):
             if sn in self.named_setters_by_schema:
                 for (friendly_name, actual_type, default_value) in self.named_setters_by_schema[sn]:
                     formal_name = escape_reserved_words(friendly_name)
-                    ada_type = irep_type_to_ada_type[actual_type]
+                    ada_type = IREP_TO_ADA_TYPE[actual_type]
                     formal_args.append((ada_casing(formal_name), ada_casing(friendly_name), ada_type, default_value))
             has_args = len(formal_args) != 0
             open_paren = "(" if has_args else ""
