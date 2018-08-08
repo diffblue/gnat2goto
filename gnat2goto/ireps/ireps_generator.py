@@ -23,7 +23,7 @@
 # Features left TODO:
 # * code_ifthenelse we need to deal with the "optional" flag
 # * recognize and remove Argument_List?
-# * do not serealise "sub", "comment" or "namedSub" if they are empty
+# * do not serialise "sub", "comment" or "namedSub" if they are empty
 
 import os
 import os.path
@@ -214,6 +214,26 @@ class IrepsGenerator(object):
         self.named_setters = {}
         self.const = {}
         self.layout = {}
+
+    # Emit subclasses for the enum
+    def make_class(self, root, fd):
+        name = self.schemata[root]["ada_name"].replace("I_", "Class_")
+        subc = sorted(self.schemata[root]["subclasses"])
+        first = subc[0]
+        last = subc[-1]
+
+        while len(self.schemata[last]["subclasses"]) >= 1:
+            subc = sorted(self.schemata[last]["subclasses"])
+            last = subc[-1]
+
+        write(fd, "subtype %s is Irep_Kind" % name)
+        write(fd, "  range %s .. %s;" % (self.schemata[first]["ada_name"],
+                                        self.schemata[last]["ada_name"]))
+        continuation(fd)
+        self.schemata[root]["subclass_ada_name"] = name
+        self.summary_classes[name] =\
+        set(self.top_sorted_sn[self.top_sorted_sn.index(first) :
+                            self.top_sorted_sn.index(last) + 1])
 
     # Debug output of hierarchy
     def export_to_dot(self, filename):
@@ -472,30 +492,13 @@ class IrepsGenerator(object):
         write(s, "")
 
         # Emit subclasses for the enum
-        self.summary_classes = {}
-        def make_class(root):
-            name = self.schemata[root]["ada_name"].replace("I_", "Class_")
-            subc = sorted(self.schemata[root]["subclasses"])
-            first = subc[0]
-            last = subc[-1]
-            while len(self.schemata[last]["subclasses"]) >= 1:
-                subc = sorted(self.schemata[last]["subclasses"])
-                last = subc[-1]
-            write(s, "subtype %s is Irep_Kind" % name)
-            write(s, "  range %s .. %s;" % (self.schemata[first]["ada_name"],
-                                            self.schemata[last]["ada_name"]))
-            continuation(s)
-            self.schemata[root]["subclass_ada_name"] = name
-            self.summary_classes[name] =\
-            set(self.top_sorted_sn[self.top_sorted_sn.index(first) :
-                                self.top_sorted_sn.index(last) + 1])
-        make_class("unary_expr")
-        make_class("binary_expr")
-        make_class("nary_expr")
-        make_class("code")
-        make_class("bitvector_type")
-        make_class("expr")
-        make_class("type")
+        self.make_class("unary_expr", s)
+        self.make_class("binary_expr", s)
+        self.make_class("nary_expr", s)
+        self.make_class("code", s)
+        self.make_class("bitvector_type", s)
+        self.make_class("expr", s)
+        self.make_class("type", s)
         write(s, "")
 
         def mk_precondition_in(param_name, kinds):
