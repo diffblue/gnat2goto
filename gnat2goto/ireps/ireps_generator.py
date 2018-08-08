@@ -307,6 +307,34 @@ class IrepsGenerator(object):
                                 is_comment,
                                 default_value)
 
+    # setter_name -> value|list -> {schema: (op_id, type)}
+    def register_sub_setter(self,
+                            root_schema,
+                            op_id,
+                            friendly_name,
+                            value_schema,
+                            is_list,
+                            default_value):
+        if type(friendly_name) is list:
+            assert len(friendly_name) == 2
+            assert friendly_name[0] == "op%u" % op_id
+            friendly_name = friendly_name[1]
+
+        schema = self.schemata[root_schema]
+        setter_kind = "list" if is_list else "value"
+
+        if friendly_name not in self.sub_setters:
+            self.sub_setters[friendly_name] = {}
+        if setter_kind not in self.sub_setters[friendly_name]:
+            self.sub_setters[friendly_name][setter_kind] = {}
+        self.sub_setters[friendly_name][setter_kind][root_schema] = (op_id,
+                                                                value_schema,
+                                                                default_value)
+
+        # Also apply to all children
+        for sc in schema.get("subclasses", None):
+            self.register_sub_setter(sc, op_id, friendly_name, value_schema, is_list, default_value)
+
     def mk_precondition_in(self, param_name, kinds):
         todo = set(kinds)
         groups = []
@@ -584,32 +612,7 @@ class IrepsGenerator(object):
 
         # Collect and consolidate setters (subs, named and comment)
 
-        self.sub_setters = {} # setter_name -> value|list -> {schema: (op_id, type)}
-        def register_sub_setter(root_schema,
-                                op_id, friendly_name,
-                                value_schema,
-                                is_list,
-                                default_value):
-            if type(friendly_name) is list:
-                assert len(friendly_name) == 2
-                assert friendly_name[0] == "op%u" % op_id
-                friendly_name = friendly_name[1]
-
-            schema = self.schemata[root_schema]
-            setter_kind = "list" if is_list else "value"
-
-            if friendly_name not in self.sub_setters:
-                self.sub_setters[friendly_name] = {}
-            if setter_kind not in self.sub_setters[friendly_name]:
-                self.sub_setters[friendly_name][setter_kind] = {}
-            self.sub_setters[friendly_name][setter_kind][root_schema] = (op_id,
-                                                                    value_schema,
-                                                                    default_value)
-
-            # Also apply to all children
-            for sc in schema.get("subclasses", None):
-                register_sub_setter(sc, op_id, friendly_name, value_schema, is_list, default_value)
-
+        self.sub_setters = {}
         self.named_setters = {}
 
         def register_schema(sn):
@@ -645,11 +648,11 @@ class IrepsGenerator(object):
 
                     friendly_name = list_schema["friendly_name"]
                     element_type  = list_schema["schema"]
-                    register_sub_setter(sn, i, friendly_name, element_type, True, None)
+                    self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
 
                 elif "friendly_name" in sub:
                     friendly_name = sub["friendly_name"]
-                    register_sub_setter(sn,
+                    self.register_sub_setter(sn,
                                         i, friendly_name,
                                         sub["schema"],
                                         sub.get("number", None) == "*",
@@ -659,7 +662,7 @@ class IrepsGenerator(object):
                     assert sub["number"] == "*"
                     friendly_name = "elmt" # TODO: should have a nicer name
                     element_type  = sub["schema"]
-                    register_sub_setter(sn, i, friendly_name, element_type, True, None)
+                    self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
 
             for fld in ("namedSub", "comment"):
                 if fld in schema:
