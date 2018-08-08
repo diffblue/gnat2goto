@@ -818,66 +818,9 @@ class IrepsGenerator(object):
         if optimize:
             MAX_INTS, MAX_BOOLS = self.optimize_layout(MAX_INTS, MAX_BOOLS)
 
-        ##########################################################################
-        # Documentation
 
-        for sn in self.top_sorted_sn:
-            schema = self.schemata[sn]
-            assert schema["used"]
 
-            write(s, "--  %s" % schema["ada_name"])
-
-            # sub_setters ::= setter_name -> value|list -> {schema: (op_id, type)}
-            # subs        ::= op_id -> (setter_name, type)
-            subs = {}
-            for setter_name, data in self.sub_setters.iteritems():
-                assert len(data) == 1
-                for typ, variants in data.iteritems():
-                    actual_type = {"value" : "irep",
-                                "list"  : "list"}[typ]
-                    if sn in variants:
-                        subs[variants[sn][0]] = (ada_casing(setter_name),
-                                                actual_type)
-            if len(subs):
-                write(s, "--  subs")
-                for op in xrange(len(subs)):
-                    assert op in subs
-                    write(s, "--    %s (op%u, %s)" % (subs[op][0],
-                                                    op,
-                                                    subs[op][1]))
-
-            nams = {}
-            coms = {}
-            for setter_name, setter_kinds in self.named_setters.iteritems():
-                for kind in setter_kinds:
-                    if sn in setter_kinds[kind]:
-                        is_comment, typ, _ = setter_kinds[kind][sn]
-                        d = coms if is_comment else nams
-                        if kind == "trivial":
-                            d[setter_name] = typ
-                        else:
-                            d[setter_name] = kind
-            if len(nams):
-                write(s, "--  namedSubs")
-                for setter_name in sorted(nams):
-                    write(s, "--    %s (%s)" % (ada_casing(setter_name),
-                                                nams[setter_name]))
-            if len(coms):
-                write(s, "--  comment")
-                for setter_name in sorted(coms):
-                    write(s, "--    %s (%s)" % (ada_casing(setter_name),
-                                                coms[setter_name]))
-
-            # cnst ::= schema -> id|namedSub|comment -> {name: value}
-            for kind in const.get(sn, {}):
-                for const_name, const_value in const[sn][kind].iteritems():
-                    tmp = "constant %s: %s" % (ada_casing(const_name), const_value)
-                    if kind != "id":
-                        tmp += " (%s)" % kind
-                    write(s, "--  %s" % tmp)
-
-            write(s, "")
-
+        self.generate_documentation(s)
         ##########################################################################
         # Datastructure
 
@@ -2277,6 +2220,68 @@ class IrepsGenerator(object):
         manual_outdent(b)
         write(b, "end Ireps;")
         write_file(b)
+
+
+    ##########################################################################
+    # Documentation
+    def generate_documentation(self, s):
+        for sn in self.top_sorted_sn:
+            schema = self.schemata[sn]
+            assert schema["used"]
+
+            write(s, "--  %s" % schema["ada_name"])
+
+            # sub_setters ::= setter_name -> value|list -> {schema: (op_id, type)}
+            # subs        ::= op_id -> (setter_name, type)
+            subs = {}
+            for setter_name, data in self.sub_setters.iteritems():
+                assert len(data) == 1
+                for typ, variants in data.iteritems():
+                    actual_type = {"value" : "irep",
+                                "list"  : "list"}[typ]
+                    if sn in variants:
+                        subs[variants[sn][0]] = (ada_casing(setter_name),
+                                                actual_type)
+
+            if len(subs):
+                write(s, "--  subs")
+                for op in xrange(len(subs)):
+                    assert op in subs
+                    write(s, "--    %s (op%u, %s)" % (subs[op][0],
+                                                    op,
+                                                    subs[op][1]))
+
+            nams = {}
+            coms = {}
+            for setter_name, setter_kinds in self.named_setters.iteritems():
+                for kind in setter_kinds:
+                    if sn in setter_kinds[kind]:
+                        is_comment, typ, _ = setter_kinds[kind][sn]
+                        d = coms if is_comment else nams
+                        if kind == "trivial":
+                            d[setter_name] = typ
+                        else:
+                            d[setter_name] = kind
+            if len(nams):
+                write(s, "--  namedSubs")
+                for setter_name in sorted(nams):
+                    write(s, "--    %s (%s)" % (ada_casing(setter_name),
+                                                nams[setter_name]))
+            if len(coms):
+                write(s, "--  comment")
+                for setter_name in sorted(coms):
+                    write(s, "--    %s (%s)" % (ada_casing(setter_name),
+                                                coms[setter_name]))
+
+            # cnst ::= schema -> id|namedSub|comment -> {name: value}
+            for kind in self.const.get(sn, {}):
+                for const_name, const_value in self.const[sn][kind].iteritems():
+                    tmp = "constant %s: %s" % (ada_casing(const_name), const_value)
+                    if kind != "id":
+                        tmp += " (%s)" % kind
+                    write(s, "--  %s" % tmp)
+
+            write(s, "")
 
 
 def main():
