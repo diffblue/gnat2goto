@@ -204,6 +204,35 @@ def mk_prefixed_lines(prefix, lines, join=""):
         rv.append(empty_prefix + line)
     return rv
 
+def escape_reserved_words(w):
+    if w in ("type", "subtype", "function", "array", "access", "body"):
+        return "i_" + w
+    else:
+        return w
+
+def initialiser_constant(val, typename):
+    if val is None:
+        return ""
+    if typename == "Irep":
+        assert val == "nil"
+        return "Ireps.Empty"
+    elif typename == "Boolean":
+        assert type(val) == bool
+        return str(val)
+    elif typename == "Integer":
+        assert type(val) == int
+        return str(val)
+    elif typename == "String":
+        assert type(val) in (str, unicode)
+        return "\"%s\"" % val
+
+def initialiser(val, typename):
+    init_const = initialiser_constant(val, typename)
+    if init_const == "":
+        return init_const
+    else:
+        return " := " + init_const
+
 
 class IrepsGenerator(object):
     def __init__(self):
@@ -1788,35 +1817,6 @@ class IrepsGenerator(object):
                         named_setters_by_schema[schema_name] = []
                     param_type = actual_type if kind == "trivial" else kind
                     named_setters_by_schema[schema_name].append((friendly_name, param_type, default_val))
-
-        def escape_reserved_words(w):
-            if w in ("type", "subtype", "function", "array", "access", "body"):
-                return "i_" + w
-            else:
-                return w
-
-        def initialiser_constant(val, typename):
-            if val is None:
-                return ""
-            if typename == "Irep":
-                assert val == "nil"
-                return "Ireps.Empty"
-            elif typename == "Boolean":
-                assert type(val) == bool
-                return str(val)
-            elif typename == "Integer":
-                assert type(val) == int
-                return str(val)
-            elif typename == "String":
-                assert type(val) in (str, unicode)
-                return "\"%s\"" % val
-
-        def initialiser(val, typename):
-            init_const = initialiser_constant(val, typename)
-            if init_const == "":
-                return init_const
-            else:
-                return " := " + init_const
 
         for sn in self.top_sorted_sn:
             schema = self.schemata[sn]
