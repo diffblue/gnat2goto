@@ -271,7 +271,6 @@ class IrepsGenerator(object):
             return
 
         schema = self.schemata[sn]
-
         tmp = copy(schema)
 
         del tmp["used"]
@@ -311,7 +310,7 @@ class IrepsGenerator(object):
 
             elif "number" in sub:
                 assert sub["number"] == "*"
-                friendly_name = "elmt" # TODO: should have a nicer name
+                friendly_name = "elmt"  # TODO: should have a nicer name
                 element_type  = sub["schema"]
                 self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
 
@@ -323,20 +322,21 @@ class IrepsGenerator(object):
                     # A specific string constant that must be set by the
                     # constructor
                     assert len(data) == 1 or (len(data) == 2 and
-                                            data["type"] == "string")
+                                              data["type"] == "string")
                     const_value = data["constant"]
                     self.register_constant(sn,
-                                    fld,
-                                    friendly_name, const_value)
+                                           fld,
+                                           friendly_name,
+                                           const_value)
 
                 elif data.get("type", None) in ("string", "integer", "bool"):
                     # Trivial field
                     assert set(data.keys()) <= set(("type", "default"))
                     self.register_named_setter(sn,
-                                        "trivial",
-                                        friendly_name, data["type"],
-                                        fld == "comment",
-                                        data.get("default", None))
+                                          "trivial",
+                                          friendly_name, data["type"],
+                                          fld == "comment",
+                                          data.get("default", None))
 
                 elif "schema" in data:
                     # Irep of some type
@@ -344,10 +344,10 @@ class IrepsGenerator(object):
                     assert set(data.keys()) <= set(("schema", "default"))
                     value_type = data["schema"]
                     self.register_named_setter(sn,
-                                        "irep",
-                                        friendly_name, value_type,
-                                        fld == "comment",
-                                        data.get("default", None))
+                                          "irep",
+                                          friendly_name, value_type,
+                                          fld == "comment",
+                                          data.get("default", None))
 
                 elif "sub" in data:
                     # A list
@@ -695,22 +695,22 @@ class IrepsGenerator(object):
                     write(b, "%s := Integer (New_List);" % (asn_lhs % the_slot))
                 write(b, "end if;")
                 write(b, "Append (Irep_List (%s), Value);" % (asn_lhs %
-                                                            the_slot))
+                                                              the_slot))
             else:
                 write(b,
-                    asn_lhs % the_slot + " := " + asn_rhs + ";")
+                      asn_lhs % the_slot + " := " + asn_rhs + ";")
         else:
             write(b, "case Irep_Table.Table (I).Kind is")
             manual_indent(b)
             for layout_index, i_kinds in kind_slot_map.iteritems():
                 if len(i_kinds) == 1:
                     write(b, "when %s =>" %
-                        ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
+                          ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
                 else:
                     for l in mk_prefixed_lines("when ",
-                                            [self.schemata[x]["ada_name"]
+                                               [self.schemata[x]["ada_name"]
                                                 for x in i_kinds],
-                                            "| "):
+                                               "| "):
                         write(b, l)
                     write(b, "=>")
 
@@ -719,7 +719,7 @@ class IrepsGenerator(object):
                         write(b, "if %s = 0 then" % (asn_lhs % layout_index))
                         with indent(b):
                             write(b, "%s := Integer (New_List);" %
-                                (asn_lhs % layout_index))
+                                  (asn_lhs % layout_index))
                         write(b, "end if;")
                         write(b, "Append (Irep_List (%s), Value);" %
                               (asn_lhs % layout_index))
@@ -1667,7 +1667,7 @@ class IrepsGenerator(object):
                         needs_null = False
                         setter_name, is_list = subs[i]
                         layout_kind, layout_index, layout_typ =\
-                        self.layout[sn][setter_name]
+                            self.layout[sn][setter_name]
                         tbl_field = "N." + ada_component_name(layout_kind,
                                                             layout_index)
                         if is_list:
@@ -1684,9 +1684,9 @@ class IrepsGenerator(object):
                             if sn in self.named_setters[setter_name][kind]:
                                 needs_null = False
                                 is_comment, _, _ =\
-                                self.named_setters[setter_name][kind][sn]
+                                    self.named_setters[setter_name][kind][sn]
                                 layout_kind, layout_index, layout_typ =\
-                                self.layout[sn][setter_name]
+                                    self.layout[sn][setter_name]
                                 tbl_field = "N." + ada_component_name(layout_kind,
                                                                     layout_index)
 
@@ -2259,6 +2259,7 @@ class IrepsGenerator(object):
                     if sn in variants:
                         subs[variants[sn][0]] = (ada_casing(setter_name),
                                                 actual_type)
+
             if len(subs):
                 write(s, "--  subs")
                 for op in xrange(len(subs)):
