@@ -506,6 +506,241 @@ class IrepsGenerator(object):
             fd.write("}\n")
         os.system("dot " + filename + ".dot -Tpdf > " + filename + ".pdf")
 
+    def emit_getter(self,
+                    fn_name,
+                    fn_kind,    # irep|trivial|list
+                    value_type, # irep|bool|integer|string|gnat:sloc
+                    inputs,     # map sn -> sn|None (if value_type != irep)
+                    s,
+                    b):
+        assert fn_kind in ("irep", "trivial", "list")
+        assert fn_kind != "irep" or value_type == "irep"
+        assert fn_kind != "trivial" or value_type in ("bool",
+                                                      "integer",
+                                                      "string",
+                                                      "gnat:sloc")
+        assert fn_kind != "list" or value_type == "irep"
+        is_list = fn_kind == "list"
+        name = "Get_" + ada_casing(fn_name)
+
+        if is_list:
+            ada_value_type = "Irep_List"
+        else:
+            ada_value_type = IREP_TO_ADA_TYPE[value_type]
+
+        precon = []
+        i_kinds = set()
+        for kind in inputs:
+            i_kinds |= self.all_used_subclasses(kind)
+        precon += self.mk_precondition_in("I", i_kinds)
+        precon[-1] += ";"
+
+        write(s, "function %s (I : Irep) return %s " % (name,
+                                                        ada_value_type))
+        for l in mk_prefixed_lines("with Pre => ", precon):
+            write(s, l)
+        write(s, "")
+
+        kind_slot_map = {}
+        for sn in sorted(i_kinds):
+            layout_kind, layout_index, _ = self.layout[sn][fn_name]
+            if layout_index not in kind_slot_map:
+                kind_slot_map[layout_index] = []
+            kind_slot_map[layout_index].append(sn)
+        field = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
+
+        write_comment_block(b, name)
+        write(b, "function %s (I : Irep) return %s" % (name,
+                                                       ada_value_type))
+        write(b, "is")
+        continuation(b)
+        write(b, "begin")
+        manual_indent(b)
+
+        write(b, "if I = Empty then")
+        with indent(b):
+            write(b, "raise Program_Error;")
+        write(b, "end if;")
+        write(b, "")
+
+        if fn_kind == "irep":
+            get_conversion = "Irep (%s)"
+        elif fn_kind == "list":
+            get_conversion = "Irep_List (%s)"
+        elif value_type in ("bool", "integer"):
+            get_conversion = "%s"
+        elif value_type == "string":
+            get_conversion = "To_String (String_Id (%s))"
+        elif value_type == "gnat:sloc":
+            get_conversion = "Source_Ptr (%s)"
+        else:
+            assert False
+
+        retval = get_conversion % field
+
+        if len(kind_slot_map) == 0:
+            assert False
+        elif len(kind_slot_map) == 1:
+            the_slot = list(kind_slot_map)[0]
+            write(b, "return %s;" % (retval % the_slot))
+        else:
+            write(b, "case Irep_Table.Table (I).Kind is")
+            manual_indent(b)
+            for layout_index, i_kinds in kind_slot_map.iteritems():
+                if len(i_kinds) == 1:
+                    write(b, "when %s =>" %
+                        ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
+                else:
+                    for l in mk_prefixed_lines("when ",
+                                            [self.schemata[x]["ada_name"]
+                                                for x in i_kinds],
+                                            "| "):
+                        write(b, l)
+                    write(b, "=>")
+                with indent(b):
+                    write(b, "return %s;" % (retval % layout_index))
+                write(b, "")
+            write(b, "when others =>")
+            with indent(b):
+                write(b, "raise Program_Error;")
+            manual_outdent(b)
+            write(b, "end case;")
+
+        manual_outdent(b)
+        write(b, "end %s;" % name)
+        write(b, "")
+
+    def emit_setter(self,
+                    fn_name,
+                    fn_kind,    # irep|trivial|list
+                    value_type, # irep|bool|integer|string|gnat:sloc
+                    inputs,     # map sn -> sn|None (if value_type != irep)
+                    s,
+                    b):
+        assert fn_kind in ("irep", "trivial", "list")
+        assert fn_kind != "irep" or value_type == "irep"
+        assert fn_kind != "trivial" or value_type in ("bool",
+                                                      "integer",
+                                                      "string",
+                                                      "gnat:sloc")
+        assert fn_kind != "list" or value_type == "irep"
+        is_list = fn_kind == "list"
+        name = ada_setter_name(fn_name, is_list)
+        all_the_same = len(set(x for x in inputs.itervalues())) == 1
+
+        ada_value_type = IREP_TO_ADA_TYPE[value_type]
+
+        precon = []
+        i_kinds = set()
+        for kind in inputs:
+            i_kinds |= self.all_used_subclasses(kind)
+        precon += self.mk_precondition_in("I", i_kinds)
+        if all_the_same:
+            v_kinds = set()
+            for kind in inputs.itervalues():
+                if kind is not None:
+                    v_kinds |= self.all_used_subclasses(kind)
+            if len(v_kinds) > 0:
+                precon[-1] += " and then"
+                precon += self.mk_precondition_in("Value", v_kinds)
+        precon[-1] += ";"
+
+        write(s, "procedure %s (I : Irep; Value : %s)" % (name,
+                                                        ada_value_type))
+        for l in mk_prefixed_lines("with Pre => ", precon):
+            write(s, l)
+        if not all_the_same:
+            write(s, "--  TODO: precondition for Value")
+        write(s, "")
+
+        kind_slot_map = {}
+        for sn in sorted(i_kinds):
+            layout_kind, layout_index, _ = self.layout[sn][fn_name]
+            if layout_index not in kind_slot_map:
+                kind_slot_map[layout_index] = []
+            kind_slot_map[layout_index].append(sn)
+        asn_lhs = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
+
+        write_comment_block(b, name)
+        write(b, "procedure %s (I : Irep; Value : %s)" % (name,
+                                                        ada_value_type))
+        write(b, "is")
+        continuation(b)
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "if I = Empty then")
+        with indent(b):
+            write(b, "raise Program_Error;")
+        write(b, "end if;")
+        write(b, "")
+
+        if fn_kind in ("irep", "list"):
+            assert value_type == "irep"
+            asn_rhs = "Integer (Value)"
+        elif value_type in ("bool", "integer"):
+            asn_rhs = "Value"
+        elif value_type == "gnat:sloc":
+            asn_rhs = "Integer (Value)"
+        elif value_type == "string":
+            write(b, "Start_String;")
+            write(b, "Store_String_Chars (Value);")
+            asn_rhs = "Integer (End_String)"
+        else:
+            assert False
+
+        if len(kind_slot_map) == 0:
+            assert False
+        elif len(kind_slot_map) == 1:
+            the_slot = list(kind_slot_map)[0]
+            if is_list:
+                write(b, "if %s = 0 then" % (asn_lhs % the_slot))
+                with indent(b):
+                    write(b, "%s := Integer (New_List);" % (asn_lhs % the_slot))
+                write(b, "end if;")
+                write(b, "Append (Irep_List (%s), Value);" % (asn_lhs %
+                                                            the_slot))
+            else:
+                write(b,
+                    asn_lhs % the_slot + " := " + asn_rhs + ";")
+        else:
+            write(b, "case Irep_Table.Table (I).Kind is")
+            manual_indent(b)
+            for layout_index, i_kinds in kind_slot_map.iteritems():
+                if len(i_kinds) == 1:
+                    write(b, "when %s =>" %
+                        ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
+                else:
+                    for l in mk_prefixed_lines("when ",
+                                            [self.schemata[x]["ada_name"]
+                                                for x in i_kinds],
+                                            "| "):
+                        write(b, l)
+                    write(b, "=>")
+
+                with indent(b):
+                    if is_list:
+                        write(b, "if %s = 0 then" % (asn_lhs % layout_index))
+                        with indent(b):
+                            write(b, "%s := Integer (New_List);" %
+                                (asn_lhs % layout_index))
+                        write(b, "end if;")
+                        write(b, "Append (Irep_List (%s), Value);" %
+                              (asn_lhs % layout_index))
+                    else:
+                        write(b,
+                              asn_lhs % layout_index + " := " + asn_rhs + ";")
+
+                write(b, "")
+            write(b, "when others =>")
+            with indent(b):
+                write(b, "raise Program_Error;")
+            manual_outdent(b)
+            write(b, "end case;")
+
+        manual_outdent(b)
+        write(b, "end %s;" % name)
+        write(b, "")
+
     def optimize_layout(self, max_int, max_bool):
         accessors = {
             "int"  : set(),
@@ -1082,237 +1317,8 @@ class IrepsGenerator(object):
         write(b, "end New_Irep;")
         write(b, "")
 
-        def emit_getter(fn_name,
-                        fn_kind,    # irep|trivial|list
-                        value_type, # irep|bool|integer|string|gnat:sloc
-                        inputs):    # map sn -> sn|None (if value_type != irep)
-            assert fn_kind in ("irep", "trivial", "list")
-            assert fn_kind != "irep" or value_type == "irep"
-            assert fn_kind != "trivial" or value_type in ("bool",
-                                                        "integer",
-                                                        "string",
-                                                        "gnat:sloc")
-            assert fn_kind != "list" or value_type == "irep"
-            is_list = fn_kind == "list"
-            name = "Get_" + ada_casing(fn_name)
-
-            if is_list:
-                ada_value_type = "Irep_List"
-            else:
-                ada_value_type = IREP_TO_ADA_TYPE[value_type]
-
-            precon = []
-            i_kinds = set()
-            for kind in inputs:
-                i_kinds |= self.all_used_subclasses(kind)
-            precon += self.mk_precondition_in("I", i_kinds)
-            precon[-1] += ";"
-
-            write(s, "function %s (I : Irep) return %s " % (name,
-                                                            ada_value_type))
-            for l in mk_prefixed_lines("with Pre => ", precon):
-                write(s, l)
-            write(s, "")
-
-            kind_slot_map = {}
-            for sn in sorted(i_kinds):
-                layout_kind, layout_index, _ = self.layout[sn][fn_name]
-                if layout_index not in kind_slot_map:
-                    kind_slot_map[layout_index] = []
-                kind_slot_map[layout_index].append(sn)
-            field = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
-
-            write_comment_block(b, name)
-            write(b, "function %s (I : Irep) return %s" % (name,
-                                                        ada_value_type))
-            write(b, "is")
-            continuation(b)
-            write(b, "begin")
-            manual_indent(b)
-
-            write(b, "if I = Empty then")
-            with indent(b):
-                write(b, "raise Program_Error;")
-            write(b, "end if;")
-            write(b, "")
-
-            if fn_kind == "irep":
-                get_conversion = "Irep (%s)"
-            elif fn_kind == "list":
-                get_conversion = "Irep_List (%s)"
-            elif value_type in ("bool", "integer"):
-                get_conversion = "%s"
-            elif value_type == "string":
-                get_conversion = "To_String (String_Id (%s))"
-            elif value_type == "gnat:sloc":
-                get_conversion = "Source_Ptr (%s)"
-            else:
-                assert False
-
-            retval = get_conversion % field
-
-            if len(kind_slot_map) == 0:
-                assert False
-            elif len(kind_slot_map) == 1:
-                the_slot = list(kind_slot_map)[0]
-                write(b, "return %s;" % (retval % the_slot))
-            else:
-                write(b, "case Irep_Table.Table (I).Kind is")
-                manual_indent(b)
-                for layout_index, i_kinds in kind_slot_map.iteritems():
-                    if len(i_kinds) == 1:
-                        write(b, "when %s =>" %
-                            ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
-                    else:
-                        for l in mk_prefixed_lines("when ",
-                                                [self.schemata[x]["ada_name"]
-                                                    for x in i_kinds],
-                                                "| "):
-                            write(b, l)
-                        write(b, "=>")
-                    with indent(b):
-                        write(b, "return %s;" % (retval % layout_index))
-                    write(b, "")
-                write(b, "when others =>")
-                with indent(b):
-                    write(b, "raise Program_Error;")
-                manual_outdent(b)
-                write(b, "end case;")
-
-            manual_outdent(b)
-            write(b, "end %s;" % name)
-            write(b, "")
-
-        def emit_setter(fn_name,
-                        fn_kind,    # irep|trivial|list
-                        value_type, # irep|bool|integer|string|gnat:sloc
-                        inputs):    # map sn -> sn|None (if value_type != irep)
-            assert fn_kind in ("irep", "trivial", "list")
-            assert fn_kind != "irep" or value_type == "irep"
-            assert fn_kind != "trivial" or value_type in ("bool",
-                                                        "integer",
-                                                        "string",
-                                                        "gnat:sloc")
-            assert fn_kind != "list" or value_type == "irep"
-            is_list = fn_kind == "list"
-            name = ada_setter_name(fn_name, is_list)
-            all_the_same = len(set(x for x in inputs.itervalues())) == 1
-
-            ada_value_type = IREP_TO_ADA_TYPE[value_type]
-
-            precon = []
-            i_kinds = set()
-            for kind in inputs:
-                i_kinds |= self.all_used_subclasses(kind)
-            precon += self.mk_precondition_in("I", i_kinds)
-            if all_the_same:
-                v_kinds = set()
-                for kind in inputs.itervalues():
-                    if kind is not None:
-                        v_kinds |= self.all_used_subclasses(kind)
-                if len(v_kinds) > 0:
-                    precon[-1] += " and then"
-                    precon += self.mk_precondition_in("Value", v_kinds)
-            precon[-1] += ";"
-
-            write(s, "procedure %s (I : Irep; Value : %s)" % (name,
-                                                            ada_value_type))
-            for l in mk_prefixed_lines("with Pre => ", precon):
-                write(s, l)
-            if not all_the_same:
-                write(s, "--  TODO: precondition for Value")
-            write(s, "")
-
-            kind_slot_map = {}
-            for sn in sorted(i_kinds):
-                layout_kind, layout_index, _ = self.layout[sn][fn_name]
-                if layout_index not in kind_slot_map:
-                    kind_slot_map[layout_index] = []
-                kind_slot_map[layout_index].append(sn)
-            asn_lhs = "Irep_Table.Table (I)." + ada_component_name(layout_kind)
-
-            write_comment_block(b, name)
-            write(b, "procedure %s (I : Irep; Value : %s)" % (name,
-                                                            ada_value_type))
-            write(b, "is")
-            continuation(b)
-            write(b, "begin")
-            manual_indent(b)
-            write(b, "if I = Empty then")
-            with indent(b):
-                write(b, "raise Program_Error;")
-            write(b, "end if;")
-            write(b, "")
-
-            if fn_kind in ("irep", "list"):
-                assert value_type == "irep"
-                asn_rhs = "Integer (Value)"
-            elif value_type in ("bool", "integer"):
-                asn_rhs = "Value"
-            elif value_type == "gnat:sloc":
-                asn_rhs = "Integer (Value)"
-            elif value_type == "string":
-                write(b, "Start_String;")
-                write(b, "Store_String_Chars (Value);")
-                asn_rhs = "Integer (End_String)"
-            else:
-                assert False
-
-            if len(kind_slot_map) == 0:
-                assert False
-            elif len(kind_slot_map) == 1:
-                the_slot = list(kind_slot_map)[0]
-                if is_list:
-                    write(b, "if %s = 0 then" % (asn_lhs % the_slot))
-                    with indent(b):
-                        write(b, "%s := Integer (New_List);" % (asn_lhs % the_slot))
-                    write(b, "end if;")
-                    write(b, "Append (Irep_List (%s), Value);" % (asn_lhs %
-                                                                the_slot))
-                else:
-                    write(b,
-                        asn_lhs % the_slot + " := " + asn_rhs + ";")
-            else:
-                write(b, "case Irep_Table.Table (I).Kind is")
-                manual_indent(b)
-                for layout_index, i_kinds in kind_slot_map.iteritems():
-                    if len(i_kinds) == 1:
-                        write(b, "when %s =>" %
-                            ada_casing(self.schemata[i_kinds[0]]["ada_name"]))
-                    else:
-                        for l in mk_prefixed_lines("when ",
-                                                [self.schemata[x]["ada_name"]
-                                                    for x in i_kinds],
-                                                "| "):
-                            write(b, l)
-                        write(b, "=>")
-
-                    with indent(b):
-                        if is_list:
-                            write(b, "if %s = 0 then" % (asn_lhs % layout_index))
-                            with indent(b):
-                                write(b, "%s := Integer (New_List);" %
-                                    (asn_lhs % layout_index))
-                            write(b, "end if;")
-                            write(b, "Append (Irep_List (%s), Value);" %
-                                (asn_lhs % layout_index))
-                        else:
-                            write(b,
-                                asn_lhs % layout_index + " := " + asn_rhs + ";")
-
-                    write(b, "")
-                write(b, "when others =>")
-                with indent(b):
-                    write(b, "raise Program_Error;")
-                manual_outdent(b)
-                write(b, "end case;")
-
-            manual_outdent(b)
-            write(b, "end %s;" % name)
-            write(b, "")
-
-        for fn, category in [(emit_getter, "getters"),
-                            (emit_setter, "setters")]:
+        for fn, category in [(self.emit_getter, "getters"),
+                            (self.emit_setter, "setters")]:
             write(b, "-" * 70)
             write(b, "--  sub %s" % category)
             write(b, "-" * 70)
@@ -1332,7 +1338,9 @@ class IrepsGenerator(object):
                                 if "value" in self.sub_setters[fn_name]
                                 else "list"),
                 value_type = "irep",
-                inputs     = dict((sn, data[sn][1]) for sn in data))
+                inputs     = dict((sn, data[sn][1]) for sn in data),
+                s          = s,
+                b          = b)
 
             write(b, "-" * 70)
             write(b, "--  namedSub and comment %s" % category)
@@ -1359,7 +1367,9 @@ class IrepsGenerator(object):
                     fn(fn_name    = fn_name,
                     fn_kind    = kind,
                     value_type = vt,
-                    inputs     = inputs)
+                    inputs     = inputs,
+                    s          = s,
+                    b          = b)
 
         ##########################################################################
         # Traversal
