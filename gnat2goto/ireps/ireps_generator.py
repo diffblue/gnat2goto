@@ -266,6 +266,127 @@ class IrepsGenerator(object):
                                    friendly_name,
                                    string_value)
 
+    def register_schema(self, sn):
+        if sn == "source_location":
+            return
+
+        schema = self.schemata[sn]
+
+        tmp = copy(schema)
+
+        del tmp["used"]
+        del tmp["ada_name"]
+        del tmp["subclasses"]
+        if "parent" in schema:
+            del tmp["parent"]
+        if "subclass_ada_name" in schema:
+            del tmp["subclass_ada_name"]
+
+        if "id" in schema:
+            del tmp["id"]
+            self.register_constant(sn, "id", "id", schema["id"])
+
+        if "sub" in schema:
+            del tmp["sub"]
+        for i, sub in enumerate(schema.get("sub", [])):
+            if "sub" in sub:
+                # Op_i is a list
+                assert type(sub["sub"]) is list
+                assert len(sub["sub"]) == 1
+                list_schema = sub["sub"][0]
+                assert list_schema.get("number", None) == "*"
+                assert "schema" in list_schema
+
+                friendly_name = list_schema["friendly_name"]
+                element_type  = list_schema["schema"]
+                self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
+
+            elif "friendly_name" in sub:
+                friendly_name = sub["friendly_name"]
+                self.register_sub_setter(sn,
+                                    i, friendly_name,
+                                    sub["schema"],
+                                    sub.get("number", None) == "*",
+                                    sub.get("default", None))
+
+            elif "number" in sub:
+                assert sub["number"] == "*"
+                friendly_name = "elmt" # TODO: should have a nicer name
+                element_type  = sub["schema"]
+                self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
+
+        for fld in ("namedSub", "comment"):
+            if fld in schema:
+                del tmp[fld]
+            for friendly_name, data in schema.get(fld, {}).iteritems():
+                if "constant" in data:
+                    # A specific string constant that must be set by the
+                    # constructor
+                    assert len(data) == 1 or (len(data) == 2 and
+                                            data["type"] == "string")
+                    const_value = data["constant"]
+                    self.register_constant(sn,
+                                    fld,
+                                    friendly_name, const_value)
+
+                elif data.get("type", None) in ("string", "integer", "bool"):
+                    # Trivial field
+                    assert set(data.keys()) <= set(("type", "default"))
+                    self.register_named_setter(sn,
+                                        "trivial",
+                                        friendly_name, data["type"],
+                                        fld == "comment",
+                                        data.get("default", None))
+
+                elif "schema" in data:
+                    # Irep of some type
+                    assert data["schema"] in self.schemata
+                    assert set(data.keys()) <= set(("schema", "default"))
+                    value_type = data["schema"]
+                    self.register_named_setter(sn,
+                                        "irep",
+                                        friendly_name, value_type,
+                                        fld == "comment",
+                                        data.get("default", None))
+
+                elif "sub" in data:
+                    # A list
+                    assert len(data) == 1
+                    data = data["sub"]
+                    assert len(data) == 1
+                    data = data[0]
+                    assert len(data) == 3
+                    assert data["number"] == "*"
+                    friendly_name = data["friendly_name"]
+                    list_type     = data["schema"]
+                    self.register_named_setter(sn,
+                                        "list",
+                                        friendly_name, list_type,
+                                        fld == "comment",
+                                        None)
+
+                else:
+                    assert False
+
+        # const ::= schema -> id|namedSub|comment -> {name: value}
+        # namd ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
+        # Delete setters for which we have a constant
+        for kind in ("namedSub", "comment"):
+            data = self.const.get(sn, {}).get(kind, {})
+            for friendly_name, const_value in data.iteritems():
+                if (friendly_name in self.named_setters and
+                    "trivial" in self.named_setters[friendly_name] and
+                    sn in self.named_setters[friendly_name]["trivial"]):
+                    del self.named_setters[friendly_name]["trivial"][sn]
+
+        if len(tmp) > 0:
+            print "error: unconsumed data for %s:" % sn
+            for item, data in tmp.iteritems():
+                print "   %s: %s" % (item, data)
+
+        for sc in schema.get("subclasses", None):
+            self.register_schema(sc)
+
     # setter_name -> value|list|trivial -> {schema: (is_comment, type)}
     def register_named_setter(self,
                               root_schema,
@@ -608,132 +729,10 @@ class IrepsGenerator(object):
         write(s, "")
 
         # Collect and consolidate setters (subs, named and comment)
-
         self.sub_setters = {}
         self.named_setters = {}
-
-        def register_schema(sn):
-            if sn == "source_location":
-                return
-
-            schema = self.schemata[sn]
-
-            tmp = copy(schema)
-
-            del tmp["used"]
-            del tmp["ada_name"]
-            del tmp["subclasses"]
-            if "parent" in schema:
-                del tmp["parent"]
-            if "subclass_ada_name" in schema:
-                del tmp["subclass_ada_name"]
-
-            if "id" in schema:
-                del tmp["id"]
-                self.register_constant(sn, "id", "id", schema["id"])
-
-            if "sub" in schema:
-                del tmp["sub"]
-            for i, sub in enumerate(schema.get("sub", [])):
-                if "sub" in sub:
-                    # Op_i is a list
-                    assert type(sub["sub"]) is list
-                    assert len(sub["sub"]) == 1
-                    list_schema = sub["sub"][0]
-                    assert list_schema.get("number", None) == "*"
-                    assert "schema" in list_schema
-
-                    friendly_name = list_schema["friendly_name"]
-                    element_type  = list_schema["schema"]
-                    self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
-
-                elif "friendly_name" in sub:
-                    friendly_name = sub["friendly_name"]
-                    self.register_sub_setter(sn,
-                                        i, friendly_name,
-                                        sub["schema"],
-                                        sub.get("number", None) == "*",
-                                        sub.get("default", None))
-
-                elif "number" in sub:
-                    assert sub["number"] == "*"
-                    friendly_name = "elmt" # TODO: should have a nicer name
-                    element_type  = sub["schema"]
-                    self.register_sub_setter(sn, i, friendly_name, element_type, True, None)
-
-            for fld in ("namedSub", "comment"):
-                if fld in schema:
-                    del tmp[fld]
-                for friendly_name, data in schema.get(fld, {}).iteritems():
-                    if "constant" in data:
-                        # A specific string constant that must be set by the
-                        # constructor
-                        assert len(data) == 1 or (len(data) == 2 and
-                                                data["type"] == "string")
-                        const_value = data["constant"]
-                        self.register_constant(sn,
-                                        fld,
-                                        friendly_name, const_value)
-
-                    elif data.get("type", None) in ("string", "integer", "bool"):
-                        # Trivial field
-                        assert set(data.keys()) <= set(("type", "default"))
-                        self.register_named_setter(sn,
-                                            "trivial",
-                                            friendly_name, data["type"],
-                                            fld == "comment",
-                                            data.get("default", None))
-
-                    elif "schema" in data:
-                        # Irep of some type
-                        assert data["schema"] in self.schemata
-                        assert set(data.keys()) <= set(("schema", "default"))
-                        value_type = data["schema"]
-                        self.register_named_setter(sn,
-                                            "irep",
-                                            friendly_name, value_type,
-                                            fld == "comment",
-                                            data.get("default", None))
-
-                    elif "sub" in data:
-                        # A list
-                        assert len(data) == 1
-                        data = data["sub"]
-                        assert len(data) == 1
-                        data = data[0]
-                        assert len(data) == 3
-                        assert data["number"] == "*"
-                        friendly_name = data["friendly_name"]
-                        list_type     = data["schema"]
-                        self.register_named_setter(sn,
-                                            "list",
-                                            friendly_name, list_type,
-                                            fld == "comment",
-                                            None)
-
-                    else:
-                        assert False
-
-            # cnst ::= schema -> id|namedSub|comment -> {name: value}
-            # namd ::= setter_name -> value|list|trivial -> {schema: (is_comment, type)}
-            # Delete setters for which we have a constant
-            for kind in ("namedSub", "comment"):
-                data = self.const.get(sn, {}).get(kind, {})
-                for friendly_name, const_value in data.iteritems():
-                    if (friendly_name in self.named_setters and
-                        "trivial" in self.named_setters[friendly_name] and
-                        sn in self.named_setters[friendly_name]["trivial"]):
-                        del self.named_setters[friendly_name]["trivial"][sn]
-
-            if len(tmp) > 0:
-                print "error: unconsumed data for %s:" % sn
-                for item, data in tmp.iteritems():
-                    print "   %s: %s" % (item, data)
-
-            for sc in schema.get("subclasses", None):
-                register_schema(sc)
-
-        register_schema("irep")
+        self.const = {}
+        self.register_schema("irep")
 
         # Delete setters that only touch non-used classes (maybe we removed
         # some because they are always constant)
