@@ -35,8 +35,6 @@ from glob import glob
 from copy import copy
 
 
-# Helper functions
-
 IREP_TO_ADA_TYPE = {
     "irep"      : "Irep",
     "bool"      : "Boolean",
@@ -58,6 +56,9 @@ OP_NAME = {
     "<="     : "op_leq",
     "unary-" : "op_neg",
 }
+
+
+# Helper functions
 
 def ada_casing(s):
     rv = ""
@@ -261,8 +262,8 @@ class IrepsGenerator(object):
         continuation(fd)
         self.schemata[root]["subclass_ada_name"] = name
         self.summary_classes[name] =\
-        set(self.top_sorted_sn[self.top_sorted_sn.index(first) :
-                            self.top_sorted_sn.index(last) + 1])
+            set(self.top_sorted_sn[self.top_sorted_sn.index(first) :
+                                   self.top_sorted_sn.index(last) + 1])
 
     def register_subclasses(self, sn, s, prefix_len):
         if self.schemata[sn]["used"]:
@@ -1703,8 +1704,11 @@ class IrepsGenerator(object):
                             assert len(subs) == 1
                             write(b, "Sub := To_JSON (Irep_List (%s));" % tbl_field)
                         else:
-                            write(b, "Append (Sub, To_JSON (Irep (%s)));" %
+                            write(b, "if %s /= 0 then" % tbl_field)
+                            with indent(b):
+                                write(b, "Append (Sub, To_JSON (Irep (%s)));" %
                                 tbl_field)
+                            write(b, "end if;")
 
                     # Set all namedSub and comments
                     for setter_name in self.named_setters:
