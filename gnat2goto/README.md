@@ -9,9 +9,9 @@ Install the following debian packages:
 
 Download the following packages from http://libre.adacore.com:
   - GNAT GPL 2016 (`wget -qO- http://mirrors.cdn.adacore.com/art/5739cefdc7a447658e0b016b | tar xvz`)
-  - GNATCOLL GPL 2016 (`wget -qO- http://mirrors.cdn.adacore.com/art/5739942ac7a447658d00e1e7 | tar xvz`)
+  - GNATCOLL GPL 2016 (`wget -qO- http://mirrors.cdn.adacore.com/art/5a15cb87c7a4479a23674d44 | tar xvz`)
 
-Install GNAT GPL 2016 into /opt/gnat.
+Install GNAT GPL 2016 into /opt/gnat using the doinstall script.
 
 Install GNATCOLL GPL 2016:
   - `$ export PATH=/opt/gnat/bin:${PATH}`
