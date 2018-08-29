@@ -252,6 +252,9 @@ class IrepsGenerator(object):
         first = subc[0]
         last = subc[-1]
 
+        while len(self.schemata[first]["subclasses"]) >= 1:
+            subc = sorted(self.schemata[first]["subclasses"])
+            first = subc[0]
         while len(self.schemata[last]["subclasses"]) >= 1:
             subc = sorted(self.schemata[last]["subclasses"])
             last = subc[-1]
