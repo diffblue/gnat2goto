@@ -32,12 +32,27 @@ See also:
 Requirements
 ------------
 
+You will need GNAT Python.  On Debian this is simple:
+
 ```
 $ apt-get install python-gnatpython
 ```
 
+The original source of this package :
+
+http://forge.open-do.org/projects/gnatpython
+
+is no longer available.  The following repository may be a fork:
+
+https://github.com/Nikokrock/gnatpython
+
+which says that E3 is the successor project.
+
+
 Running tests
 -------------
+
+You must have gnat2goto and cbmc, built with the appropriate patch, on your path
 
 ```
 $ ./testsuite.py -j 4
