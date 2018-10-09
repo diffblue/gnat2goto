@@ -26,4 +26,8 @@ package GNAT_Utils is
 
    function Get_Called_Entity (N : Node_Id) return Entity_Id;
 
+   --  File_Name_Without_Suffix has been copied from
+   --  gnat2why/spark/why/spark_util
+   function File_Name_Without_Suffix (File_Name : String) return String;
+
 end GNAT_Utils;

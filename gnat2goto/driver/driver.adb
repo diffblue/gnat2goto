@@ -40,6 +40,10 @@ with GNATCOLL.JSON;         use GNATCOLL.JSON;
 
 with Sinfo;                 use Sinfo;
 
+with Namet;                 use Namet;
+with Lib;                   use Lib;
+with GNAT_Utils;            use GNAT_Utils;
+
 package body Driver is
 
    procedure Translate_Standard_Types;
@@ -231,7 +235,20 @@ package body Driver is
 
       Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
 
-      Put_Line (Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+      declare
+         Sym_Tab_File : File_Type;
+         Base_Name  : constant String :=
+           File_Name_Without_Suffix
+             (Get_Name_String (Unit_File_Name (Main_Unit)));
+
+      begin
+         Create (Sym_Tab_File, Out_File, Base_Name & ".json_symtab");
+
+         Put_Line (Sym_Tab_File,
+                   Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+
+         Close (Sym_Tab_File);
+      end;
    end Translate_Compilation_Unit;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
