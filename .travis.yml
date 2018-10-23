@@ -1,0 +1,88 @@
+language: cpp
+
+os: linux
+
+compiler: gcc
+
+sudo: true
+
+env:
+  GNAT: "${HOME}/opt/gnat"
+  CBMC: "${HOME}/cbmc"
+
+cache: ccache
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - build-essential
+      - g++-7
+
+before_install:
+  - mkdir bin
+  - ln -s /usr/bin/gcc-7 bin/gcc
+  - ln -s /usr/bin/g++-7 bin/g++
+
+install:
+  - ccache -z
+  - ccache --max-size=1G
+  - wget -qO- http://mirrors.cdn.adacore.com/art/5739cefdc7a447658e0b016b | tar xz
+  - wget -qO- http://mirrors.cdn.adacore.com/art/5a15cb87c7a4479a23674d44 | tar xz
+  #build gnat gpl
+  # doinstall script is interactive
+  # it queries 4 responses from the user:
+  # 1) Press RETURN if you want to proceed? --> "\n"
+  # 2) Path to install GNAT --> "~/opt/gnat\n"
+  # 3) Are you sure? --> "y\n"
+  # 4) Are you sure? --> "y"
+  - (cd gnat-gpl-2016-x86_64-linux-bin; echo -e "\n${GNAT}\ny\ny" | ./doinstall)
+
+  - |
+    #build gnatcoll
+    ( set -euo pipefail
+      cd gnatcoll-gpl-2016-src
+      export PATH=${GNAT}/bin:${PATH}
+      ./configure --prefix=${GNAT} --disable-shared --enable-build=Debug
+      make
+      make install
+    )
+
+  - |
+    #build gnat2goto + unit tests
+    ( set -euo pipefail
+      cd gnat2goto
+      export PATH=${GNAT}/bin:${PATH}
+      export GPR_PROJECT_PATH=${GNAT}/lib/gnat
+      make
+      gprbuild -P unit_tests.gpr -cargs -largs
+    )
+
+  - sudo apt-get install python-gnatpython
+  - export PYTHONPATH="/usr/lib/python2.7/dist-packages"
+
+  - |
+    #build updated cbmc
+    ( set -euo pipefail
+      git clone https://github.com/NlightNFotis/cbmc.git --branch "external_parser_support_rebased" --single-branch ${CBMC}
+      cd ${CBMC}
+      cmake -H. -Bbuild '-DCMAKE_BUILD_TYPE=Release'  '-DCMAKE_CXX_COMPILER=/usr/bin/g++-7'
+      git submodule update --init --recursive
+      cmake --build build -- -j4
+    )
+
+  - export PATH=${CMBC}/build/bin:${PATH}
+  - export PATH=$(pwd)/gnat2goto/install/bin:${PATH}
+
+script:
+  #run the tests
+  - (cd testsuite/gnat2goto; ! ./testsuite.py -j 2 2>&1 >/dev/null | tee /dev/tty | grep "ERROR" > /dev/null)
+  - gnat2goto/install/bin/unit_tests
+
+before_cache:
+  - ccache -s
+
+deploy:
+
+notifications:
