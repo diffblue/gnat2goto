@@ -335,6 +335,42 @@ package body Tree_Walk is
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
+   function Create_Dummy_Irep return Irep;
+
+   procedure Report_Unhandled_Node_Empty (N : Node_Id;
+                                          Fun_Name : String;
+                                          Message : String);
+   function Report_Unhandled_Node_Irep (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep;
+   function Report_Unhandled_Node_Kind (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep_Kind;
+
+   procedure Report_Unhandled_Node_Empty (N : Node_Id;
+                                          Fun_Name : String;
+                                          Message : String) is
+   begin
+      Put_Line (Standard_Error, "----------At: " & Fun_Name & "----------");
+      Put_Line (Standard_Error, "----------" & Message & "----------");
+      pp (Union_Id (N));
+   end Report_Unhandled_Node_Empty;
+
+   function Report_Unhandled_Node_Irep (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep is
+   begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return Create_Dummy_Irep;
+   end Report_Unhandled_Node_Irep;
+
+   function Report_Unhandled_Node_Kind (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep_Kind is
+   begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return I_Empty;
+   end Report_Unhandled_Node_Kind;
    -----------------------------
    -- Add_Entity_Substitution --
    -----------------------------
@@ -1177,7 +1213,6 @@ package body Tree_Walk is
    -- Do_Expression --
    -------------------
 
-   function Create_Dummy_Irep return Irep;
    function Create_Dummy_Irep return Irep is
       ir : constant Irep := New_Irep (I_Constant_Expr);
    begin
