@@ -10,7 +10,7 @@ project GNAT2GOTO is
 
    for Main use ("gnat1drv.adb");
 
-   Common_Switches := ("-gnatg", "-g");
+   Common_Switches := ("-gnatg", "-g", "-gnateE");
 
    package Compiler is
       --  for Local_Configuration_Pragmas use "gnat.adc";
@@ -20,5 +20,10 @@ project GNAT2GOTO is
    package Builder is
       for Executable ("gnat1drv.adb") use "gnat2goto";
    end Builder;
+
+   package Binder is
+     -- this enables extended exception information (like backtraces)
+     for Switches ("Ada") use ("-g", "-E");
+   end Binder;
 
 end GNAT2GOTO;
