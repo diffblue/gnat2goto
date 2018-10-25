@@ -447,9 +447,9 @@ package body Tree_Walk is
          when E_Record_Type =>
             return Do_Aggregate_Literal_Record (N);
          when others =>
-            --  Unhandled aggregate kind
-            pp (Union_Id (N));
-            raise Program_Error;
+            return Report_Unhandled_Node_Irep (N,
+                                               "Do_Aggregate_Literal",
+                                               "Unhandled aggregate kind");
       end case;
    end Do_Aggregate_Literal;
 
@@ -1028,9 +1028,8 @@ package body Tree_Walk is
             end;
 
          when others =>
-            Put_Line (Standard_Error, "Unknown tree node");
-            Print_Tree_Node (U);
-            raise Program_Error;
+            Report_Unhandled_Node_Empty (N, "Do_Compilation_Unit",
+                                         "Unknown tree node");
       end case;
 
       return Unit_Symbol;
@@ -1146,8 +1145,8 @@ package body Tree_Walk is
         or else Present (Interface_List (N))
         or else Interface_Present (N)
       then
-         pp (Union_Id (N));
-         raise Program_Error;
+         return Report_Unhandled_Node_Irep (N, "Do_Derived_Type_Definition",
+                                            "abstract present not true");
       end if;
 
       return Subtype_Irep;
@@ -1248,7 +1247,9 @@ package body Tree_Walk is
                when Attribute_Last   =>
                   Warn_Unhandled_Expression ("Last attribute");
                   return Create_Dummy_Irep;
-               when others           => raise Program_Error;
+               when others           =>
+                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                     "Unknown attribute");
             end case;
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
@@ -1270,7 +1271,9 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             Warn_Unhandled_Expression ("Quantified");
             return Create_Dummy_Irep;
-         when others                 => raise Program_Error;
+         when others                 =>
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                               "Unknown expression kind");
       end case;
    end Do_Expression;
 
@@ -1404,8 +1407,9 @@ package body Tree_Walk is
                Source_Location => Sloc (N),
                I_Type          => Type_Irep);
          end;
-      else
-         raise Program_Error; -- How did that happen (GNAT should reject)?
+      else -- How did that happen (GNAT should reject)?
+         return Report_Unhandled_Node_Irep (N, "Do_Nondet_Function_Call",
+                                            "func name not in symbol table");
       end if;
    end Do_Nondet_Function_Call;
 
@@ -1458,8 +1462,9 @@ package body Tree_Walk is
             end return;
          else
             --  This can happen for RTS functions (body not parsed by us)
-            pp (Union_Id (N));
-            raise Program_Error; --  TODO: be clever
+            --  TODO: handle RTS functions in a sane way
+            return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
+                                              "func name not in symbol table");
          end if;
       end if;
    end Do_Function_Call;
@@ -1653,7 +1658,8 @@ package body Tree_Walk is
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
          when E_Floating_Point_Type => Create_Dummy_Irep,
-         when others => raise Program_Error);
+         when others => Report_Unhandled_Node_Irep (N, "Do_Itype_Definition",
+                                                    "Unknown Ekind"));
    end Do_Itype_Definition;
 
    ------------------------------
@@ -1711,7 +1717,9 @@ package body Tree_Walk is
                    (Base => Do_Type_Reference (Designated_Type (Typedef)));
 
             when others =>
-               raise Program_Error;
+               return Report_Unhandled_Node_Irep (N,
+                                                "Do_Anonymous_Type_Definition",
+                                                  "Unknown typedef");
          end case;
 
       end Do_Anonymous_Type_Definition;
@@ -1874,7 +1882,8 @@ package body Tree_Walk is
             else
                pragma Assert
                  (Present (Iterator_Specification (Iter_Scheme)));
-               raise Program_Error; -- TODO: implement loop iterators
+               return Report_Unhandled_Node_Irep (N, "Do_While_Statement",
+                                             "Loop iterators not implemented");
             end if;
          end if;
       end if;
@@ -1943,8 +1952,8 @@ package body Tree_Walk is
             then
                null; -- ignore, since assert irep has no msg
             else
-               pp (Union_Id (N));
-               raise Program_Error;
+               Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                            "Unknown arg name");
             end if;
          end Handle_Arg;
 
@@ -1981,10 +1990,11 @@ package body Tree_Walk is
          Name_Postcondition | Name_Refined_State | Name_Refined_Global |
          Name_Precondition
       then
-         Put_Line (Standard_Error, "Warning: Ignoring unsupported pragma");
+         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                      "Unsupported pragma");
       else
-         pp (Union_Id (N));
-         raise Program_Error; -- unsupported pragma
+         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                      "Unknown");
       end if;
    end Do_Pragma;
 
@@ -2199,7 +2209,8 @@ package body Tree_Walk is
          elsif Ekind (E) in Record_Kind then
             return Make_Record_Default_Initialiser (E, DCs);
          else
-            raise Program_Error;
+            return Report_Unhandled_Node_Irep (N, "Make_Default_Initialiser",
+                                                 "Unknown Ekind");
          end if;
       end Make_Default_Initialiser;
 
@@ -2527,8 +2538,9 @@ package body Tree_Walk is
                   | N_Op_Minus
                   | N_Op_Not
                   | N_Op_Plus
-          =>
-             raise Program_Error);
+           => Report_Unhandled_Node_Kind (Do_Operator_Simple.N,
+                                          "Do_Operator_Simple",
+                                          "Unsupported operand"));
       end Op_To_Kind;
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
@@ -2584,7 +2596,8 @@ package body Tree_Walk is
          --  Packages with belong to the RTS are not being parsed by us,
          --  therefore functions like "Put_Line" have have no entry
          --  in the symbol table
-         raise Program_Error; -- TODO: set type of RTS functions
+         return Report_Unhandled_Node_Irep (N, "Do_Procedure_Call_Statement",
+                                            "sym id not in symbol table");
       end if;
 
       return R;
@@ -3085,9 +3098,10 @@ package body Tree_Walk is
                return Do_Range_Constraint (Constr, Underlying);
             when N_Index_Or_Discriminant_Constraint =>
                return Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
-            when others =>
-               Print_Tree_Node (N);
-               raise Program_Error;
+               when others =>
+                  return Report_Unhandled_Node_Irep (N,
+                                                     "Do_Subtype_Indication",
+                                                    "Unknown expression kind");
             end case;
          else
             return Underlying;
@@ -3097,8 +3111,8 @@ package body Tree_Walk is
          Underlying := Do_Type_Reference (Etype (N));
          return Underlying;
       else
-         Print_Tree_Node (N);
-         raise Program_Error;
+         return Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
+                                            "Unknown expression kind");
       end if;
    end Do_Subtype_Indication;
 
@@ -3160,8 +3174,8 @@ package body Tree_Walk is
          when N_Modular_Type_Definition =>
             return Create_Dummy_Irep;
          when others =>
-            pp (Union_Id (N));
-            raise Program_Error;
+            return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
+                                               "Unknown expression kind");
       end case;
    end Do_Type_Definition;
 
@@ -3882,9 +3896,8 @@ package body Tree_Walk is
             Warn_Unhandled_Statement ("Case");
 
          when others =>
-            pp (Union_Id (N));
-            --  ??? To be added later
-            raise Program_Error;
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Unknown expression kind");
 
       end case;
    end Process_Statement;
