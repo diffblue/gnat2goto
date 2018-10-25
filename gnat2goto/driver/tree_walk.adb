@@ -15,6 +15,7 @@ with Uint_To_Binary;        use Uint_To_Binary;
 with Stand;
 with Ureal_To_Binary;       use Ureal_To_Binary;
 with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Exceptions;
 
 package body Tree_Walk is
 
@@ -3864,7 +3865,14 @@ package body Tree_Walk is
 
    begin
       while Present (Stmt) loop
-         Process_Statement (Stmt, Reps);
+         begin
+            Process_Statement (Stmt, Reps);
+         exception
+            when Error : others =>
+                  Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error,
+                                        Ada.Exceptions.Exception_Information
+                                          (Error));
+         end;
          Next (Stmt);
       end loop;
 
