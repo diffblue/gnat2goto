@@ -1556,6 +1556,14 @@ class IrepsGenerator(object):
         write(b, "--  Serialise list to JSON")
         write(b, "")
 
+        write (b, "function Trivial_Irep (S : String_Id) return JSON_Value;")
+        write (b, "--  Create a trivial irep with id = S")
+        write (b, "");
+
+        write (b, "function Trivial_Irep (S : String) return JSON_Value;")
+        write (b, "--  Create a trivial irep with id = S")
+        write (b, "");
+
         write(b, "function Trivial_Boolean (B : Boolean) return JSON_Value;")
         write(b, "--  Create a trivial irep with id = B")
         write(b, "")
@@ -1588,6 +1596,28 @@ class IrepsGenerator(object):
         continuation(b)
         write(b, "")
 
+        write_comment_block(b, "Trivial_Irep")
+        write(b, "function Trivial_Irep (S : String_Id) return JSON_Value is")
+        write(b, "begin")
+        with indent(b):
+            write(b, "String_To_Name_Buffer (S);")
+            write(b, "return Trivial_Irep (Name_Buffer (1 .. Name_Len));")
+        write(b, "end Trivial_Irep;")
+        write(b, "")
+
+        write(b, "function Trivial_Irep (S : String) return JSON_Value is")
+        write(b, "begin")
+        with indent(b):
+            write(b, "return V : constant JSON_Value := Create_Object do")
+            with indent(b):
+                write(b, 'V.Set_Field ("id", S);')
+                write(b, 'V.Set_Field ("sub", Empty_Array);')
+                write(b, 'V.Set_Field ("namedSub", Create_Object);')
+                write(b, 'V.Set_Field ("comment", Create_Object);')
+            write(b, "end return;")
+        write(b, "end Trivial_Irep;")
+        write(b, "")
+
         write_comment_block(b, "Trivial_Boolean")
         write(b, "function Trivial_Boolean (B : Boolean) return JSON_Value")
         write(b, "is")
@@ -1597,10 +1627,7 @@ class IrepsGenerator(object):
             write(b, '  (False => "0", True => "1");')
         write(b, "begin")
         with indent(b):
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, 'V.Set_Field ("id",       As_String (B));')
-            write(b, "end return;")
+            write(b, "return Trivial_Irep (As_String (B));")
         write(b, "end Trivial_Boolean;")
         write(b, "")
 
@@ -1609,46 +1636,28 @@ class IrepsGenerator(object):
         write(b, "is")
         continuation(b)
         with indent(b):
-            write(b, "S : constant String := Integer'Image (I);")
+            write(b, "Int_As_Str : constant String := Integer'Image (I);")
+            write(b, "S : constant String := (if I >= 0 then")
+            with indent(b):
+                write(b, "Int_As_Str (2 .. Int_As_Str'Last)")
+            write(b, "else")
+            with indent(b):
+                write(b, "Int_As_Str);")
         write(b, "begin")
         with indent(b):
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, "if I >= 0 then")
-                with indent(b):
-                    write(b, 'V.Set_Field ("id", S (2 .. S\'Last));')
-                write(b, "else")
-                with indent(b):
-                    write(b, 'V.Set_Field ("id", S);')
-                write(b, "end if;")
-            write(b, "end return;")
+            write(b, "return Trivial_Irep (S);")
         write(b, "end Trivial_Integer;")
         write(b, "")
 
         write_comment_block(b, "Trivial_String")
         write(b, "function Trivial_String (S : String_Id) return JSON_Value")
-        write(b, "is")
-        continuation(b)
-        write(b, "begin")
         with indent(b):
-            write(b, "String_To_Name_Buffer (S);")
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, 'V.Set_Field ("id",       Name_Buffer (1 .. Name_Len));')
-            write(b, "end return;")
-        write(b, "end Trivial_String;")
+            write(b, "renames Trivial_Irep;")
         write(b, "")
 
         write(b, "function Trivial_String (S : String) return JSON_Value")
-        write(b, "is")
-        continuation(b)
-        write(b, "begin")
         with indent(b):
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, 'V.Set_Field ("id",       S);')
-            write(b, "end return;")
-        write(b, "end Trivial_String;")
+            write(b, "renames Trivial_Irep;")
         write(b, "")
 
         write_comment_block(b, "Trivial_Sloc")
@@ -1775,18 +1784,9 @@ class IrepsGenerator(object):
                     write(b, "")
         write(b, "end case;")
         write(b, "")
-        write(b, 'if Length (Sub) /= 0 then')
-        with indent(b):
-            write(b, 'V.Set_Field ("sub",      Sub);')
-        write(b, 'end if;')
-        write(b, 'if not Is_Empty (Named_Sub) then')
-        with indent(b):
-            write(b, 'V.Set_Field ("namedSub", Named_Sub);')
-        write(b, 'end if;')
-        write(b, 'if not Is_Empty (Comment) then')
-        with indent(b):
-            write(b, 'V.Set_Field ("comment",  Comment);')
-        write(b, 'end if;')
+        write(b, 'V.Set_Field ("sub",      Sub);')
+        write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+        write(b, 'V.Set_Field ("comment",  Comment);')
         manual_outdent(b)
         write(b, "end;")
         write(b, "return V;")
