@@ -1720,6 +1720,28 @@ class IrepsGenerator(object):
                             with indent(b):
                                 write(b, "Append (Sub, To_JSON (Irep (%s)));" %
                                 tbl_field)
+                            # TODO
+                            # If the first member is nil then there are no subs
+                            # The logic for this is a bit sketchy, but basic
+                            # explanation is this: 1. We have some number of
+                            # children (may or may not be nil) 2. If the first
+                            # child is nil, we assume that there actually no
+                            # children (despite subs not being empty for some
+                            # reason) so we don't emit anything (otherwise
+                            # we'll get unexpect nil subs) which breaks for
+                            # example floating point types but also in some
+                            # other places). Otherwise, we'll assume that a an
+                            # empty child actually means it's supposed to be a
+                            # nil child and emit it as such (we mostly emit nil
+                            # children as a response to being unable to handle
+                            # an AST node, so it's important we can handle this
+                            # case) Again, very sketchy, and IMHO we really
+                            # ought to think of something better than this but
+                            # I can't at the moment
+                            if i != 0:
+                                write(b, "else")
+                                with indent(b):
+                                    write(b, "Append (Sub, Trivial_String (\"nil\"));")
                             write(b, "end if;")
 
                     # Set all namedSub and comments
