@@ -3862,16 +3862,19 @@ package body Tree_Walk is
    function Process_Statements (L : List_Id) return Irep is
       Reps : constant Irep := New_Irep (I_Code_Block);
       Stmt : Node_Id := First (L);
-
+      package IO renames Ada.Text_IO;
    begin
       while Present (Stmt) loop
          begin
             Process_Statement (Stmt, Reps);
          exception
             when Error : others =>
-                  Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error,
-                                        Ada.Exceptions.Exception_Information
-                                          (Error));
+               IO.Put_Line (IO.Standard_Error, "<========================>");
+               IO.Put_Line (IO.Standard_Error,
+                            Ada.Exceptions.Exception_Information
+                              (Error));
+               Treepr.Print_Node_Subtree (Stmt);
+               IO.Put_Line (IO.Standard_Error, "<========================>");
          end;
          Next (Stmt);
       end loop;
