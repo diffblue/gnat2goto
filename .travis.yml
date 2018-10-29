@@ -72,7 +72,7 @@ install:
       cmake --build build -- -j4
     )
 
-  - export PATH=${CMBC}/build/bin:${PATH}
+  - export PATH=${CBMC}/build/bin:${PATH}
   - export PATH=$(pwd)/gnat2goto/install/bin:${PATH}
 
 script:
