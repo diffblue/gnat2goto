@@ -3,7 +3,7 @@
   "sub": [
     {"schema": "expr", "friendly_name": "cond"},
     {"schema": "code", "friendly_name": "then_case"},
-    {"schema": "code", "friendly_name": "else_case", "optional": true}
+    {"schema": "code", "friendly_name": "else_case"}
   ],
   "namedSub": {
     "statement": {"constant": "ifthenelse", "type": "string"}

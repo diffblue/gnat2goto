@@ -3,13 +3,12 @@ with Sinput; use Sinput;
 separate (Ireps)
 function Trivial_Sloc (S : Source_Ptr) return JSON_Value
 is
-   Source_Location : constant JSON_Value := Create_Object;
+   Source_Location : constant JSON_Value := Trivial_Irep ("source_location");
    N               : constant JSON_Value := Create_Object;
 
    SI : constant Source_File_Index := Get_Source_File_Index (S);
    F  : constant File_Name_Type    := File_Name (SI);
 begin
-   Source_Location.Set_Field ("id", "source_location");
 
    if S /= No_Location and S > Standard_Location then
       N.Set_Field ("file", Trivial_String (Get_Name_String (F)));

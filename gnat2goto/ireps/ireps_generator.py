@@ -1556,6 +1556,14 @@ class IrepsGenerator(object):
         write(b, "--  Serialise list to JSON")
         write(b, "")
 
+        write (b, "function Trivial_Irep (S : String_Id) return JSON_Value;")
+        write (b, "--  Create a trivial irep with id = S")
+        write (b, "");
+
+        write (b, "function Trivial_Irep (S : String) return JSON_Value;")
+        write (b, "--  Create a trivial irep with id = S")
+        write (b, "");
+
         write(b, "function Trivial_Boolean (B : Boolean) return JSON_Value;")
         write(b, "--  Create a trivial irep with id = B")
         write(b, "")
@@ -1588,6 +1596,28 @@ class IrepsGenerator(object):
         continuation(b)
         write(b, "")
 
+        write_comment_block(b, "Trivial_Irep")
+        write(b, "function Trivial_Irep (S : String_Id) return JSON_Value is")
+        write(b, "begin")
+        with indent(b):
+            write(b, "String_To_Name_Buffer (S);")
+            write(b, "return Trivial_Irep (Name_Buffer (1 .. Name_Len));")
+        write(b, "end Trivial_Irep;")
+        write(b, "")
+
+        write(b, "function Trivial_Irep (S : String) return JSON_Value is")
+        write(b, "begin")
+        with indent(b):
+            write(b, "return V : constant JSON_Value := Create_Object do")
+            with indent(b):
+                write(b, 'V.Set_Field ("id", S);')
+                write(b, 'V.Set_Field ("sub", Empty_Array);')
+                write(b, 'V.Set_Field ("namedSub", Create_Object);')
+                write(b, 'V.Set_Field ("comment", Create_Object);')
+            write(b, "end return;")
+        write(b, "end Trivial_Irep;")
+        write(b, "")
+
         write_comment_block(b, "Trivial_Boolean")
         write(b, "function Trivial_Boolean (B : Boolean) return JSON_Value")
         write(b, "is")
@@ -1597,10 +1627,7 @@ class IrepsGenerator(object):
             write(b, '  (False => "0", True => "1");')
         write(b, "begin")
         with indent(b):
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, 'V.Set_Field ("id",       As_String (B));')
-            write(b, "end return;")
+            write(b, "return Trivial_Irep (As_String (B));")
         write(b, "end Trivial_Boolean;")
         write(b, "")
 
@@ -1609,46 +1636,28 @@ class IrepsGenerator(object):
         write(b, "is")
         continuation(b)
         with indent(b):
-            write(b, "S : constant String := Integer'Image (I);")
+            write(b, "Int_As_Str : constant String := Integer'Image (I);")
+            write(b, "S : constant String := (if I >= 0 then")
+            with indent(b):
+                write(b, "Int_As_Str (2 .. Int_As_Str'Last)")
+            write(b, "else")
+            with indent(b):
+                write(b, "Int_As_Str);")
         write(b, "begin")
         with indent(b):
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, "if I >= 0 then")
-                with indent(b):
-                    write(b, 'V.Set_Field ("id", S (2 .. S\'Last));')
-                write(b, "else")
-                with indent(b):
-                    write(b, 'V.Set_Field ("id", S);')
-                write(b, "end if;")
-            write(b, "end return;")
+            write(b, "return Trivial_Irep (S);")
         write(b, "end Trivial_Integer;")
         write(b, "")
 
         write_comment_block(b, "Trivial_String")
         write(b, "function Trivial_String (S : String_Id) return JSON_Value")
-        write(b, "is")
-        continuation(b)
-        write(b, "begin")
         with indent(b):
-            write(b, "String_To_Name_Buffer (S);")
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, 'V.Set_Field ("id",       Name_Buffer (1 .. Name_Len));')
-            write(b, "end return;")
-        write(b, "end Trivial_String;")
+            write(b, "renames Trivial_Irep;")
         write(b, "")
 
         write(b, "function Trivial_String (S : String) return JSON_Value")
-        write(b, "is")
-        continuation(b)
-        write(b, "begin")
         with indent(b):
-            write(b, "return V : constant JSON_Value := Create_Object do")
-            with indent(b):
-                write(b, 'V.Set_Field ("id",       S);')
-            write(b, "end return;")
-        write(b, "end Trivial_String;")
+            write(b, "renames Trivial_Irep;")
         write(b, "")
 
         write_comment_block(b, "Trivial_Sloc")
@@ -1711,6 +1720,28 @@ class IrepsGenerator(object):
                             with indent(b):
                                 write(b, "Append (Sub, To_JSON (Irep (%s)));" %
                                 tbl_field)
+                            # TODO
+                            # If the first member is nil then there are no subs
+                            # The logic for this is a bit sketchy, but basic
+                            # explanation is this: 1. We have some number of
+                            # children (may or may not be nil) 2. If the first
+                            # child is nil, we assume that there actually no
+                            # children (despite subs not being empty for some
+                            # reason) so we don't emit anything (otherwise
+                            # we'll get unexpect nil subs) which breaks for
+                            # example floating point types but also in some
+                            # other places). Otherwise, we'll assume that a an
+                            # empty child actually means it's supposed to be a
+                            # nil child and emit it as such (we mostly emit nil
+                            # children as a response to being unable to handle
+                            # an AST node, so it's important we can handle this
+                            # case) Again, very sketchy, and IMHO we really
+                            # ought to think of something better than this but
+                            # I can't at the moment
+                            if i != 0:
+                                write(b, "else")
+                                with indent(b):
+                                    write(b, "Append (Sub, Trivial_String (\"nil\"));")
                             write(b, "end if;")
 
                     # Set all namedSub and comments
@@ -1775,18 +1806,9 @@ class IrepsGenerator(object):
                     write(b, "")
         write(b, "end case;")
         write(b, "")
-        write(b, 'if Length (Sub) /= 0 then')
-        with indent(b):
-            write(b, 'V.Set_Field ("sub",      Sub);')
-        write(b, 'end if;')
-        write(b, 'if not Is_Empty (Named_Sub) then')
-        with indent(b):
-            write(b, 'V.Set_Field ("namedSub", Named_Sub);')
-        write(b, 'end if;')
-        write(b, 'if not Is_Empty (Comment) then')
-        with indent(b):
-            write(b, 'V.Set_Field ("comment",  Comment);')
-        write(b, 'end if;')
+        write(b, 'V.Set_Field ("sub",      Sub);')
+        write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+        write(b, 'V.Set_Field ("comment",  Comment);')
         manual_outdent(b)
         write(b, "end;")
         write(b, "return V;")

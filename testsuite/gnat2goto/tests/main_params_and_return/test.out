@@ -1,2 +1,2 @@
-[overflow.1] arithmetic overflow on signed + in return_value_main_params_and_return__bound$0 + return_value_main_params_and_return__bound$0_1: SUCCESS
+[overflow.1] arithmetic overflow on signed + in return_value_main_params_and_return__bound + return_value_main_params_and_return__bound$0: SUCCESS
 VERIFICATION SUCCESSFUL
