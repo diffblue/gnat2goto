@@ -87,9 +87,6 @@ package body Driver is
    procedure Translate_Compilation_Unit (GNAT_Root : Node_Id)
    is
       pragma Assert (Nkind (GNAT_Root) = N_Compilation_Unit);
-      Add_Start : Boolean;
-      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root,
-                                                               Add_Start);
 
       Void_Type : constant Irep := New_Irep (I_Void_Type);
 
@@ -101,7 +98,17 @@ package body Driver is
       Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
 
+      Add_Start : Boolean;
+      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root,
+                                                               Add_Start);
+
+      Sym_Tab_File : File_Type;
+      Base_Name  : constant String :=
+        File_Name_Without_Suffix
+          (Get_Name_String (Unit_File_Name (Main_Unit)));
    begin
+      Create (Sym_Tab_File, Out_File, Base_Name & ".json_symtab");
+
       --  Gather local symbols and put them in the symtab
       declare
          Local_Symbols : Symbol_Table;
@@ -128,127 +135,122 @@ package body Driver is
       end;
 
       if not Add_Start then
-         Put_Line (Create (SymbolTable2Json (Global_Symbol_Table)).Write);
-         return;
-      end if;
-
-      Initialize_CProver_Internal_Variables (Start_Body);
-      declare
-         Program_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-         Program_Type : constant Irep := Program_Symbol.SymType;
-         Program_Return_Type : constant Irep := Get_Return_Type (Program_Type);
-         Program_Args : constant Irep_List :=
-            Get_Parameter (Get_Parameters (Program_Type));
-      begin
-
-         --  Generate a simple _start function that calls the entry point
+         Put_Line (Sym_Tab_File,
+                   Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+      else
+         Initialize_CProver_Internal_Variables (Start_Body);
          declare
-            C : List_Cursor := List_First (Program_Args);
+            Program_Expr : constant Irep := New_Irep (I_Symbol_Expr);
+            Program_Type : constant Irep := Program_Symbol.SymType;
+            Program_Return_Type : constant Irep :=
+              Get_Return_Type (Program_Type);
+            Program_Args : constant Irep_List :=
+              Get_Parameter (Get_Parameters (Program_Type));
          begin
-            while List_Has_Element (Program_Args, C) loop
-               --  For each argument, declare and nondet-initialise a parameter
-               --  local and add it to the call argument list.
-               declare
-                  Arg      : constant Irep := List_Element (Program_Args, C);
-                  Arg_Type : constant Irep := Get_Type (Arg);
-                  Arg_Id   : constant Symbol_Id :=
-                    Intern ("input_" &  Get_Identifier (Arg));
-                  Arg_Symbol : Symbol;
 
-                  Arg_Symbol_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-                  Arg_Decl        : constant Irep := New_Irep (I_Code_Decl);
-                  Arg_Nondet      : constant Irep :=
-                    New_Irep (I_Side_Effect_Expr_Nondet);
-                  Arg_Assign      : constant Irep := New_Irep (I_Code_Assign);
-
-               begin
-                  Arg_Symbol.Name        := Arg_Id;
-                  Arg_Symbol.PrettyName  := Arg_Id;
-                  Arg_Symbol.BaseName    := Arg_Id;
-                  Arg_Symbol.Mode        := Intern ("C");
-                  Arg_Symbol.SymType     := Arg_Type;
-                  Arg_Symbol.IsStateVar  := True;
-                  Arg_Symbol.IsLValue    := True;
-                  Arg_Symbol.IsAuxiliary := True;
-                  Global_Symbol_Table.Insert (Arg_Id, Arg_Symbol);
-
-                  Set_Identifier (Arg_Symbol_Expr, Unintern (Arg_Id));
-                  Set_Type       (Arg_Symbol_Expr, Arg_Type);
-
-                  Set_Symbol (Arg_Decl, Arg_Symbol_Expr);
-                  Append_Op  (Start_Body, Arg_Decl);
-
-                  Set_Type (Arg_Nondet, Arg_Type);
-                  Set_Lhs  (Arg_Assign, Arg_Symbol_Expr);
-                  Set_Rhs  (Arg_Assign, Arg_Nondet);
-
-                  Append_Op (Start_Body, Arg_Assign);
-
-                  Append_Argument (Initial_Call_Args, Arg_Symbol_Expr);
-               end;
-               C := List_Next (Program_Args, C);
-            end loop;
-         end;
-         Set_Arguments (Initial_Call, Initial_Call_Args);
-
-         --  Catch the call's return value if it has one
-         if Kind (Program_Return_Type) /= I_Empty then
+            --  Generate a simple _start function that calls the entry point
             declare
-               Return_Symbol : Symbol;
-
-               Return_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-               Return_Decl : constant Irep := New_Irep (I_Code_Decl);
-               Return_Id   : constant Symbol_Id := Intern ("return'");
+               C : List_Cursor := List_First (Program_Args);
             begin
-               Return_Symbol.Name       := Return_Id;
-               Return_Symbol.BaseName   := Return_Id;
-               Return_Symbol.PrettyName := Return_Id;
-               Return_Symbol.Mode       := Intern ("C");
-               Return_Symbol.SymType    := Program_Return_Type;
-               Global_Symbol_Table.Insert (Return_Id, Return_Symbol);
+               while List_Has_Element (Program_Args, C) loop
+                  --  For each argument, declare and nondet-initialise a
+                  --  parameter local and add it to the call argument list.
+                  declare
+                     Arg      : constant Irep :=
+                       List_Element (Program_Args, C);
+                     Arg_Type : constant Irep := Get_Type (Arg);
+                     Arg_Id   : constant Symbol_Id :=
+                       Intern ("input_" &  Get_Identifier (Arg));
+                     Arg_Symbol : Symbol;
 
-               Set_Identifier (Return_Expr, Unintern (Return_Id));
-               Set_Type (Return_Expr, Return_Symbol.SymType);
-               Set_Lhs (Initial_Call, Return_Expr);
-               Set_Symbol (Return_Decl, Return_Expr);
-               Append_Op (Start_Body, Return_Decl);
+                     Arg_Symbol_Expr : constant Irep :=
+                       New_Irep (I_Symbol_Expr);
+                     Arg_Decl        : constant Irep :=
+                       New_Irep (I_Code_Decl);
+                     Arg_Nondet      : constant Irep :=
+                       New_Irep (I_Side_Effect_Expr_Nondet);
+                     Arg_Assign      : constant Irep :=
+                       New_Irep (I_Code_Assign);
+
+                  begin
+                     Arg_Symbol.Name        := Arg_Id;
+                     Arg_Symbol.PrettyName  := Arg_Id;
+                     Arg_Symbol.BaseName    := Arg_Id;
+                     Arg_Symbol.Mode        := Intern ("C");
+                     Arg_Symbol.SymType     := Arg_Type;
+                     Arg_Symbol.IsStateVar  := True;
+                     Arg_Symbol.IsLValue    := True;
+                     Arg_Symbol.IsAuxiliary := True;
+                     Global_Symbol_Table.Insert (Arg_Id, Arg_Symbol);
+
+                     Set_Identifier (Arg_Symbol_Expr, Unintern (Arg_Id));
+                     Set_Type       (Arg_Symbol_Expr, Arg_Type);
+
+                     Set_Symbol (Arg_Decl, Arg_Symbol_Expr);
+                     Append_Op  (Start_Body, Arg_Decl);
+
+                     Set_Type (Arg_Nondet, Arg_Type);
+                     Set_Lhs  (Arg_Assign, Arg_Symbol_Expr);
+                     Set_Rhs  (Arg_Assign, Arg_Nondet);
+
+                     Append_Op (Start_Body, Arg_Assign);
+
+                     Append_Argument (Initial_Call_Args, Arg_Symbol_Expr);
+                  end;
+                  C := List_Next (Program_Args, C);
+               end loop;
             end;
-         end if;
+            Set_Arguments (Initial_Call, Initial_Call_Args);
 
-         Set_Identifier (Program_Expr, Unintern (Program_Symbol.Name));
-         Set_Type (Program_Expr, Program_Symbol.SymType);
+            --  Catch the call's return value if it has one
+            if Kind (Program_Return_Type) /= I_Empty then
+               declare
+                  Return_Symbol : Symbol;
 
-         Set_Function (Initial_Call, Program_Expr);
-      end;
+                  Return_Expr : constant Irep := New_Irep (I_Symbol_Expr);
+                  Return_Decl : constant Irep := New_Irep (I_Code_Decl);
+                  Return_Id   : constant Symbol_Id := Intern ("return'");
+               begin
+                  Return_Symbol.Name       := Return_Id;
+                  Return_Symbol.BaseName   := Return_Id;
+                  Return_Symbol.PrettyName := Return_Id;
+                  Return_Symbol.Mode       := Intern ("C");
+                  Return_Symbol.SymType    := Program_Return_Type;
+                  Global_Symbol_Table.Insert (Return_Id, Return_Symbol);
 
-      Append_Op (Start_Body, Initial_Call);
+                  Set_Identifier (Return_Expr, Unintern (Return_Id));
+                  Set_Type (Return_Expr, Return_Symbol.SymType);
+                  Set_Lhs (Initial_Call, Return_Expr);
+                  Set_Symbol (Return_Decl, Return_Expr);
+                  Append_Op (Start_Body, Return_Decl);
+               end;
+            end if;
 
-      Start_Symbol.Name       := Start_Name;
-      Start_Symbol.PrettyName := Start_Name;
-      Start_Symbol.BaseName   := Start_Name;
+            Set_Identifier (Program_Expr, Unintern (Program_Symbol.Name));
+            Set_Type (Program_Expr, Program_Symbol.SymType);
 
-      Set_Return_Type (Start_Type, Void_Type);
+            Set_Function (Initial_Call, Program_Expr);
+         end;
 
-      Start_Symbol.SymType := Start_Type;
-      Start_Symbol.Value   := Start_Body;
-      Start_Symbol.Mode    := Intern ("C");
+         Append_Op (Start_Body, Initial_Call);
 
-      Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
+         Start_Symbol.Name       := Start_Name;
+         Start_Symbol.PrettyName := Start_Name;
+         Start_Symbol.BaseName   := Start_Name;
 
-      declare
-         Sym_Tab_File : File_Type;
-         Base_Name  : constant String :=
-           File_Name_Without_Suffix
-             (Get_Name_String (Unit_File_Name (Main_Unit)));
+         Set_Return_Type (Start_Type, Void_Type);
 
-      begin
-         Create (Sym_Tab_File, Out_File, Base_Name & ".json_symtab");
+         Start_Symbol.SymType := Start_Type;
+         Start_Symbol.Value   := Start_Body;
+         Start_Symbol.Mode    := Intern ("C");
+
+         Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
 
          Put_Line (Sym_Tab_File,
                    Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+      end if;
 
-         Close (Sym_Tab_File);
-      end;
+      Close (Sym_Tab_File);
    end Translate_Compilation_Unit;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
