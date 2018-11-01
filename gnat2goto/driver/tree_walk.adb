@@ -1,6 +1,9 @@
+with Uname;                 use Uname;
+
 with Einfo;                 use Einfo;
 with Namet;                 use Namet;
 with Nlists;                use Nlists;
+with Sem;
 with Sem_Util;              use Sem_Util;
 with Sem_Aux;               use Sem_Aux;
 with Snames;                use Snames;
@@ -334,6 +337,20 @@ package body Tree_Walk is
    --  Process list of statements or declarations
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
+
+   procedure Register_Subprogram_Specification (N : Node_Id)
+   with Pre => Nkind (N) in N_Subprogram_Specification;
+   --  Insert the subprogram specification into the symbol table
+
+   procedure Do_Withed_Unit_Spec (N : Node_Id);
+   --  Enters the specification of the withed unit, N, into the symbol table
+
+   procedure Do_Withed_Units_Specs is new Sem.Walk_Library_Items
+     (Action => Do_Withed_Unit_Spec);
+   --  Traverses tree applying the procedure Do_With_Unit_Spec to all nodes
+   --  which are specifications of library units withed by the GNAT_Root unit
+   --  (that is, the body being compiled).
+   --  It starts with the unit Standard and finishes with GNAT_Root
 
    -----------------------------
    -- Add_Entity_Substitution --
@@ -951,6 +968,79 @@ package body Tree_Walk is
       return Ret;
    end Do_Case_Expression;
 
+   ---------------------------------------
+   -- Register_Subprogram_Specification --
+   ---------------------------------------
+
+   procedure Register_Subprogram_Specification (N : Node_Id) is
+      Subprog_Type : constant Irep :=
+        Do_Subprogram_Specification (N);
+      Subprog_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Defining_Unit_Name (N)));
+
+      Subprog_Symbol : Symbol;
+
+   begin
+      Subprog_Symbol.Name       := Subprog_Name;
+      Subprog_Symbol.BaseName   := Subprog_Name;
+      Subprog_Symbol.PrettyName := Subprog_Name;
+      Subprog_Symbol.SymType    := Subprog_Type;
+      Subprog_Symbol.Mode       := Intern ("C");
+
+      Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
+   end Register_Subprogram_Specification;
+
+   -------------------------
+   -- Do_Withed_Unit_Spec --
+   -------------------------
+
+   procedure Do_Withed_Unit_Spec (N : Node_Id) is
+      Not_Used : Irep;
+      pragma Unreferenced (Not_Used);
+   begin
+      if Defining_Entity (N) = Stand.Standard_Standard then
+         Put_Line ("Standard");
+         --  At the moment Standard is not processed - to be done.
+      else
+         Write_Unit_Name (Get_Unit_Name (N));
+
+         case Nkind (N) is
+            when N_Subprogram_Body =>
+               Put_Line ("Subprog body");
+               if Acts_As_Spec (N) then
+                  Put_Line ("Acts as spec");
+                  --  The unit is a withed library unit which subprogram body
+                  --  that has no separate declaration, or,
+                  --  it is the subprogram body of the compilation unit being
+                  --  compiled and it has no separate declaration.
+                  --  Obtain the subprogram specification from the body
+                  --  and insert it into the symbol table.
+                  Register_Subprogram_Specification (Specification (N));
+               else
+                  Put_Line ("Not a spec");
+               end if;
+            when N_Subprogram_Declaration =>
+               Put_Line ("Subprog declaration");
+               --  The unit is withed library unit that is a subprogram
+               --  declaration, or,
+               --  it is the declaration of the compilation unit body being
+               --  compiled.
+               --  Do_Subprogram_Declaration enters the specification of the
+               --  subprogram into the symbol table.
+               Do_Subprogram_Declaration (N);
+            when N_Package_Declaration =>
+               Put_Line ("Package declaration");
+            when N_Package_Body =>
+               Put_Line ("Package body");
+            when others =>
+               Put_Line ("Not yet handled");
+         end case;
+
+         --  Not_Used := Do_Compilation_Unit (N, Not_Used_Add_Start);
+      end if;
+
+   end Do_Withed_Unit_Spec;
+
    -------------------------
    -- Do_Compilation_Unit --
    -------------------------
@@ -961,24 +1051,26 @@ package body Tree_Walk is
       U           : constant Node_Id := Unit (N);
       Unit_Symbol : Symbol;
    begin
+      --  Insert all all specifications of all withed units including the
+      --  specification of the given compilation unit into the symbol table.
+      Do_Withed_Units_Specs;
+
       case Nkind (U) is
          when N_Subprogram_Body =>
             declare
-               Unit_Type : constant Irep :=
-                 Do_Subprogram_Specification (Specification (U));
                Unit_Name : constant Symbol_Id :=
                  Intern (Unique_Name (Unique_Defining_Entity (U)));
             begin
-               --  Register the symbol *before* we compile the body, for
-               --  recursive calls.
-               Unit_Symbol.Name       := Unit_Name;
-               Unit_Symbol.PrettyName := Unit_Name;
-               Unit_Symbol.BaseName   := Unit_Name;
-               Unit_Symbol.Mode       := Intern ("C");
-               Unit_Symbol.SymType    := Unit_Type;
-               Global_Symbol_Table.Insert (Unit_Name, Unit_Symbol);
+               --  The specification of the subprogram body has already
+               --  been inserted into the symbol table by the call to
+               --  Do_Withed_Unit_Specs.
+               pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
+               Unit_Symbol := Global_Symbol_Table (Unit_Name);
 
-               Unit_Symbol.Value      := Do_Subprogram_Or_Block (U);
+               --  Now compile the body of the subprogram
+               Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
+
+               --  and update the symbol table entry for this subprogram.
                Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
                Add_Start := True;
             end;
@@ -2898,24 +2990,18 @@ package body Tree_Walk is
       Proc_Symbol : Symbol;
    begin
       if not Global_Symbol_Table.Contains (Proc_Name) then
-         Put_Line (Standard_Error, "Warning: Subprogram " &
-            Unintern (Proc_Name) & " not in symbol table");
-         declare
-            Proc_Type : constant Irep :=
-               Do_Subprogram_Specification (Specification (N));
-            New_Proc_Symbol : Symbol;
-         begin
-            New_Proc_Symbol.Name       := Proc_Name;
-            New_Proc_Symbol.BaseName   := Proc_Name;
-            New_Proc_Symbol.PrettyName := Proc_Name;
-            New_Proc_Symbol.SymType    := Proc_Type;
-            New_Proc_Symbol.Mode       := Intern ("C");
-
-            Global_Symbol_Table.Insert (Proc_Name, New_Proc_Symbol);
-         end;
+         --  A subprogram body does not have to have a separate declaration
+         --  so it may not be in the symbol table.
+         --  The subprogram specification of the subprogram body is used to
+         --  populate the symbol table instead.
+         Register_Subprogram_Specification (Specification (N));
       end if;
+      --  Now the subprogram should registered in the stmbol table
+      --  whether a separate declaration was provided or not.
       pragma Assert (Global_Symbol_Table.Contains (Proc_Name));
       Proc_Symbol := Global_Symbol_Table (Proc_Name);
+
+      --  Compile the subprogram body and update its entry in the symbol table.
       Proc_Symbol.Value := Proc_Body;
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
@@ -2925,23 +3011,8 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
-      Proc_Type : constant Irep :=
-        Do_Subprogram_Specification (Specification (N));
-
-      Proc_Name : constant Symbol_Id := Intern
-        (Unique_Name (Defining_Unit_Name (Specification (N))));
-      --  take from spec, because body could be absent (null procedure)
-
-      Proc_Symbol : Symbol;
-
    begin
-      Proc_Symbol.Name       := Proc_Name;
-      Proc_Symbol.BaseName   := Proc_Name;
-      Proc_Symbol.PrettyName := Proc_Name;
-      Proc_Symbol.SymType    := Proc_Type;
-      Proc_Symbol.Mode       := Intern ("C");
-
-      Global_Symbol_Table.Insert (Proc_Name, Proc_Symbol);
+      Register_Subprogram_Specification (Specification (N));
    end Do_Subprogram_Declaration;
 
    ----------------------------
