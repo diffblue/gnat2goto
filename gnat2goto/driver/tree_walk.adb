@@ -15,6 +15,9 @@ with Uint_To_Binary;        use Uint_To_Binary;
 with Stand;
 with Ureal_To_Binary;       use Ureal_To_Binary;
 with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Exceptions;
+
+with Urealp; use Urealp;
 
 package body Tree_Walk is
 
@@ -268,6 +271,8 @@ package body Tree_Walk is
                                     Index_Type : Entity_Id) return Irep
    with Post => Kind (Get_Array_Dup_Function'Result) = I_Symbol_Expr;
 
+   function Can_Get_Array_Index_Type (N : Node_Id) return Boolean;
+
    function Get_Array_Index_Type (N : Node_Id) return Entity_Id
    with Post => Ekind (Get_Array_Index_Type'Result) = E_Signed_Integer_Type;
 
@@ -335,6 +340,42 @@ package body Tree_Walk is
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
+   function Create_Dummy_Irep return Irep;
+
+   procedure Report_Unhandled_Node_Empty (N : Node_Id;
+                                          Fun_Name : String;
+                                          Message : String);
+   function Report_Unhandled_Node_Irep (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep;
+   function Report_Unhandled_Node_Kind (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep_Kind;
+
+   procedure Report_Unhandled_Node_Empty (N : Node_Id;
+                                          Fun_Name : String;
+                                          Message : String) is
+   begin
+      Put_Line (Standard_Error, "----------At: " & Fun_Name & "----------");
+      Put_Line (Standard_Error, "----------" & Message & "----------");
+      pp (Union_Id (N));
+   end Report_Unhandled_Node_Empty;
+
+   function Report_Unhandled_Node_Irep (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep is
+   begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return Create_Dummy_Irep;
+   end Report_Unhandled_Node_Irep;
+
+   function Report_Unhandled_Node_Kind (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep_Kind is
+   begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return I_Empty;
+   end Report_Unhandled_Node_Kind;
    -----------------------------
    -- Add_Entity_Substitution --
    -----------------------------
@@ -391,7 +432,15 @@ package body Tree_Walk is
    -------------------
 
    function Do_Address_Of (N : Node_Id) return Irep is
-     (Make_Address_Of (Do_Expression (Prefix (N))));
+      R : constant Irep := New_Irep (I_Address_Of_Expr);
+   begin
+      if not (Kind (Get_Type (Do_Expression (Prefix (N)))) in Class_Type) then
+         Report_Unhandled_Node_Empty (N, "Do_Address_Of",
+                                      "Kind not in class type");
+         return R;
+      end if;
+      return Make_Address_Of (Do_Expression (Prefix (N)));
+   end Do_Address_Of;
 
    --------------------------
    -- Do_Aggregate_Literal --
@@ -411,9 +460,9 @@ package body Tree_Walk is
          when E_Record_Type =>
             return Do_Aggregate_Literal_Record (N);
          when others =>
-            --  Unhandled aggregate kind
-            pp (Union_Id (N));
-            raise Program_Error;
+            return Report_Unhandled_Node_Irep (N,
+                                               "Do_Aggregate_Literal",
+                                               "Unhandled aggregate kind");
       end case;
    end Do_Aggregate_Literal;
 
@@ -458,15 +507,28 @@ package body Tree_Walk is
          --  Produce something like array_of(others_expr)
          --                         with 1 => 100, 2 => 200, ...
          --  We expect only one named operand (others => ...):
-         pragma Assert (List_Length (Component_Associations (N)) = 1);
+         if List_Length (Component_Associations (N)) /= 1 then
+            return Report_Unhandled_Node_Irep (N,
+                                               "Do_Aggregate_Literal_Array",
+                                               "More than one named operand");
+         end if;
+
          declare
             Others_Node : constant Node_Id :=
               First (Component_Associations (N));
             Others_Choices : constant List_Id := Choices (Others_Node);
             Expr : constant Irep := Do_Expression (Expression (Others_Node));
          begin
-            pragma Assert (List_Length (Others_Choices) = 1);
-            pragma Assert (Nkind (First (Others_Choices)) = N_Others_Choice);
+            if List_Length (Others_Choices) /= 1 then
+               return Report_Unhandled_Node_Irep (N,
+                                                  "Do_Aggregate_Literal_Array",
+                                                 "More than one other choice");
+            end if;
+            if Nkind (First (Others_Choices)) /= N_Others_Choice then
+               return Report_Unhandled_Node_Irep (N,
+                                                  "Do_Aggregate_Literal_Array",
+                                                 "Wrong kind of other choice");
+            end if;
             Array_Expr :=
               Make_Op_Array_Of (I_Type => Bare_Array_Type,
                                 Op0 => Expr,
@@ -585,11 +647,26 @@ package body Tree_Walk is
 
          --  Expect discriminants and components in declared order:
          while Expect_More_Components loop
-            pragma Assert (Present (Actual_Iter));
-            pragma Assert (Present (Component_Iter));
-            pragma Assert
-              (Components_Match (Component_Iter,
-                                 Entity (First (Choices (Actual_Iter)))));
+            if not Present (Actual_Iter) then
+               Report_Unhandled_Node_Empty (N,
+                                            "Do_Aggregate_Literal_Record",
+                                            "Actual iter not present");
+               return Struct_Expr;
+            end if;
+            if not Present (Component_Iter) then
+               Report_Unhandled_Node_Empty (N,
+                                            "Do_Aggregate_Literal_Record",
+                                            "Component iter not present");
+               return Struct_Expr;
+            end if;
+            if not Components_Match (Component_Iter,
+                                     Entity (First (Choices (Actual_Iter))))
+            then
+               Report_Unhandled_Node_Empty (N,
+                                            "Do_Aggregate_Literal_Record",
+                                            "Component actual iter mismatch");
+               return Struct_Expr;
+            end if;
 
             Append_Struct_Member (Struct_Expr,
                                   Do_Expression (Expression (Actual_Iter)));
@@ -618,17 +695,32 @@ package body Tree_Walk is
                Substruct_Component_List : Node_Id :=
                  First (Component_Items (Component_List (Variant_Found)));
             begin
-               pragma Assert (Present (Variant_Found));
+               if not Present (Variant_Found) then
+                  Report_Unhandled_Node_Empty (N,
+                                               "Do_Aggregate_Literal_Record",
+                                               "Variant not present");
+                  return Struct_Expr;
+               end if;
                --  Initialises last two parameters:
                Make_Variant_Literal (Variant_Node, Variant_Found,
                                      Union_Literal, Variant_Substruct);
                --  Try to parse remaining aggregate parts according to that
                --  subrecord.
                while Present (Substruct_Component_List) loop
-                  pragma Assert (Present (Actual_Iter));
-                  pragma Assert
-                    (Defining_Identifier (Substruct_Component_List) =
-                     Entity (First (Choices (Actual_Iter))));
+                  if not Present (Actual_Iter) then
+                     Report_Unhandled_Node_Empty (N,
+                                                 "Do_Aggregate_Literal_Record",
+                                                  "Actual iter not present");
+                     return Struct_Expr;
+                  end if;
+                  if Defining_Identifier (Substruct_Component_List) /=
+                    Entity (First (Choices (Actual_Iter)))
+                  then
+                     Report_Unhandled_Node_Empty (N,
+                                                 "Do_Aggregate_Literal_Record",
+                                                  "Wrong defining identifier");
+                     return Struct_Expr;
+                  end if;
                   Append_Struct_Member (
                     Variant_Substruct,
                     Do_Expression (Expression (Actual_Iter)));
@@ -659,29 +751,49 @@ package body Tree_Walk is
       --  TODO: figure out when this is redundant.
       LHS : constant Irep :=
         Fresh_Var_Symbol_Expr (Get_Type (LHS_Expr), "array_assign_lhs");
-      RHS : constant Irep :=
-        Fresh_Var_Symbol_Expr (Get_Type (RHS_Expr), "array_assign_rhs");
+      RHS : Irep;
       Ret : constant Irep := New_Irep (I_Code_Block);
-      LHS_Idx_Type : constant Node_Id := Get_Array_Index_Type (Name (N));
-      RHS_Idx_Type : constant Node_Id := Get_Array_Index_Type (Expression (N));
-      LHS_Length : constant Irep :=
-        Make_Array_Length_Expr (LHS, LHS_Idx_Type);
-      RHS_Length : Irep :=
-        Make_Array_Length_Expr (RHS, RHS_Idx_Type);
+      LHS_Idx_Type : Node_Id;
+      RHS_Idx_Type : Node_Id;
+      LHS_Length : Irep;
+      RHS_Length : Irep;
       Copy_Args : constant Irep := New_Irep (I_Argument_List);
       LHS_Element_Type : constant Entity_Id :=
         Get_Array_Component_Type (Name (N));
       RHS_Element_Type : constant Entity_Id :=
         Get_Array_Component_Type (Expression (N));
-      Copy_Func : constant Irep :=
-        Get_Array_Copy_Function (LHS_Element_Type,
-                                 RHS_Element_Type,
-                                 LHS_Idx_Type);
+      Copy_Func : Irep;
       LHS_Data_Type : constant Irep :=
         Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
       RHS_Data_Type : constant Irep :=
         Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
    begin
+      if not Can_Get_Array_Index_Type (Name (N)) then
+         Report_Unhandled_Node_Empty (N, "Do_Array_Assignment",
+                                      "Name does not have integer subtype");
+         return Ret;
+      end if;
+      if not Can_Get_Array_Index_Type (Expression (N)) then
+         Report_Unhandled_Node_Empty (N, "Do_Array_Assignment",
+                                   "Expression does not have integer subtype");
+         return Ret;
+      end if;
+      LHS_Idx_Type := Get_Array_Index_Type (Name (N));
+      RHS_Idx_Type := Get_Array_Index_Type (Expression (N));
+      LHS_Length := Make_Array_Length_Expr (LHS, LHS_Idx_Type);
+      Copy_Func :=
+        Get_Array_Copy_Function (LHS_Element_Type,
+                                 RHS_Element_Type,
+                                 LHS_Idx_Type);
+
+      if not (Kind (Get_Type (RHS_Expr)) in Class_Type)
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Array_Assignment",
+                                      "RHS expr type not in class type");
+         return Ret;
+      end if;
+      RHS := Fresh_Var_Symbol_Expr (Get_Type (RHS_Expr), "array_assign_rhs");
+      RHS_Length := Make_Array_Length_Expr (RHS, RHS_Idx_Type);
 
       Append_Declare_And_Init (LHS, LHS_Expr, Ret, Sloc (N));
       Append_Declare_And_Init (RHS, RHS_Expr, Ret, Sloc (N));
@@ -798,6 +910,21 @@ package body Tree_Walk is
         Follow_Symbol_Type (Underlying, Global_Symbol_Table);
       --  ??? why not get this from the entity
    begin
+      if not (Kind (Resolved_Underlying) in Class_Bitvector_Type) then
+         Report_Unhandled_Node_Empty (Range_Expr, "Do_Base_Range_Constraint",
+                                      "range expression not bitvector type");
+         return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+      end if;
+      if Nkind (Low_Bound (Range_Expr)) /= N_Integer_Literal then
+         Report_Unhandled_Node_Empty (Range_Expr, "Do_Base_Range_Constraint",
+                                     "low bound range expression not literal");
+         return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+      end if;
+      if Nkind (High_Bound (Range_Expr)) /= N_Integer_Literal then
+         Report_Unhandled_Node_Empty (Range_Expr, "Do_Base_Range_Constraint",
+                                    "high bound range expression not literal");
+         return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+      end if;
       return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type) do
          Set_Width (R, Get_Width (Resolved_Underlying));
          Set_Lower_Bound (R, Do_Constant (Low_Bound (Range_Expr)));
@@ -814,7 +941,7 @@ package body Tree_Walk is
       Args : constant Irep := New_Irep (I_Argument_List);
 
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
-        (if Is_Out
+         (if Is_Out
          then Make_Address_Of (Base)
          else Base);
 
@@ -826,10 +953,17 @@ package body Tree_Walk is
 
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Is_Out        : constant Boolean := Out_Present (Parent (Formal));
-         Actual_Irep   : constant Irep :=
-           Wrap_Argument (Do_Expression (Actual), Is_Out);
+         Actual_Irep   : Irep;
 
       begin
+         if Is_Out and then
+           not (Kind (Get_Type (Do_Expression (Actual))) in Class_Type)
+         then
+            Report_Unhandled_Node_Empty (Actual, "Handle_Parameter",
+                                         "Kind of actual not in class type");
+            return;
+         end if;
+         Actual_Irep := Wrap_Argument (Do_Expression (Actual), Is_Out);
          Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
@@ -934,6 +1068,13 @@ package body Tree_Walk is
                Set_Cond (This_Test,
                          Make_Case_Test (Discrete_Choices (This_Alt_Copy)));
                Set_True_Case (This_Test, This_Expr);
+               if not (Kind (This_Test) in Class_Expr) or else
+                 not (Kind (Get_Type (This_Expr)) in Class_Type)
+               then
+                  Report_Unhandled_Node_Empty (N, "Do_Case_Expression",
+                  "Case kind not in class expr or alt expr not in class type");
+                  return Ret;
+               end if;
                Set_Type (This_Test, Get_Type (This_Expr));
             end if;
             if Case_Body_Leaf = Ireps.Empty then
@@ -992,9 +1133,8 @@ package body Tree_Walk is
             end;
 
          when others =>
-            Put_Line (Standard_Error, "Unknown tree node");
-            Print_Tree_Node (U);
-            raise Program_Error;
+            Report_Unhandled_Node_Empty (N, "Do_Compilation_Unit",
+                                         "Unknown tree node");
       end case;
 
       return Unit_Symbol;
@@ -1009,17 +1149,40 @@ package body Tree_Walk is
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
       Is_Integer_Literal : constant Boolean :=
         Etype (N) = Stand.Universal_Integer;
-      Constant_Resolved_Type : constant Irep :=
-        (if Is_Integer_Literal then
-            New_Irep (I_Signedbv_Type)
-         else
-            Follow_Symbol_Type (Constant_Type, Global_Symbol_Table));
-      Constant_Width : constant Integer :=
-        (if Is_Integer_Literal then
-            64  -- TODO: https://github.com/diffblue/gnat2goto/issues/29
-         else
-            Get_Width (Constant_Resolved_Type));
+      Constant_Resolved_Type : Irep;
+      Constant_Width : Integer := 64;
    begin
+      -- Dummy value initialisation --
+      -- To be removed once the Unsupported reports are removed --
+      Set_Source_Location (Ret, Sloc (N));
+      Set_Type (Ret, Make_Signedbv_Type (Ireps.Empty, 32));
+      Set_Value (Ret, "00000000000000000000000000000000");
+
+      if not Global_Symbol_Table.Contains (
+                                       Intern (Get_Identifier (Constant_Type)))
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Constant",
+                                      "Constant Type not in symbol table");
+         return Ret;
+      end if;
+      Constant_Resolved_Type :=
+        (if Is_Integer_Literal then
+        New_Irep (I_Signedbv_Type)
+        else
+        Follow_Symbol_Type (Constant_Type, Global_Symbol_Table));
+
+      if Is_Integer_Literal then
+         null;
+      else
+         if Kind (Constant_Resolved_Type) in Class_Bitvector_Type then
+            Constant_Width := Get_Width (Constant_Resolved_Type);
+         else
+            Report_Unhandled_Node_Empty (N, "Do_Constant",
+                                  "Constant Type not in Class_Bitvector_Type");
+            return Ret;
+         end if;
+      end if;
+
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Constant_Type);
       Set_Value (Ret,
@@ -1037,7 +1200,25 @@ package body Tree_Walk is
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Real_Constant_Type);
-      Set_Value (Ret, Convert_Ureal_To_Binary_IEEE (Realval (N)));
+
+      if Denominator (Realval (N)) <= Uint_0 then
+         Report_Unhandled_Node_Empty (N, "Do_Real_Constant",
+                                      "negative denominator");
+         Set_Value (Ret, "00000000000000000000000000000000");
+         return Ret;
+      end if;
+
+      begin
+         Set_Value (Ret, Convert_Ureal_To_Binary_IEEE (Realval (N)));
+      exception
+         when Error : others =>
+            Report_Unhandled_Node_Empty (N, "Do_Real_Constant",
+                                         Ada.Exceptions.Exception_Name
+                                           (Error));
+            Set_Value (Ret, "00000000000000000000000000000000");
+            return Ret;
+      end;
+
       return Ret;
    end Do_Real_Constant;
 
@@ -1110,8 +1291,9 @@ package body Tree_Walk is
         or else Present (Interface_List (N))
         or else Interface_Present (N)
       then
-         pp (Union_Id (N));
-         raise Program_Error;
+         Report_Unhandled_Node_Empty (N, "Do_Derived_Type_Definition",
+                                      "abstract present not true");
+         return New_Irep (I_Bool_Type);
       end if;
 
       return Subtype_Irep;
@@ -1177,7 +1359,6 @@ package body Tree_Walk is
    -- Do_Expression --
    -------------------
 
-   function Create_Dummy_Irep return Irep;
    function Create_Dummy_Irep return Irep is
       ir : constant Irep := New_Irep (I_Constant_Expr);
    begin
@@ -1213,7 +1394,9 @@ package body Tree_Walk is
                when Attribute_Last   =>
                   Warn_Unhandled_Expression ("Last attribute");
                   return Create_Dummy_Irep;
-               when others           => raise Program_Error;
+               when others           =>
+                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                     "Unknown attribute");
             end case;
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
@@ -1235,7 +1418,9 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             Warn_Unhandled_Expression ("Quantified");
             return Create_Dummy_Irep;
-         when others                 => raise Program_Error;
+         when others                 =>
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                               "Unknown expression kind");
       end case;
    end Do_Expression;
 
@@ -1261,6 +1446,13 @@ package body Tree_Walk is
                             Discriminant_Specifications (N));
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
+      if not Is_Type (E) or else
+        not (Kind (New_Type) in Class_Type)
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
+                                 "identifier not a type or not in class type");
+         return;
+      end if;
       Do_Type_Declaration (New_Type, E);
 
       --  Declare the implicit initial subtype too
@@ -1369,8 +1561,9 @@ package body Tree_Walk is
                Source_Location => Sloc (N),
                I_Type          => Type_Irep);
          end;
-      else
-         raise Program_Error; -- How did that happen (GNAT should reject)?
+      else -- How did that happen (GNAT should reject)?
+         return Report_Unhandled_Node_Irep (N, "Do_Nondet_Function_Call",
+                                            "func name not in symbol table");
       end if;
    end Do_Nondet_Function_Call;
 
@@ -1380,12 +1573,23 @@ package body Tree_Walk is
 
    function Do_Function_Call (N : Node_Id) return Irep
    is
-      Func_Ent     : constant Entity_Id := Entity (Name (N));
-      Func_Name    : constant Symbol_Id := Intern (Unique_Name (Func_Ent));
+      Func_Ent     : Entity_Id;
+      Func_Name    : Symbol_Id;
       Func_Symbol  : Symbol;
       The_Function : Irep;
 
    begin
+      if not (Nkind (Name (N)) in N_Has_Entity)
+        and then Nkind (Name (N)) /= N_Aspect_Specification
+        and then Nkind (Name (N)) /= N_Attribute_Definition_Clause
+        and then Nkind (Name (N)) /= N_Freeze_Entity
+        and then Nkind (Name (N)) /= N_Freeze_Generic_Entity
+      then
+         return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
+                                            "Wrong name nkind");
+      end if;
+      Func_Ent := Entity (Name (N));
+      Func_Name := Intern (Unique_Name (Func_Ent));
 
       --  TODO: in general, the Ada program must be able to
       --  use cbm's built-in functions, like "__cprover_assume".
@@ -1400,6 +1604,10 @@ package body Tree_Walk is
 
       --  For now, we only handle "nondet" prefixes here.
 
+      if Nkind (Func_Ent) /= N_Defining_Identifier then
+         return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
+                                    "function entity not defining identifier");
+      end if;
       if Name_Has_Prefix (N, "nondet") or else
         Has_GNAT2goto_Annotation (Func_Ent, "nondet")
       then
@@ -1423,8 +1631,9 @@ package body Tree_Walk is
             end return;
          else
             --  This can happen for RTS functions (body not parsed by us)
-            pp (Union_Id (N));
-            raise Program_Error; --  TODO: be clever
+            --  TODO: handle RTS functions in a sane way
+            return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
+                                              "func name not in symbol table");
          end if;
       end if;
    end Do_Function_Call;
@@ -1454,6 +1663,11 @@ package body Tree_Walk is
          --  this is used for discriminants during record init.
          return Identifier_Maps.Element (Subst_Cursor);
       else
+         if not (Is_Type (Etype (E))) then
+            Report_Unhandled_Node_Empty (N, "Do_Identifier",
+                                         "Etype not a type");
+            return R : constant Irep := New_Irep (I_Symbol_Expr);
+         end if;
          return Do_Defining_Identifier (E);
       end if;
    end Do_Identifier;
@@ -1618,7 +1832,8 @@ package body Tree_Walk is
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
          when E_Floating_Point_Type => Create_Dummy_Irep,
-         when others => raise Program_Error);
+         when others => Report_Unhandled_Node_Irep (N, "Do_Itype_Definition",
+                                                    "Unknown Ekind"));
    end Do_Itype_Definition;
 
    ------------------------------
@@ -1626,11 +1841,24 @@ package body Tree_Walk is
    ------------------------------
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep is
-      (Make_Bounded_Signedbv_Type (
-         Lower_Bound => Do_Expression (Low_Bound (Scalar_Range (N))),
-         Upper_Bound => Do_Expression (High_Bound (Scalar_Range (N))),
-         Width => Positive (UI_To_Int (Esize (N))),
-         I_Subtype => Ireps.Empty));
+      Lower_Bound : constant Irep :=
+        Do_Expression (Low_Bound (Scalar_Range (N)));
+      Upper_Bound : constant Irep :=
+        Do_Expression (High_Bound (Scalar_Range (N)));
+
+   begin
+      if Kind (Upper_Bound) /= I_Constant_Expr or
+        Kind (Lower_Bound) /= I_Constant_Expr
+      then
+         return Report_Unhandled_Node_Irep (N, "Do_Itype_Integer_Subtype",
+                                            "Non-literal bound unsupported");
+      end if;
+      return
+        Make_Bounded_Signedbv_Type (Lower_Bound => Lower_Bound,
+                                    Upper_Bound => Upper_Bound,
+                                    Width => Positive (UI_To_Int (Esize (N))),
+                                    I_Subtype => Ireps.Empty);
+   end Do_Itype_Integer_Subtype;
 
    ------------------------------
    -- Do_Itype_Integer_Type --
@@ -1676,7 +1904,9 @@ package body Tree_Walk is
                    (Base => Do_Type_Reference (Designated_Type (Typedef)));
 
             when others =>
-               raise Program_Error;
+               return Report_Unhandled_Node_Irep (N,
+                                                "Do_Anonymous_Type_Definition",
+                                                  "Unknown typedef");
          end case;
 
       end Do_Anonymous_Type_Definition;
@@ -1772,16 +2002,10 @@ package body Tree_Walk is
                         Dsd := Range_Expression (Constraint (Dsd));
                      end if;
 
-                     pragma Assert (False
-                        or else Nkind (Dsd) = N_Range
-                        or else Nkind (Dsd) = N_Real_Range_Specification
-                        or else
-                           Nkind (Dsd) = N_Signed_Integer_Type_Definition);
-
                      return Dsd;
                   end Get_Range;
 
-                  Dsd : constant Node_Id := Get_Range (Spec);
+                  Dsd : Node_Id;
 
                   Type_Loopvar : constant Irep := Do_Type_Reference
                     (Etype (Etype (Defining_Identifier (Spec))));
@@ -1796,10 +2020,24 @@ package body Tree_Walk is
                   Cond : Irep;
                   Post : Irep;
 
-                  Bound_Low : constant Irep := Do_Expression (Low_Bound (Dsd));
-                  Bound_High : constant Irep :=
-                     Do_Expression (High_Bound (Dsd));
+                  Bound_Low : Irep;
+                  Bound_High : Irep;
+                  Pre_Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
                begin
+                  if Nkind (Pre_Dsd) = N_Subtype_Indication then
+                     Pre_Dsd := Range_Expression (Constraint (Pre_Dsd));
+                  end if;
+                  if Nkind (Pre_Dsd) /= N_Signed_Integer_Type_Definition
+                    and Nkind (Pre_Dsd) /= N_Range
+                    and  Nkind (Pre_Dsd) /= N_Real_Range_Specification
+                  then
+                     Report_Unhandled_Node_Empty (N, "Do_While_Statement",
+                                                  "Wrong Nkind spec");
+                     return Loop_Wrapper;
+                  end if;
+                  Dsd := Get_Range (Spec);
+                  Bound_Low := Do_Expression (Low_Bound (Dsd));
+                  Bound_High := Do_Expression (High_Bound (Dsd));
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
                              (Symbol          => Sym_Loopvar,
@@ -1837,9 +2075,15 @@ package body Tree_Walk is
                   Loop_Irep := Do_For_Statement (Init, Cond, Post);
                end;
             else
-               pragma Assert
-                 (Present (Iterator_Specification (Iter_Scheme)));
-               raise Program_Error; -- TODO: implement loop iterators
+               if not Present (Iterator_Specification (Iter_Scheme)) then
+                  Report_Unhandled_Node_Empty (N, "Do_While_Statement",
+                                           "Scheme specification not present");
+                  return Loop_Wrapper;
+
+               end if;
+               Report_Unhandled_Node_Empty (N, "Do_While_Statement",
+                                            "Loop iterators not implemented");
+               return Loop_Wrapper;
             end if;
          end if;
       end if;
@@ -1908,8 +2152,8 @@ package body Tree_Walk is
             then
                null; -- ignore, since assert irep has no msg
             else
-               pp (Union_Id (N));
-               raise Program_Error;
+               Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                            "Unknown arg name");
             end if;
          end Handle_Arg;
 
@@ -1918,7 +2162,10 @@ package body Tree_Walk is
 
       begin
          Iterate_Args (N_Orig);
-         pragma Assert (Check /= Ireps.Empty);
+         if Check = Ireps.Empty then
+            Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                         "Unassigned arg name");
+         end if;
 
          if Which in Pragma_Assert | Pragma_Loop_Invariant then
             Set_Assertion (A_Irep, Check);
@@ -1929,10 +2176,14 @@ package body Tree_Walk is
          Append_Op (Block, A_Irep);
       end Do_Pragma_Assert_or_Assume;
 
-      pragma Assert (Present (Original_Node (N)));
-      N_Orig : constant Node_Id := Original_Node (N);
+      N_Orig : Node_Id;
 
    begin
+      if not Present (Original_Node (N)) then
+         Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                      "Original node not present");
+      end if;
+      N_Orig := Original_Node (N);
       if Pragma_Name (N_Orig) in Name_Assert | Name_Assume |
          Name_Loop_Invariant
       then
@@ -1946,10 +2197,11 @@ package body Tree_Walk is
          Name_Postcondition | Name_Refined_State | Name_Refined_Global |
          Name_Precondition
       then
-         Put_Line (Standard_Error, "Warning: Ignoring unsupported pragma");
+         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                      "Unsupported pragma");
       else
-         pp (Union_Id (N));
-         raise Program_Error; -- unsupported pragma
+         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                      "Unknown");
       end if;
    end Do_Pragma;
 
@@ -1984,6 +2236,14 @@ package body Tree_Walk is
             return False;
          end if;
          Record_Def := Type_Definition (Parent (Record_E));
+         if Nkind (Record_Def) /= N_Record_Definition and then
+           Nkind (Record_Def) /= N_Variant
+         then
+            Report_Unhandled_Node_Empty (Do_Object_Declaration.N,
+                                         "Do_Object_Declaration",
+                                         "Record definition of wrong nkind");
+            return False;
+         end if;
          Component_Iter :=
            First (Component_Items (Component_List (Record_Def)));
          while Present (Component_Iter) loop
@@ -2039,6 +2299,51 @@ package body Tree_Walk is
             New_Expr : Irep;
          begin
             while Present (Component_Iter) loop
+               if Nkind (Component_Iter) /= N_Allocator
+                 and then Nkind (Component_Iter) /= N_Aspect_Specification
+                 and then Nkind (Component_Iter) /= N_Assignment_Statement
+                 and then Nkind (Component_Iter) /= N_At_Clause
+                 and then
+                 Nkind (Component_Iter) /= N_Attribute_Definition_Clause
+                 and then Nkind (Component_Iter) /= N_Case_Expression
+                 and then
+                 Nkind (Component_Iter) /= N_Case_Expression_Alternative
+                 and then Nkind (Component_Iter) /= N_Case_Statement
+                 and then Nkind (Component_Iter) /= N_Code_Statement
+                 and then Nkind (Component_Iter) /= N_Component_Association
+                 and then Nkind (Component_Iter) /= N_Component_Declaration
+                 and then Nkind (Component_Iter) /= N_Delay_Relative_Statement
+                 and then Nkind (Component_Iter) /= N_Delay_Until_Statement
+                 and then Nkind (Component_Iter) /= N_Delta_Aggregate
+                 and then Nkind (Component_Iter) /= N_Discriminant_Association
+                 and then
+                 Nkind (Component_Iter) /= N_Discriminant_Specification
+                 and then Nkind (Component_Iter) /= N_Exception_Declaration
+                 and then Nkind (Component_Iter) /= N_Expression_Function
+                 and then Nkind (Component_Iter) /= N_Expression_With_Actions
+                 and then Nkind (Component_Iter) /= N_Free_Statement
+                 and then
+                 Nkind (Component_Iter) /= N_Iterated_Component_Association
+                 and then Nkind (Component_Iter) /= N_Mod_Clause
+                 and then Nkind (Component_Iter) /= N_Modular_Type_Definition
+                 and then Nkind (Component_Iter) /= N_Number_Declaration
+                 and then Nkind (Component_Iter) /= N_Object_Declaration
+                 and then Nkind (Component_Iter) /= N_Parameter_Specification
+                 and then
+                 Nkind (Component_Iter) /= N_Pragma_Argument_Association
+                 and then Nkind (Component_Iter) /= N_Qualified_Expression
+                 and then Nkind (Component_Iter) /= N_Raise_Expression
+                 and then Nkind (Component_Iter) /= N_Raise_Statement
+                 and then Nkind (Component_Iter) /= N_Simple_Return_Statement
+                 and then Nkind (Component_Iter) /= N_Type_Conversion
+                 and then Nkind (Component_Iter) /= N_Unchecked_Expression
+                 and then Nkind (Component_Iter) /= N_Unchecked_Type_Conversion
+               then
+                  Report_Unhandled_Node_Empty (Component_Iter,
+                                             "Make_Record_Default_Initialiser",
+                                               "Wrong component iter nkind");
+                  return;
+               end if;
                if Present (Expression (Component_Iter)) then
                   New_Expr := Do_Expression (Expression (Component_Iter));
                else
@@ -2073,7 +2378,6 @@ package body Tree_Walk is
       --  begin processing for Make_Record_Default_Initialiser
 
       begin
-         --  First the discriminants:
          if Has_Discriminants (E) then
             declare
                Iter : Entity_Id := First_Discriminant (E);
@@ -2086,7 +2390,12 @@ package body Tree_Walk is
                end if;
                while Present (Iter) loop
                   if Present (DCs) then
-                     pragma Assert (Present (Disc_Constraint_Iter));
+                     if not Present (Disc_Constraint_Iter) then
+                        Report_Unhandled_Node_Empty (N,
+                                             "Make_Record_Default_Initialiser",
+                                           "Disc constraint iter not present");
+                        return Ret;
+                     end if;
                      Disc_Actual := Disc_Expr (Disc_Constraint_Iter);
                      Next (Disc_Constraint_Iter);
                   else
@@ -2120,7 +2429,12 @@ package body Tree_Walk is
          if Present (Variant_Part (Record_Comps)) then
             --  Should have found the variant discriminant's
             --  actual value earlier:
-            pragma Assert (Present (Variant_Disc_Value));
+            if not Present (Variant_Disc_Value) then
+               Report_Unhandled_Node_Empty (N,
+                                            "Make_Record_Default_Initialiser",
+                                        "Variant disc value iter not present");
+               return Ret;
+            end if;
             declare
                Var_Part : constant Node_Id := Variant_Part (Record_Comps);
                Variant : constant Node_Id :=
@@ -2128,6 +2442,12 @@ package body Tree_Walk is
                Union_Expr : Irep;
                Substruct_Expr : Irep;
             begin
+               if not Anonymous_Type_Map.Contains (Variant) then
+                  Report_Unhandled_Node_Empty (Variant,
+                                             "Make_Record_Default_Initialiser",
+                                               "Variant not in type map");
+                  return Ret;
+               end if;
                --  Initialises the last two arguments:
                Make_Variant_Literal (Var_Part, Variant,
                                      Union_Expr, Substruct_Expr);
@@ -2164,7 +2484,8 @@ package body Tree_Walk is
          elsif Ekind (E) in Record_Kind then
             return Make_Record_Default_Initialiser (E, DCs);
          else
-            raise Program_Error;
+            return Report_Unhandled_Node_Irep (N, "Make_Default_Initialiser",
+                                                 "Unknown Ekind");
          end if;
       end Make_Default_Initialiser;
 
@@ -2209,7 +2530,7 @@ package body Tree_Walk is
       RHS : Irep := Do_Expression (RHS_Node);
       New_Component_Type : constant Entity_Id := Get_Array_Component_Type (N);
       New_Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
-      New_Index_Type : constant Entity_Id := Get_Array_Index_Type (N);
+      New_Index_Type : Entity_Id;
       New_First : Irep;
       New_Last :  constant Irep := New_Irep (I_Op_Sub);
       New_Limit : constant Irep := New_Irep (I_Op_Add);
@@ -2226,7 +2547,7 @@ package body Tree_Walk is
       RHS_Length : Irep;
       LHS_Copy : Irep;
       RHS_Copy : Irep;
-
+      Pre_Ret : Entity_Id := Etype (First_Index (Etype (N)));
       --  Style-mandatory prototypes:
 
       function Get_Length (Opnd : Node_Id;
@@ -2251,10 +2572,19 @@ package body Tree_Walk is
             return Make_Integer_Constant (1, New_Index_Type);
          else
             declare
-               Index_Type : constant Node_Id := Get_Array_Index_Type (Opnd);
-               Length_Expr : constant Irep :=
-                 Make_Array_Length_Expr (Opnd_Irep, Index_Type);
+               Index_Type : Node_Id;
+               Length_Expr : Irep;
             begin
+               if not (Nkind (Opnd) in N_Has_Etype) or else
+                 not (Nkind (First_Index (Etype (Opnd))) in N_Has_Etype)
+               then
+                  return Report_Unhandled_Node_Irep (Opnd, "Do_Op_Concat",
+                                                  "Index type not have etype");
+               end if;
+
+               Index_Type := Get_Array_Index_Type (Opnd);
+               Length_Expr := Make_Array_Length_Expr (Opnd_Irep, Index_Type);
+
                return Maybe_Make_Typecast (Length_Expr,
                                            Index_Type,
                                            New_Index_Type);
@@ -2263,10 +2593,15 @@ package body Tree_Walk is
       end Get_Length;
 
       procedure Make_Binder (Expr : in out Irep; Target : in out Irep) is
-         Fresh : constant Irep :=
-           Fresh_Var_Symbol_Expr (Get_Type (Expr), "op_binder");
+         Fresh : Irep;
          Let : constant Irep := New_Irep (I_Let_Expr);
       begin
+         if not (Kind (Get_Type (Expr)) in Class_Type) then
+            Report_Unhandled_Node_Empty (N, "Do_Op_Concat",
+                                         "Expr type not in class type");
+            return;
+         end if;
+         Fresh := Fresh_Var_Symbol_Expr (Get_Type (Expr), "op_binder");
          Set_Type (Let, Get_Type (Ret));
          Set_Symbol (Let, Fresh);
          Set_Value (Let, Expr);
@@ -2337,7 +2672,15 @@ package body Tree_Walk is
 
    --  Start of processing for Do_Op_Concat
    begin
-
+      while Ekind (Pre_Ret) = E_Signed_Integer_Subtype loop
+         Pre_Ret := Etype (Pre_Ret);
+      end loop;
+      if Ekind (Pre_Ret) /= E_Signed_Integer_Type then
+         Report_Unhandled_Node_Empty (N, "Do_Op_Concat",
+                                      "No integer subtype for first index");
+         return Ret;
+      end if;
+      New_Index_Type := Get_Array_Index_Type (N);
       --  Must set this before using Make_Binder
       Set_Type (Ret, Do_Type_Reference (Etype (N)));
       Set_Type (Result, Get_Type (Ret));
@@ -2378,9 +2721,16 @@ package body Tree_Walk is
          Set_Compound (New_First, LHS);
          Set_Component_Name (New_First, "first1");
          declare
-            LHS_Idx_Type : constant Entity_Id :=
-              Get_Array_Index_Type (LHS_Node);
+            LHS_Idx_Type : Entity_Id;
          begin
+            if not (Nkind (LHS_Node) in N_Has_Etype) or else
+              not (Nkind (First_Index (Etype (LHS_Node))) in N_Has_Etype)
+            then
+               Report_Unhandled_Node_Empty (N, "Do_Op_Concat",
+                                            "Lhs not have etype");
+               return Ret;
+            end if;
+            LHS_Idx_Type := Get_Array_Index_Type (LHS_Node);
             Set_Type (New_First, Do_Type_Reference (LHS_Idx_Type));
             New_First :=
               Maybe_Make_Typecast (New_First, LHS_Idx_Type, New_Index_Type);
@@ -2444,6 +2794,15 @@ package body Tree_Walk is
       if Nkind (N) = N_Op_Concat then
          return Do_Op_Concat (N);
       else
+         if Nkind (N) /= N_And_Then
+           and then Nkind (N) /= N_In
+           and then Nkind (N) /= N_Not_In
+           and then Nkind (N) /= N_Or_Else
+           and then not (Nkind (N) in N_Binary_Op)
+         then
+            return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
+                                               "Wrong node kind");
+         end if;
          return Do_Operator_Simple (N);
       end if;
    end Do_Operator_General;
@@ -2492,8 +2851,9 @@ package body Tree_Walk is
                   | N_Op_Minus
                   | N_Op_Not
                   | N_Op_Plus
-          =>
-             raise Program_Error);
+           => Report_Unhandled_Node_Kind (Do_Operator_Simple.N,
+                                          "Do_Operator_Simple",
+                                          "Unsupported operand"));
       end Op_To_Kind;
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
@@ -2503,6 +2863,16 @@ package body Tree_Walk is
 
    begin
       Set_Source_Location (Ret, Sloc (N));
+      if not (Kind (Ret) in Class_Binary_Expr
+        | I_Code_Assign
+        | I_Code_Function_Call
+        | I_Ieee_Float_Op_Expr
+        | I_Side_Effect_Expr_Assign)
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Operator_Simple",
+                                      "Unsupported kind of LHS");
+         return Ret;
+      end if;
       Set_Lhs (Ret, LHS);
       Set_Rhs (Ret, RHS);
       Set_Type (Ret, Do_Type_Reference (Etype (N)));
@@ -2526,16 +2896,28 @@ package body Tree_Walk is
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
-      Callee : constant String := Unique_Name (Entity (Name (N)));
+      Callee : Unbounded_String;
       --  ??? use Get_Entity_Name from gnat2why to handle entries and entry
       --  families (and most likely extend it for accesses to subprograms).
 
       Proc   : constant Irep := New_Irep (I_Symbol_Expr);
       R      : constant Irep := New_Irep (I_Code_Function_Call);
-      Sym_Id : constant Symbol_Id := Intern (Callee);
+      Sym_Id : Symbol_Id;
 
    begin
-      Set_Identifier (Proc, Callee);
+      if not (Nkind (Name (N)) in N_Has_Entity)
+        and then Nkind (Name (N)) /= N_Aspect_Specification
+        and then Nkind (Name (N)) /= N_Attribute_Definition_Clause
+        and then Nkind (Name (N)) /= N_Freeze_Entity
+        and then Nkind (Name (N)) /= N_Freeze_Generic_Entity
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Procedure_Call_Statement",
+                                      "Wrong nkind of name");
+         return R;
+      end if;
+      Callee := To_Unbounded_String (Unique_Name (Entity (Name (N))));
+      Sym_Id := Intern (To_String (Callee));
+      Set_Identifier (Proc, To_String (Callee));
 
       Set_Source_Location (R, Sloc (N));
       --  Set_LHS (R, Empty);  -- ??? what is the "nil" irep?
@@ -2549,7 +2931,8 @@ package body Tree_Walk is
          --  Packages with belong to the RTS are not being parsed by us,
          --  therefore functions like "Put_Line" have have no entry
          --  in the symbol table
-         raise Program_Error; -- TODO: set type of RTS functions
+         Report_Unhandled_Node_Empty (N, "Do_Procedure_Call_Statement",
+                                      "sym id not in symbol table");
       end if;
 
       return R;
@@ -2619,10 +3002,49 @@ package body Tree_Walk is
       -------------------------
 
       procedure Do_Record_Component (Comp : Node_Id) is
-         Comp_Name : constant String :=
-           Unique_Name (Defining_Identifier (Comp));
+         Comp_Name : Unbounded_String;
       begin
-         Add_Record_Component (Comp_Name,
+         if Nkind (Comp) /= N_Component_Declaration
+           and then Nkind (Comp) /= N_Defining_Program_Unit_Name
+           and then Nkind (Comp) /= N_Discriminant_Specification
+           and then Nkind (Comp) /= N_Entry_Body
+           and then Nkind (Comp) /= N_Entry_Declaration
+           and then Nkind (Comp) /= N_Entry_Index_Specification
+           and then Nkind (Comp) /= N_Exception_Declaration
+           and then Nkind (Comp) /= N_Exception_Renaming_Declaration
+           and then Nkind (Comp) /= N_Formal_Object_Declaration
+           and then Nkind (Comp) /= N_Formal_Package_Declaration
+           and then Nkind (Comp) /= N_Formal_Type_Declaration
+           and then Nkind (Comp) /= N_Full_Type_Declaration
+           and then Nkind (Comp) /= N_Implicit_Label_Declaration
+           and then Nkind (Comp) /= N_Incomplete_Type_Declaration
+           and then Nkind (Comp) /= N_Iterated_Component_Association
+           and then Nkind (Comp) /= N_Iterator_Specification
+           and then Nkind (Comp) /= N_Loop_Parameter_Specification
+           and then Nkind (Comp) /= N_Number_Declaration
+           and then Nkind (Comp) /= N_Object_Declaration
+           and then Nkind (Comp) /= N_Object_Renaming_Declaration
+           and then Nkind (Comp) /= N_Package_Body_Stub
+           and then Nkind (Comp) /= N_Parameter_Specification
+           and then Nkind (Comp) /= N_Private_Extension_Declaration
+           and then Nkind (Comp) /= N_Private_Type_Declaration
+           and then Nkind (Comp) /= N_Protected_Body
+           and then Nkind (Comp) /= N_Protected_Body_Stub
+           and then Nkind (Comp) /= N_Protected_Type_Declaration
+           and then Nkind (Comp) /= N_Single_Protected_Declaration
+           and then Nkind (Comp) /= N_Single_Task_Declaration
+           and then Nkind (Comp) /= N_Subtype_Declaration
+           and then Nkind (Comp) /= N_Task_Body
+           and then Nkind (Comp) /= N_Task_Body_Stub
+           and then Nkind (Comp) /= N_Task_Type_Declaration
+         then
+            Report_Unhandled_Node_Empty (Comp, "Do_Record_Component",
+                                         "Wrong component nkind");
+            return;
+         end if;
+         Comp_Name := To_Unbounded_String (Unique_Name (Defining_Identifier
+                                                          (Comp)));
+         Add_Record_Component (To_String (Comp_Name),
                                Etype (Defining_Identifier (Comp)),
                                Comp);
       end Do_Record_Component;
@@ -2720,19 +3142,25 @@ package body Tree_Walk is
 
          declare
             Component_Variant : Node_Id := Types.Empty;
-            Record_Type : constant Node_Id :=
-              Type_Definition (Parent (Etype (Prefix (N))));
-            Variant_Iter : Node_Id :=
-              First (Variants (Variant_Part (Component_List (Record_Type))));
-            Variant_Spec : constant Node_Id :=
-              Variant_Part (Component_List (Record_Type));
+            Record_Type : Node_Id;
+            Variant_Iter : Node_Id;
+            Variant_Spec : Node_Id;
             Union_Selector : constant Irep := New_Irep (I_Member_Expr);
             Substruct_Selector : constant Irep := New_Irep (I_Member_Expr);
             Disc_Selector : constant Irep := New_Irep (I_Member_Expr);
             Disc_Check : constant Irep := New_Irep (I_Op_Eq);
             Comma_Expr : constant Irep := New_Irep (I_Op_Comma);
          begin
-
+            if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
+            then
+               Report_Unhandled_Node_Empty (N, "Do_Selected_Component",
+                                           "Parent not full type declaration");
+               return Comma_Expr;
+            end if;
+            Record_Type := Type_Definition (Parent (Etype (Prefix (N))));
+            Variant_Iter := First (Variants (Variant_Part (Component_List
+                                                             (Record_Type))));
+            Variant_Spec := Variant_Part (Component_List (Record_Type));
             --  Find the variant this belongs to:
             while Present (Variant_Iter) and then Component_Variant = 0 loop
                declare
@@ -2749,7 +3177,11 @@ package body Tree_Walk is
                Next (Variant_Iter);
             end loop;
 
-            pragma Assert (Present (Component_Variant));
+            if not Present (Component_Variant) then
+               Report_Unhandled_Node_Empty (N, "Do_Selected_Component",
+                                            "Component variant not present");
+               return Comma_Expr;
+            end if;
 
             --  Add a discriminant-check side-effect:
             Set_Compound (Disc_Selector, Root);
@@ -2809,9 +3241,12 @@ package body Tree_Walk is
       E : constant Entity_Id := Defining_Entity (Parent (N));
       --  Type entity
 
-      pragma Assert (Is_Type (E));
-
    begin
+      if not Is_Type (E) then
+         Report_Unhandled_Node_Empty (N, "Do_Signed_Integer_Definition",
+                                      "Entity id is not a type");
+         return Ret;
+      end if;
       Set_Lower_Bound (Ret, Lower);
       Set_Upper_Bound (Ret, Upper);
       Set_Width       (Ret, Positive (UI_To_Int (Esize (E))));
@@ -2914,7 +3349,10 @@ package body Tree_Walk is
             Global_Symbol_Table.Insert (Proc_Name, New_Proc_Symbol);
          end;
       end if;
-      pragma Assert (Global_Symbol_Table.Contains (Proc_Name));
+      if not Global_Symbol_Table.Contains (Proc_Name) then
+         Report_Unhandled_Node_Empty (N, "Do_Subprogram_Body",
+                                      "Proc name not in symbol table");
+      end if;
       Proc_Symbol := Global_Symbol_Table (Proc_Name);
       Proc_Symbol.Value := Proc_Body;
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
@@ -2978,21 +3416,26 @@ package body Tree_Walk is
          declare
             Is_Out : constant Boolean := Out_Present (Param_Iter);
 
-            Param_Type_Base : constant Irep :=
-              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
-
-            Param_Type      : constant Irep :=
-              (if Is_Out
-               then Make_Pointer_Type (Param_Type_Base)
-               else Param_Type_Base);
+            Param_Type_Base : Irep;
+            Param_Type      : Irep;
 
             Param_Name : constant String :=
                 Unique_Name (Defining_Identifier (Param_Iter));
 
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
             Param_Symbol : Symbol;
-
          begin
+            if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
+               Report_Unhandled_Node_Empty (N, "Do_Subprogram_Specification",
+                                            "Param iter type not have etype");
+               return Ret;
+            end if;
+            Param_Type_Base :=
+              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
+            Param_Type :=
+              (if Is_Out
+                 then Make_Pointer_Type (Param_Type_Base)
+                 else Param_Type_Base);
             Set_Source_Location (Param_Irep, Sloc (Param_Iter));
             Set_Type            (Param_Irep, Param_Type);
             Set_Identifier      (Param_Irep, Param_Name);
@@ -3025,10 +3468,14 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Subtype_Declaration (N : Node_Id) is
-      New_Type : constant Irep :=
-        Do_Subtype_Indication (Subtype_Indication (N));
-
+      New_Type : Irep;
    begin
+      if not (Nkind (N) in N_Subtype_Indication | N_Identifier) then
+         Report_Unhandled_Node_Empty (N, "Do_Subtype_Declaration",
+                                      "Nkind not in subtype indication");
+         return;
+      end if;
+      New_Type := Do_Subtype_Indication (Subtype_Indication (N));
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
 
@@ -3050,9 +3497,10 @@ package body Tree_Walk is
                return Do_Range_Constraint (Constr, Underlying);
             when N_Index_Or_Discriminant_Constraint =>
                return Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
-            when others =>
-               Print_Tree_Node (N);
-               raise Program_Error;
+               when others =>
+                  return Report_Unhandled_Node_Irep (N,
+                                                     "Do_Subtype_Indication",
+                                                    "Unknown expression kind");
             end case;
          else
             return Underlying;
@@ -3062,8 +3510,8 @@ package body Tree_Walk is
          Underlying := Do_Type_Reference (Etype (N));
          return Underlying;
       else
-         Print_Tree_Node (N);
-         raise Program_Error;
+         return Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
+                                            "Unknown expression kind");
       end if;
    end Do_Subtype_Indication;
 
@@ -3098,7 +3546,15 @@ package body Tree_Walk is
       if Kind (New_Type) = I_Struct_Type then
          Set_Tag (New_Type, Unintern (New_Type_Name));
       end if;
-      Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name, New_Type_Symbol);
+      if Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name) then
+         Put_Line (Standard_Error,
+                   "----------At: Do_Type_Declaration----------");
+         Put_Line (Standard_Error,
+                   "----------name already in table----------");
+      else
+         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name,
+                             New_Type_Symbol);
+      end if;
    end Do_Type_Declaration;
 
    ------------------------
@@ -3107,8 +3563,12 @@ package body Tree_Walk is
 
    function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep is
    begin
-      pragma Assert (Discs = List_Id (Types.Empty)
-                       or else Nkind (N) = N_Record_Definition);
+      if Discs /= List_Id (Types.Empty)
+        and then Nkind (N) /= N_Record_Definition
+      then
+         return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
+                                            "Wrong Nkind or wrong discs");
+      end if;
       case Nkind (N) is
          when N_Record_Definition =>
             return Do_Record_Definition (N, Discs);
@@ -3125,8 +3585,8 @@ package body Tree_Walk is
          when N_Modular_Type_Definition =>
             return Create_Dummy_Irep;
          when others =>
-            pp (Union_Id (N));
-            raise Program_Error;
+            return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
+                                               "Unknown expression kind");
       end case;
    end Do_Type_Definition;
 
@@ -3436,6 +3896,18 @@ package body Tree_Walk is
       end;
    end Get_Array_Dup_Function;
 
+   function Can_Get_Array_Index_Type (N : Node_Id) return Boolean is
+      Ret : Entity_Id := Etype (First_Index (Etype (N)));
+   begin
+      --  Many array index types are itypes with ranges private to
+      --  this particular context. Use the underlying, unconstrained
+      --  numeric type instead.
+      while Ekind (Ret) = E_Signed_Integer_Subtype loop
+         Ret := Etype (Ret);
+      end loop;
+      return Ekind (Ret) = E_Signed_Integer_Type;
+   end Can_Get_Array_Index_Type;
+
    --------------------------
    -- Get_Array_Index_Type --
    --------------------------
@@ -3508,9 +3980,18 @@ package body Tree_Walk is
    function Make_Array_First_Expr
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep
    is
-      Idx_Type : constant Node_Id := Etype (First_Index (Base_Type));
+      Idx_Type : Node_Id;
       First : constant Irep := New_Irep (I_Member_Expr);
    begin
+      -- Dummy initialisation --
+      Set_Component_Name (First, "first1");
+
+      if not Is_Array_Type (Base_Type) then
+         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_First_Expr",
+                                      "Base type not array type");
+         return First;
+      end if;
+      Idx_Type := Etype (First_Index (Base_Type));
       Set_Component_Name (First, "first1");
       Set_Compound (First, Base_Irep);
       Set_Type (First, Do_Type_Reference (Idx_Type));
@@ -3527,15 +4008,27 @@ package body Tree_Walk is
       First_Irep : constant Irep :=
         Make_Array_First_Expr (Base_Type, Base_Irep);
       Zero_Based_Index : constant Irep := New_Irep (I_Op_Sub);
-      Result_Type : constant Irep :=
-        Do_Type_Reference (Component_Type (Base_Type));
+      Result_Type : Irep;
       Data : constant Irep := New_Irep (I_Member_Expr);
       Offset : constant Irep := New_Irep (I_Op_Add);
       Deref : constant Irep := New_Irep (I_Dereference_Expr);
       Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
    begin
+      if not Is_Array_Type (Base_Type) then
+         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
+                                      "Base type not array type");
+         return Deref;
+      end if;
+      Result_Type := Do_Type_Reference (Component_Type (Base_Type));
       Set_Lhs (Zero_Based_Index, Idx_Irep);
       Set_Rhs (Zero_Based_Index, First_Irep);
+      if not (Kind (Zero_Based_Index) in Class_Expr) or else
+        not (Kind (Get_Type (Idx_Irep)) in Class_Type)
+      then
+         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
+                                      "Kinds not in classes");
+         return Deref;
+      end if;
       Set_Type (Zero_Based_Index, Get_Type (Idx_Irep));
       Set_Component_Name (Data, "data");
       Set_Compound (Data, Base_Irep);
@@ -3847,9 +4340,8 @@ package body Tree_Walk is
             Warn_Unhandled_Statement ("Case");
 
          when others =>
-            pp (Union_Id (N));
-            --  ??? To be added later
-            raise Program_Error;
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Unknown expression kind");
 
       end case;
    end Process_Statement;
@@ -3864,7 +4356,14 @@ package body Tree_Walk is
 
    begin
       while Present (Stmt) loop
-         Process_Statement (Stmt, Reps);
+         begin
+            Process_Statement (Stmt, Reps);
+         exception
+            when Error : others =>
+                  Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error,
+                                        Ada.Exceptions.Exception_Information
+                                          (Error));
+         end;
          Next (Stmt);
       end loop;
 
