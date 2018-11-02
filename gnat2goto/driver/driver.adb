@@ -44,6 +44,8 @@ with Namet;                 use Namet;
 with Lib;                   use Lib;
 with GNAT_Utils;            use GNAT_Utils;
 
+with GNAT2GOTO.Options;
+
 package body Driver is
 
    procedure Translate_Standard_Types;
@@ -254,16 +256,23 @@ package body Driver is
    function Is_Back_End_Switch (Switch : String) return Boolean is
       First : constant Natural := Switch'First + 1;
       Last  : constant Natural := Switch_Last (Switch);
-
+      use GNAT2GOTO.Options;
    begin
       --  For now we allow the -g/-O/-f/-m/-W/-w and -pipe switches, even
       --  though they will have no effect. This permits compatibility with
       --  existing scripts.
-
-      return
-        Is_Switch (Switch)
-          and then (Switch (First) in 'f' | 'g' | 'm' | 'O' | 'W' | 'w'
-                      or else Switch (First .. Last) = "pipe");
+      if Is_Switch (Switch) then
+         if Switch (First) in 'f' | 'g' | 'm' | 'O' | 'W' | 'w'
+           or else Switch (First .. Last) = "pipe"
+         then
+            return True;
+         elsif Switch (First .. Last) = No_Dump_Statement_AST_On_Error_Option
+         then
+            Dump_Statement_AST_On_Error := False;
+            return True;
+         end if;
+      end if;
+      return False;
    end Is_Back_End_Switch;
 
    ------------------------------

@@ -17,6 +17,8 @@ with Ureal_To_Binary;       use Ureal_To_Binary;
 with Ada.Text_IO;           use Ada.Text_IO;
 with Ada.Exceptions;
 
+with GNAT2GOTO.Options;
+
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
@@ -3873,7 +3875,9 @@ package body Tree_Walk is
                IO.Put_Line (IO.Standard_Error,
                             Ada.Exceptions.Exception_Information
                               (Error));
-               Treepr.Print_Node_Subtree (Stmt);
+               if GNAT2GOTO.Options.Dump_Statement_AST_On_Error then
+                  Treepr.Print_Node_Subtree (Stmt);
+               end if;
                IO.Put_Line (IO.Standard_Error, "<========================>");
          end;
          Next (Stmt);
