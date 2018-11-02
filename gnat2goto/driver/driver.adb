@@ -266,9 +266,9 @@ package body Driver is
            or else Switch (First .. Last) = "pipe"
          then
             return True;
-         elsif Switch (First .. Last) = No_Dump_Statement_AST_On_Error_Option
+         elsif Switch (First .. Last) = Dump_Statement_AST_On_Error_Option
          then
-            Dump_Statement_AST_On_Error := False;
+            Dump_Statement_AST_On_Error := True;
             return True;
          end if;
       end if;
