@@ -15,6 +15,9 @@ with Uint_To_Binary;        use Uint_To_Binary;
 with Stand;
 with Ureal_To_Binary;       use Ureal_To_Binary;
 with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Exceptions;
+
+with GNAT2GOTO.Options;
 
 package body Tree_Walk is
 
@@ -3861,10 +3864,22 @@ package body Tree_Walk is
    function Process_Statements (L : List_Id) return Irep is
       Reps : constant Irep := New_Irep (I_Code_Block);
       Stmt : Node_Id := First (L);
-
+      package IO renames Ada.Text_IO;
    begin
       while Present (Stmt) loop
-         Process_Statement (Stmt, Reps);
+         begin
+            Process_Statement (Stmt, Reps);
+         exception
+            when Error : others =>
+               IO.Put_Line (IO.Standard_Error, "<========================>");
+               IO.Put_Line (IO.Standard_Error,
+                            Ada.Exceptions.Exception_Information
+                              (Error));
+               if GNAT2GOTO.Options.Dump_Statement_AST_On_Error then
+                  Treepr.Print_Node_Subtree (Stmt);
+               end if;
+               IO.Put_Line (IO.Standard_Error, "<========================>");
+         end;
          Next (Stmt);
       end loop;
 
