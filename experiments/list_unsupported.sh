@@ -9,9 +9,7 @@ if [ "$#" -ne 1 ]; then
    exit 2
 fi
 
-path="/home/diffblue/petr.bauch/code/gnat2goto/experiments/$1"
-gtk_path="/home/diffblue/petr.bauch/code/gtkada/src/"
-unit_path="/home/diffblue/petr.bauch/code/gnat2goto/experiments/sparkunit/"
+path=`pwd`/"$1"
 include_path=""
 
 for foldername in $(find ${path}/ -type d -name "*"); do
