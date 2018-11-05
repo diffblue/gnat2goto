@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <set>
+#include <algorithm>
 
 using namespace std;
 
@@ -63,18 +64,58 @@ struct Feature
       }
    }
 
-   bool operator=(const Feature& other) const {
-      return parameters == other.parameters;
+   // const Feature& operator=(const Feature& other) {
+
+   // }
+
+   string unique_id() const {
+      return calling_function + message + nkind;
+   }
+
+   bool operator==(const Feature& other) const {
+      return unique_id() == other.unique_id();
    }
 
    bool operator<(const Feature& other) const {
-      return parameters < other.parameters;
+      return unique_id() < other.unique_id();
    }
 
    string get_param(const string& name) const {
       return parameters.at(name);
    }
+
+   void printout(string& output) const {
+      output.clear();
+      output = "Calling function: " + calling_function + "\n";
+      output += "Error message: " + message + "\n";
+      output += "Nkind: " + nkind + "\n";
+      output += "Node id: " + node_id + "\n";
+      if (parameters.empty())
+         return;
+      auto it = parameters.begin();
+      output += it->first + ": " + it->second;
+      it++;
+      for (; it != parameters.end(); it++) {
+         output += "\n" + it->first + ": " + it->second;
+      }
+      output += "\n--------------------------------------------------------------------------------\n";
+   }
 };
+
+template<typename Key, typename F>
+void iterate_multiset(const multiset<Key>& m, const F& f) {
+   if (m.empty())
+      return;
+
+   Key representative = *m.begin();
+   f (representative);
+
+   for (Key k : m)
+      if (!(k == representative)) {
+         representative = k;
+         f (representative);
+      }
+}
 
 int main(int argc, char** argv)
 {
@@ -84,7 +125,9 @@ int main(int argc, char** argv)
    input_file.open(argv[1]);
    assert(input_file.is_open());
 
-   set<Feature> unsupported_features;
+   multiset<Feature> unsupported_features;
+   using Instance = pair<Feature, size_t>;
+   vector<Instance> instances;
    vector<string> params;
 
    string line;
@@ -105,10 +148,19 @@ int main(int argc, char** argv)
          break;
    }
 
+   iterate_multiset(unsupported_features, [&] (auto& k) {
+         instances.push_back({k, unsupported_features.count(k)});
+      });
+
+   sort(instances.begin(), instances.end(), [&] (const auto& l, const auto& r) {return l.second > r.second;});
+
+   string temp;
    cout << "Unsupported features: " << unsupported_features.size() << endl;
-   for (auto it = unsupported_features.begin(); it != unsupported_features.end(); it++) {
-      cout << "sloc: " << it->get_param("Sloc") << endl;
-      cout << "node_id: " << it->node_id << endl;
+   for (const auto& p : instances) {
+      cout << "--------------------------------------------------------------------------------\n";
+      cout << "Occurs: " << p.second << " times\n";
+      p.first.printout(temp);
+      cout << temp;
    }
 
    return 0;

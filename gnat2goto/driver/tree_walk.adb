@@ -3469,14 +3469,9 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Subtype_Declaration (N : Node_Id) is
-      New_Type : Irep;
+      New_Type : constant Irep := Do_Subtype_Indication
+        (Subtype_Indication (N));
    begin
-      if not (Nkind (N) in N_Subtype_Indication | N_Identifier) then
-         Report_Unhandled_Node_Empty (N, "Do_Subtype_Declaration",
-                                      "Nkind not in subtype indication");
-         return;
-      end if;
-      New_Type := Do_Subtype_Indication (Subtype_Indication (N));
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
 
