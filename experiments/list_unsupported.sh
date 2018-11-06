@@ -9,10 +9,10 @@ if [ "$#" -ne 1 ]; then
    exit 2
 fi
 
-path="$1"
+path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 include_path=""
 DIR=`dirname "$0"`
-file_name=`echo "$1" | sed "s/.*\///"`
+file_name=$(basename "$1")
 
 for foldername in $(find ${path} -type d -name "*"); do
    count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
