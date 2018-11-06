@@ -9,6 +9,16 @@ if [ "$#" -ne 1 ]; then
    exit 2
 fi
 
+if [ "$1" = '--help' ]; then
+   echo "Run GNAT2Goto on an Ada repository.\n"
+   echo "The output is an ordered list of currently unsupported features"
+   echo "with the number of times they occur in the input repository.\n"
+   echo "The script builds a parsing program using collect_unsupported.cpp and expects"
+   echo "this file to be in the same folder.\n"
+   echo "Usage:\n\nlist_unsupported.sh path_to_ada_source_folder"
+   exit 3
+fi
+
 path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 include_path=""
 DIR=`dirname "$0"`
