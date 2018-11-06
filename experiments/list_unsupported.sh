@@ -9,8 +9,10 @@ if [ "$#" -ne 1 ]; then
    exit 2
 fi
 
-path=`pwd`/"$1"
+#path=`pwd`/"$1"
+path="$1"
 include_path=""
+DIR=`dirname "$0"`
 
 for foldername in $(find ${path}/ -type d -name "*"); do
    count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
@@ -28,5 +30,5 @@ done
 
 sed '/^\[/ d' < "$1".txt > "$1"_redacted.txt
 
-g++ --std=c++14 ./collect_unsupported.cpp -o CollectUnsupported
+g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 ./CollectUnsupported "$1"_redacted.txt
