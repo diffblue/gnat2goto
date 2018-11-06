@@ -9,12 +9,12 @@ if [ "$#" -ne 1 ]; then
    exit 2
 fi
 
-#path=`pwd`/"$1"
 path="$1"
 include_path=""
 DIR=`dirname "$0"`
+file_name=`echo "$1" | sed "s/.*\///"`
 
-for foldername in $(find ${path}/ -type d -name "*"); do
+for foldername in $(find ${path} -type d -name "*"); do
    count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
    if [ $count != 0 ]
    then
@@ -22,13 +22,13 @@ for foldername in $(find ${path}/ -type d -name "*"); do
    fi
 done
 
-echo "$1: Unsupported features\n" > "$1".txt
+echo "$1: Unsupported features\n" > "$file_name".txt
 
-for filename in $(find ${path}/ -name *.adb); do
-   gnat2goto ${include_path} "${filename}" >>"$1".txt 2>&1
+for filename in $(find ${path} -name *.adb); do
+   gnat2goto ${include_path} "${filename}" >>"$file_name".txt 2>&1
 done
 
-sed '/^\[/ d' < "$1".txt > "$1"_redacted.txt
+sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
-./CollectUnsupported "$1"_redacted.txt
+./CollectUnsupported "$file_name"_redacted.txt
