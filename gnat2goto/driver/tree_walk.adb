@@ -2959,7 +2959,7 @@ package body Tree_Walk is
       Set_Identifier (Proc, To_String (Callee));
 
       Set_Source_Location (R, Sloc (N));
-      --  Set_LHS (R, Empty);  -- ??? what is the "nil" irep?
+      --  Set_LHS (R, Make_Nil (Sloc (N)));
       Set_Function (R, Proc);
       Set_Arguments (R, Do_Call_Parameters (N));
 
