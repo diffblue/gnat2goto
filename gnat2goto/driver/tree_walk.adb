@@ -258,6 +258,16 @@ package body Tree_Walk is
         Post => Kind (Do_Unconstrained_Array_Definition'Result) =
                 I_Struct_Type;
 
+   procedure Do_Withed_Unit_Spec (N : Node_Id);
+   --  Enters the specification of the withed unit, N, into the symbol table
+
+   procedure Do_Withed_Units_Specs is new Sem.Walk_Library_Items
+     (Action => Do_Withed_Unit_Spec);
+   --  Traverses tree applying the procedure Do_With_Unit_Spec to all nodes
+   --  which are specifications of library units withed by the GNAT_Root unit
+   --  (that is, the body being compiled).
+   --  It starts with the unit Standard and finishes with GNAT_Root
+
    function Find_Record_Variant (Variant_Part : Node_Id;
                                  Actual_Disc : Node_Id) return Node_Id
    with Pre  => Nkind (Variant_Part) = N_Variant_Part,
@@ -338,14 +348,6 @@ package body Tree_Walk is
 
    procedure Warn_Unhandled_Construct (C : Construct; Mess : String);
 
-   procedure Process_Statement (N : Node_Id; Block : Irep)
-   with Pre => Kind (Block) = I_Code_Block;
-   --  Process statement
-
-   function Process_Statements (L : List_Id) return Irep
-   with Post => Kind (Process_Statements'Result) = I_Code_Block;
-   --  Process list of statements
-
    procedure Process_Declaration (N : Node_Id; Block : Irep)
      with Pre => Nkind (N) in N_Declaration or else
      Nkind (N) in N_Later_Decl_Item or else Nkind (N) in N_Pragma or else
@@ -360,19 +362,17 @@ package body Tree_Walk is
    --  The Gnat front end will check that only allowed declarations are used
    --  where only basic declarations permitted.
 
+   procedure Process_Statement (N : Node_Id; Block : Irep)
+   with Pre => Kind (Block) = I_Code_Block;
+   --  Process statement
+
+   function Process_Statements (L : List_Id) return Irep
+   with Post => Kind (Process_Statements'Result) = I_Code_Block;
+   --  Process list of statements
+
    procedure Register_Subprogram_Specification (N : Node_Id)
    with Pre => Nkind (N) in N_Subprogram_Specification;
    --  Insert the subprogram specification into the symbol table
-
-   procedure Do_Withed_Unit_Spec (N : Node_Id);
-   --  Enters the specification of the withed unit, N, into the symbol table
-
-   procedure Do_Withed_Units_Specs is new Sem.Walk_Library_Items
-     (Action => Do_Withed_Unit_Spec);
-   --  Traverses tree applying the procedure Do_With_Unit_Spec to all nodes
-   --  which are specifications of library units withed by the GNAT_Root unit
-   --  (that is, the body being compiled).
-   --  It starts with the unit Standard and finishes with GNAT_Root
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
@@ -1128,216 +1128,6 @@ package body Tree_Walk is
       end loop;
       return Ret;
    end Do_Case_Expression;
-
-   --------------------------
-   -- Process_Declaration --
-   --------------------------
-
-   procedure Process_Declaration (N : Node_Id; Block : Irep) is
-   begin
-      --  Deal with the declaration
-      Print_Node_Briefly (N);
-      case Nkind (N) is
-
-         --  basic_declarations  --
-
-         when N_Full_Type_Declaration =>
-            Do_Full_Type_Declaration (N);
-
-         when N_Subtype_Declaration =>
-            Do_Subtype_Declaration (N);
-
-         when N_Object_Declaration =>
-            Do_Object_Declaration (N, Block);
-
-         when N_Number_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Number");
-
-         when N_Subprogram_Declaration =>
-            Do_Subprogram_Declaration (N);
-
-         when N_Abstract_Subprogram_Declaration =>
-            Warn_Unhandled_Construct
-              (Declaration, "Abstract subprogram");
-
-         when N_Package_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Package");
-
-         when N_Renaming_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Renaming");
-
-         when N_Exception_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Exception");
-
-         when N_Generic_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Generic");
-
-         when N_Generic_Instantiation =>
-            Warn_Unhandled_Construct (Declaration, "Generic instantiation");
-
-            --  basic_declarative_items  --
-
-         when N_Representation_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Representation clause");
-
-         when N_Use_Package_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Use package clause");
-
-         when N_Use_Type_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Use type clause");
-
-         --  remaining declarative items  --
-
-            --  proper_body  --
-
-         when N_Subprogram_Body =>
-            Do_Subprogram_Body (N);
-
-         when N_Package_Body =>
-            Warn_Unhandled_Construct (Declaration, "Package body");
-
-         when N_Task_Body =>
-            Warn_Unhandled_Construct (Declaration, "Task body");
-
-         when N_Protected_Body =>
-            Warn_Unhandled_Construct (Declaration, "Protected body");
-
-            --  body_stub  --
-
-         when N_Subprogram_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Subprogram body stub");
-
-         when N_Package_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Package body stub");
-
-         when N_Task_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Task body stub");
-
-         when N_Protected_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Protected body stub");
-
-         --  Pragmas may appear in declarations  --
-
-         when N_Pragma =>
-            Warn_Unhandled_Construct (Declaration, "Pragmas in");
-
-            --  Every code lable is implicitly declared in  --
-            --  the closest surrounding block               --
-
-         when N_Implicit_Label_Declaration =>
-            --  Ignore for now, as I guess an implicit label can't be
-            --  referenced.
-            --  Yes it can: this is the declaration of the name it appears
-            --  the declaritve section but is used on a statement.
-            null;
-
-         -- Not sure the nex two should be here --
-         when N_Itype_Reference =>
-            Do_Itype_Reference (N);
-
-         when N_Freeze_Entity =>
-            --  Ignore, nothing to generate
-            null;
-
-         when others =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Unknown declaration kind");
-
-      end case;
-
-   end Process_Declaration;
-
-   --------------------------
-   -- Process_Declarations --
-   --------------------------
-
-   function Process_Declarations (L : List_Id) return Irep is
-      Reps : constant Irep := New_Irep (I_Code_Block);
-      Decl : Node_Id := First (L);
-   begin
-      while Present (Decl) loop
-         Process_Declaration (Decl, Reps);
-         Next (Decl);
-      end loop;
-
-      return Reps;
-   end Process_Declarations;
-
-   ---------------------------------------
-   -- Register_Subprogram_Specification --
-   ---------------------------------------
-
-   procedure Register_Subprogram_Specification (N : Node_Id) is
-      Subprog_Type : constant Irep :=
-        Do_Subprogram_Specification (N);
-      Subprog_Name : constant Symbol_Id :=
-        Intern (Unique_Name (Defining_Unit_Name (N)));
-
-      Subprog_Symbol : Symbol;
-
-   begin
-      Subprog_Symbol.Name       := Subprog_Name;
-      Subprog_Symbol.BaseName   := Subprog_Name;
-      Subprog_Symbol.PrettyName := Subprog_Name;
-      Subprog_Symbol.SymType    := Subprog_Type;
-      Subprog_Symbol.Mode       := Intern ("C");
-
-      Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
-   end Register_Subprogram_Specification;
-
-   -------------------------
-   -- Do_Withed_Unit_Spec --
-   -------------------------
-
-   procedure Do_Withed_Unit_Spec (N : Node_Id) is
-      Not_Used : Irep;
-      pragma Unreferenced (Not_Used);
-   begin
-      if Defining_Entity (N) = Stand.Standard_Standard then
-         null;
-         Put_Line ("Standard");
-         --  At the moment Standard is not processed - to be done.
-      else
-         Write_Unit_Name (Get_Unit_Name (N));
-
-         case Nkind (N) is
-            when N_Subprogram_Body =>
-               Put_Line ("Subprog body");
-               if Acts_As_Spec (N) then
-                  Put_Line ("Acts as spec");
-                  --  The unit is a withed library unit which subprogram body
-                  --  that has no separate declaration, or,
-                  --  it is the subprogram body of the compilation unit being
-                  --  compiled and it has no separate declaration.
-                  --  Obtain the subprogram specification from the body
-                  --  and insert it into the symbol table.
-                  Register_Subprogram_Specification (Specification (N));
-               else
-                  null;
-                  Put_Line ("Not a spec");
-               end if;
-            when N_Subprogram_Declaration =>
-               Put_Line ("Subprog declaration");
-               --  The unit is withed library unit that is a subprogram
-               --  declaration, or,
-               --  it is the declaration of the compilation unit body being
-               --  compiled.
-               --  Do_Subprogram_Declaration enters the specification of the
-               --  subprogram into the symbol table.
-               Do_Subprogram_Declaration (N);
-            when N_Package_Declaration =>
-               null;
-               Put_Line ("Package declaration");
-            when N_Package_Body =>
-               null;
-               Put_Line ("Package body");
-            when others =>
-               Put_Line ("Not yet handled");
-         end case;
-
-      end if;
-
-   end Do_Withed_Unit_Spec;
 
    -------------------------
    -- Do_Compilation_Unit --
@@ -3890,6 +3680,60 @@ package body Tree_Walk is
    end Do_Unconstrained_Array_Definition;
 
    -------------------------
+   -- Do_Withed_Unit_Spec --
+   -------------------------
+
+   procedure Do_Withed_Unit_Spec (N : Node_Id) is
+      Not_Used : Irep;
+      pragma Unreferenced (Not_Used);
+   begin
+      if Defining_Entity (N) = Stand.Standard_Standard then
+         null;
+         Put_Line ("Standard");
+         --  At the moment Standard is not processed - to be done.
+      else
+         Write_Unit_Name (Get_Unit_Name (N));
+
+         case Nkind (N) is
+            when N_Subprogram_Body =>
+               Put_Line ("Subprog body");
+               if Acts_As_Spec (N) then
+                  Put_Line ("Acts as spec");
+                  --  The unit is a withed library unit which subprogram body
+                  --  that has no separate declaration, or,
+                  --  it is the subprogram body of the compilation unit being
+                  --  compiled and it has no separate declaration.
+                  --  Obtain the subprogram specification from the body
+                  --  and insert it into the symbol table.
+                  Register_Subprogram_Specification (Specification (N));
+               else
+                  null;
+                  Put_Line ("Not a spec");
+               end if;
+            when N_Subprogram_Declaration =>
+               Put_Line ("Subprog declaration");
+               --  The unit is withed library unit that is a subprogram
+               --  declaration, or,
+               --  it is the declaration of the compilation unit body being
+               --  compiled.
+               --  Do_Subprogram_Declaration enters the specification of the
+               --  subprogram into the symbol table.
+               Do_Subprogram_Declaration (N);
+            when N_Package_Declaration =>
+               null;
+               Put_Line ("Package declaration");
+            when N_Package_Body =>
+               null;
+               Put_Line ("Package body");
+            when others =>
+               Put_Line ("Not yet handled");
+         end case;
+
+      end if;
+
+   end Do_Withed_Unit_Spec;
+
+   -------------------------
    -- Find_Record_Variant --
    -------------------------
 
@@ -4501,6 +4345,140 @@ package body Tree_Walk is
       Put_Line (Standard_Error, "Warning: " & Mess & S);
    end Warn_Unhandled_Construct;
 
+   --------------------------
+   -- Process_Declaration --
+   --------------------------
+
+   procedure Process_Declaration (N : Node_Id; Block : Irep) is
+   begin
+      --  Deal with the declaration
+      Print_Node_Briefly (N);
+      case Nkind (N) is
+
+         --  basic_declarations  --
+
+         when N_Full_Type_Declaration =>
+            Do_Full_Type_Declaration (N);
+
+         when N_Subtype_Declaration =>
+            Do_Subtype_Declaration (N);
+
+         when N_Object_Declaration =>
+            Do_Object_Declaration (N, Block);
+
+         when N_Number_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Number");
+
+         when N_Subprogram_Declaration =>
+            Do_Subprogram_Declaration (N);
+
+         when N_Abstract_Subprogram_Declaration =>
+            Warn_Unhandled_Construct
+              (Declaration, "Abstract subprogram");
+
+         when N_Package_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Package");
+
+         when N_Renaming_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Renaming");
+
+         when N_Exception_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Exception");
+
+         when N_Generic_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Generic");
+
+         when N_Generic_Instantiation =>
+            Warn_Unhandled_Construct (Declaration, "Generic instantiation");
+
+            --  basic_declarative_items  --
+
+         when N_Representation_Clause =>
+            Warn_Unhandled_Construct (Declaration, "Representation clause");
+
+         when N_Use_Package_Clause =>
+            Warn_Unhandled_Construct (Declaration, "Use package clause");
+
+         when N_Use_Type_Clause =>
+            Warn_Unhandled_Construct (Declaration, "Use type clause");
+
+         --  remaining declarative items  --
+
+            --  proper_body  --
+
+         when N_Subprogram_Body =>
+            Do_Subprogram_Body (N);
+
+         when N_Package_Body =>
+            Warn_Unhandled_Construct (Declaration, "Package body");
+
+         when N_Task_Body =>
+            Warn_Unhandled_Construct (Declaration, "Task body");
+
+         when N_Protected_Body =>
+            Warn_Unhandled_Construct (Declaration, "Protected body");
+
+            --  body_stub  --
+
+         when N_Subprogram_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Subprogram body stub");
+
+         when N_Package_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Package body stub");
+
+         when N_Task_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Task body stub");
+
+         when N_Protected_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Protected body stub");
+
+         --  Pragmas may appear in declarations  --
+
+         when N_Pragma =>
+            Warn_Unhandled_Construct (Declaration, "Pragmas in");
+
+            --  Every code lable is implicitly declared in  --
+            --  the closest surrounding block               --
+
+         when N_Implicit_Label_Declaration =>
+            --  Ignore for now, as I guess an implicit label can't be
+            --  referenced.
+            --  Yes it can: this is the declaration of the name it appears
+            --  the declaritve section but is used on a statement.
+            null;
+
+         -- Not sure the nex two should be here --
+         when N_Itype_Reference =>
+            Do_Itype_Reference (N);
+
+         when N_Freeze_Entity =>
+            --  Ignore, nothing to generate
+            null;
+
+         when others =>
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Unknown declaration kind");
+
+      end case;
+
+   end Process_Declaration;
+
+   --------------------------
+   -- Process_Declarations --
+   --------------------------
+
+   function Process_Declarations (L : List_Id) return Irep is
+      Reps : constant Irep := New_Irep (I_Code_Block);
+      Decl : Node_Id := First (L);
+   begin
+      while Present (Decl) loop
+         Process_Declaration (Decl, Reps);
+         Next (Decl);
+      end loop;
+
+      return Reps;
+   end Process_Declarations;
+
    -------------------------
    --  Process_Statement  --
    -------------------------
@@ -4633,6 +4611,29 @@ package body Tree_Walk is
 
       return Reps;
    end Process_Statements;
+
+   ---------------------------------------
+   -- Register_Subprogram_Specification --
+   ---------------------------------------
+
+   procedure Register_Subprogram_Specification (N : Node_Id) is
+      Subprog_Type : constant Irep :=
+        Do_Subprogram_Specification (N);
+      Subprog_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Defining_Unit_Name (N)));
+
+      Subprog_Symbol : Symbol;
+
+   begin
+      Subprog_Symbol.Name       := Subprog_Name;
+      Subprog_Symbol.BaseName   := Subprog_Name;
+      Subprog_Symbol.PrettyName := Subprog_Name;
+      Subprog_Symbol.SymType    := Subprog_Type;
+      Subprog_Symbol.Mode       := Intern ("C");
+      Subprog_Symbol.Value      := New_Irep (I_Code_Block);
+
+      Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
+   end Register_Subprogram_Specification;
 
    procedure Remove_Entity_Substitution (E : Entity_Id) is
    begin
