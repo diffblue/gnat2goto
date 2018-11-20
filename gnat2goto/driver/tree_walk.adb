@@ -4665,7 +4665,7 @@ package body Tree_Walk is
       Subprog_Symbol.PrettyName := Subprog_Name;
       Subprog_Symbol.SymType    := Subprog_Type;
       Subprog_Symbol.Mode       := Intern ("C");
-      Subprog_Symbol.Value      := New_Irep (I_Code_Block);
+      Subprog_Symbol.Value      := Make_Nil (Sloc (N));
 
       Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
    end Register_Subprogram_Specification;
