@@ -170,14 +170,8 @@ package body Tree_Walk is
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Object_Declaration
-                 and then Kind (Block) = I_Code_Block;
-
-   procedure Do_Pragma (N : Node_Id; Block : Irep)
-   with Pre => Nkind (N) = N_Pragma
-     and then Kind (Block) = I_Code_Block; -- FIXME: what about decls?
-
-   function Do_Op_Concat (N : Node_Id) return Irep
-   with Pre => Nkind (N) = N_Op_Concat;
+               and then (Kind (Block) = I_Code_Block
+                  or else Kind (Block) = I_Code_Decl);
 
    function Do_Operator_Simple (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op,
@@ -186,10 +180,23 @@ package body Tree_Walk is
    function Do_Operator_General (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op;
 
+   function Do_Op_Concat (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Op_Concat;
+
+   procedure Do_Package_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Package_Declaration;
+
+   procedure Do_Package_Specification (N : Node_Id)
+   with Pre => Nkind (N) = N_Package_Specification;
+
+   procedure Do_Pragma (N : Node_Id; Block : Irep)
+   with Pre => Nkind (N) = N_Pragma
+     and then Kind (Block) = I_Code_Block; -- FIXME: what about decls?
+
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Procedure_Call_Statement,
         Post => Kind (Do_Procedure_Call_Statement'Result) =
-                  I_Code_Function_Call;
+                   I_Code_Function_Call;
 
    function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
 
@@ -354,8 +361,7 @@ package body Tree_Walk is
      Nkind (N) in N_Freeze_Entity;
    --  Handles both a basic declaration and a declarative item.
 
-   function Process_Declarations (L : List_Id) return Irep
-   with Post => Kind (Process_Declarations'Result) = I_Code_Block;
+   procedure Process_Declarations (L : List_Id; Block : Irep);
    --  Processes the declarations and is used for both a package specification
    --  where only basic declarations are allowed (no subprogram bodies etc.)
    --  and declarative parts where such declaratios are allowed.
@@ -3440,18 +3446,18 @@ package body Tree_Walk is
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep is
       Decls : constant List_Id := Declarations (N);
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
-      Decls_Rep : Irep;
+      Reps : constant Irep := New_Irep (I_Code_Block);
    begin
-      Decls_Rep := (if Present (Decls)
-                    then Process_Declarations (Decls)
-                    else New_Irep (I_Code_Block));
-
-      Set_Source_Location (Decls_Rep, Sloc (N));
-      if Present (HSS) then
-         Process_Statement (HSS, Decls_Rep);
+      if Present (Decls) then
+         Process_Declarations (Decls, Reps);
       end if;
 
-      return Decls_Rep;
+      Set_Source_Location (Reps, Sloc (N));
+      if Present (HSS) then
+         Process_Statement (HSS, Reps);
+      end if;
+
+      return Reps;
    end Do_Subprogram_Or_Block;
 
    --------------------------------
@@ -3751,8 +3757,8 @@ package body Tree_Walk is
                --  subprogram into the symbol table.
                Do_Subprogram_Declaration (N);
             when N_Package_Declaration =>
-               null;
                Put_Line ("Package declaration");
+               Do_Package_Declaration (N);
             when N_Package_Body =>
                null;
                Put_Line ("Package body");
@@ -4498,16 +4504,14 @@ package body Tree_Walk is
    -- Process_Declarations --
    --------------------------
 
-   function Process_Declarations (L : List_Id) return Irep is
-      Reps : constant Irep := New_Irep (I_Code_Block);
+   procedure Process_Declarations (L : List_Id; Block : Irep) is
       Decl : Node_Id := First (L);
    begin
       while Present (Decl) loop
-         Process_Declaration (Decl, Reps);
+         Process_Declaration (Decl, Block);
          Next (Decl);
       end loop;
 
-      return Reps;
    end Process_Declarations;
 
    -------------------------
