@@ -23,8 +23,8 @@ package body Gather_Irep_Symbols is
                      Expr_Type  : constant Irep := Get_Type (I);
                   begin
                      New_Symbol.SymType       := Expr_Type;
-                     New_Symbol.Value         := Empty;
-                     --  ??? TODO: What is a naked irep with 'id=nil'?
+                     New_Symbol.Value         :=
+                       Make_Nil (Get_Source_Location (I));
                      New_Symbol.Name          := Id_String;
                      New_Symbol.BaseName      := Id_String;
                      New_Symbol.PrettyName    := Id_String;
