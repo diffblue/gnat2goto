@@ -2144,106 +2144,6 @@ package body Tree_Walk is
       return Loop_Wrapper;
    end Do_Loop_Statement;
 
-   ---------------
-   -- Do_Pragma --
-   ---------------
-
-   procedure Do_Pragma (N : Node_Id; Block : Irep) is
-
-      --------------------------------
-      -- Do_Pragma_Assert_or_Assume --
-      --------------------------------
-
-      --  Handle pragmas that result in a simple assert or assume statement in
-      --  the resulting goto program
-      procedure Do_Pragma_Assert_or_Assume
-        (N_Orig : Node_Id; Block : Irep);
-
-      procedure Do_Pragma_Assert_or_Assume
-        (N_Orig : Node_Id; Block : Irep)
-      is
-
-         Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
-         A_Irep : constant Irep := New_Irep
-           (if Which in Pragma_Assert | Pragma_Loop_Invariant
-            then I_Code_Assert else I_Code_Assume);
-
-         --  To be set by iterator:
-         Check : Irep := Ireps.Empty;
-
-         ----------------
-         -- Handle_Arg --
-         ----------------
-
-         procedure Handle_Arg
-           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
-
-         procedure Handle_Arg
-           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id) is
-         begin
-
-            if Arg_Name = Name_Check
-              or else (Arg_Name = No_Name and then Arg_Pos = 1)
-            then
-               Check := Do_Expression (Expr);
-            elsif Arg_Name = Name_Message
-              or else (Arg_Name = No_Name and then Arg_Pos = 2)
-            then
-               null; -- ignore, since assert irep has no msg
-            else
-               Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
-                                            "Unknown arg name");
-            end if;
-         end Handle_Arg;
-
-         procedure Iterate_Args is new
-           Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
-
-      begin
-         Iterate_Args (N_Orig);
-         if Check = Ireps.Empty then
-            Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
-                                         "Unassigned arg name");
-         end if;
-
-         if Which in Pragma_Assert | Pragma_Loop_Invariant then
-            Set_Assertion (A_Irep, Check);
-         else
-            Set_Assumption (A_Irep, Check);
-         end if;
-         Set_Source_Location (A_Irep, Sloc (N));
-         Append_Op (Block, A_Irep);
-      end Do_Pragma_Assert_or_Assume;
-
-      N_Orig : Node_Id;
-
-   begin
-      if not Present (Original_Node (N)) then
-         Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                      "Original node not present");
-      end if;
-      N_Orig := Original_Node (N);
-      if Pragma_Name (N_Orig) in Name_Assert | Name_Assume |
-         Name_Loop_Invariant
-      then
-         Do_Pragma_Assert_or_Assume (N_Orig, Block);
-      --  Ignore here. Rather look for those when we process a node.
-      elsif Pragma_Name (N_Orig) in Name_Annotate then
-         null;
-      --  The following pragmas are currently unimplemented, we ignore them
-      --  here
-      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
-         Name_Postcondition | Name_Refined_State | Name_Refined_Global |
-         Name_Precondition
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
-                                      "Unsupported pragma");
-      else
-         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
-                                      "Unknown");
-      end if;
-   end Do_Pragma;
-
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
@@ -2928,6 +2828,137 @@ package body Tree_Walk is
 
       return Ret;
    end Do_Operator_Simple;
+
+   ----------------------------
+   -- Do_Package_Declaration --
+   ----------------------------
+
+   procedure Do_Package_Declaration (N : Node_Id) is
+   begin
+      Do_Package_Specification (Specification (N));
+   end Do_Package_Declaration;
+
+   ----------------------------
+   -- Do_Package_Specification --
+   ----------------------------
+
+   procedure Do_Package_Specification (N : Node_Id) is
+      Package_Decs : constant Irep := New_Irep (I_Code_Decl);
+   begin
+      Set_Source_Location (Package_Decs, Sloc (N));
+      if Present (Visible_Declarations (N)) then
+         Put_Line ("Visible declarations");
+         Process_Declarations (Visible_Declarations (N), Package_Decs);
+      else
+         Put_Line ("No visible declarations");
+      end if;
+      if Present (Private_Declarations (N)) then
+         Put_Line ("Private declarations");
+         Process_Declarations (Private_Declarations (N), Package_Decs);
+      else
+         Put_Line ("No private declarations");
+      end if;
+   end Do_Package_Specification;
+
+   ---------------
+   -- Do_Pragma --
+   ---------------
+
+   procedure Do_Pragma (N : Node_Id; Block : Irep) is
+
+      --------------------------------
+      -- Do_Pragma_Assert_or_Assume --
+      --------------------------------
+
+      --  Handle pragmas that result in a simple assert or assume statement in
+      --  the resulting goto program
+      procedure Do_Pragma_Assert_or_Assume
+        (N_Orig : Node_Id; Block : Irep);
+
+      procedure Do_Pragma_Assert_or_Assume
+        (N_Orig : Node_Id; Block : Irep)
+      is
+
+         Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
+         A_Irep : constant Irep := New_Irep
+           (if Which in Pragma_Assert | Pragma_Loop_Invariant
+            then I_Code_Assert else I_Code_Assume);
+
+         --  To be set by iterator:
+         Check : Irep := Ireps.Empty;
+
+         ----------------
+         -- Handle_Arg --
+         ----------------
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id) is
+         begin
+
+            if Arg_Name = Name_Check
+              or else (Arg_Name = No_Name and then Arg_Pos = 1)
+            then
+               Check := Do_Expression (Expr);
+            elsif Arg_Name = Name_Message
+              or else (Arg_Name = No_Name and then Arg_Pos = 2)
+            then
+               null; -- ignore, since assert irep has no msg
+            else
+               Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                            "Unknown arg name");
+            end if;
+         end Handle_Arg;
+
+         procedure Iterate_Args is new
+           Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
+
+      begin
+         Iterate_Args (N_Orig);
+         if Check = Ireps.Empty then
+            Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                         "Unassigned arg name");
+         end if;
+
+         if Which in Pragma_Assert | Pragma_Loop_Invariant then
+            Set_Assertion (A_Irep, Check);
+         else
+            Set_Assumption (A_Irep, Check);
+         end if;
+         Set_Source_Location (A_Irep, Sloc (N));
+         Append_Op (Block, A_Irep);
+      end Do_Pragma_Assert_or_Assume;
+
+      N_Orig : Node_Id;
+
+   begin
+      if not Present (Original_Node (N)) then
+         Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                      "Original node not present");
+      end if;
+      N_Orig := Original_Node (N);
+      if Pragma_Name (N_Orig) in Name_Assert | Name_Assume |
+         Name_Loop_Invariant
+      then
+         Do_Pragma_Assert_or_Assume (N_Orig, Block);
+      --  Ignore here. Rather look for those when we process a node.
+      elsif Pragma_Name (N_Orig) in Name_Annotate then
+         null;
+      --  The following pragmas are currently unimplemented, we ignore them
+      --  here
+      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
+         Name_Postcondition | Name_Refined_State | Name_Refined_Global |
+         Name_Precondition
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                      "Unsupported pragma");
+      else
+         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
+                                      "Unknown");
+      end if;
+   end Do_Pragma;
 
    ---------------------------------
    -- Do_Procedure_Call_Statement --
