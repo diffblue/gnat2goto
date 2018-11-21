@@ -1,6 +1,6 @@
 {
   "parent": "type",
-  "id": "symbol",
+  "id": "symbol_type",
   "namedSub": {
     "identifier": {"type": "string"}
   }
