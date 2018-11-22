@@ -8,7 +8,7 @@ sudo: true
 
 env:
   GNAT: "${HOME}/opt/gnat"
-  CBMC: "${HOME}/cbmc"
+  CBMC: "${TRAVIS_BUILD_DIR}/lib/cbmc"
 
 cache: ccache
 
@@ -65,10 +65,8 @@ install:
   - |
     #build updated cbmc
     ( set -euo pipefail
-      git clone https://github.com/NlightNFotis/cbmc.git --branch "external_parser_support_rebased" --single-branch ${CBMC}
       cd ${CBMC}
       cmake -H. -Bbuild '-DCMAKE_BUILD_TYPE=Release'  '-DCMAKE_CXX_COMPILER=/usr/bin/g++-7'
-      git submodule update --init --recursive
       cmake --build build -- -j4
     )
 
