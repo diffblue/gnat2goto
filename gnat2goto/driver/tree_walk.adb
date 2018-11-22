@@ -3725,8 +3725,6 @@ package body Tree_Walk is
    -------------------------
 
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
-      Not_Used : Irep;
-      pragma Unreferenced (Not_Used);
       Unit_Name : constant String := Get_Name_String (Get_Unit_Name (N));
    begin
       Put_Line (Unit_Name);
