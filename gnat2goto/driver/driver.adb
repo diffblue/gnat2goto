@@ -280,6 +280,21 @@ package body Driver is
    ------------------------------
 
    procedure Translate_Standard_Types is
+      procedure Add_Universal_Integer;
+      procedure Add_Universal_Integer is
+         Builtin   : Symbol;
+         Builtin_Node : constant Node_Id := Universal_Integer;
+         Type_Irep : constant Irep := Make_Integer_Type;
+      begin
+         Builtin.Name       := Intern (Unique_Name (Builtin_Node));
+         Builtin.PrettyName := Builtin.Name;
+         Builtin.BaseName   := Builtin.Name;
+         Builtin.SymType    := Type_Irep;
+         Builtin.IsType     := True;
+
+         Global_Symbol_Table.Insert (Builtin.Name, Builtin);
+      end Add_Universal_Integer;
+
    begin
       --  Add primitive types to the symtab
       for Standard_Type in S_Types'Range loop
@@ -338,6 +353,7 @@ package body Driver is
             end if;
          end;
       end loop;
+      Add_Universal_Integer;
    end Translate_Standard_Types;
 
    procedure Add_CProver_Internal_Symbols is

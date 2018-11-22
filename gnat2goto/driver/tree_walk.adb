@@ -1159,18 +1159,20 @@ package body Tree_Walk is
       Set_Type (Ret, Make_Signedbv_Type (Ireps.Empty, 32));
       Set_Value (Ret, "00000000000000000000000000000000");
 
-      if not Global_Symbol_Table.Contains (
-                                       Intern (Get_Identifier (Constant_Type)))
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Constant",
-                                      "Constant Type not in symbol table");
-         return Ret;
+      if Is_Integer_Literal then
+         Constant_Resolved_Type :=  New_Irep (I_Signedbv_Type);
+      else
+         if not Global_Symbol_Table.Contains (
+                                              Intern (Get_Identifier
+                                                        (Constant_Type)))
+         then
+            Report_Unhandled_Node_Empty (N, "Do_Constant",
+                                         "Constant Type not in symbol table");
+            return Ret;
+         end if;
+         Constant_Resolved_Type := Follow_Symbol_Type (Constant_Type,
+                                                       Global_Symbol_Table);
       end if;
-      Constant_Resolved_Type :=
-        (if Is_Integer_Literal then
-        New_Irep (I_Signedbv_Type)
-        else
-        Follow_Symbol_Type (Constant_Type, Global_Symbol_Table));
 
       if Is_Integer_Literal then
          null;

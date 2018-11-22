@@ -1,1 +1,0 @@
-ALL XFAIL cbmc runs into invariant violation when reading gnat2goto output
