@@ -67,7 +67,7 @@ install:
     ( set -euo pipefail
       cd ${CBMC}
       cmake -H. -Bbuild '-DCMAKE_BUILD_TYPE=Release'  '-DCMAKE_CXX_COMPILER=/usr/bin/g++-7'
-      cmake --build build -- -j4
+      cmake --build build --target cbmc -- -j4
     )
 
   - export PATH=${CBMC}/build/bin:${PATH}
