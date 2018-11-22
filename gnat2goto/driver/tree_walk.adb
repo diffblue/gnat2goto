@@ -170,8 +170,7 @@ package body Tree_Walk is
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Object_Declaration
-               and then (Kind (Block) = I_Code_Block
-                  or else Kind (Block) = I_Code_Decl);
+               and then Kind (Block) = I_Code_Block;
 
    function Do_Operator_Simple (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op,
@@ -356,9 +355,11 @@ package body Tree_Walk is
    procedure Warn_Unhandled_Construct (C : Construct; Mess : String);
 
    procedure Process_Declaration (N : Node_Id; Block : Irep)
-     with Pre => Nkind (N) in N_Declaration or else
-     Nkind (N) in N_Later_Decl_Item or else Nkind (N) in N_Pragma or else
-     Nkind (N) in N_Freeze_Entity;
+   with Pre => Nkind (N) in N_Declaration or else
+               Nkind (N) in N_Number_Declaration or else
+               Nkind (N) in N_Later_Decl_Item or else
+               Nkind (N) in N_Pragma or else
+               Nkind (N) in N_Freeze_Entity;
    --  Handles both a basic declaration and a declarative item.
 
    procedure Process_Declarations (L : List_Id; Block : Irep);
@@ -2849,7 +2850,7 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Package_Specification (N : Node_Id) is
-      Package_Decs : constant Irep := New_Irep (I_Code_Decl);
+      Package_Decs : constant Irep := New_Irep (I_Code_Block);
    begin
       Set_Source_Location (Package_Decs, Sloc (N));
       if Present (Visible_Declarations (N)) then
@@ -3724,6 +3725,7 @@ package body Tree_Walk is
       Not_Used : Irep;
       pragma Unreferenced (Not_Used);
    begin
+      Print_Node_Briefly (N);
       if Defining_Entity (N) = Stand.Standard_Standard then
          null;
          Put_Line ("Standard");
