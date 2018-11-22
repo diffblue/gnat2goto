@@ -3727,13 +3727,15 @@ package body Tree_Walk is
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
       Not_Used : Irep;
       pragma Unreferenced (Not_Used);
+      Unit_Name : constant String := Get_Name_String (Get_Unit_Name (N));
    begin
-      if Defining_Entity (N) = Stand.Standard_Standard then
+      Put_Line (Unit_Name);
+      if Defining_Entity (N) = Stand.Standard_Standard or else
+        Unit_Name = "system%s"
+      then
          null;
-         Put_Line ("Standard");
-         --  At the moment Standard is not processed - to be done.
+         --   At the moment Standard or System are not processed - to be done
       else
-         Write_Unit_Name (Get_Unit_Name (N));
 
          case Nkind (N) is
             when N_Subprogram_Body =>
