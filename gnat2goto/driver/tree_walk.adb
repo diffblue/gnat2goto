@@ -368,6 +368,9 @@ package body Tree_Walk is
    --  and declarative parts where such declaratios are allowed.
    --  The Gnat front end will check that only allowed declarations are used
    --  where only basic declarations permitted.
+   --  Process_Declarations is a procedure rather than a function like its
+   --  sister Process_Statements because the Irep (an I_Code_Block) has to be
+   --  extended in package_specifications when it has private declarations.
 
    procedure Process_Statement (N : Node_Id; Block : Irep)
    with Pre => Kind (Block) = I_Code_Block;
@@ -3725,7 +3728,6 @@ package body Tree_Walk is
       Not_Used : Irep;
       pragma Unreferenced (Not_Used);
    begin
-      Print_Node_Briefly (N);
       if Defining_Entity (N) = Stand.Standard_Standard then
          null;
          Put_Line ("Standard");
@@ -4391,7 +4393,6 @@ package body Tree_Walk is
    procedure Process_Declaration (N : Node_Id; Block : Irep) is
    begin
       --  Deal with the declaration
-      Print_Node_Briefly (N);
       case Nkind (N) is
 
          --  basic_declarations  --
