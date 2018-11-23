@@ -4,8 +4,6 @@ os: linux
 
 compiler: gcc
 
-sudo: true
-
 env:
   GNAT: "${HOME}/opt/gnat"
   CBMC: "${TRAVIS_BUILD_DIR}/lib/cbmc"
@@ -19,6 +17,7 @@ addons:
     packages:
       - build-essential
       - g++-7
+      - python-gnatpython
 
 before_install:
   - mkdir bin
@@ -58,9 +57,6 @@ install:
       make
       gprbuild -P unit_tests.gpr -cargs -largs
     )
-
-  - sudo apt-get install python-gnatpython
-  - export PYTHONPATH="/usr/lib/python2.7/dist-packages"
 
   - |
     #build updated cbmc
