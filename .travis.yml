@@ -29,14 +29,12 @@ install:
   - ccache --max-size=1G
   - wget -qO- http://mirrors.cdn.adacore.com/art/5739cefdc7a447658e0b016b | tar xz
   - wget -qO- http://mirrors.cdn.adacore.com/art/5a15cb87c7a4479a23674d44 | tar xz
-  #build gnat gpl
-  # doinstall script is interactive
-  # it queries 4 responses from the user:
-  # 1) Press RETURN if you want to proceed? --> "\n"
-  # 2) Path to install GNAT --> "~/opt/gnat\n"
-  # 3) Are you sure? --> "y\n"
-  # 4) Are you sure? --> "y"
-  - (cd gnat-gpl-2016-x86_64-linux-bin; echo -e "\n${GNAT}\ny\ny" | ./doinstall)
+  - |
+    #install gnat gpl
+    ( set -euo pipefail
+      cd gnat-gpl-2016-x86_64-linux-bin
+      make ins-basic prefix=${GNAT}
+    )
 
   - |
     #build gnatcoll
