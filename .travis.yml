@@ -75,7 +75,7 @@ install:
 
 script:
   #run the tests
-  - (cd testsuite/gnat2goto; ! ./testsuite.py --timeout 60 --diffs --enable-color -j 2 2>&1 >/dev/null | tee /dev/tty | grep -E "ERROR|UOK" > /dev/null)
+  - (cd testsuite/gnat2goto; ! ./testsuite.py --timeout 60 --diffs --enable-color -j 2 2>&1 >/dev/null | tee /dev/tty | grep -q -E "^ERROR|^UOK")
   - gnat2goto/install/bin/unit_tests
 
 before_cache:
