@@ -1,0 +1,1 @@
+ALL XFAIL CBMC fails with symex_assign_rec: unexpected assignment to member of `symbol'
