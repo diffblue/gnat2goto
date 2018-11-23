@@ -67,7 +67,7 @@ install:
     ( set -euo pipefail
       cd ${CBMC}
       cmake -H. -Bbuild '-DCMAKE_BUILD_TYPE=Release'  '-DCMAKE_CXX_COMPILER=/usr/bin/g++-7'
-      cmake --build build -- -j4
+      cmake --build build --target cbmc -- -j4
     )
 
   - export PATH=${CBMC}/build/bin:${PATH}
@@ -75,7 +75,7 @@ install:
 
 script:
   #run the tests
-  - (cd testsuite/gnat2goto; ! ./testsuite.py -j 2 2>&1 >/dev/null | tee /dev/tty | grep -E "ERROR|UOK" > /dev/null)
+  - (cd testsuite/gnat2goto; ! ./testsuite.py --timeout 60 --diffs -j 2 2>&1 >/dev/null | tee /dev/tty | grep -E "ERROR|UOK" > /dev/null)
   - gnat2goto/install/bin/unit_tests
 
 before_cache:
