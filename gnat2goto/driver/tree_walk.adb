@@ -354,12 +354,14 @@ package body Tree_Walk is
 
    procedure Warn_Unhandled_Construct (C : Construct; Mess : String);
 
-   procedure Process_Declaration (N : Node_Id; Block : Irep)
-   with Pre => Nkind (N) in N_Declaration or else
-               Nkind (N) in N_Number_Declaration or else
-               Nkind (N) in N_Later_Decl_Item or else
-               Nkind (N) in N_Pragma or else
-               Nkind (N) in N_Freeze_Entity;
+   procedure Process_Declaration (N : Node_Id; Block : Irep);
+--     with Pre => Nkind (N) in N_Declaration or else
+--                 Nkind (N) in N_Number_Declaration or else
+--                 Nkind (N) in N_Later_Decl_Item or else
+--                 Nkind (N) in N_Pragma or else
+--                 Nkind (N) in N_Exception_Declaration or else
+--                 Nkind (N) in N_Freeze_Entity;
+--  Precondition commented out because full extend of declrations not yet known
    --  Handles both a basic declaration and a declarative item.
 
    procedure Process_Declarations (L : List_Id; Block : Irep);
@@ -2857,16 +2859,10 @@ package body Tree_Walk is
    begin
       Set_Source_Location (Package_Decs, Sloc (N));
       if Present (Visible_Declarations (N)) then
-         Put_Line ("Visible declarations");
          Process_Declarations (Visible_Declarations (N), Package_Decs);
-      else
-         Put_Line ("No visible declarations");
       end if;
       if Present (Private_Declarations (N)) then
-         Put_Line ("Private declarations");
          Process_Declarations (Private_Declarations (N), Package_Decs);
-      else
-         Put_Line ("No private declarations");
       end if;
    end Do_Package_Specification;
 
@@ -3727,7 +3723,6 @@ package body Tree_Walk is
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
       Unit_Name : constant String := Get_Name_String (Get_Unit_Name (N));
    begin
-      Put_Line (Unit_Name);
       if Defining_Entity (N) = Stand.Standard_Standard or else
         Unit_Name = "system%s"
       then
@@ -3737,9 +3732,7 @@ package body Tree_Walk is
 
          case Nkind (N) is
             when N_Subprogram_Body =>
-               Put_Line ("Subprog body");
                if Acts_As_Spec (N) then
-                  Put_Line ("Acts as spec");
                   --  The unit is a withed library unit which subprogram body
                   --  that has no separate declaration, or,
                   --  it is the subprogram body of the compilation unit being
@@ -3749,10 +3742,8 @@ package body Tree_Walk is
                   Register_Subprogram_Specification (Specification (N));
                else
                   null;
-                  Put_Line ("Not a spec");
                end if;
             when N_Subprogram_Declaration =>
-               Put_Line ("Subprog declaration");
                --  The unit is withed library unit that is a subprogram
                --  declaration, or,
                --  it is the declaration of the compilation unit body being
@@ -3761,13 +3752,12 @@ package body Tree_Walk is
                --  subprogram into the symbol table.
                Do_Subprogram_Declaration (N);
             when N_Package_Declaration =>
-               Put_Line ("Package declaration");
                Do_Package_Declaration (N);
             when N_Package_Body =>
                null;
-               Put_Line ("Package body");
             when others =>
-               Put_Line ("Not yet handled");
+               Put_Line (Standard_Error,
+                         "This type of library_unit is not yet handled");
          end case;
 
       end if;
@@ -4393,6 +4383,7 @@ package body Tree_Walk is
    procedure Process_Declaration (N : Node_Id; Block : Irep) is
    begin
       --  Deal with the declaration
+
       case Nkind (N) is
 
          --  basic_declarations  --
