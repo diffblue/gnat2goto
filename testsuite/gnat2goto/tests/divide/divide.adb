@@ -4,4 +4,5 @@ procedure Divide is
   c : Integer;
 begin
   c := a / b;
+  pragma Assert (c >= 0);
 end;
