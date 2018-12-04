@@ -4,6 +4,7 @@ with Nlists;                use Nlists;
 with Sem_Util;              use Sem_Util;
 with Sem_Aux;               use Sem_Aux;
 with Snames;                use Snames;
+with Stringt;               use Stringt;
 with Treepr;                use Treepr;
 with Uintp;                 use Uintp;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -77,6 +78,10 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
 
+   function Do_String_Constant (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_String_Literal,
+        Post => Kind (Do_String_Constant'Result) = I_String_Constant_Expr;
+
    function Do_Real_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Real_Literal,
         Post => Kind (Do_Real_Constant'Result) = I_Constant_Expr;
@@ -145,6 +150,9 @@ package body Tree_Walk is
 
    function Do_Itype_Array_Subtype (N : Entity_Id) return Irep
    with Pre => Is_Itype (N) and then Ekind (N) = E_Array_Subtype;
+
+   function Do_Itype_String_Literal_Subtype (N : Entity_Id) return Irep
+   with Pre => Is_Itype (N) and then Ekind (N) = E_String_Literal_Subtype;
 
    function Do_Itype_Definition (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Defining_Identifier;
@@ -1194,6 +1202,41 @@ package body Tree_Walk is
       return Ret;
    end Do_Constant;
 
+   ------------------------
+   -- Do_String_Constant --
+   ------------------------
+
+   function Do_String_Constant (N : Node_Id) return Irep is
+      Ret              : constant Irep := New_Irep (I_String_Constant_Expr);
+      Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
+      Element_Type     : constant Irep := Do_Type_Reference (Element_Type_Ent);
+      StrLen           : constant Integer :=
+                                    Integer (String_Length (Strval (N)));
+      String_Length_Expr : constant Irep := New_Irep (I_Constant_Expr);
+   begin
+      --  FIXME: The size of this signedbv should probably not be a hardcoded
+      --         magic number...(e.g. 32 on a 32bit system) this should be set
+      --         programatically some how.
+      Set_Type (String_Length_Expr,
+        Make_Signedbv_Type (Ireps.Empty, 64));
+      --  FIXME: Does this need to be a proper signedbv representation, in hex?
+      Set_Value (String_Length_Expr, StrLen'Image);
+
+      Set_Type (Ret,
+                Make_Array_Type (
+                  I_Subtype => Element_Type,
+                  Size => String_Length_Expr));
+      --  Set_Type (Ret, Bare_Array_Type);
+      --  for J in 1 .. String_Length (Strval (N)) loop
+      --        CC := Get_String_Char (Strval (N), J);
+      --        Litteral_Value (J) := CC;
+      --  end loop;
+      String_To_Name_Buffer (Strval (N));
+      Set_Value (Ret, Name_Buffer (1 .. StrLen));
+      Set_Source_Location (Ret, Sloc (N));
+      return Ret;
+   end Do_String_Constant;
+
    ----------------------
    -- Do_Real_Constant --
    ----------------------
@@ -1383,6 +1426,7 @@ package body Tree_Walk is
          when N_Selected_Component   => return Do_Selected_Component (N);
          when N_Op                   => return Do_Operator_General (N);
          when N_Integer_Literal      => return Do_Constant (N);
+         when N_String_Literal       => return Do_String_Constant (N);
          when N_Type_Conversion      => return Do_Type_Conversion (N);
          when N_Function_Call        => return Do_Function_Call (N);
          when N_Attribute_Reference  =>
@@ -1819,6 +1863,19 @@ package body Tree_Walk is
       end return;
    end Do_Itype_Array_Subtype;
 
+   -------------------------------------
+   -- Do_Itype_String_Literal_Subtype --
+   -------------------------------------
+
+   function Do_Itype_String_Literal_Subtype (N : Node_Id) return Irep is
+   begin
+      --  Since we don't note the bounds at the irep level, just
+      --  call this an alias:
+      return R : constant Irep := New_Irep (I_Symbol_Type) do
+         Set_Identifier (R, Unique_Name (Etype (N)));
+      end return;
+   end Do_Itype_String_Literal_Subtype;
+
    -------------------------
    -- Do_Itype_Definition --
    -------------------------
@@ -1832,6 +1889,7 @@ package body Tree_Walk is
       --  might become the only way to get a type definition.
       return (case Ekind (N) is
          when E_Array_Subtype => Do_Itype_Array_Subtype (N),
+         when E_String_Literal_Subtype => Do_Itype_String_Literal_Subtype (N),
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
