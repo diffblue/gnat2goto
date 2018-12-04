@@ -66,7 +66,7 @@ def main():
     # that will also accumulate 'UOK' test results
     def collect_result_including_uok(name, process, _job_info):
         generated_collect_result(name, process, _job_info)
-        test_name = test_name = os.path.basename(name)
+        test_name = os.path.basename(name)
         test_result = split_file(
             m.options.output_dir + '/' + test_name + '.result',
             ignore_errors=True)
