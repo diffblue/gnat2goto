@@ -59,7 +59,7 @@ package body Binary_To_Hex_Tests is
         (Uint_128 + Uint_10, 8);
       Hex : constant String := Convert_Binary_To_Hex (Binary);
    begin
-      pragma Assert (Hex = "8a");
+      pragma Assert (Hex = "8A");
    end Convert_138_Test;
 
    procedure Convert_48879_Test is
@@ -67,7 +67,7 @@ package body Binary_To_Hex_Tests is
         (UI_From_Int (48879), 16);
       Hex : constant String := Convert_Binary_To_Hex (Binary);
    begin
-      pragma Assert (Hex = "beef");
+      pragma Assert (Hex = "BEEF");
    end Convert_48879_Test;
 
 end Binary_To_Hex_Tests;

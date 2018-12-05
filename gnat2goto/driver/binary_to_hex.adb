@@ -4,10 +4,11 @@ with Ureal_To_Binary; use Ureal_To_Binary;
 package body Binary_To_Hex is
    function Convert_Binary_To_Hex (Binary : String) return String is
       type Hex_Digit_Pos is mod 16;
+      --  this needs to be uppercase for CBMC
       type Hex_Digit is ('0', '1', '2', '3', '4',
                          '5', '6', '7', '8', '9',
-                         'a', 'b', 'c', 'd', 'e',
-                         'f');
+                         'A', 'B', 'C', 'D', 'E',
+                         'F');
       subtype Binary_Quartet_T is String (1 .. 4);
 
       function Convert_Binary_To_Hex_Digit (Binary_Quartet : Binary_Quartet_T)
