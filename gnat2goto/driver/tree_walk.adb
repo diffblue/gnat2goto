@@ -1836,6 +1836,8 @@ package body Tree_Walk is
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
          when E_Floating_Point_Type => Create_Dummy_Irep,
+         when E_Anonymous_Access_Type => Make_Pointer_Type
+        (Base => Do_Type_Reference (Designated_Type (Etype (N)))),
          when others => Report_Unhandled_Node_Irep (N, "Do_Itype_Definition",
                                                     "Unknown Ekind"));
    end Do_Itype_Definition;
@@ -3545,12 +3547,7 @@ package body Tree_Walk is
       if Kind (New_Type) = I_Struct_Type then
          Set_Tag (New_Type, Unintern (New_Type_Name));
       end if;
-      if Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name) then
-         Put_Line (Standard_Error,
-                   "----------At: Do_Type_Declaration----------");
-         Put_Line (Standard_Error,
-                   "----------name already in table----------");
-      else
+      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name) then
          Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name,
                              New_Type_Symbol);
       end if;

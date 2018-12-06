@@ -299,6 +299,201 @@ class IrepsGenerator(object):
                                    friendly_name,
                                    string_value)
 
+    def collect_subs(self, sn):
+        subs = {}
+        for setter_name in self.sub_setters:
+            for kind in self.sub_setters[setter_name]:
+                assert kind in ("value", "list")
+                if sn in self.sub_setters[setter_name][kind]:
+                    op_id = self.sub_setters[setter_name][kind][sn][0]
+                    subs[op_id] = (setter_name, kind == "list")
+        return subs
+
+    def to_json_set_all_subs(self, b, sn, subs, i, needs_null):
+        needs_null = False
+        setter_name, is_list = subs[i]
+        layout_kind, layout_index, layout_typ =\
+            self.layout[sn][setter_name]
+        tbl_field = "N." + ada_component_name(layout_kind,
+                                              layout_index)
+        if is_list:
+            assert len(subs) == 1
+            write(b, "Sub := To_JSON (Irep_List (%s));" % tbl_field)
+        else:
+            write(b, "if %s /= 0 then" % tbl_field)
+            with indent(b):
+                write(b, "Append (Sub, To_JSON (Irep (%s)));" %
+                      tbl_field)
+            # TODO
+            # If the first member is nil then there are no subs
+            # The logic for this is a bit sketchy, but basic
+            # explanation is this: 1. We have some number of
+            # children (may or may not be nil) 2. If the first
+            # child is nil, we assume that there actually no
+            # children (despite subs not being empty for some
+            # reason) so we don't emit anything (otherwise
+            # we'll get unexpect nil subs) which breaks for
+            # example floating point types but also in some
+            # other places). Otherwise, we'll assume that a an
+            # empty child actually means it's supposed to be a
+            # nil child and emit it as such (we mostly emit nil
+            # children as a response to being unable to handle
+            # an AST node, so it's important we can handle this
+            # case) Again, very sketchy, and IMHO we really
+            # ought to think of something better than this but
+            # I can't at the moment
+            if i != 0:
+                write(b, "else")
+                with indent(b):
+                    write(b, "Append (Sub, Trivial_String (\"nil\"));")
+            write(b, "end if;")
+        return needs_null
+
+    def follow_irep_set_all_subs(self, b, sn, subs, i, needs_null):
+        needs_null = False
+        setter_name, is_list = subs[i]
+        layout_kind, layout_index, layout_typ =\
+            self.layout[sn][setter_name]
+        tbl_index = ada_component_name(layout_kind,
+                                       layout_index)
+        tbl_field = "N." + tbl_index
+        if is_list:
+            assert len(subs) == 1
+            write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+            with indent(b):
+                write(b, "Integer (Follow_Irep (Irep_List (%s), Follow_Symbol));" % tbl_field)
+        else:
+            write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+            with indent(b):
+                write(b, "Integer (Follow_Irep (Irep (%s), Follow_Symbol));" % tbl_field)
+        return needs_null
+
+    def to_json_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
+        for kind in self.named_setters[setter_name]:
+            assert kind in ("irep", "list", "trivial")
+            if sn in self.named_setters[setter_name][kind]:
+                needs_null = False
+                is_comment, _, _ =\
+                    self.named_setters[setter_name][kind][sn]
+                layout_kind, layout_index, layout_typ =\
+                    self.layout[sn][setter_name]
+                tbl_field = "N." + ada_component_name(layout_kind,
+                                                      layout_index)
+
+                obj = "Comment" if is_comment else "Named_Sub"
+                if kind == "irep":
+                    val = "To_JSON (Irep (%s))" % tbl_field
+                elif layout_kind == "str":
+                    val = "Trivial_String (String_Id (%s))" % tbl_field
+                elif layout_kind == "int":
+                    val = "Trivial_Integer (%s)" % tbl_field
+                elif layout_kind == "bool":
+                    val = "Trivial_Boolean (%s)" % tbl_field
+                elif layout_kind == "sloc":
+                    val = "Trivial_Sloc (Source_Ptr (%s))" % tbl_field
+                else:
+                    assert False
+
+                if is_comment:
+                    key_name = "#" + setter_name
+                else:
+                    key_name = setter_name
+
+                tmp = "%s.Set_Field (" % obj
+                write(b, tmp + '"' + key_name + '",')
+                write(b, " " * len(tmp) + val + ");")
+                continuation(b)
+        return needs_null
+
+    def follow_irep_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
+        needs_null = True
+        for kind in self.named_setters[setter_name]:
+            assert kind in ("irep", "list", "trivial")
+            if sn in self.named_setters[setter_name][kind]:
+                is_comment, _, _ =\
+                    self.named_setters[setter_name][kind][sn]
+                layout_kind, layout_index, layout_typ =\
+                    self.layout[sn][setter_name]
+                tbl_index = ada_component_name(layout_kind,
+                                               layout_index)
+                tbl_field = "N." + tbl_index
+
+                obj = "Comment" if is_comment else "Named_Sub"
+                if kind == "irep":
+                    write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+                    with indent(b):
+                        write(b, "Integer (Follow_Irep (Irep (%s), Follow_Symbol));" % tbl_field)
+                    needs_null = False
+        return needs_null
+
+    def to_json_set_all_constants(self, b, sn, kind, data, needs_null):
+        if kind == "id":
+            return needs_null
+        elif kind == "namedSub":
+            obj = "Named_Sub"
+        elif kind == "comment":
+            obj = "Comment"
+        else:
+            print sn, kind, self.const[sn]
+            assert False
+        for const_name, const_value in data.iteritems():
+            needs_null = False
+            tmp = "%s.Set_Field (" % obj
+            write(b, tmp + '"%s"' % const_name + ",")
+            write(b, " " * len(tmp) + 'Trivial_String ("%s"));'
+                  % const_value)
+            continuation(b)
+        return needs_null
+
+    def to_json_single_schema_name(self, b, sn):
+        schema = self.schemata[sn]
+        with indent(b):
+            write(b, "when %s =>" % schema["ada_name"])
+            with indent(b):
+                # the ensuing case analysis may end up doing nothing for some irep kinds
+                # in Ada cases cannot be empty hence we insert null statement if necessary
+                needs_null = True
+
+                # Set all subs
+                subs = self.collect_subs(sn)
+                for i in xrange(len(subs)):
+                    needs_null = self.to_json_set_all_subs(b, sn, subs, i, needs_null)
+
+                # Set all namedSub and comments
+                for setter_name in self.named_setters:
+                    needs_null = self.to_json_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
+
+                # Set all constants
+                for kind, data in self.const.get(sn, {}).iteritems():
+                    needs_null = self.to_json_set_all_constants(b, sn, kind, data, needs_null)
+
+                if needs_null:
+                    write(b, "null;")
+                write(b, "")
+
+    def follow_irep_single_schema_name(self, b, sn):
+        schema = self.schemata[sn]
+        with indent(b):
+            write(b, "when %s =>" % schema["ada_name"])
+            with indent(b):
+                # the ensuing case analysis may end up doing nothing for some irep kinds
+                # in Ada cases cannot be empty hence we insert null statement if necessary
+                needs_null = True
+
+                # Set all subs
+                subs = self.collect_subs(sn)
+                for i in xrange(len(subs)):
+                    needs_null = self.follow_irep_set_all_subs(b, sn, subs, i, needs_null)
+
+                # Set all namedSub and comments
+                for setter_name in self.named_setters:
+                    needs_null = self.follow_irep_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
+
+                if needs_null:
+                    write(b, "null;")
+                write(b, "")
+
+
     def register_schema(self, sn):
         if sn == "source_location":
             return
@@ -1552,8 +1747,24 @@ class IrepsGenerator(object):
         write(s, "--  Serialise to JSON")
         write(s, "")
 
+        write(s, "function Follow_Irep (I : Irep;")
+        with indent(s):
+            write(s, "Follow_Symbol : not null access function (Symbol_I : Irep)")
+        with indent(s):
+            write(s, "return Irep) return Irep;")
+        write(s, "--  Replace Symbol Types")
+        write(s, "")
+
         write(b, "function To_JSON (L : Irep_List) return JSON_Array;")
         write(b, "--  Serialise list to JSON")
+        write(b, "")
+
+        write(b, "function Follow_Irep (L : Irep_List;")
+        with indent(b):
+            write(b, "Follow_Symbol : not null access function (Symbol_I : Irep)")
+        with indent(b):
+            write(b, "return Irep) return Irep_List;")
+        write(b, "--  Replace Symbol Types")
         write(b, "")
 
         write (b, "function Trivial_Irep (S : String_Id) return JSON_Value;")
@@ -1592,6 +1803,13 @@ class IrepsGenerator(object):
         # cnst ::= schema -> id|namedSub|comment -> {name: value}
 
         write(b, "function To_JSON (L : Irep_List) return JSON_Array")
+        write(b, "is separate;")
+        continuation(b)
+        write(b, "")
+
+        write(b, "function Follow_Irep (L : Irep_List;")
+        write(b, "Follow_Symbol : not null access function (Symbol_I : Irep)")
+        write(b, "return Irep) return Irep_List")
         write(b, "is separate;")
         continuation(b)
         write(b, "")
@@ -1690,120 +1908,12 @@ class IrepsGenerator(object):
         write(b, 'V.Set_Field ("id", Id (I));')
         write(b, "case N.Kind is")
 
+        # sn ranges over schema names which are taken from file names in "/irep_specs/*.json"
+        # one for every, let's say irep kind (argument_list, base_list, .., vector_type)
         for sn in self.top_sorted_sn:
-            schema = self.schemata[sn]
-            with indent(b):
-                write(b, "when %s =>" % schema["ada_name"])
-                with indent(b):
-                    needs_null = True
-
-                    # Set all subs
-                    subs = {}
-                    for setter_name in self.sub_setters:
-                        for kind in self.sub_setters[setter_name]:
-                            assert kind in ("value", "list")
-                            if sn in self.sub_setters[setter_name][kind]:
-                                op_id = self.sub_setters[setter_name][kind][sn][0]
-                                subs[op_id] = (setter_name, kind == "list")
-                    for i in xrange(len(subs)):
-                        needs_null = False
-                        setter_name, is_list = subs[i]
-                        layout_kind, layout_index, layout_typ =\
-                            self.layout[sn][setter_name]
-                        tbl_field = "N." + ada_component_name(layout_kind,
-                                                            layout_index)
-                        if is_list:
-                            assert len(subs) == 1
-                            write(b, "Sub := To_JSON (Irep_List (%s));" % tbl_field)
-                        else:
-                            write(b, "if %s /= 0 then" % tbl_field)
-                            with indent(b):
-                                write(b, "Append (Sub, To_JSON (Irep (%s)));" %
-                                tbl_field)
-                            # TODO
-                            # If the first member is nil then there are no subs
-                            # The logic for this is a bit sketchy, but basic
-                            # explanation is this: 1. We have some number of
-                            # children (may or may not be nil) 2. If the first
-                            # child is nil, we assume that there actually no
-                            # children (despite subs not being empty for some
-                            # reason) so we don't emit anything (otherwise
-                            # we'll get unexpect nil subs) which breaks for
-                            # example floating point types but also in some
-                            # other places). Otherwise, we'll assume that a an
-                            # empty child actually means it's supposed to be a
-                            # nil child and emit it as such (we mostly emit nil
-                            # children as a response to being unable to handle
-                            # an AST node, so it's important we can handle this
-                            # case) Again, very sketchy, and IMHO we really
-                            # ought to think of something better than this but
-                            # I can't at the moment
-                            if i != 0:
-                                write(b, "else")
-                                with indent(b):
-                                    write(b, "Append (Sub, Trivial_String (\"nil\"));")
-                            write(b, "end if;")
-
-                    # Set all namedSub and comments
-                    for setter_name in self.named_setters:
-                        for kind in self.named_setters[setter_name]:
-                            assert kind in ("irep", "list", "trivial")
-                            if sn in self.named_setters[setter_name][kind]:
-                                needs_null = False
-                                is_comment, _, _ =\
-                                    self.named_setters[setter_name][kind][sn]
-                                layout_kind, layout_index, layout_typ =\
-                                    self.layout[sn][setter_name]
-                                tbl_field = "N." + ada_component_name(layout_kind,
-                                                                    layout_index)
-
-                                obj = "Comment" if is_comment else "Named_Sub"
-                                if kind == "irep":
-                                    val = "To_JSON (Irep (%s))" % tbl_field
-                                elif layout_kind == "str":
-                                    val = "Trivial_String (String_Id (%s))" % tbl_field
-                                elif layout_kind == "int":
-                                    val = "Trivial_Integer (%s)" % tbl_field
-                                elif layout_kind == "bool":
-                                    val = "Trivial_Boolean (%s)" % tbl_field
-                                elif layout_kind == "sloc":
-                                    val = "Trivial_Sloc (Source_Ptr (%s))" % tbl_field
-                                else:
-                                    assert False
-
-                                if is_comment:
-                                    key_name = "#" + setter_name
-                                else:
-                                    key_name = setter_name
-
-                                tmp = "%s.Set_Field (" % obj
-                                write(b, tmp + '"' + key_name + '",')
-                                write(b, " " * len(tmp) + val + ");")
-                                continuation(b)
-
-
-                    # Set all constants
-                    for kind, data in self.const.get(sn, {}).iteritems():
-                        if kind == "id":
-                            continue
-                        elif kind == "namedSub":
-                            obj = "Named_Sub"
-                        elif kind == "comment":
-                            obj = "Comment"
-                        else:
-                            print sn, kind, self.const[sn]
-                            assert False
-                        for const_name, const_value in data.iteritems():
-                            needs_null = False
-                            tmp = "%s.Set_Field (" % obj
-                            write(b, tmp + '"%s"' % const_name + ",")
-                            write(b, " " * len(tmp) + 'Trivial_String ("%s"));'
-                                % const_value)
-                            continuation(b)
-
-                    if needs_null:
-                        write(b, "null;")
-                    write(b, "")
+            # schema is a dictionary mapping irep properties (ada_name, id, used, sub, namedSub, ..)
+            # to the values relevant for each schema
+            self.to_json_single_schema_name(b, sn)
         write(b, "end case;")
         write(b, "")
         write(b, 'V.Set_Field ("sub",      Sub);')
@@ -1814,6 +1924,42 @@ class IrepsGenerator(object):
         write(b, "return V;")
         manual_outdent(b)
         write(b, "end To_JSON;")
+        write(b, "")
+
+        write_comment_block(b, "Follow_Irep")
+        write(b, "function Follow_Irep (I : Irep;")
+        with indent(b):
+            write(b, "Follow_Symbol : not null access function (Symbol_I : Irep)")
+        with indent(b):
+            write(b, "return Irep) return Irep")
+        write(b, "is")
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "if I = 0 then")
+        with indent(b):
+            write(b, "return I;")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "if Kind (I) = I_Symbol_Type then")
+        with indent(b):
+            write(b, "return Follow_Symbol (I);")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "declare")
+        with indent(b):
+            write(b, "N : Irep_Node renames Irep_Table.Table (I);")
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "case N.Kind is")
+
+        for sn in self.top_sorted_sn:
+            self.follow_irep_single_schema_name(b, sn)
+        write(b, "end case;")
+        manual_outdent(b)
+        write(b, "end;")
+        write(b, "return I;")
+        manual_outdent(b)
+        write(b, "end Follow_Irep;")
         write(b, "")
 
         ##########################################################################

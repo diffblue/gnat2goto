@@ -30,6 +30,7 @@ with Einfo;                 use Einfo;
 with Atree;                 use Atree;
 with Uintp;                 use Uintp;
 
+with Follow;                use Follow;
 with Ireps;                 use Ireps;
 with Symbol_Table_Info;     use Symbol_Table_Info;
 
@@ -50,6 +51,8 @@ package body Driver is
    procedure Translate_Standard_Types;
    procedure Initialize_CProver_Internal_Variables (Start_Body : Irep);
    procedure Add_CProver_Internal_Symbols;
+   procedure Follow_Type_Declarations (Old_Table : Symbol_Table;
+                                       New_Table : in out Symbol_Table);
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
@@ -107,6 +110,8 @@ package body Driver is
       Base_Name  : constant String :=
         File_Name_Without_Suffix
           (Get_Name_String (Unit_File_Name (Main_Unit)));
+
+      Followed_Symbol_Table : Symbol_Table;
    begin
       Create (Sym_Tab_File, Out_File, Base_Name & ".json_symtab");
       --  Gather local symbols and put them in the symtab
@@ -242,9 +247,9 @@ package body Driver is
          Start_Symbol.Mode    := Intern ("C");
 
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
-
+         Follow_Type_Declarations (Global_Symbol_Table, Followed_Symbol_Table);
          Put_Line (Sym_Tab_File,
-                   Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+                   Create (SymbolTable2Json (Followed_Symbol_Table)).Write);
       end if;
 
       Close (Sym_Tab_File);
@@ -376,4 +381,34 @@ package body Driver is
       Add_Global_Sym (Intern ("__CPROVER_rounding_mode"), Int_32_T);
    end Add_CProver_Internal_Symbols;
 
+   procedure Follow_Type_Declarations (Old_Table : Symbol_Table;
+                                       New_Table : in out Symbol_Table) is
+      function Follow_Symbol (I : Irep) return Irep;
+      function Follow_Symbol (I : Irep) return Irep is
+      begin
+         return Follow_Symbol_Type (I, Old_Table);
+      end Follow_Symbol;
+   begin
+      for Sym_Iter in Old_Table.Iterate loop
+         declare
+            Unused_Inserted : Boolean;
+            Unused_Position  : Symbol_Maps.Cursor;
+            Current_Symbol : constant Symbol := Old_Table (Sym_Iter);
+            Modified_Symbol : Symbol := Current_Symbol;
+            SymType : constant Irep := Current_Symbol.SymType;
+            Value : constant Irep := Current_Symbol.Value;
+         begin
+            Modified_Symbol.SymType :=
+                    Follow_Irep (SymType, Follow_Symbol'Access);
+            Modified_Symbol.Value :=
+                    Follow_Irep (Value, Follow_Symbol'Access);
+
+            New_Table.Insert
+                 (Key      => Symbol_Maps.Key (Sym_Iter),
+                  New_Item => Modified_Symbol,
+                  Inserted => Unused_Inserted,
+                  Position => Unused_Position);
+         end;
+      end loop;
+   end Follow_Type_Declarations;
 end Driver;
