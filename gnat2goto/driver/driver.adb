@@ -241,15 +241,13 @@ package body Driver is
          Start_Symbol.BaseName   := Start_Name;
 
          Set_Return_Type (Start_Type, Void_Type);
-         Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
-         Follow_Type_Declarations (Global_Symbol_Table, Followed_Symbol_Table);
 
          Start_Symbol.SymType := Start_Type;
          Start_Symbol.Value   := Start_Body;
          Start_Symbol.Mode    := Intern ("C");
 
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
-
+         Follow_Type_Declarations (Global_Symbol_Table, Followed_Symbol_Table);
          Put_Line (Sym_Tab_File,
                    Create (SymbolTable2Json (Followed_Symbol_Table)).Write);
       end if;
