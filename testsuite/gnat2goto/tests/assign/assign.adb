@@ -1,7 +1,9 @@
 procedure Assign is
-  a : Integer := 1;
-  b : Integer := 2;
-  c : Integer;
+  A : Integer := 1;
+  B : Integer := 2;
+  C : Integer;
 begin
-  c := a + b;
+  pragma Assert (a = 1);
+  pragma Assert (b = 2);
+  C := A + B;
 end;
