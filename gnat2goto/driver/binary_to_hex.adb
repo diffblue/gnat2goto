@@ -2,6 +2,9 @@ with Uint_To_Binary; use Uint_To_Binary;
 with Ureal_To_Binary; use Ureal_To_Binary;
 
 package body Binary_To_Hex is
+
+   function Strip_Leading_Zeroes (Str : String) return String;
+
    function Convert_Binary_To_Hex (Binary : String) return String is
       type Hex_Digit_Pos is mod 16;
       --  this needs to be uppercase for CBMC
@@ -44,7 +47,7 @@ package body Binary_To_Hex is
               (Convert_Binary_To_Hex_Digit (Binary_Quartet)));
          end;
       end loop;
-      return Result;
+      return Strip_Leading_Zeroes (Result);
    end Convert_Binary_To_Hex;
 
    function Convert_Uint_To_Hex (Value : Uint; Bit_Width : Pos) return String
@@ -66,4 +69,14 @@ package body Binary_To_Hex is
           Exponent_Bits,
           Exponent_Bias));
    end Convert_Ureal_To_Hex_IEEE;
+
+   function Strip_Leading_Zeroes (Str : String) return String is
+   begin
+      for Ix in Str'Range loop
+         if Str (Ix) /= '0' then
+            return Str (Ix .. Str'Last);
+         end if;
+      end loop;
+      return "0";
+   end Strip_Leading_Zeroes;
 end Binary_To_Hex;

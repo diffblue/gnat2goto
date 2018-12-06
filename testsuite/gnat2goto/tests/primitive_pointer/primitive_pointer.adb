@@ -5,5 +5,5 @@ procedure Primitive_Pointer is
 begin
    A := 5;
    B.all := B.all + 1;
-   --pragma Assert (A = 6);
+   pragma Assert (A = 6);
 end;

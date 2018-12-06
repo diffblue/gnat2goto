@@ -36,7 +36,7 @@ package body Binary_To_Hex_Tests is
       Binary : constant String := Convert_Uint_To_Binary (Uint_0, 32);
       Hex : constant String := Convert_Binary_To_Hex (Binary);
    begin
-      pragma Assert (Hex = "00000000");
+      pragma Assert (Hex = "0");
    end Convert_0_Test;
 
    procedure Convert_2_Test is
@@ -44,7 +44,7 @@ package body Binary_To_Hex_Tests is
         (Uint_2, 16);
       Hex : constant String := Convert_Binary_To_Hex (Binary);
    begin
-      pragma Assert (Hex = "0002");
+      pragma Assert (Hex = "2");
    end Convert_2_Test;
 
    procedure Convert_17_Test is

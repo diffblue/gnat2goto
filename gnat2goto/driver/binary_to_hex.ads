@@ -4,8 +4,7 @@ with Types; use Types;
 package Binary_To_Hex is
 
    function Convert_Binary_To_Hex (Binary : String) return String with
-     Pre => (Binary'Length mod 4 = 0),
-     Post => (Convert_Binary_To_Hex'Result'Length = Binary'Length / 4);
+     Pre => (Binary'Length mod 4 = 0);
 
    function Convert_Uint_To_Hex (Value : Uint; Bit_Width : Pos) return String
      with Pre => (Bit_Width mod 4 = 0);
