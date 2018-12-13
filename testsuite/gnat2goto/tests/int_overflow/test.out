@@ -1,0 +1,2 @@
+[overflow.1] file int_overflow.adb line 5 arithmetic overflow on signed + in int_overflow__x + int_overflow__y: FAILURE
+VERIFICATION FAILED
