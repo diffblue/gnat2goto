@@ -1,5 +1,4 @@
-[division-by-zero.1] division by zero in divide__a / divide__b$$divide__b: FAILURE
-[overflow.1] arithmetic overflow on signed division in divide__a / divide__b$$divide__b: SUCCESS
-[division-by-zero.2] division by zero in divide__a / divide__b$$divide__b: SUCCESS
-[overflow.2] arithmetic overflow on signed division in divide__a / divide__b$$divide__b: SUCCESS
+[1] file divide.adb line 4 : SUCCESS
+[2] file divide.adb line 6 : SUCCESS
+[3] file divide.adb line 8 : FAILURE
 VERIFICATION FAILED
