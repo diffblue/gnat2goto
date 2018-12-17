@@ -8,4 +8,5 @@ begin
       A := A + C;
      pragma Assert (A - C <= B);
    end loop;
+   pragma Assert (A <= B);
 end;

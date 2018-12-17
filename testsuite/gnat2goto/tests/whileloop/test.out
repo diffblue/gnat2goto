@@ -1,5 +1,4 @@
-[1] : SUCCESS
-[2] : SUCCESS
-[overflow.1] arithmetic overflow on signed + in whileloop__a + whileloop__c: SUCCESS
-[overflow.2] arithmetic overflow on signed - in whileloop__a - whileloop__c: SUCCESS
-VERIFICATION SUCCESSFUL
+[1] file whileloop.adb line 7 : SUCCESS
+[2] file whileloop.adb line 9 : SUCCESS
+[3] file whileloop.adb line 11 : FAILURE
+VERIFICATION FAILED
