@@ -1,4 +1,2 @@
-Standard_Error from gnat2goto loops:
-loops.adb:9:04: warning: variable "i1" is never read and never assigned
-[1] : FAILURE
+[1] file loops.adb line 32 : FAILURE
 VERIFICATION FAILED

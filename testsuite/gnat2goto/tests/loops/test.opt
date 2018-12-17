@@ -1,1 +1,0 @@
-ALL XFAIL CBMC fails with invariant failure due to op.type().id()!=ID_bool in not_exprt
