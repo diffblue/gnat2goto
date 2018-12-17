@@ -1,20 +1,22 @@
-function Main_Params_And_Return (a : Integer; b : Integer) return Integer is
-  c : Integer;
+function Main_Params_And_Return (A : Integer; B : Integer) return Integer is
+  C : Integer;
 
-  function Bound (x : Integer; Min : Integer; Max : Integer) return Integer is
+  function Bound (X : Integer; Min : Integer; Max : Integer) return Integer is
     R : Integer;
   begin
-    if x < Min then
+    if X < Min then
       R := Min;
-    elsif x > Max then
+    elsif X > Max then
       R := Max;
     else
-      R := x;
+      R := X;
     end if;
     return R;
   end Bound;
 
 begin
-  c := Bound (a, -10, 10) + Bound (b, -10, 10);
-  return c;
+  C := Bound (A, 0, 10) + Bound (B, 0, 10);
+  pragma Assert (C <= 20);
+  pragma Assert (C >= 0);
+  return C;
 end;

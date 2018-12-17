@@ -1,2 +1,3 @@
-[overflow.1] arithmetic overflow on signed + in return_value_main_params_and_return__bound + return_value_main_params_and_return__bound$0: SUCCESS
+[1] file main_params_and_return.adb line 19 : SUCCESS
+[2] file main_params_and_return.adb line 20 : SUCCESS
 VERIFICATION SUCCESSFUL
