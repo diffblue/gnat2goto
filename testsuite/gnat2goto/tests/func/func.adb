@@ -7,4 +7,5 @@ procedure Func is
    end;
 begin
    C := Assign2;
+   pragma Assert (C = 3);
 end;
