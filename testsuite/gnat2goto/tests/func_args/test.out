@@ -1,2 +1,3 @@
-[overflow.1] arithmetic overflow on signed + in func_args__assign2__d$$func_args__assign2__d + func_args__assign2__e$$func_args__assign2__e: SUCCESS
-VERIFICATION SUCCESSFUL
+[1] file func_args.adb line 10 : SUCCESS
+[2] file func_args.adb line 11 : FAILURE
+VERIFICATION FAILED
