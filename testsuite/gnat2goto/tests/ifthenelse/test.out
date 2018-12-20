@@ -1,3 +1,1 @@
-[overflow.1] arithmetic overflow on signed + in ifthenelse__a + ifthenelse__b: SUCCESS
-[overflow.2] arithmetic overflow on signed - in ifthenelse__a - ifthenelse__b: SUCCESS
 VERIFICATION SUCCESSFUL

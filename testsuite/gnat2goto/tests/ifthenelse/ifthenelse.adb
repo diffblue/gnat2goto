@@ -1,11 +1,12 @@
 procedure Ifthenelse is
-  a : Integer := 1;
-  b : Integer := 2;
-  c : Integer;
+  A : Integer := 1;
+  B : Integer := 2;
+  C : Integer;
 begin
-  if a = b then
-    c := a + b;
+  if A /= B then
+    C := A + B;
   else
-    c := a - b;
+    C := A - B;
   end if;
+  pragma Assert (C = 3);
 end;

@@ -1,5 +1,5 @@
-[1] : FAILURE
-[3] : FAILURE
-[2] : SUCCESS
-[4] : SUCCESS
+[1] file floating_point_literals.adb line 6 : FAILURE
+[2] file floating_point_literals.adb line 7 : SUCCESS
+[3] file floating_point_literals.adb line 8 : FAILURE
+[4] file floating_point_literals.adb line 9 : SUCCESS
 VERIFICATION FAILED

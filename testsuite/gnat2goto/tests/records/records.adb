@@ -1,11 +1,13 @@
 procedure Records is
   type X is record
-    a : Integer;
-    b : Integer;
+    A : Integer;
+    B : Integer;
   end record;
-  c : constant Integer := 1;
-  d : X;
+  C : constant Integer := 1;
+  D : X;
 begin
-  d.a := c;
-  d.b := d.a + c;
+  D.A := C;
+  D.B := D.A + C;
+  pragma Assert (d.a = 1);
+  pragma Assert (d.b = 2);
 end;

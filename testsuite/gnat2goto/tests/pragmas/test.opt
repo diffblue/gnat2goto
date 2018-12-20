@@ -1,1 +1,0 @@
-ALL XFAIL CBMC fails with invariant check failure in boolbv_width.cpp

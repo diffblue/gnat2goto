@@ -1,8 +1,8 @@
 procedure Divide is
-  a : Integer := 1;
-  b : Integer := 2;
-  c : Integer;
+  A : Integer := 22;
+  B : Integer := 11;
+  C : Integer;
 begin
-  c := a / b;
-  pragma Assert (c >= 0);
+  C := A / B;
+  pragma Assert (C = 2);
 end;
