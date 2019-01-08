@@ -1,0 +1,6 @@
+Standard_Error from gnat2goto not_op:
+not_op.adb:2:03: warning: variable "x" is read but never assigned
+
+[1] file not_op.adb line 4 : SUCCESS
+[2] file not_op.adb line 5 : SUCCESS
+VERIFICATION SUCCESSFUL
