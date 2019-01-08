@@ -183,6 +183,9 @@ package body Tree_Walk is
    function Do_Operator_General (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op;
 
+   function Do_Op_Not (N : Node_Id) return Irep
+   with Pre => Nkind (N) in N_Op;
+
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Procedure_Call_Statement,
         Post => Kind (Do_Procedure_Call_Statement'Result) =
@@ -2792,6 +2795,16 @@ package body Tree_Walk is
    end Do_Op_Concat;
 
    -------------------------
+   --     Do_Op_Not       --
+   -------------------------
+
+   function Do_Op_Not (N : Node_Id) return Irep is
+      Boolean_Value : constant Irep := Do_Expression (Right_Opnd (N));
+   begin
+      return Make_Op_Not (Boolean_Value, Sloc (N), Make_Bool_Type);
+   end Do_Op_Not;
+
+   -------------------------
    -- Do_Operator_General --
    -------------------------
 
@@ -2799,6 +2812,8 @@ package body Tree_Walk is
    begin
       if Nkind (N) = N_Op_Concat then
          return Do_Op_Concat (N);
+      elsif Nkind (N) = N_Op_Not then
+         return Do_Op_Not (N);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
