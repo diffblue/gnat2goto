@@ -1,0 +1,1 @@
+ALL XFAIL CBMC fails types of expressions on each side of equality should match

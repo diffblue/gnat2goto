@@ -282,6 +282,21 @@ package body Driver is
    ------------------------------
 
    procedure Translate_Standard_Types is
+      procedure Add_Standard_String;
+      procedure Add_Standard_String is
+         Builtin   : Symbol;
+         Builtin_Node : constant Node_Id := Standard_String;
+         Type_Irep : constant Irep := Make_String_Type;
+      begin
+         Builtin.Name       := Intern (Unique_Name (Builtin_Node));
+         Builtin.PrettyName := Builtin.Name;
+         Builtin.BaseName   := Builtin.Name;
+         Builtin.SymType    := Type_Irep;
+         Builtin.IsType     := True;
+
+         Global_Symbol_Table.Insert (Builtin.Name, Builtin);
+      end Add_Standard_String;
+
       procedure Add_Universal_Integer;
       procedure Add_Universal_Integer is
          Builtin   : Symbol;
@@ -356,6 +371,7 @@ package body Driver is
          end;
       end loop;
       Add_Universal_Integer;
+      Add_Standard_String;
    end Translate_Standard_Types;
 
    procedure Add_CProver_Internal_Symbols is
