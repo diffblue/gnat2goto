@@ -363,6 +363,10 @@ package body Tree_Walk is
    with Post => Kind (Process_Statements'Result) = I_Code_Block;
    --  Process list of statements or declarations
 
+   procedure Register_Subprogram_Specification (N : Node_Id)
+   with Pre => Nkind (N) in N_Subprogram_Specification;
+   --  Insert the subprogram specification into the symbol table
+
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
    function Create_Dummy_Irep return Irep;
@@ -3946,27 +3950,22 @@ package body Tree_Walk is
       Proc_Symbol : Symbol;
    begin
       if not Global_Symbol_Table.Contains (Proc_Name) then
-         Put_Line (Standard_Error, "Warning: Subprogram " &
-            Unintern (Proc_Name) & " not in symbol table");
-         declare
-            Proc_Type : constant Irep :=
-               Do_Subprogram_Specification (Specification (N));
-            New_Proc_Symbol : Symbol;
-         begin
-            New_Proc_Symbol.Name       := Proc_Name;
-            New_Proc_Symbol.BaseName   := Proc_Name;
-            New_Proc_Symbol.PrettyName := Proc_Name;
-            New_Proc_Symbol.SymType    := Proc_Type;
-            New_Proc_Symbol.Mode       := Intern ("C");
-
-            Global_Symbol_Table.Insert (Proc_Name, New_Proc_Symbol);
-         end;
+         --  A subprogram body does not have to have a separate declaration
+         --  so it may not be in the symbol table.
+         --  The subprogram specification of the subprogram body is used to
+         --  populate the symbol table instead.
+         Register_Subprogram_Specification (Specification (N));
       end if;
+      --  Todo aspect_specification
+      --  Now the subprogram should registered in the stmbol table
+      --  whether a separate declaration was provided or not.
       if not Global_Symbol_Table.Contains (Proc_Name) then
          Report_Unhandled_Node_Empty (N, "Do_Subprogram_Body",
                                       "Proc name not in symbol table");
       end if;
       Proc_Symbol := Global_Symbol_Table (Proc_Name);
+
+      --  Compile the subprogram body and update its entry in the symbol table.
       Proc_Symbol.Value := Proc_Body;
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
@@ -3976,23 +3975,9 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
-      Proc_Type : constant Irep :=
-        Do_Subprogram_Specification (Specification (N));
-
-      Proc_Name : constant Symbol_Id := Intern
-        (Unique_Name (Defining_Unit_Name (Specification (N))));
-      --  take from spec, because body could be absent (null procedure)
-
-      Proc_Symbol : Symbol;
-
    begin
-      Proc_Symbol.Name       := Proc_Name;
-      Proc_Symbol.BaseName   := Proc_Name;
-      Proc_Symbol.PrettyName := Proc_Name;
-      Proc_Symbol.SymType    := Proc_Type;
-      Proc_Symbol.Mode       := Intern ("C");
-
-      Global_Symbol_Table.Insert (Proc_Name, Proc_Symbol);
+      Register_Subprogram_Specification (Specification (N));
+      --  Todo Aspect specifications
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -5037,6 +5022,29 @@ package body Tree_Walk is
 
       return Reps;
    end Process_Statements;
+
+   ---------------------------------------
+   -- Register_Subprogram_Specification --
+   ---------------------------------------
+
+   procedure Register_Subprogram_Specification (N : Node_Id) is
+      Subprog_Type : constant Irep :=
+        Do_Subprogram_Specification (N);
+      Subprog_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Defining_Unit_Name (N)));
+
+      Subprog_Symbol : Symbol;
+
+   begin
+      Subprog_Symbol.Name       := Subprog_Name;
+      Subprog_Symbol.BaseName   := Subprog_Name;
+      Subprog_Symbol.PrettyName := Subprog_Name;
+      Subprog_Symbol.SymType    := Subprog_Type;
+      Subprog_Symbol.Mode       := Intern ("C");
+      Subprog_Symbol.Value      := Make_Nil (Sloc (N));
+
+      Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
+   end Register_Subprogram_Specification;
 
    procedure Remove_Entity_Substitution (E : Entity_Id) is
    begin
