@@ -1,0 +1,10 @@
+
+{
+  "parent": "expr",
+  "id": "string_constant",
+  "namedSub": {
+    "type": {"schema": "array_type"},
+    "value" : {"type": "string"}
+  }
+}
+
