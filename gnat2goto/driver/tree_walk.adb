@@ -355,13 +355,37 @@ package body Tree_Walk is
                                  Old_Type : Entity_Id;
                                  New_Type : Entity_Id) return Irep;
 
+   type Construct is (Declaration, Statement);
+
+   procedure Warn_Unhandled_Construct (C : Construct; Mess : String);
+
+   procedure Process_Declaration (N : Node_Id; Block : Irep);
+--     with Pre => Nkind (N) in N_Declaration or else
+--                 Nkind (N) in N_Number_Declaration or else
+--                 Nkind (N) in N_Later_Decl_Item or else
+--                 Nkind (N) in N_Pragma or else
+--                 Nkind (N) in N_Exception_Declaration or else
+--                 Nkind (N) in N_Freeze_Entity;
+--  Precondition commented out because full extend of declrations not yet known
+   --  Handles both a basic declaration and a declarative item.
+
+   procedure Process_Declarations (L : List_Id; Block : Irep);
+   --  Processes the declarations and is used for both a package specification
+   --  where only basic declarations are allowed (no subprogram bodies etc.)
+   --  and declarative parts where such declaratios are allowed.
+   --  The Gnat front end will check that only allowed declarations are used
+   --  where only basic declarations permitted.
+   --  Process_Declarations is a procedure rather than a function like its
+   --  sister Process_Statements because the Irep (an I_Code_Block) has to be
+   --  extended in package_specifications when it has private declarations.
+
    procedure Process_Statement (N : Node_Id; Block : Irep)
    with Pre => Kind (Block) = I_Code_Block;
-   --  Process statement or declaration
+   --  Process statement
 
    function Process_Statements (L : List_Id) return Irep
    with Post => Kind (Process_Statements'Result) = I_Code_Block;
-   --  Process list of statements or declarations
+   --  Process list of statements
 
    procedure Register_Subprogram_Specification (N : Node_Id)
    with Pre => Nkind (N) in N_Subprogram_Specification;
@@ -4911,44 +4935,30 @@ package body Tree_Walk is
       end;
    end Maybe_Make_Typecast;
 
-   -------------------------
-   --  Process_Statement  --
-   -------------------------
+   --------------------------------
+   --  Warn_Unhandled_Construct  --
+   --------------------------------
 
-   procedure Process_Statement (N : Node_Id; Block : Irep) is
-      procedure Warn_Unhandled_Statement (M : String);
-      procedure Warn_Unhandled_Statement (M : String) is
-      begin
-         Put_Line (Standard_Error, "Warning: " & M & "statements unhandled");
-      end Warn_Unhandled_Statement;
+   procedure Warn_Unhandled_Construct (C : Construct; Mess : String) is
+      S : constant String :=
+        (case C is
+            when Declaration => " declarations ",
+            when Statement   => " statements ") & "unhandled";
    begin
-      --  Deal with the statement
+      Put_Line (Standard_Error, "Warning: " & Mess & S);
+   end Warn_Unhandled_Construct;
+
+   --------------------------
+   -- Process_Declaration --
+   --------------------------
+
+   procedure Process_Declaration (N : Node_Id; Block : Irep) is
+   begin
+      --  Deal with the declaration
+
       case Nkind (N) is
-         when N_Assignment_Statement =>
-            Append_Op (Block, Do_Assignment_Statement (N));
 
-         when N_Procedure_Call_Statement =>
-            Append_Op (Block, Do_Procedure_Call_Statement (N));
-
-         when N_Simple_Return_Statement =>
-            Append_Op (Block, Do_Simple_Return_Statement (N));
-
-         when N_Object_Declaration =>
-            Do_Object_Declaration (N, Block);
-
-         when N_Handled_Sequence_Of_Statements =>
-            Append_Op (Block, Do_Handled_Sequence_Of_Statements (N));
-
-         when N_If_Statement =>
-            Append_Op (Block, Do_If_Statement (N));
-
-         when N_Implicit_Label_Declaration =>
-            --  Ignore for now, as I guess an implicit label can't be
-            --  referenced.
-            null;
-
-         when N_Loop_Statement =>
-            Append_Op (Block, Do_Loop_Statement (N));
+         --  basic_declarations  --
 
          when N_Full_Type_Declaration =>
             Do_Full_Type_Declaration (N);
@@ -4956,36 +4966,216 @@ package body Tree_Walk is
          when N_Subtype_Declaration =>
             Do_Subtype_Declaration (N);
 
-         when N_Freeze_Entity =>
-            --  Ignore, nothing to generate
-            null;
+         when N_Object_Declaration =>
+            Do_Object_Declaration (N, Block);
 
-         when N_Itype_Reference =>
-            Do_Itype_Reference (N);
+         when N_Number_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Number");
 
          when N_Subprogram_Declaration =>
             Do_Subprogram_Declaration (N);
 
+         when N_Abstract_Subprogram_Declaration =>
+            Warn_Unhandled_Construct
+              (Declaration, "Abstract subprogram");
+
+         when N_Package_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Package");
+
+         when N_Renaming_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Renaming");
+
+         when N_Exception_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Exception");
+
+         when N_Generic_Declaration =>
+            Warn_Unhandled_Construct (Declaration, "Generic");
+
+         when N_Generic_Instantiation =>
+            Warn_Unhandled_Construct (Declaration, "Generic instantiation");
+
+            --  basic_declarative_items  --
+
+         when N_Representation_Clause =>
+            Warn_Unhandled_Construct (Declaration, "Representation clause");
+
+         when N_Use_Package_Clause =>
+            Warn_Unhandled_Construct (Declaration, "Use package clause");
+
+         when N_Use_Type_Clause =>
+            Warn_Unhandled_Construct (Declaration, "Use type clause");
+
+         --  remaining declarative items  --
+
+            --  proper_body  --
+
          when N_Subprogram_Body =>
             Do_Subprogram_Body (N);
 
+         when N_Package_Body =>
+            Warn_Unhandled_Construct (Declaration, "Package body");
+
+         when N_Task_Body =>
+            Warn_Unhandled_Construct (Declaration, "Task body");
+
+         when N_Protected_Body =>
+            Warn_Unhandled_Construct (Declaration, "Protected body");
+
+            --  body_stub  --
+
+         when N_Subprogram_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Subprogram body stub");
+
+         when N_Package_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Package body stub");
+
+         when N_Task_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Task body stub");
+
+         when N_Protected_Body_Stub =>
+            Warn_Unhandled_Construct (Declaration, "Protected body stub");
+
+         --  Pragmas may appear in declarations  --
+
+         when N_Pragma =>
+            Warn_Unhandled_Construct (Declaration, "Pragmas in");
+
+            --  Every code lable is implicitly declared in  --
+            --  the closest surrounding block               --
+
+         when N_Implicit_Label_Declaration =>
+            --  Ignore for now, as I guess an implicit label can't be
+            --  referenced.
+            --  Yes it can: this is the declaration of the name it appears
+            --  the declaritve section but is used on a statement.
+            null;
+
+         -- Not sure the nex two should be here --
+         when N_Itype_Reference =>
+            Do_Itype_Reference (N);
+
+         when N_Freeze_Entity =>
+            --  Ignore, nothing to generate
+            null;
+
+         when others =>
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Unknown declaration kind");
+
+      end case;
+
+   end Process_Declaration;
+
+   --------------------------
+   -- Process_Declarations --
+   --------------------------
+
+   procedure Process_Declarations (L : List_Id; Block : Irep) is
+      Decl : Node_Id := First (L);
+   begin
+      while Present (Decl) loop
+         Process_Declaration (Decl, Block);
+         Next (Decl);
+      end loop;
+
+   end Process_Declarations;
+
+   -------------------------
+   --  Process_Statement  --
+   -------------------------
+
+   procedure Process_Statement (N : Node_Id; Block : Irep) is
+   begin
+      --  Deal with the statement
+      case Nkind (N) is
+         -- Simple statements --
          when N_Null_Statement =>
             null;
+
+         when N_Assignment_Statement =>
+            Append_Op (Block, Do_Assignment_Statement (N));
 
          when N_Exit_Statement =>
             Append_Op (Block, Do_Exit_Statement (N));
 
+         when N_Goto_Statement =>
+            Warn_Unhandled_Construct (Statement, "goto");
+
+         when N_Procedure_Call_Statement =>
+            Append_Op (Block, Do_Procedure_Call_Statement (N));
+
+         when N_Simple_Return_Statement =>
+            Append_Op (Block, Do_Simple_Return_Statement (N));
+
+         when N_Entry_Call_Statement =>
+            Warn_Unhandled_Construct (Statement, "entry_call");
+
+         when N_Requeue_Statement =>
+            Warn_Unhandled_Construct (Statement, "requeue");
+
+         when N_Delay_Statement =>
+            Warn_Unhandled_Construct (Statement, "delay");
+
+         when N_Abort_Statement =>
+            Warn_Unhandled_Construct (Statement, "abort");
+
+         when N_Raise_Statement =>
+            Warn_Unhandled_Construct (Statement, "raise");
+
+         when N_Code_Statement =>
+            Warn_Unhandled_Construct (Statement, "code");
+
+         --  Compound statements
+
+         when N_If_Statement =>
+            Append_Op (Block, Do_If_Statement (N));
+
+         when N_Case_Statement =>
+            Warn_Unhandled_Construct (Statement, "case");
+
+         when N_Loop_Statement =>
+            Append_Op (Block, Do_Loop_Statement (N));
+
+         when N_Block_Statement =>
+            Warn_Unhandled_Construct (Statement, "block");
+
+         when N_Handled_Sequence_Of_Statements =>  -- this seems incorrct
+            --  It should be block_statement
+            Append_Op (Block, Do_Handled_Sequence_Of_Statements (N));
+
+         when N_Extended_Return_Statement =>
+            Warn_Unhandled_Construct (Statement, "extended_return");
+
+         when N_Accept_Statement =>
+            Warn_Unhandled_Construct (Statement, "accept");
+
+            -- Select statements --
+
+         when N_Selective_Accept =>
+            Warn_Unhandled_Construct (Statement, "selective_accept");
+
+         when N_Timed_Entry_Call =>
+            Warn_Unhandled_Construct (Statement, "timed_entry_call");
+
+         when N_Conditional_Entry_Call =>
+            Warn_Unhandled_Construct (Statement, "conditional_entry_call");
+
+         when N_Asynchronous_Select =>
+            Warn_Unhandled_Construct (Statement, "asychronous select");
+
+         -- Pragmas may placed in sequences of statements --
+
          when N_Pragma =>
             Do_Pragma (N, Block);
 
-         when N_Raise_Statement =>
-            Warn_Unhandled_Statement ("Raise");
+         --  Not sure the nex two should be here -
+         --  should they be in declarations? --
+--         when N_Itype_Reference =>
+--            Do_Itype_Reference (N);
 
-         when N_Number_Declaration =>
-            Warn_Unhandled_Statement ("Number declaration");
-
-         when N_Case_Statement =>
-            Warn_Unhandled_Statement ("Case");
+--         when N_Freeze_Entity =>
+--            --  Ignore, nothing to generate
+--            null;
 
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
