@@ -1,6 +1,9 @@
+with Uname;                 use Uname;
+
 with Einfo;                 use Einfo;
 with Namet;                 use Namet;
 with Nlists;                use Nlists;
+with Sem;
 with Sem_Util;              use Sem_Util;
 with Sem_Aux;               use Sem_Aux;
 with Snames;                use Snames;
@@ -204,6 +207,12 @@ package body Tree_Walk is
    function Do_Op_Not (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   procedure Do_Package_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Package_Declaration;
+
+   procedure Do_Package_Specification (N : Node_Id)
+   with Pre => Nkind (N) = N_Package_Specification;
+
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Procedure_Call_Statement,
         Post => Kind (Do_Procedure_Call_Statement'Result) =
@@ -275,6 +284,16 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Array_Type_Definition,
         Post => Kind (Do_Unconstrained_Array_Definition'Result) =
                 I_Struct_Type;
+
+   procedure Do_Withed_Unit_Spec (N : Node_Id);
+   --  Enters the specification of the withed unit, N, into the symbol table
+
+   procedure Do_Withed_Units_Specs is new Sem.Walk_Library_Items
+     (Action => Do_Withed_Unit_Spec);
+   --  Traverses tree applying the procedure Do_With_Unit_Spec to all nodes
+   --  which are specifications of library units withed by the GNAT_Root unit
+   --  (that is, the body being compiled).
+   --  It starts with the unit Standard and finishes with GNAT_Root
 
    function Find_Record_Variant (Variant_Part : Node_Id;
                                  Actual_Disc : Node_Id) return Node_Id
@@ -1245,24 +1264,26 @@ package body Tree_Walk is
       U           : constant Node_Id := Unit (N);
       Unit_Symbol : Symbol;
    begin
+      --  Insert all all specifications of all withed units including the
+      --  specification of the given compilation unit into the symbol table.
+      Do_Withed_Units_Specs;
+
       case Nkind (U) is
          when N_Subprogram_Body =>
             declare
-               Unit_Type : constant Irep :=
-                 Do_Subprogram_Specification (Specification (U));
                Unit_Name : constant Symbol_Id :=
                  Intern (Unique_Name (Unique_Defining_Entity (U)));
             begin
-               --  Register the symbol *before* we compile the body, for
-               --  recursive calls.
-               Unit_Symbol.Name       := Unit_Name;
-               Unit_Symbol.PrettyName := Unit_Name;
-               Unit_Symbol.BaseName   := Unit_Name;
-               Unit_Symbol.Mode       := Intern ("C");
-               Unit_Symbol.SymType    := Unit_Type;
-               Global_Symbol_Table.Insert (Unit_Name, Unit_Symbol);
+               --  The specification of the subprogram body has already
+               --  been inserted into the symbol table by the call to
+               --  Do_Withed_Unit_Specs.
+               pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
+               Unit_Symbol := Global_Symbol_Table (Unit_Name);
 
-               Unit_Symbol.Value      := Do_Subprogram_Or_Block (U);
+               --  Now compile the body of the subprogram
+               Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
+
+               --  and update the symbol table entry for this subprogram.
                Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
                Add_Start := True;
             end;
@@ -3502,6 +3523,31 @@ package body Tree_Walk is
       return Ret;
    end Do_Operator_Simple;
 
+   ----------------------------
+   -- Do_Package_Declaration --
+   ----------------------------
+
+   procedure Do_Package_Declaration (N : Node_Id) is
+   begin
+      Do_Package_Specification (Specification (N));
+   end Do_Package_Declaration;
+
+   ----------------------------
+   -- Do_Package_Specification --
+   ----------------------------
+
+   procedure Do_Package_Specification (N : Node_Id) is
+      Package_Decs : constant Irep := New_Irep (I_Code_Block);
+   begin
+      Set_Source_Location (Package_Decs, Sloc (N));
+      if Present (Visible_Declarations (N)) then
+         Process_Declarations (Visible_Declarations (N), Package_Decs);
+      end if;
+      if Present (Private_Declarations (N)) then
+         Process_Declarations (Private_Declarations (N), Package_Decs);
+      end if;
+   end Do_Package_Specification;
+
    ---------------------------------
    -- Do_Procedure_Call_Statement --
    ---------------------------------
@@ -3985,18 +4031,18 @@ package body Tree_Walk is
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep is
       Decls : constant List_Id := Declarations (N);
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
-      Decls_Rep : Irep;
+      Reps : constant Irep := New_Irep (I_Code_Block);
    begin
-      Decls_Rep := (if Present (Decls)
-                    then Process_Statements (Decls)
-                    else New_Irep (I_Code_Block));
-
-      Set_Source_Location (Decls_Rep, Sloc (N));
-      if Present (HSS) then
-         Process_Statement (HSS, Decls_Rep);
+      if Present (Decls) then
+         Process_Declarations (Decls, Reps);
       end if;
 
-      return Decls_Rep;
+      Set_Source_Location (Reps, Sloc (N));
+      if Present (HSS) then
+         Process_Statement (HSS, Reps);
+      end if;
+
+      return Reps;
    end Do_Subprogram_Or_Block;
 
    --------------------------------
@@ -4255,6 +4301,54 @@ package body Tree_Walk is
       return Ret;
 
    end Do_Unconstrained_Array_Definition;
+
+   -------------------------
+   -- Do_Withed_Unit_Spec --
+   -------------------------
+
+   procedure Do_Withed_Unit_Spec (N : Node_Id) is
+      Unit_Name : constant String := Get_Name_String (Get_Unit_Name (N));
+   begin
+      if Defining_Entity (N) = Stand.Standard_Standard or else
+        Unit_Name = "system%s"
+      then
+         null;
+         --   At the moment Standard or System are not processed - to be done
+      else
+
+         case Nkind (N) is
+            when N_Subprogram_Body =>
+               if Acts_As_Spec (N) then
+                  --  The unit is a withed library unit which subprogram body
+                  --  that has no separate declaration, or,
+                  --  it is the subprogram body of the compilation unit being
+                  --  compiled and it has no separate declaration.
+                  --  Obtain the subprogram specification from the body
+                  --  and insert it into the symbol table.
+                  Register_Subprogram_Specification (Specification (N));
+               else
+                  null;
+               end if;
+            when N_Subprogram_Declaration =>
+               --  The unit is withed library unit that is a subprogram
+               --  declaration, or,
+               --  it is the declaration of the compilation unit body being
+               --  compiled.
+               --  Do_Subprogram_Declaration enters the specification of the
+               --  subprogram into the symbol table.
+               Do_Subprogram_Declaration (N);
+            when N_Package_Declaration =>
+               Do_Package_Declaration (N);
+            when N_Package_Body =>
+               null;
+            when others =>
+               Put_Line (Standard_Error,
+                         "This type of library_unit is not yet handled");
+         end case;
+
+      end if;
+
+   end Do_Withed_Unit_Spec;
 
    -------------------------
    -- Find_Record_Variant --
