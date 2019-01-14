@@ -3833,7 +3833,9 @@ package body Tree_Walk is
          Append_Declare_And_Init
            (Counter_Sym, Make_Integer_Constant (0, Index_Type), Body_Block, 0);
 
+         Set_Init (Body_Loop, Make_Nil (Get_Source_Location (Body_Loop)));
          Set_Iter (Body_Loop, Make_Increment (Counter_Sym, Index_Type, 1));
+         Set_Type (Loop_Test, Make_Bool_Type);
          Set_Lhs (Loop_Test, Counter_Sym);
          Set_Rhs (Loop_Test, Param_Symbol (Len_Arg));
          Set_Cond (Body_Loop, Loop_Test);
