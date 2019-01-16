@@ -3,6 +3,6 @@ begin
    if (A <= 0) then
       return;
    else
-      Recursion (A - 1);
+      Recursion (A + 1);
    end if;
 end;
