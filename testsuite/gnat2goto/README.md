@@ -69,39 +69,20 @@ Requirements
 
 Running tests
 -------------
-For the gnat2goto test suite each test subdirectory has a file test.py.
-  In this file is a call to a subprogram prove.  This subprogram has an
-  optional parameter, debug <prove (debug=True>),
-  to generate extra information in the test results. The extra information
-  is enclosed by the delimiting lines:
-  <<< DEBUG *test file* >>> and <<< END DEBUG *test file*  >>>
-  of course this will cause a DIFF to be reported between actual and
-  expected output.  By default debug=False.
-
-WARNING running ./update-expected outputs will replace all test.out
-	(expected result) files with the actual results.
-	A summary of the diffs between expected and actual results,
-	and unexpected outputs is given by testsuite so it is not necessary
-	to run ./update-expected-outputs.
-	If ./update-expected-outputs is run, then the recommendtion is to:
-	create a local git branch from the current branch (or be prepared to
-	revert all the changed test.out files, i.e.,
-	git checkout -- tests/<test-dir>/test.out for each changed test.out).
+For the gnat2goto test suite each test subdirectory has a file `test.py`.
+In this file is a call to a subprogram prove.  This subprogram has an
+optional parameter, debug `<prove (debug=True>)`,
+to generate extra information in the test results. The extra information
+is enclosed by the delimiting lines:
+`<<< DEBUG *test file* >>>` and `<<< END DEBUG *test file*  >>>`
+of course this will cause a DIFF to be reported between actual and
+expected output.  By default `debug=False`.
 
 * To run test suite:
 ```
 $ ./testsuite.py -j 4
 ```
 where ```-j``` sets the number of tests to run in parallel (default is 1).
-
-* then, optionally
-
-```
-$ ./update-expected-outputs
-$ git diff
-```
-* if update-expected-outputs has been run, to tidy up,
-  delete new local branch or revert all changed test.out files
 
 Adding tests
 ------------
@@ -110,8 +91,7 @@ Adding tests
 * create some .adb files
 * create a `test.py` driver file
   This can normally be copied from another testcase
-* run test with `testsuite.py` followed by `./update-expected-outputs` to strip
-  the expected test output from noise (e.g. CBMC timing)
+* run tests with `testsuite.py` 
 * check the test subdirectory into the version control
 * optionally revert all other changed test.out files.
 
