@@ -1,1 +1,1 @@
-ALL XFAIL For some reason gnat2goto generates an empty for statement in here
+ALL XFAIL CBMC fails with __new_array not found, like in arrays
