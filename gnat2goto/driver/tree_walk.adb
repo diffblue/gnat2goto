@@ -25,6 +25,8 @@ with Range_Check; use Range_Check;
 
 package body Tree_Walk is
 
+   function Make_Malloc_Function_Call_Expr (Size : Irep) return Irep;
+
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
    procedure Append_Declare_And_Init
@@ -373,6 +375,24 @@ package body Tree_Walk is
    function Report_Unhandled_Node_Kind (N : Node_Id;
                                         Fun_Name : String;
                                         Message : String) return Irep_Kind;
+
+   function Make_Malloc_Function_Call_Expr (Size : Irep) return Irep is
+      Malloc_Args  : constant Irep := New_Irep (I_Argument_List);
+      Source_Loc : constant Source_Ptr := Get_Source_Location (Size);
+      Malloc_Name : constant String := "malloc";
+      Malloc_Call : constant Irep :=
+        Make_Side_Effect_Expr_Function_Call (Arguments       => Malloc_Args,
+                                             I_Function      => Symbol_Expr (
+                                   Global_Symbol_Table (Intern (Malloc_Name))),
+                                             Source_Location => Source_Loc,
+                        I_Type          => Make_Pointer_Type (Make_Void_Type));
+   begin
+      Append_Argument (Malloc_Args,
+                       Make_Op_Typecast (Op0             => Size,
+                                         Source_Location => Source_Loc,
+                    I_Type          => Make_Symbol_Type ("__CPROVER_size_t")));
+      return Malloc_Call;
+   end Make_Malloc_Function_Call_Expr;
 
    procedure Report_Unhandled_Node_Empty (N : Node_Id;
                                           Fun_Name : String;
