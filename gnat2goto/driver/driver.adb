@@ -55,11 +55,42 @@ package body Driver is
    procedure Follow_Type_Declarations (Old_Table : Symbol_Table;
                                        New_Table : in out Symbol_Table);
 
+   procedure Add_Malloc_Symbol;
+
+   procedure Add_Malloc_Symbol is
+      Malloc_Name : constant String := "malloc";
+      Malloc_Params : constant Irep := New_Irep (I_Parameter_List);
+      Size_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Malloc_Name,
+                              Param_Name      => "size",
+                              Param_Type      =>
+                           Make_Symbol_Type (Identifier => "__CPROVER_size_t"),
+                              Param_List      => Malloc_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Malloc_Type : constant Irep :=
+        Make_Code_Type (Parameters  => Malloc_Params,
+                        Ellipsis    => False,
+                        Return_Type => Make_Pointer_Type (Make_Void_Type),
+                        Inlined     => False,
+                        Knr         => False);
+      Malloc_Symbol : Symbol;
+   begin
+      if Kind (Size_Param) = I_Code_Parameter then
+         Malloc_Symbol :=
+           New_Function_Symbol_Entry (Name           => Malloc_Name,
+                                      Symbol_Type    => Malloc_Type,
+                                      Value          => Ireps.Empty,
+                                      A_Symbol_Table => Global_Symbol_Table);
+         pragma Assert (Kind (Malloc_Symbol.SymType) = I_Code_Type);
+      end if;
+   end Add_Malloc_Symbol;
+
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
    begin
       Translate_Standard_Types;
       Add_CProver_Internal_Symbols;
+      Add_Malloc_Symbol;
       Translate_Compilation_Unit (GNAT_Root);
    end GNAT_To_Goto;
 
@@ -398,6 +429,20 @@ package body Driver is
          Global_Symbol_Table.Insert (Builtin.Name, Builtin);
       end Add_Universal_Integer;
 
+      procedure Add_CProver_Size_T;
+      procedure Add_CProver_Size_T is
+         Builtin   : Symbol;
+         Type_Irep : constant Irep := New_Irep (I_Unsignedbv_Type);
+      begin
+         Set_Width (Type_Irep, 64);
+         Builtin.Name       := Intern ("__CPROVER_size_t");
+         Builtin.PrettyName := Builtin.Name;
+         Builtin.BaseName   := Builtin.Name;
+         Builtin.SymType    := Type_Irep;
+         Builtin.IsType     := True;
+
+         Global_Symbol_Table.Insert (Builtin.Name, Builtin);
+      end Add_CProver_Size_T;
    begin
       --  Add primitive types to the symtab
       for Standard_Type in S_Types'Range loop
@@ -458,6 +503,7 @@ package body Driver is
       end loop;
       Add_Universal_Integer;
       Add_Standard_String;
+      Add_CProver_Size_T;
    end Translate_Standard_Types;
 
    procedure Add_CProver_Internal_Symbols is
