@@ -43,6 +43,7 @@ with Sinfo;                 use Sinfo;
 with Namet;                 use Namet;
 with Lib;                   use Lib;
 with GNAT_Utils;            use GNAT_Utils;
+with GOTO_Utils;            use GOTO_Utils;
 
 with GNAT2GOTO.Options;
 
@@ -84,8 +85,45 @@ package body Driver is
          Append_Op (Start_Body, Initialization_Statement);
       end Initialize_CProver_Rounding_Mode;
 
+      procedure Initialize_Enum_Values;
+      procedure Initialize_Enum_Values is
+
+         procedure Initialize_Enum_Member (Member : Irep);
+         procedure Initialize_Enum_Member (Member : Irep) is
+            Member_Name : constant Symbol_Id := Intern
+              (Get_Identifier (Member));
+            Member_Symbol : constant Symbol :=
+              Global_Symbol_Table.Element (Member_Name);
+            Member_Assignment : constant Irep := Make_Code_Assign
+              (Lhs => Symbol_Expr (Member_Symbol),
+               Rhs => Member_Symbol.Value,
+               Source_Location => No_Location);
+         begin
+            Append_Op (Start_Body, Member_Assignment);
+         end Initialize_Enum_Member;
+
+         procedure Initialize_Enum_Members (Enum_Type : Irep);
+         procedure Initialize_Enum_Members (Enum_Type : Irep) is
+            Members : constant Irep_List := Get_Member (Get_Body (Enum_Type));
+            C : List_Cursor := List_First (Members);
+         begin
+            while List_Has_Element (Members, C) loop
+               Initialize_Enum_Member (List_Element (Members, C));
+               C := List_Next (Members, C);
+            end loop;
+
+         end Initialize_Enum_Members;
+      begin
+         for Sym of Global_Symbol_Table loop
+            if Kind (Sym.SymType) = I_C_Enum_Type and Sym.IsType then
+               Initialize_Enum_Members (Sym.SymType);
+            end if;
+         end loop;
+      end Initialize_Enum_Values;
+
    begin
       Initialize_CProver_Rounding_Mode;
+      Initialize_Enum_Values;
    end Initialize_CProver_Internal_Variables;
 
    procedure Translate_Compilation_Unit (GNAT_Root : Node_Id)
