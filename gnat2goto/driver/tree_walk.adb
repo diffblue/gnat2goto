@@ -810,6 +810,8 @@ package body Tree_Walk is
         Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
       RHS_Data_Type : constant Irep :=
         Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
+      LHS_fun_call : constant Irep :=
+        Fresh_Var_Symbol_Expr (LHS_Data_Type, "copy_fun_lhs");
    begin
       if not Can_Get_Array_Index_Type (Name (N)) then
          Report_Unhandled_Node_Empty (N, "Do_Array_Assignment",
@@ -876,9 +878,12 @@ package body Tree_Walk is
          Append_Argument (Copy_Args, LHS_Length);
       end;
 
-      Append_Op (Ret, Make_Code_Function_Call (I_Function => Copy_Func,
-                                               Arguments => Copy_Args,
-                                               Source_Location => Sloc (N)));
+      Append_Op (Ret,
+                 Make_Code_Function_Call (Arguments       => Copy_Args,
+                                          I_Function      => Copy_Func,
+                                          Lhs             => LHS_fun_call,
+                                          Source_Location => Sloc (N),
+                                          I_Type          => Make_Void_Type));
 
       return Ret;
 
