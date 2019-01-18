@@ -30,7 +30,8 @@ package body Tree_Walk is
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
    procedure Append_Declare_And_Init
-     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr);
+     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
+   with Pre => Kind (Value) in Class_Expr;
 
    procedure Declare_Itype (Ty : Entity_Id);
 
@@ -61,7 +62,7 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
         Post => Kind (Do_Assignment_Statement'Result) in
-                I_Code_Assign;
+                I_Code_Assign | I_Code_Block;
 
    function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
                                      return Irep
