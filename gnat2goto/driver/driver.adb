@@ -121,9 +121,57 @@ package body Driver is
          end loop;
       end Initialize_Enum_Values;
 
+      procedure Initialize_Boolean_Values;
+      procedure Initialize_Boolean_Values is
+         True_Symbol_Expr : constant Irep := Make_Symbol_Expr
+           (I_Type => Make_Bool_Type,
+            Identifier => "standard__boolean__true",
+            Source_Location => No_Location);
+         True_Val : constant Irep := Make_Op_Typecast
+           (Op0 => Make_Constant_Expr
+              (I_Type => Int_32_T,
+               Value => "1",
+               Source_Location => No_Location),
+            I_Type => Make_Bool_Type,
+            Source_Location => No_Location);
+         True_Assign : constant Irep := Make_Code_Assign
+           (Lhs => True_Symbol_Expr,
+            Rhs => True_Val,
+            Source_Location => No_Location);
+
+         False_Symbol_Expr : constant Irep := Make_Symbol_Expr
+           (I_Type => Make_Bool_Type,
+            Identifier => "standard__boolean__false",
+            Source_Location => No_Location);
+         False_Val : constant Irep := Make_Op_Typecast
+           (Op0 => Make_Constant_Expr
+              (I_Type => Int_32_T,
+               Value => "0",
+               Source_Location => No_Location),
+            I_Type => Make_Bool_Type,
+            Source_Location => No_Location);
+         False_Assign : constant Irep := Make_Code_Assign
+           (Lhs => False_Symbol_Expr,
+            Rhs => False_Val,
+            Source_Location => No_Location);
+      begin
+         --  True and false only appear in the symbol table if they're actually
+         --  being used in the program, hence we need to check so we don't
+         --  create assignments to undefined symbols
+         if Global_Symbol_Table.Contains (Intern ("standard__boolean__true"))
+         then
+            Append_Op (Start_Body, True_Assign);
+         end if;
+         if Global_Symbol_Table.Contains (Intern ("standard__boolean__false"))
+         then
+            Append_Op (Start_Body, False_Assign);
+         end if;
+      end Initialize_Boolean_Values;
+
    begin
       Initialize_CProver_Rounding_Mode;
       Initialize_Enum_Values;
+      Initialize_Boolean_Values;
    end Initialize_CProver_Internal_Variables;
 
    procedure Translate_Compilation_Unit (GNAT_Root : Node_Id)
