@@ -418,7 +418,7 @@ package body Tree_Walk is
 
    procedure Declare_Itype (Ty : Entity_Id) is
    begin
-      if Is_Itype (Ty) then
+      if Present (Ty) and then Is_Itype (Ty) then
          declare
             Ty_Name : constant Symbol_Id := Intern (Unique_Name (Ty));
             Ty_Symbol : Symbol;
@@ -1710,12 +1710,12 @@ package body Tree_Walk is
          --  this is used for discriminants during record init.
          return Identifier_Maps.Element (Subst_Cursor);
       else
-         if not (Is_Type (Etype (E))) then
-            Report_Unhandled_Node_Empty (N, "Do_Identifier",
-                                         "Etype not a type");
-            return R : constant Irep := New_Irep (I_Symbol_Expr);
+         if Nkind (E) in N_Has_Etype and then (Is_Type (Etype (E))) then
+            return Do_Defining_Identifier (E);
          end if;
-         return Do_Defining_Identifier (E);
+         Report_Unhandled_Node_Empty (N, "Do_Identifier",
+                                         "Etype not a type");
+         return R : constant Irep := New_Irep (I_Symbol_Expr);
       end if;
    end Do_Identifier;
 
@@ -2182,6 +2182,11 @@ package body Tree_Walk is
       --  the resulting goto program
       procedure Do_Pragma_Assert_or_Assume
         (N_Orig : Node_Id; Block : Irep);
+      --  Handle pragmas that suppress some checks by explicitly ignoring them
+      procedure Do_Pragma_Suppress
+        (N_Orig : Node_Id);
+      procedure Do_Pragma_Refine
+        (N_Orig : Node_Id);
 
       procedure Do_Pragma_Assert_or_Assume
         (N_Orig : Node_Id; Block : Irep)
@@ -2189,8 +2194,8 @@ package body Tree_Walk is
 
          Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
          A_Irep : constant Irep := New_Irep
-           (if Which in Pragma_Assert | Pragma_Loop_Invariant
-            then I_Code_Assert else I_Code_Assume);
+           (if Which in Pragma_Assume
+            then I_Code_Assume else I_Code_Assert);
 
          --  To be set by iterator:
          Check : Irep := Ireps.Empty;
@@ -2202,6 +2207,9 @@ package body Tree_Walk is
          procedure Handle_Arg
            (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
 
+         --  Handle_Arg is called in a loop, Arg_Pos stores the loop iterations
+         --  Arg_Name is the name of the parameter
+         --  Expr is the Expression associated with the parameter
          procedure Handle_Arg
            (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id) is
          begin
@@ -2221,9 +2229,13 @@ package body Tree_Walk is
          end Handle_Arg;
 
          procedure Iterate_Args is new
+           --  Iteration is a generic function which takes Handle_Arg as a
+           --  call-back.
            Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
 
       begin
+         --  We iterate over the pragma parameters calling Handle_Arg on each
+         --  parameter
          Iterate_Args (N_Orig);
          if Check = Ireps.Empty then
             Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
@@ -2239,6 +2251,100 @@ package body Tree_Walk is
          Append_Op (Block, A_Irep);
       end Do_Pragma_Assert_or_Assume;
 
+      procedure Do_Pragma_Suppress
+        (N_Orig : Node_Id)
+      is
+         --  To be set by iterator:
+         Suppress_Scope : Name_Id;
+
+         ----------------
+         -- Handle_Arg --
+         ----------------
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id) is
+         begin
+
+            --  Suppress pragma only takes one argument with no name
+            --  The expression stores the scope in Chars
+            if Arg_Name = No_Name and then
+              Arg_Pos = 1 and then
+              Nkind (Expr) = N_Identifier
+            then
+               Suppress_Scope := Chars (Expr);
+            else
+               Report_Unhandled_Node_Empty (N, "Do_Pragma_Suppress",
+                                            "Unknown arg name");
+            end if;
+         end Handle_Arg;
+
+         procedure Iterate_Args is new
+           Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
+
+      begin
+         Iterate_Args (N_Orig);
+         if Suppress_Scope = Name_All_Checks
+         then
+            null; -- Intentionally ignoring this request to suppress all checks
+         else
+            null; -- Intentionally ignoring supressing some checks
+         end if;
+
+      end Do_Pragma_Suppress;
+
+      procedure Do_Pragma_Refine
+        (N_Orig : Node_Id)
+      is
+         --  To be set by iterator:
+         Components : List_Id;
+         Component_Expression : Node_Id;
+         CEE : List_Id;
+         Scope_Size : Nat;
+
+         ----------------
+         -- Handle_Arg --
+         ----------------
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id);
+
+         procedure Handle_Arg
+           (Arg_Pos : Positive; Arg_Name : Name_Id; Expr : Node_Id) is
+         begin
+
+            if Arg_Name = No_Name and then
+              Arg_Pos = 1 and then
+            --  Refine pragma takes parameters whose arguments are aggregates.
+            --  The following code demonstrates how to access the refine
+            --  arguments.
+              Nkind (Expr) = N_Aggregate
+            then
+               Components := Component_Associations (Expr);
+               Component_Expression := Expression (First (Components));
+               CEE := Expressions (Component_Expression);
+               Scope_Size := Scope_Size + List_Length (CEE);
+            else
+               Report_Unhandled_Node_Empty (N, "Do_Pragma_Refine",
+                                            "Unknown arg name");
+            end if;
+         end Handle_Arg;
+
+         procedure Iterate_Args is new
+           Iterate_Pragma_Parameters (Handle_Arg => Handle_Arg);
+
+      begin
+         Iterate_Args (N_Orig);
+         if Scope_Size >= 1
+         then
+            Report_Unhandled_Node_Empty (N, "Do_Pragma Refine",
+                                      "Refinement known but unsupported.");
+         end if;
+
+      end Do_Pragma_Refine;
+
       N_Orig : Node_Id;
 
    begin
@@ -2247,25 +2353,235 @@ package body Tree_Walk is
                                       "Original node not present");
       end if;
       N_Orig := Original_Node (N);
-      if Pragma_Name (N_Orig) in Name_Assert | Name_Assume |
-         Name_Loop_Invariant
-      then
-         Do_Pragma_Assert_or_Assume (N_Orig, Block);
-      --  Ignore here. Rather look for those when we process a node.
-      elsif Pragma_Name (N_Orig) in Name_Annotate then
-         null;
-      --  The following pragmas are currently unimplemented, we ignore them
-      --  here
-      elsif Pragma_Name (N_Orig) in Name_SPARK_Mode | Name_Global |
-         Name_Postcondition | Name_Refined_State | Name_Refined_Global |
-         Name_Precondition
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
-                                      "Unsupported pragma");
-      else
-         Report_Unhandled_Node_Empty (N, "Do_Pragma_Assert_or_Assume",
-                                      "Unknown");
-      end if;
+      case Pragma_Name (N_Orig) is
+         when Name_Assert |
+              Name_Assume |
+              Name_Assert_And_Cut |
+            --  Assert and introduce a cut point: the prover can safely forget
+            --  evaluations of local variables and only assume the asserted
+            --  condition. This could be used in symex (making it concolic)
+            --  but is only an optimization.
+            Name_Loop_Invariant =>
+            --  Equivalent to assert but also introduces a cut point wrt. the
+            --  variables local to the loop.
+            Do_Pragma_Assert_or_Assume (N_Orig, Block);
+         when Name_Precondition =>
+            Do_Pragma_Assert_or_Assume (N_Orig, Block);
+         when Name_Postcondition =>
+            --  Postcondition will eventually also be translated into
+            --  assertions but they should hold elsewhere from where they are
+            --  defined and they refer to 'Result variables
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Postcondition");
+         when Name_Refined_State |
+              Name_Refined_Global |
+              Name_Refined_Depends =>
+            --  We are not supporting refinement at this point
+            --  Using it would (probably) require modification to CBMC
+            Do_Pragma_Refine (N_Orig);
+         when Name_Suppress =>
+            --  Suppressing is effectively also ignored (elaborated as example)
+            Do_Pragma_Suppress (N_Orig);
+         when Name_SPARK_Mode =>
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: SPARK Mode");
+         when Name_Global =>
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Global");
+         when Name_Variant =>
+            --  Could as well be ignored but is another verification condition
+            --  that should be checked
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Variant");
+         when Name_Asynchronous =>
+            --  Allows a remote subprogram call to return prior to completion
+            --  of the execution of the corresponding remote subprogram body.
+            --  It changes the semantics wrt to thread interleavings.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Asynchronous");
+         when Name_Atomic |
+              Name_Atomic_Components =>
+            --  For an atomic object all reads and updates of the object as a
+            --  whole are indivisible. It changes the semantics wrt to thread
+            --  interleavings.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Atomic");
+         when Name_Volatile |
+              Name_Volatile_Components =>
+            --  For a volatile object all reads and updates of the object as a
+            --  whole are performed directly to memory. In sequential execution
+            --  they may be modified by the environment. Effectively, they need
+            --  to be modelled as non-deterministic input in every state. It
+            --  changes the semantics wrt to thread interleavings.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Volatile");
+         when Name_Attach_Handler =>
+            --  The expression in the Attach_Handler pragma as evaluated at
+            --  object creation time specifies an interrupt. As part of the
+            --  initialization of that object, if the Attach_Handler pragma is
+            --  specified, the handler procedure is attached to the specified
+            --  interrupt. A check is made that the corresponding interrupt is
+            --  not reserved. We do not support that check yet.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Attach Handler");
+         when Name_Import =>
+            --  Used to import an entity defined in a foreign language into an
+            --  Ada program, thus allowing a foreign-language subprogram to
+            --  be called from Ada, or a foreign-language variable to be
+            --  accessed from Ada. This would (probably) require gnat2goto to
+            --  understand the foreign code, which we do not at the moment.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Import");
+         when Name_Convention =>
+            --  Used to specify that an Ada entity should use the conventions
+            --  of another language. It is intended primarily for types and
+            --  callback subprograms. Same reason for not supporting as above.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Convention");
+         when Name_Elaborate =>
+            --  Specifies that the body of the named library unit is elaborated
+            --  before the current library_item. We will support packages.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Elaborate");
+         when Name_Elaborate_All =>
+            --  Specifies that each library_item that is needed by the named
+            --  library unit declaration is elaborated before the current
+            --  library_item. Same reason for future support as above.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Elaborate All");
+         when Name_Elaborate_Body =>
+            --  Specifies that the body of the library unit is elaborated
+            --  immediately after its declaration. Same reason for future
+            --  support as above.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Elaborate Body");
+         when Name_Preelaborate =>
+            --  If a library unit is preelaborated, then its declaration, if
+            --  any, and body, if any, are elaborated prior to all
+            --  non-preelaborated library_item s of the partition. Same reason
+            --  for future support as above.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                 "Known but unsupported pragma: Preelaborate");
+         when Name_Locking_Policy =>
+            --  Specifies whether or not protected objects have priorities, and
+            --  the relationships between these priorities and task priorities.
+            --  This may change thread interleaving.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Locking Policy");
+         when Name_Normalize_Scalars =>
+            --  Ensures that an otherwise uninitialized scalar object is set to
+            --  a predictable value, but out of range if possible. This
+            --  obviously changes the behaviour.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                      "Unsupported pragma: Normalize Scalars");
+         when Name_Queuing_Policy =>
+            --  Governs the order in which tasks are queued for entry
+            --  service, and the order in which different entry queues are
+            --  considered for service. This may change the behaviour.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Queuing Policy");
+         when Name_Remote_Types =>
+            --  Defines types intended for use in communication between active
+            --  partitions. Concurrency may be supported in the future.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Remote Types");
+         when Name_Restrictions =>
+            --  Expresses the user's intent to abide by certain restrictions.
+            --  This could probably be implemented as an assertion eventually.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Restrictions");
+         when Name_Shared_Passive =>
+            --  Used for managing global data shared between active partitions.
+            --  Concurrency may be supported in the future.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unsupported pragma: Shared Passive");
+         when Name_Task_Dispatching_Policy =>
+            --  Specifies the details of task dispatching that are not covered
+            --  by the basic task dispatching model. Concurrency may be
+            --  supported in the future.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                "Unsupported pragma: Task Dispatching Policy");
+         when Name_All_Calls_Remote |
+              Name_Remote_Call_Interface =>
+            --  Library unit pragma; used by the distributed systems annex
+            --  Interface for remote function calls between active partitions
+            --  Should not alter the semantics, but we want to know about it.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                  "Known but unsupported pragma: Remote Call");
+         when Name_Interrupt_Handler =>
+            --  If the pragma appears in a protected_definition, then the
+            --  corresponding procedure can be attached dynamically, as a
+            --  handler, to interrupts. We want to detect interrupts early.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                            "Known but unsupported pragma: Interrupt Handler");
+         when Name_Controlled =>
+            --  Used to prevent any automatic reclamation of storage (garbage
+            --  collection) for the objects created by allocators of a given
+            --  access type. Resource allocation problem must be detected.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                   "Known but unsupported pragma: Controlled");
+         when Name_Export =>
+            --  Used to export an Ada entity to a foreign language, thus
+            --  allowing an Ada subprogram to be called from a foreign
+            --  language, or an Ada object to be accessed from a foreign
+            --  language. Need to be detected.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                       "Known but unsupported pragma: Export");
+         when Name_Linker_Options =>
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. We want to
+            --  know that code manipulates the linking.
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                               "Known but unsupported pragma: Linker Options");
+         when Name_Annotate |
+            --  Ignore here. Rather look for those when we process a node.
+              Name_Assertion_Policy |
+            --  Control the pragma Assert according to the policy identifier
+            --  which can be Check, Ignore, or implementation-defined.
+            --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Discard_Names |
+            --  Used to request a reduction in storage used for the names of
+            --  certain entities. -> Ignored
+            Name_Inline |
+            --  Indicates that inline expansion is desired for all calls to
+            --  that entity. -> Ignored
+            Name_Inspection_Point |
+            --  Identifies a set of objects each of whose values is to be
+            --  available at the point(s) during program execution
+            --  corresponding to the position of the pragma in the compilation
+            --  unit. -> Ignored
+              Name_List |
+            --  Takes one of the identifiers On or Off as the single
+            --  argument. It specifies that listing of the compilation is to be
+            --  continued or suspended until a List pragma with the opposite
+            --  argument is given within the same compilation. -> Ignored
+              Name_Page |
+            --  Specifies that the program text which follows the pragma should
+            --  start on a new page (if the compiler is currently producing a
+            --  listing). -> Ignored
+              Name_Optimize |
+            --  Gives advice to the implementation as to whether time or space
+            --  is the primary optimization criterion. -> Ignored
+              Name_Pack |
+            --  Specifies that storage minimization should be the main
+            --  criterion when selecting the representation of a composite
+            --  type. -> Ignored
+              Name_Pure |
+            --  Used to declare that a library unit is pure: does not contain
+            --  declaration of any variable or named access type. -> Ignored
+              Name_Reviewable |
+            --  Directs the implementation to provide information to facilitate
+            --  analysis and review of a program's object code. -> Ignored
+              Name_Storage_Size |
+            --  Specifies the amount of storage to be reserved for the
+            --  execution of a task. -> Ignored
+              Name_Unsuppress =>
+            --  Voids the supressing request. -> Ignored
+            null;
+         when others =>
+            Report_Unhandled_Node_Empty (N, "Do_Pragma",
+                                         "Unknown pragma name");
+      end case;
    end Do_Pragma;
 
    ---------------------------
