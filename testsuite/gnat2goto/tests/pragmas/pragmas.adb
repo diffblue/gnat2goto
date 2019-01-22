@@ -13,5 +13,6 @@ begin
  
    --  Rejected by frontend already ("params out of order")
    --  pragma Assert (Message => "too big", Check => i > 3);
+   pragma Suppress(All_Checks);
 
 end Pragmas;
