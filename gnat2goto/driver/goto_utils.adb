@@ -2,6 +2,8 @@ with Namet;   use Namet;
 with Nlists;  use Nlists;
 with Aspects; use Aspects;
 
+with Ada.Text_IO;           use Ada.Text_IO;
+
 package body GOTO_Utils is
 
    ---------------------
@@ -91,6 +93,100 @@ package body GOTO_Utils is
       Set_Type (Ret, Sym.SymType);
       return Ret;
    end Symbol_Expr;
+
+   --------------------------------
+   -- New_Parameter_Symbol_Entry --
+   --------------------------------
+
+   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
+                                         BaseName :              String;
+                                         Symbol_Type :           Irep;
+                                         A_Symbol_Table : in out Symbol_Table)
+   is
+      New_Symbol : Symbol;
+   begin
+      New_Symbol.SymType := Symbol_Type;
+      New_Symbol.Name := Name_Id;
+      New_Symbol.PrettyName := Intern (BaseName);
+      New_Symbol.BaseName := Intern (BaseName);
+      New_Symbol.Mode := Intern ("C");
+
+      --  Setting it as a parameter
+      New_Symbol.IsParameter := True;
+      New_Symbol.IsLValue := True;
+      New_Symbol.IsFileLocal := True;
+      New_Symbol.IsThreadLocal := True;
+
+      if A_Symbol_Table.Contains (Key => Name_Id) then
+         Put_Line (Standard_Error,
+                   "----------At: New_Parameter_Symbol_Entry----------");
+         Put_Line (Standard_Error,
+                   "----------Trying to create known symbol.----------");
+         Put_Line (Standard_Error, "----------" & BaseName & "----------");
+      else
+         A_Symbol_Table.Insert (Name_Id, New_Symbol);
+      end if;
+   end New_Parameter_Symbol_Entry;
+
+   -------------------------------
+   -- New_Function_Symbol_Entry --
+   -------------------------------
+
+   function New_Function_Symbol_Entry (Name : String; Symbol_Type : Irep;
+                                       Value : Irep;
+                                       A_Symbol_Table : in out Symbol_Table)
+                                       return Symbol is
+      New_Symbol : Symbol;
+   begin
+      New_Symbol.SymType := Symbol_Type;
+      New_Symbol.Name := Intern (Name);
+      New_Symbol.PrettyName := New_Symbol.Name;
+      New_Symbol.BaseName := New_Symbol.Name;
+      New_Symbol.Mode := Intern ("C");
+      New_Symbol.Value := Value;
+
+      if A_Symbol_Table.Contains (Key => Intern (Name)) then
+         Put_Line (Standard_Error,
+                   "----------At: New_Function_Symbol_Entry----------");
+         Put_Line (Standard_Error,
+                   "----------Trying to create known symbol.----------");
+         Put_Line (Standard_Error, "----------" & Name & "----------");
+      else
+         A_Symbol_Table.Insert (Intern (Name), New_Symbol);
+      end if;
+      return New_Symbol;
+   end New_Function_Symbol_Entry;
+
+   --------------------------
+   -- Create_Fun_Parameter --
+   --------------------------
+
+   --  To be called when one needs to build a function inside gnat2goto
+   --  Modifies symbol table and Param_List as a side effect
+   --  Returns irep of type I_Code_Parameter
+   function Create_Fun_Parameter (Fun_Name : String; Param_Name : String;
+                                  Param_Type : Irep; Param_List : Irep;
+                                  A_Symbol_Table : in out Symbol_Table;
+                                  Source_Location : Source_Ptr := No_Location)
+                                  return Irep is
+      Func_Param_Id : constant Symbol_Id := Intern (Fun_Name & Param_Name);
+      --  Create an irep for the parameter
+      Value_Arg : constant Irep :=
+        Make_Code_Parameter (Source_Location => Source_Location,
+                             Default_Value   => Ireps.Empty,
+                             I_Type          => Param_Type,
+                             Base_Name       => Param_Name,
+                             This            => False,
+                             Identifier      => Unintern (Func_Param_Id));
+   begin
+      --  Creates a symbol for the parameter
+      New_Parameter_Symbol_Entry (Name_Id        => Func_Param_Id,
+                                  BaseName       => Param_Name,
+                                  Symbol_Type    => Param_Type,
+                                  A_Symbol_Table => A_Symbol_Table);
+      Append_Parameter (Param_List, Value_Arg);
+      return Value_Arg;
+   end Create_Fun_Parameter;
 
    ---------------------
    -- Name_Has_Prefix --
