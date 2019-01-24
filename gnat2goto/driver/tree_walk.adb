@@ -116,7 +116,8 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Subexpr,
         Post => Kind (Do_Expression'Result) in Class_Expr;
 
-   procedure Do_Full_Type_Declaration (N : Node_Id)
+   procedure Do_Full_Type_Declaration (N : Node_Id;
+                                       Full_From_Incomplete : Boolean)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
 
    function Do_Function_Call (N : Node_Id) return Irep
@@ -149,6 +150,9 @@ package body Tree_Walk is
    function Do_If_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
+
+   procedure Do_Incomplete_Type_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Incomplete_Type_Declaration;
 
    function Do_Exit_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Exit_Statement,
@@ -1639,25 +1643,50 @@ package body Tree_Walk is
    -- Do_Full_Type_Declaration --
    ------------------------------
 
-   procedure Do_Full_Type_Declaration (N : Node_Id) is
-      New_Type : constant Irep :=
-        Do_Type_Definition (Type_Definition (N),
-                            Discriminant_Specifications (N));
+   procedure Do_Full_Type_Declaration (N : Node_Id;
+                                       Full_From_Incomplete : Boolean) is
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
-      if not Is_Type (E) or else
-        not (Kind (New_Type) in Class_Type)
-      then
+      Put_Line ("In Do_Full_Type_Declaration");
+      Print_Node_Briefly (N);
+      if not Is_Type (E) then
          Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
-                                 "identifier not a type or not in class type");
+                                      "identifier not a type");
          return;
       end if;
-      Do_Type_Declaration (New_Type, E);
+      Put_Line ("Entity is a type");
+      if Full_From_Incomplete
+        or else not Present (Incomplete_View (N))
+      then
+         Put_Line ("We are going to do the dec");
+         if Full_From_Incomplete then
+            Put_Line ("Process full view of incomplete_type_declaration");
+         else
+            Put_Line ("full_type_declaration with no incomplete_view");
+         end if;
+         declare
+            New_Type : constant Irep :=
+              Do_Type_Definition (Type_Definition (N),
+                                  Discriminant_Specifications (N));
+         begin
+            if Kind (New_Type) not in Class_Type then
+               Report_Unhandled_Node_Empty (N, "Do Full_Type_Declaration",
+                                            "identifier not in class type");
+               return;
+            end if;
 
-      --  Declare the implicit initial subtype too
-      if Etype (E) /= E then
-         Do_Type_Declaration (New_Type, Etype (E));
+            Do_Type_Declaration (New_Type, E);
+
+            --  Declare the implicit initial subtype too
+            if Etype (E) /= E then
+               Do_Type_Declaration (New_Type, Etype (E));
+            end if;
+         end;
+
+      else
+         Put_Line ("The incomplete declaration has already been processed");
       end if;
+
    end Do_Full_Type_Declaration;
 
    -------------------------------
@@ -2058,6 +2087,44 @@ package body Tree_Walk is
       Do_Elsifs (First (Elsif_Parts (N)), Else_Statements (N), Ret);
       return Ret;
    end Do_If_Statement;
+
+   ------------------------------------
+   -- Do_Incomplete_Type_Declaration --
+   ------------------------------------
+
+   procedure Do_Incomplete_Type_Declaration (N : Node_Id) is
+      Entity : constant Entity_Id := Defining_Identifier (N);
+      Type_Name : constant String := To_String
+        (To_Unbounded_String (Unique_Name (Entity)));
+      Full_From_Incomplete : constant Boolean := True;
+   begin
+      if Is_Incomplete_Or_Private_Type (Entity) then
+         Put_Line ("Should be processing an incomplete_type_declaration "
+           & Type_Name);
+         Print_Node_Briefly (N);
+         if Is_Type (Entity) then
+            Put_Line ("Full declaration is at ");
+            Print_Node_Briefly (Etype (Full_View (Entity)));
+            Put_Line ("This should be the full type dec:");
+            Print_Node_Briefly (Declaration_Node (Full_View (Entity)));
+            if Nkind (Declaration_Node (Full_View (Entity))) =
+              N_Full_Type_Declaration
+            then
+               Do_Full_Type_Declaration
+                 (Declaration_Node (Full_View (Entity)),
+                 Full_From_Incomplete);
+            else
+               Put_Line ("Not a full type declaration_node");
+            end if;
+
+         else
+            Put_Line ("Can't find its full declaration");
+         end if;
+      else
+         Put_Line ("Entity is not an incomplete_type_declaration");
+      end if;
+
+   end Do_Incomplete_Type_Declaration;
 
    -----------------------------------------
    -- Do_Index_Or_Discriminant_Constraint --
@@ -4985,7 +5052,10 @@ package body Tree_Walk is
          --  basic_declarations  --
 
          when N_Full_Type_Declaration =>
-            Do_Full_Type_Declaration (N);
+            Do_Full_Type_Declaration (N, False);
+
+         when N_Incomplete_Type_Declaration =>
+            Do_Incomplete_Type_Declaration (N);
 
          when N_Subtype_Declaration =>
             Do_Subtype_Declaration (N);
