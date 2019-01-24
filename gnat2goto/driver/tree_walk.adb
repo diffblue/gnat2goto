@@ -388,7 +388,7 @@ package body Tree_Walk is
    procedure Process_Declarations (L : List_Id; Block : Irep);
    --  Processes the declarations and is used for both a package specification
    --  where only basic declarations are allowed (no subprogram bodies etc.)
-   --  and declarative parts where such declaratios are allowed.
+   --  and declarative parts where subprogram bodies etc. may be declared.
    --  The Gnat front end will check that only allowed declarations are used
    --  where only basic declarations permitted.
    --  Process_Declarations is a procedure rather than a function like its
@@ -1570,11 +1570,6 @@ package body Tree_Walk is
    end Create_Dummy_Irep;
 
    function Do_Expression (N : Node_Id) return Irep is
-      procedure Warn_Unhandled_Expression (M : String);
-      procedure Warn_Unhandled_Expression (M : String) is
-      begin
-         Put_Line (Standard_Error, "Warning: " & M & "expressions unhandled");
-      end Warn_Unhandled_Expression;
    begin
       Declare_Itype (Etype (N));
       case Nkind (N) is
@@ -1590,14 +1585,14 @@ package body Tree_Walk is
                when Attribute_Access => return Do_Address_Of (N);
                when Attribute_Length => return Do_Array_Length (N);
                when Attribute_Range  =>
-                  Warn_Unhandled_Expression ("Range attribute");
-                  return Create_Dummy_Irep;
+                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                     "Range attribute");
                when Attribute_First  =>
-                  Warn_Unhandled_Expression ("First attribute");
-                  return Create_Dummy_Irep;
+                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                     "First attribute");
                when Attribute_Last   =>
-                  Warn_Unhandled_Expression ("Last attribute");
-                  return Create_Dummy_Irep;
+                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                     "Last attribute");
                when others           =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Unknown attribute");
@@ -1608,20 +1603,20 @@ package body Tree_Walk is
          when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
          when N_In =>
-            Warn_Unhandled_Expression ("In");
-            return Create_Dummy_Irep;
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                               "In");
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
          when N_And_Then => return Do_And_Then (N);
          when N_Or_Else =>
-            Warn_Unhandled_Expression ("Or else");
-            return Create_Dummy_Irep;
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                               "Or else");
          when N_Qualified_Expression =>
-            Warn_Unhandled_Expression ("Qualified");
-            return Create_Dummy_Irep;
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                               "Qualified");
          when N_Quantified_Expression =>
-            Warn_Unhandled_Expression ("Quantified");
-            return Create_Dummy_Irep;
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                               "Quantified");
          when others                 =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Unknown expression kind");
@@ -4000,8 +3995,8 @@ package body Tree_Walk is
          --  populate the symbol table instead.
          Register_Subprogram_Specification (Specification (N));
       end if;
-      --  Todo aspect_specification
-      --  Now the subprogram should registered in the stmbol table
+      --  Todo aspect_specification, i.e. pre/post-conditions
+      --  Now the subprogram should registered in the symbol table
       --  whether a separate declaration was provided or not.
       if not Global_Symbol_Table.Contains (Proc_Name) then
          Report_Unhandled_Node_Empty (N, "Do_Subprogram_Body",
@@ -4312,10 +4307,10 @@ package body Tree_Walk is
       if Defining_Entity (N) = Stand.Standard_Standard or else
         Unit_Name = "system%s"
       then
+         --  At the moment Standard or System are not processed: TODO
          null;
-         --   At the moment Standard or System are not processed - to be done
       else
-
+         --  Handle all other withed library unit declarations
          case Nkind (N) is
             when N_Subprogram_Body =>
                if Acts_As_Spec (N) then
