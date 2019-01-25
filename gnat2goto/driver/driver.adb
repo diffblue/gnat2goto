@@ -257,6 +257,17 @@ package body Driver is
       end;
 
       if not Add_Start then
+         Start_Symbol.Name       := Start_Name;
+         Start_Symbol.PrettyName := Start_Name;
+         Start_Symbol.BaseName   := Start_Name;
+
+         Set_Return_Type (Start_Type, Void_Type);
+
+         Start_Symbol.SymType := Start_Type;
+         Start_Symbol.Value   := Start_Body;
+         Start_Symbol.Mode    := Intern ("C");
+
+         Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          Put_Line (Sym_Tab_File,
                    Create (SymbolTable2Json (Global_Symbol_Table)).Write);
       else
