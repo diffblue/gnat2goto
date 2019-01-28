@@ -25,10 +25,13 @@ with Range_Check; use Range_Check;
 
 package body Tree_Walk is
 
+   function Make_Malloc_Function_Call_Expr (Size : Irep) return Irep;
+
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
    procedure Append_Declare_And_Init
-     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr);
+     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
+   with Pre => Kind (Value) in Class_Expr;
 
    procedure Declare_Itype (Ty : Entity_Id);
 
@@ -59,7 +62,7 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
         Post => Kind (Do_Assignment_Statement'Result) in
-                I_Code_Assign;
+                I_Code_Assign | I_Code_Block;
 
    function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
                                      return Irep
@@ -373,6 +376,24 @@ package body Tree_Walk is
    function Report_Unhandled_Node_Kind (N : Node_Id;
                                         Fun_Name : String;
                                         Message : String) return Irep_Kind;
+
+   function Make_Malloc_Function_Call_Expr (Size : Irep) return Irep is
+      Malloc_Args  : constant Irep := New_Irep (I_Argument_List);
+      Source_Loc : constant Source_Ptr := Get_Source_Location (Size);
+      Malloc_Name : constant String := "malloc";
+      Malloc_Call : constant Irep :=
+        Make_Side_Effect_Expr_Function_Call (Arguments       => Malloc_Args,
+                                             I_Function      => Symbol_Expr (
+                                   Global_Symbol_Table (Intern (Malloc_Name))),
+                                             Source_Location => Source_Loc,
+                        I_Type          => Make_Pointer_Type (Make_Void_Type));
+   begin
+      Append_Argument (Malloc_Args,
+                       Make_Op_Typecast (Op0             => Size,
+                                         Source_Location => Source_Loc,
+                    I_Type          => Make_Symbol_Type ("__CPROVER_size_t")));
+      return Malloc_Call;
+   end Make_Malloc_Function_Call_Expr;
 
    procedure Report_Unhandled_Node_Empty (N : Node_Id;
                                           Fun_Name : String;
@@ -790,6 +811,8 @@ package body Tree_Walk is
         Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
       RHS_Data_Type : constant Irep :=
         Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
+      LHS_fun_call : constant Irep :=
+        Fresh_Var_Symbol_Expr (LHS_Data_Type, "copy_fun_lhs");
    begin
       if not Can_Get_Array_Index_Type (Name (N)) then
          Report_Unhandled_Node_Empty (N, "Do_Array_Assignment",
@@ -856,9 +879,12 @@ package body Tree_Walk is
          Append_Argument (Copy_Args, LHS_Length);
       end;
 
-      Append_Op (Ret, Make_Code_Function_Call (I_Function => Copy_Func,
-                                               Arguments => Copy_Args,
-                                               Source_Location => Sloc (N)));
+      Append_Op (Ret,
+                 Make_Code_Function_Call (Arguments       => Copy_Args,
+                                          I_Function      => Copy_Func,
+                                          Lhs             => LHS_fun_call,
+                                          Source_Location => Sloc (N),
+                                          I_Type          => Make_Void_Type));
 
       return Ret;
 
@@ -4299,99 +4325,120 @@ package body Tree_Walk is
         (LHS_Element_Type, RHS_Element_Type, Index_Type);
       Map_Cursor : Array_Copy_Maps.Cursor;
       Map_Inserted : Boolean;
+
+      function Build_Copy_Function return Symbol;
+
+      -------------------------
+      -- Build_Copy_Function --
+      -------------------------
+
+      --  Build a functions:
+      --  n.b.: the typecast is optional
+      --  void copy_array(lhs_type* out, rhs_type* in, int len) {
+      --    int idx = 0;
+      --    for (;idx < len; idx++)
+      --      out[idx] = (lhs_type)in[idx];
+      --  }
+      function Build_Copy_Function return Symbol
+      is
+         Source_Loc : constant Source_Ptr := Sloc (RHS_Element_Type);
+         Map_Size_Str : constant String :=
+           Integer'Image (Integer (Array_Copy_Map.Length));
+         Func_Name : constant String :=
+           "__ada_copy_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
+         Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+         Func_Params : constant Irep := New_Irep (I_Parameter_List);
+         LHS_Ptr_Type : constant Irep :=
+           Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
+         Write_Ptr_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "out",
+                                 Param_Type      => LHS_Ptr_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         RHS_Ptr_Type : constant Irep :=
+           Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
+         Read_Ptr_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "in",
+                                 Param_Type      => RHS_Ptr_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
+         Len_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "len",
+                                 Param_Type      => Len_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => New_Irep (I_Void_Type),
+                           Inlined     => False,
+                           Knr         => False);
+         Counter_Sym : constant Irep :=
+           Fresh_Var_Symbol_Expr (Len_Type, "idx");
+         Loop_Test : constant Irep :=
+           Make_Op_Lt (Rhs             => Param_Symbol (Len_Param),
+                       Lhs             => Counter_Sym,
+                       Source_Location => Source_Loc,
+                       Overflow_Check  => False,
+                       I_Type          => New_Irep (I_Bool_Type));
+         RHS_Element : constant Irep :=
+           Make_Pointer_Index (Param_Symbol (Read_Ptr_Param), Counter_Sym);
+         RHS_Cast : Irep;
+         Loop_Assign : Irep;
+         For_Loop : Irep;
+         Assign_LHS : constant Irep :=
+           Make_Pointer_Index (Param_Symbol (Write_Ptr_Param), Counter_Sym);
+      begin
+         if LHS_Element_Type = RHS_Element_Type then
+            RHS_Cast := RHS_Element;
+         else
+            RHS_Cast :=
+              Make_Op_Typecast (Op0             => RHS_Element,
+                                Source_Location => Source_Loc,
+                                I_Type          =>
+                                  Get_Type (Assign_LHS));
+         end if;
+         Loop_Assign :=
+           Make_Code_Assign (Rhs             => RHS_Cast,
+                             Lhs             => Assign_LHS,
+                             Source_Location => Source_Loc);
+         For_Loop :=
+           Make_Code_For (Loop_Body       => Loop_Assign,
+                          Cond            => Loop_Test,
+                          Init            =>
+                            Make_Nil (Source_Loc),
+                          Iter            => Make_Increment (Counter_Sym,
+                            Index_Type, 1),
+                          Source_Location => Source_Loc);
+         Append_Declare_And_Init
+           (Counter_Sym, Make_Integer_Constant (0, Index_Type), Body_Block, 0);
+         Append_Op (Body_Block, For_Loop);
+
+         return New_Function_Symbol_Entry (
+                                        Name           => Func_Name,
+                                        Symbol_Type    => Func_Type,
+                                        Value          => Body_Block,
+                                        A_Symbol_Table => Global_Symbol_Table);
+      end Build_Copy_Function;
+
    begin
       Array_Copy_Map.Insert (Map_Key, Ireps.Empty, Map_Cursor, Map_Inserted);
       if not Map_Inserted then
          return Array_Copy_Maps.Element (Map_Cursor);
       end if;
 
-      --  Create a new copy function:
-      declare
-         Func_Type : constant Irep := New_Irep (I_Code_Type);
-         Func_Args : constant Irep := New_Irep (I_Parameter_List);
-         Write_Ptr_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Read_Ptr_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         LHS_Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
-         RHS_Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
-         Len_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
-         Func_Symbol : Symbol;
-         Map_Size_Str : constant String :=
-           Integer'Image (Integer (Array_Copy_Map.Length));
-         Func_Name : constant String :=
-           "__ada_copy_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
-         Body_Block : constant Irep := New_Irep (I_Code_Block);
-         Body_Loop : constant Irep := New_Irep (I_Code_For);
-         Loop_Test : constant Irep := New_Irep (I_Op_Lt);
-         Loop_Assign : constant Irep := New_Irep (I_Code_Assign);
-         RHS_Element : Irep;
-         RHS_Cast : Irep;
-         Counter_Sym : constant Irep :=
-           Fresh_Var_Symbol_Expr (Len_Type, "idx");
-      begin
-         --  Create type (lhs_el_type*, rhs_el_type*, index_type) -> void
-         Set_Type (Write_Ptr_Arg, LHS_Ptr_Type);
-         Set_Identifier (Write_Ptr_Arg, Func_Name & "::out");
-         Set_Base_Name (Write_Ptr_Arg, "out");
-         Set_Type (Read_Ptr_Arg, RHS_Ptr_Type);
-         Set_Identifier (Read_Ptr_Arg, Func_Name & "::in");
-         Set_Base_Name (Read_Ptr_Arg, "in");
-         Set_Type (Len_Arg, Len_Type);
-         Set_Identifier (Len_Arg, Func_Name & "::len");
-         Set_Base_Name (Len_Arg, "len");
-         Append_Parameter (Func_Args, Write_Ptr_Arg);
-         Append_Parameter (Func_Args, Read_Ptr_Arg);
-         Append_Parameter (Func_Args, Len_Arg);
-         Set_Parameters (Func_Type, Func_Args);
-         Set_Return_Type (Func_Type, New_Irep (I_Void_Type));
+      --  Record it for the future:
+      Array_Copy_Map.Replace_Element (Map_Cursor,
+                                      Symbol_Expr (Build_Copy_Function));
 
-         --  Create function body (declarations and a copy for-loop):
-         Append_Declare_And_Init
-           (Counter_Sym, Make_Integer_Constant (0, Index_Type), Body_Block, 0);
-
-         Set_Init (Body_Loop, Make_Nil (Get_Source_Location (Body_Loop)));
-         Set_Iter (Body_Loop, Make_Increment (Counter_Sym, Index_Type, 1));
-         Set_Type (Loop_Test, Make_Bool_Type);
-         Set_Lhs (Loop_Test, Counter_Sym);
-         Set_Rhs (Loop_Test, Param_Symbol (Len_Arg));
-         Set_Cond (Body_Loop, Loop_Test);
-
-         Set_Lhs (Loop_Assign,
-                  Make_Pointer_Index (Param_Symbol (Write_Ptr_Arg),
-                                      Counter_Sym));
-         RHS_Element := Make_Pointer_Index (Param_Symbol (Read_Ptr_Arg),
-                                            Counter_Sym);
-         if LHS_Element_Type = RHS_Element_Type then
-            RHS_Cast := RHS_Element;
-         else
-            RHS_Cast := New_Irep (I_Op_Typecast);
-            Set_Type (RHS_Cast, Get_Type (Get_Lhs (Loop_Assign)));
-            Set_Op0 (RHS_Cast, RHS_Element);
-         end if;
-
-         Set_Rhs (Loop_Assign, RHS_Element);
-         Set_Loop_Body (Body_Loop, Loop_Assign);
-
-         Append_Op (Body_Block, Body_Loop);
-
-         --  Make function symbol:
-         Func_Symbol.SymType := Func_Type;
-         Func_Symbol.Name := Intern (Func_Name);
-         Func_Symbol.PrettyName := Func_Symbol.Name;
-         Func_Symbol.BaseName := Func_Symbol.Name;
-         Func_Symbol.Mode := Intern ("C");
-         Func_Symbol.Value := Body_Block;
-         Global_Symbol_Table.Insert (Intern (Func_Name), Func_Symbol);
-
-         --  Record it for the future:
-         Array_Copy_Map.Replace_Element (Map_Cursor,
-                                         Symbol_Expr (Func_Symbol));
-
-         return Array_Copy_Maps.Element (Map_Cursor);
-      end;
-
+      return Array_Copy_Maps.Element (Map_Cursor);
    end Get_Array_Copy_Function;
 
    ----------------------------
@@ -4409,69 +4456,100 @@ package body Tree_Walk is
          return Array_Dup_Maps.Element (Map_Cursor);
       end if;
 
-      --  Create a new duplicator function:
+      --  Build a function:
+      --  elem_type* dup_array(elem_type* ptr, int len) {
+      --    elem_type* new_array = alloc(sizeof(elem_type) * len);
+      --    copy_array(new_array, ptr, len);
+      --    return new_array;
+      --  }
       declare
-
-         Func_Type : constant Irep := New_Irep (I_Code_Type);
-         Func_Args : constant Irep := New_Irep (I_Parameter_List);
-         Ptr_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (Element_Type));
-         Len_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
-         Func_Symbol : Symbol;
+         Func_Params : constant Irep := New_Irep (I_Parameter_List);
          Map_Size_Str : constant String :=
            Integer'Image (Integer (Array_Dup_Map.Length));
          Func_Name : constant String :=
            "__ada_dup_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
+         Ptr_Type : constant Irep :=
+           Make_Pointer_Type (Do_Type_Reference (Element_Type));
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           --  the parameters are build later
+                           Ellipsis    => False,
+                           Return_Type => Ptr_Type,
+                           Inlined     => False,
+                           Knr         => False);
+         Source_Loc : constant Source_Ptr := Sloc (Element_Type);
+         Ptr_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "ptr",
+                                 Param_Type      => Ptr_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
+         Len_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "len",
+                                 Param_Type      => Len_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+
+         Func_Symbol : Symbol;
          Array_Copy : constant Irep :=
            Fresh_Var_Symbol_Expr (Ptr_Type, "new_array");
-         Array_Alloc : constant Irep :=
-           New_Irep (I_Side_Effect_Expr_Cpp_New_Array);
-         Body_Block : constant Irep := New_Irep (I_Code_Block);
-         Call_Inst : constant Irep := New_Irep (I_Code_Function_Call);
+         Body_Block : constant Irep := Make_Code_Block (Source_Loc);
          Call_Args : constant Irep := New_Irep (I_Argument_List);
-         Return_Inst : constant Irep := New_Irep (I_Code_Return);
+         Lhs_fun_call : constant Irep :=
+           Fresh_Var_Symbol_Expr (Do_Type_Reference (Element_Type),
+                                  "array_dup_fun_lhs");
+         Call_Inst : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Call_Args,
+                                    --  the argument are appended later
+                                    I_Function      =>
+                                      Get_Array_Copy_Function (
+                                        Element_Type,
+                                        Element_Type,
+                                        Index_Type),
+                                    Lhs             => Lhs_fun_call,
+                                    Source_Location => Source_Loc);
+         Return_Inst : constant Irep :=
+           Make_Code_Return (Return_Value    => Array_Copy,
+                             Source_Location => Source_Loc);
 
+         --  new variables for malloc allocation
+         Member_Size : constant Irep :=
+           Make_Constant_Expr (Source_Location => Source_Loc,
+                               I_Type          => Len_Type,
+                               Range_Check     => False,
+                               Value           =>
+                    Convert_Uint_To_Hex (Value     => Esize (Element_Type) / 8,
+                                         Bit_Width => 64));
       begin
-
-         --  Create type (element_type*, index_type) -> element_type*
-         Set_Type (Ptr_Arg, Ptr_Type);
-         Set_Identifier (Ptr_Arg, Func_Name & "::ptr");
-         Set_Base_Name (Ptr_Arg, "ptr");
-         Set_Type (Len_Arg, Len_Type);
-         Set_Identifier (Len_Arg, Func_Name & "::len");
-         Set_Base_Name (Len_Arg, "len");
-         Append_Parameter (Func_Args, Ptr_Arg);
-         Append_Parameter (Func_Args, Len_Arg);
-         Set_Parameters (Func_Type, Func_Args);
-         Set_Return_Type (Func_Type, Ptr_Type);
-
          --  Create body (allocate and then call array_copy)
-         Set_Size (Array_Alloc, Param_Symbol (Len_Arg));
-         Set_Type (Array_Alloc, Ptr_Type);
-         Append_Declare_And_Init (Array_Copy, Array_Alloc, Body_Block, 0);
-         Append_Argument (Call_Args, Array_Copy);
-         Append_Argument (Call_Args, Param_Symbol (Ptr_Arg));
-         Append_Argument (Call_Args, Param_Symbol (Len_Arg));
-         Set_Arguments (Call_Inst, Call_Args);
-         Set_Function (Call_Inst,
-                       Get_Array_Copy_Function (Element_Type,
-                                                Element_Type,
-                                                Index_Type));
-         Append_Op (Body_Block, Call_Inst);
+         Append_Declare_And_Init (
+           Array_Copy,
+           Make_Op_Typecast (
+             Op0 =>  Make_Malloc_Function_Call_Expr (
+               Make_Op_Mul (
+                 Lhs => Member_Size,
+                 Rhs => Param_Symbol (Len_Param),
+                 I_Type => Len_Type,
+                 Source_Location => Source_Loc)),
+                 I_Type => Ptr_Type,
+             Source_Location => Source_Loc),
+                                  Body_Block, 0);
 
-         Set_Return_Value (Return_Inst, Array_Copy);
+         Append_Argument (Call_Args, Array_Copy);
+         Append_Argument (Call_Args, Param_Symbol (Ptr_Param));
+         Append_Argument (Call_Args, Param_Symbol (Len_Param));
+         Append_Op (Body_Block, Call_Inst);
          Append_Op (Body_Block, Return_Inst);
 
-         --  Make function symbol:
-         Func_Symbol.SymType := Func_Type;
-         Func_Symbol.Name := Intern (Func_Name);
-         Func_Symbol.PrettyName := Func_Symbol.Name;
-         Func_Symbol.BaseName := Func_Symbol.Name;
-         Func_Symbol.Mode := Intern ("C");
-         Func_Symbol.Value := Body_Block;
-         Global_Symbol_Table.Insert (Intern (Func_Name), Func_Symbol);
+         Func_Symbol :=
+           New_Function_Symbol_Entry (Name           => Func_Name,
+                                      Symbol_Type    => Func_Type,
+                                      Value          => Body_Block,
+                                      A_Symbol_Table => Global_Symbol_Table);
 
          --  Record it for the future:
          Array_Dup_Map.Replace_Element (Map_Cursor, Symbol_Expr (Func_Symbol));
