@@ -1916,9 +1916,18 @@ class IrepsGenerator(object):
             self.to_json_single_schema_name(b, sn)
         write(b, "end case;")
         write(b, "")
-        write(b, 'V.Set_Field ("sub",      Sub);')
-        write(b, 'V.Set_Field ("namedSub", Named_Sub);')
-        write(b, 'V.Set_Field ("comment",  Comment);')
+        write(b, "if not Is_Empty (Sub) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("sub",      Sub);')
+        write(b, "end if;")
+        write(b, "if not Is_Empty (Named_Sub) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+        write(b, "end if;")
+        write(b, "if not Is_Empty (Comment) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("comment",  Comment);')
+        write(b, "end if;")
         manual_outdent(b)
         write(b, "end;")
         write(b, "return V;")
