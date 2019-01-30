@@ -227,7 +227,8 @@ package body Driver is
 
       if not Add_Start then
          Put_Line (Sym_Tab_File,
-                   Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+                   Create (SymbolTable2Json (
+                              Global_Symbol_Table)).Write (False));
       else
          Initialize_CProver_Internal_Variables (Start_Body);
          declare
@@ -335,7 +336,8 @@ package body Driver is
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          Follow_Type_Declarations (Global_Symbol_Table, Followed_Symbol_Table);
          Put_Line (Sym_Tab_File,
-                   Create (SymbolTable2Json (Followed_Symbol_Table)).Write);
+                   Create (SymbolTable2Json (
+                              Followed_Symbol_Table)).Write (False));
       end if;
 
       Close (Sym_Tab_File);
