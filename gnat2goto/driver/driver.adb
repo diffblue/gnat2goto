@@ -272,7 +272,7 @@ package body Driver is
 
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          Put_Line (Sym_Tab_File,
-                   SymbolTable2Json (Global_Symbol_Table).Write);
+                   SymbolTable2Json (Global_Symbol_Table).Write (False));
       else
          Initialize_CProver_Internal_Variables (Start_Body);
          declare
@@ -380,7 +380,7 @@ package body Driver is
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          Follow_Type_Declarations (Global_Symbol_Table, Followed_Symbol_Table);
          Put_Line (Sym_Tab_File,
-                   SymbolTable2Json (Followed_Symbol_Table).Write);
+                   SymbolTable2Json (Followed_Symbol_Table).Write (False));
       end if;
 
       Close (Sym_Tab_File);
