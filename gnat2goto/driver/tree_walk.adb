@@ -1394,8 +1394,8 @@ package body Tree_Walk is
 
    function Do_String_Constant (N : Node_Id) return Irep is
       Ret              : constant Irep := New_Irep (I_String_Constant_Expr);
-      Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
-      Element_Type     : constant Irep := Do_Type_Reference (Element_Type_Ent);
+     -- Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
+     -- Element_Type  : constant Irep := Do_Type_Reference (Element_Type_Ent);
       StrLen           : constant Integer :=
                                     Integer (String_Length (Strval (N)));
       String_Length_Expr : constant Irep := New_Irep (I_Constant_Expr);
@@ -1409,10 +1409,11 @@ package body Tree_Walk is
                  Convert_Uint_To_Hex (UI_From_Int (Int (String_Length
                    (Strval (N)))), 64));
 
-      Set_Type (Ret,
-                Make_Array_Type (
-                  I_Subtype => Element_Type,
-                  Size => String_Length_Expr));
+      Set_Type (Ret, Make_String_Type);
+      --  FIXME: We really need some sort of array type here, such as:
+      --  Make_Array_Type (
+      --     I_Subtype => Element_Type,
+      --     Size => String_Length_Expr));
       String_To_Name_Buffer (Strval (N));
       Set_Value (Ret, Name_Buffer (1 .. StrLen));
       Set_Source_Location (Ret, Sloc (N));
