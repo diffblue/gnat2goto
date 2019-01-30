@@ -1,3 +1,4 @@
 [submodule "lib/cbmc"]
 	path = lib/cbmc
+	branch = develop
 	url = https://github.com/diffblue/cbmc.git
