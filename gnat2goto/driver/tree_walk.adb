@@ -1554,7 +1554,7 @@ package body Tree_Walk is
          begin
             Set_Value (Element, Val_String);
             Set_Identifier (Element, Val_Name);
-            Set_Base_Name (Element, Base_Name);
+            Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
             Member_Symbol.Name := Intern (Val_Name);
             Member_Symbol.PrettyName := Intern (Base_Name);
@@ -4963,8 +4963,8 @@ package body Tree_Walk is
       Set_Anonymous (Ret, False);
       --  Real attributes:
       Set_Name        (Ret, Name);
-      Set_Pretty_Name (Ret, Name);
-      Set_Base_Name   (Ret, Name);
+      Set_Prettyname (Ret, Name);
+      Set_Basename   (Ret, Name);
       Set_Type        (Ret, Ty);
       return Ret;
    end Make_Struct_Component;

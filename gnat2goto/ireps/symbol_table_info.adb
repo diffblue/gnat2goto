@@ -17,36 +17,38 @@ package body Symbol_Table_Info is
       Ret.Set_Field ("location",           To_JSON (Sym.Location));
       Ret.Set_Field ("name",               Unintern (Sym.Name));
       Ret.Set_Field ("module",             Unintern (Sym.Module));
-      Ret.Set_Field ("base_name",          Unintern (Sym.BaseName));
+      Ret.Set_Field ("baseName",          Unintern (Sym.BaseName));
       Ret.Set_Field ("mode",               Unintern (Sym.Mode));
-      Ret.Set_Field ("pretty_name",        Unintern (Sym.PrettyName));
-      Ret.Set_Field ("is_type",            Sym.IsType);
-      Ret.Set_Field ("is_macro",           Sym.IsMacro);
-      Ret.Set_Field ("is_exported",        Sym.IsExported);
-      Ret.Set_Field ("is_input",           Sym.IsInput);
-      Ret.Set_Field ("is_output",          Sym.IsOutput);
-      Ret.Set_Field ("is_state_var",       Sym.IsStateVar);
-      Ret.Set_Field ("is_property",        Sym.IsProperty);
-      Ret.Set_Field ("is_static_lifetime", Sym.IsStaticLifetime);
-      Ret.Set_Field ("is_thread_local",    Sym.IsThreadLocal);
-      Ret.Set_Field ("is_lvalue",          Sym.IsLValue);
-      Ret.Set_Field ("is_file_local",      Sym.IsFileLocal);
-      Ret.Set_Field ("is_extern",          Sym.IsExtern);
-      Ret.Set_Field ("is_volatile",        Sym.IsVolatile);
-      Ret.Set_Field ("is_parameter",       Sym.IsParameter);
-      Ret.Set_Field ("is_auxiliary",       Sym.IsAuxiliary);
-      Ret.Set_Field ("is_weak",            Sym.IsWeak);
+      Ret.Set_Field ("prettyName",        Unintern (Sym.PrettyName));
+      Ret.Set_Field ("isType",            Sym.IsType);
+      Ret.Set_Field ("isMacro",           Sym.IsMacro);
+      Ret.Set_Field ("isExported",        Sym.IsExported);
+      Ret.Set_Field ("isInput",           Sym.IsInput);
+      Ret.Set_Field ("isOutput",          Sym.IsOutput);
+      Ret.Set_Field ("isStateVar",       Sym.IsStateVar);
+      Ret.Set_Field ("isProperty",        Sym.IsProperty);
+      Ret.Set_Field ("isStaticLifetime", Sym.IsStaticLifetime);
+      Ret.Set_Field ("isThreadLocal",    Sym.IsThreadLocal);
+      Ret.Set_Field ("isLvalue",          Sym.IsLValue);
+      Ret.Set_Field ("isFileLocal",      Sym.IsFileLocal);
+      Ret.Set_Field ("isExtern",          Sym.IsExtern);
+      Ret.Set_Field ("isVolatile",        Sym.IsVolatile);
+      Ret.Set_Field ("isParameter",       Sym.IsParameter);
+      Ret.Set_Field ("isAuxiliary",       Sym.IsAuxiliary);
+      Ret.Set_Field ("isWeak",            Sym.IsWeak);
       return Ret;
    end Symbol2Json;
 
-   function SymbolTable2Json (Symtab : Symbol_Table) return JSON_Array is
-      Ret         : JSON_Array := Empty_Array;
+   function SymbolTable2Json (Symtab : Symbol_Table) return JSON_Value is
+      Ret         : constant JSON_Value := Create_Object;
+      Symbol_Table_Json : constant JSON_Value := Create_Object;
       Symbol_Json : JSON_Value;
    begin
       for Symbol of Symtab loop
          Symbol_Json := Symbol2Json (Symbol);
-         Append (Ret, Symbol_Json);
+         Symbol_Table_Json.Set_Field (Unintern (Symbol.Name), Symbol_Json);
       end loop;
+      Ret.Set_Field ("symbolTable", Symbol_Table_Json);
       return Ret;
    end SymbolTable2Json;
 
