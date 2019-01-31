@@ -2,9 +2,9 @@
   "parent": "expr",
   "namedSub": {
     "name": {"type": "string"},
-    "base_name": {"type": "string"},
+    "baseName": {"type": "string"},
     "access": {"type": "string"},
-    "pretty_name": {"type": "string"},
+    "prettyName": {"type": "string"},
     "anonymous": {"type": "bool"}
   },
   "comment": {

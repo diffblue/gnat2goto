@@ -380,7 +380,6 @@ class IrepsGenerator(object):
                 tbl_field = "N." + ada_component_name(layout_kind,
                                                       layout_index)
 
-                obj = "Comment" if is_comment else "Named_Sub"
                 if kind == "irep":
                     val = "To_JSON (Irep (%s))" % tbl_field
                 elif layout_kind == "str":
@@ -399,7 +398,7 @@ class IrepsGenerator(object):
                 else:
                     key_name = setter_name
 
-                tmp = "%s.Set_Field (" % obj
+                tmp = "Named_Sub.Set_Field ("
                 write(b, tmp + '"' + key_name + '",')
                 write(b, " " * len(tmp) + val + ");")
                 continuation(b)
@@ -418,7 +417,6 @@ class IrepsGenerator(object):
                                                layout_index)
                 tbl_field = "N." + tbl_index
 
-                obj = "Comment" if is_comment else "Named_Sub"
                 if kind == "irep":
                     write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
                     with indent(b):
@@ -429,10 +427,8 @@ class IrepsGenerator(object):
     def to_json_set_all_constants(self, b, sn, kind, data, needs_null):
         if kind == "id":
             return needs_null
-        elif kind == "namedSub":
+        elif kind == "namedSub" or kind == "comment":
             obj = "Named_Sub"
-        elif kind == "comment":
-            obj = "Comment"
         else:
             print sn, kind, self.const[sn]
             assert False
@@ -1831,7 +1827,6 @@ class IrepsGenerator(object):
                 write(b, 'V.Set_Field ("id", S);')
                 write(b, 'V.Set_Field ("sub", Empty_Array);')
                 write(b, 'V.Set_Field ("namedSub", Create_Object);')
-                write(b, 'V.Set_Field ("comment", Create_Object);')
             write(b, "end return;")
         write(b, "end Trivial_Irep;")
         write(b, "")
@@ -1902,7 +1897,6 @@ class IrepsGenerator(object):
             write(b, "")
             write(b, "Sub       :          JSON_Array := Empty_Array;")
             write(b, "Named_Sub : constant JSON_Value := Create_Object;")
-            write(b, "Comment   : constant JSON_Value := Create_Object;")
         write(b, "begin")
         manual_indent(b)
         write(b, 'V.Set_Field ("id", Id (I));')
@@ -1916,9 +1910,14 @@ class IrepsGenerator(object):
             self.to_json_single_schema_name(b, sn)
         write(b, "end case;")
         write(b, "")
-        write(b, 'V.Set_Field ("sub",      Sub);')
-        write(b, 'V.Set_Field ("namedSub", Named_Sub);')
-        write(b, 'V.Set_Field ("comment",  Comment);')
+        write(b, "if not Is_Empty (Sub) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("sub",      Sub);')
+        write(b, "end if;")
+        write(b, "if not Is_Empty (Named_Sub) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+        write(b, "end if;")
         manual_outdent(b)
         write(b, "end;")
         write(b, "return V;")
