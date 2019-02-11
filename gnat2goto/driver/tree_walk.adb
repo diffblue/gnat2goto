@@ -563,129 +563,266 @@ package body Tree_Walk is
 
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep is
       Result_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Array_Expr : Irep;
-      Result_Struct : constant Irep :=
-        Make_Struct_Expr (I_Type => Result_Type,
-                          Source_Location => Sloc (N));
-      Pos_Iter : Node_Id := First (Expressions (N));
-      Pos_Number : Natural := 0;
-      With_Mode : Boolean;
-      Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
-      Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
-      --  TODO: multi-dimensional aggregates
-      Bounds : constant Node_Id := Aggregate_Bounds (N);
-      Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
-      High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
-      Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
 
-      Len_Expr : constant Irep :=
-        Make_Array_Length_Expr (Low_Expr, High_Expr, Index_Type_Node);
+      function Build_Array_Lit_Func_Body (N : Node_Id) return Irep
+        with Pre => Ekind (Etype (N)) in E_Array_Type | E_Array_Subtype,
+        Post => Kind (Build_Array_Lit_Func_Body'Result) = I_Code_Block;
 
-      Bare_Array_Type : constant Irep :=
-        Make_Array_Type (I_Subtype => Element_Type,
-                         Size => Len_Expr);
+      function Build_Array_Lit_Func (N : Node_Id) return Symbol
+        with Pre => Ekind (Etype (N)) in E_Array_Type | E_Array_Subtype,
+        Post => not (Build_Array_Lit_Func'Result.Value = Ireps.Empty);
 
-      Literal_Temp : constant Irep :=
-        Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
+      function Make_No_Args_Func_Call_Expr (Fun_Symbol : Irep;
+                                              Return_Type : Irep;
+                                              Source_Loc : Source_Ptr)
+                                              return Irep
+        with Pre => (Kind (Fun_Symbol) = I_Symbol_Expr
+                     and then Kind (Return_Type) in Class_Type),
+        Post => Kind (Make_No_Args_Func_Call_Expr'Result) =
+        I_Side_Effect_Expr_Function_Call;
 
-      Typecast_Expr : constant Irep :=
-        Make_Op_Typecast (Op0 => Make_Address_Of (Literal_Temp),
-                          I_Type => Make_Pointer_Type (Element_Type),
-                          Source_Location => Sloc (N));
-   begin
-      --  Handle an "others" splat expression if present:
-      if Present (Component_Associations (N)) then
-         --  Produce something like array_of(others_expr)
-         --                         with 1 => 100, 2 => 200, ...
-         --  We expect only one named operand (others => ...):
-         if List_Length (Component_Associations (N)) /= 1 then
-            return Report_Unhandled_Node_Irep (N,
-                                               "Do_Aggregate_Literal_Array",
-                                               "More than one named operand");
-         end if;
+      -------------------------------
+      -- Build_Array_Lit_Func_Body --
+      -------------------------------
 
-         declare
-            Others_Node : constant Node_Id :=
-              First (Component_Associations (N));
-            Others_Choices : constant List_Id := Choices (Others_Node);
-            Expr : constant Irep := Do_Expression (Expression (Others_Node));
-         begin
-            if List_Length (Others_Choices) /= 1 then
+      --  build the following function:
+      --  struct array_struct {int first1; int last1; array_type* data; }
+      --  array_lit() {
+      --    array_type temp_literal[high_bound - low_bound + 1];
+      --    temp_literal = { literal_1, .. literal_n };
+      --    struct arrays_struct { int first1; int last1; array_type *data; }
+      --      temp_array;
+      --    temp_array.first1 = low_bound;
+      --    temp_array.last1 = high_bound;
+      --    temp_array.data = (array_type *)malloc((high_bound-low_bound+1)*
+      --                                           sizeof(array_type));
+      --    temp_lhs = memcpy(temp_array.data,
+      --                      &temp_literal,
+      --                      (high_bound-low_bound+1)*sizeof(array_type)));
+      --    return temp_array;
+      --  }
+      function Build_Array_Lit_Func_Body (N : Node_Id) return Irep is
+         Pos_Iter : Node_Id := First (Expressions (N));
+         Source_Loc : constant Source_Ptr := Sloc (N);
+         Bounds : constant Node_Id := Aggregate_Bounds (N);
+         Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
+         High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
+         Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
+         Len_Expr : constant Irep :=
+           Make_Array_Length_Expr (Low_Expr, High_Expr, Index_Type_Node);
+         Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
+         Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
+         Bare_Array_Type : constant Irep :=
+           Make_Array_Type (I_Subtype => Element_Type,
+                            Size => Len_Expr);
+         Literal_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
+         Array_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
+         Lhs_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
+                                  "temp_lhs");
+         Array_Expr : Irep;
+         Result_Block : constant Irep := New_Irep (I_Code_Block);
+         With_Mode : Boolean;
+         Pos_Number : Natural := 0;
+
+         --  NB: Component number seem to be ignored by CBMC
+         --  We represent arrays as a structure of 3 members:
+         --  0: first index
+         --  1: last index
+         --  2: data pointer
+         --  Using the component numbers may be dropped in the future or it
+         --  may be enforced.
+         First1_Mem_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Array_Temp,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 0,
+                             I_Type           => Make_Int_Type (32),
+                             Component_Name   => "first1");
+         Last1_Mem_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Array_Temp,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 1,
+                             I_Type           => Make_Int_Type (32),
+                             Component_Name   => "last1");
+         Data_Mem_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Array_Temp,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 2,
+                             I_Type           =>
+                               Make_Pointer_Type (Element_Type),
+                             Component_Name   => "data");
+         Raw_Malloc_Call : constant Irep :=
+           Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
+                                           Element_Type_Size =>
+                                             Esize (Element_Type_Ent),
+                                           Source_Loc        => Source_Loc);
+         Malloc_Call_Expr : constant Irep :=
+           Make_Op_Typecast (Op0             =>  Raw_Malloc_Call,
+                           I_Type          => Make_Pointer_Type (Element_Type),
+                             Source_Location => Source_Loc);
+         Literal_Address : constant Irep :=
+           Make_Op_Typecast (Op0 => Make_Address_Of (Literal_Temp),
+                             I_Type => Make_Pointer_Type (Element_Type),
+                             Source_Location => Source_Loc);
+         Memcpy_Call_Expr : constant Irep :=
+           Make_Memcpy_Function_Call_Expr (Destination       => Data_Mem_Expr,
+                                          Source            => Literal_Address,
+                                           Num_Elem          => Len_Expr,
+                                           Element_Type_Size =>
+                                             Esize (Element_Type_Ent),
+                                           Source_Loc        => Source_Loc);
+      begin
+         --  Handle an "others" splat expression if present:
+         if Present (Component_Associations (N)) then
+            --  Produce something like array_of(others_expr)
+            --                         with 1 => 100, 2 => 200, ...
+            --  We expect only one named operand (others => ...):
+            if List_Length (Component_Associations (N)) /= 1 then
                return Report_Unhandled_Node_Irep (N,
                                                   "Do_Aggregate_Literal_Array",
-                                                 "More than one other choice");
+                                                "More than one named operand");
             end if;
-            if Nkind (First (Others_Choices)) /= N_Others_Choice then
-               return Report_Unhandled_Node_Irep (N,
+
+            declare
+               Others_Node : constant Node_Id :=
+                 First (Component_Associations (N));
+               Others_Choices : constant List_Id := Choices (Others_Node);
+               Expr : constant Irep :=
+                 Do_Expression (Expression (Others_Node));
+            begin
+               if List_Length (Others_Choices) /= 1 then
+                  return Report_Unhandled_Node_Irep (N,
+                                                 "Do_Aggregate_Literal_Array",
+                                                 "More than one other choice");
+               end if;
+               if Nkind (First (Others_Choices)) /= N_Others_Choice then
+                  return Report_Unhandled_Node_Irep (N,
                                                   "Do_Aggregate_Literal_Array",
                                                  "Wrong kind of other choice");
-            end if;
-            Array_Expr :=
-              Make_Op_Array_Of (I_Type => Bare_Array_Type,
-                                Op0 => Expr,
-                                Source_Location => Sloc (N));
-         end;
-         With_Mode := True;
-      else
-         Array_Expr := Make_Array_Expr (I_Type => Bare_Array_Type,
-                                        Source_Location => Sloc (N));
-         With_Mode := False;
-      end if;
+               end if;
+               Array_Expr :=
+                 Make_Op_Array_Of (I_Type => Bare_Array_Type,
+                                   Op0 => Expr,
+                                   Source_Location => Sloc (N));
+            end;
+            With_Mode := True;
+         else
+            Array_Expr := Make_Array_Expr (I_Type => Bare_Array_Type,
+                                           Source_Location => Sloc (N));
+            With_Mode := False;
+         end if;
 
-      Set_Type (Array_Expr, Bare_Array_Type);
+         Set_Type (Array_Expr, Bare_Array_Type);
 
-      while Present (Pos_Iter) loop
-         declare
-            Expr : constant Irep := Do_Expression (Pos_Iter);
-         begin
-            if With_Mode then
-               declare
-                  Pos_Str : constant String := Integer'Image (Pos_Number);
-                  Pos_Constant : constant Irep :=
-                    Make_Constant_Expr (Value => Pos_Str (2 .. Pos_Str'Last),
-                                        I_Type => Make_Integer_Type,
-                                        Source_Location => Sloc (N));
-                  New_With : constant Irep :=
-                    Make_With_Expr (Old => Array_Expr,
-                                    Where => Pos_Constant,
-                                    New_Value => Expr,
-                                    I_Type => Bare_Array_Type,
-                                    Source_Location => Sloc (N));
-               begin
-                  Array_Expr := New_With;
-               end;
-            else
-               Append_Operand (Array_Expr, Expr);
-            end if;
-         end;
-         Next (Pos_Iter);
-         Pos_Number := Pos_Number + 1;
-      end loop;
+         while Present (Pos_Iter) loop
+            declare
+               Expr : constant Irep := Do_Expression (Pos_Iter);
+            begin
+               if With_Mode then
+                  declare
+                     Pos_Str : constant String := Integer'Image (Pos_Number);
+                     Pos_Constant : constant Irep :=
+                       Make_Constant_Expr (Value =>
+                                             Pos_Str (2 .. Pos_Str'Last),
+                                           I_Type => Make_Integer_Type,
+                                           Source_Location => Sloc (N));
+                     New_With : constant Irep :=
+                       Make_With_Expr (Old => Array_Expr,
+                                       Where => Pos_Constant,
+                                       New_Value => Expr,
+                                       I_Type => Bare_Array_Type,
+                                       Source_Location => Sloc (N));
+                  begin
+                     Array_Expr := New_With;
+                  end;
+               else
+                  Append_Operand (Array_Expr, Expr);
+               end if;
+            end;
+            Next (Pos_Iter);
+            Pos_Number := Pos_Number + 1;
+         end loop;
 
-      --  We now have an array literal of some sort (Array_Expr).
-      --  Now encase it in an array structure,
-      --  and allocate memory to hold the literal:
-      Append_Struct_Member (Result_Struct, Low_Expr);
-      Append_Struct_Member (Result_Struct, High_Expr);
-      declare
-         Dup : constant Irep :=
-           Get_Array_Dup_Function (Element_Type_Ent, Index_Type_Node);
-         Call_Args : constant Irep := New_Irep (I_Argument_List);
-         Call_Expr : constant Irep :=
-           Make_Side_Effect_Expr_Function_Call (I_Function => Dup,
-                                                Arguments => Call_Args,
-                                                Source_Location => Sloc (N));
+         Append_Declare_And_Init (Symbol     => Literal_Temp,
+                                  Value      => Array_Expr,
+                                  Block      => Result_Block,
+                                  Source_Loc => Source_Loc);
+         Append_Op (Result_Block,
+                    Make_Code_Decl (Symbol          => Array_Temp,
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Result_Type));
+
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Low_Expr,
+                                      Lhs             => First1_Mem_Expr,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => High_Expr,
+                                      Lhs             => Last1_Mem_Expr,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Malloc_Call_Expr,
+                                      Lhs             => Data_Mem_Expr,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Memcpy_Call_Expr,
+                                      Lhs             => Lhs_Temp,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Return (Return_Value    => Array_Temp,
+                                      Source_Location => Source_Loc));
+
+         return Result_Block;
+      end Build_Array_Lit_Func_Body;
+
+      --------------------------
+      -- Build_Array_Lit_Func --
+      --------------------------
+
+      function Build_Array_Lit_Func (N : Node_Id) return Symbol is
+         Func_Name : constant String := Fresh_Var_Name ("array_lit");
+         Func_Params : constant Irep := New_Irep (I_Parameter_List);
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => Do_Type_Reference (Etype (N)),
+                           Inlined     => False,
+                           Knr         => False);
       begin
-         Append_Argument (Call_Args, Typecast_Expr);
-         Append_Argument (Call_Args, Len_Expr);
-         Append_Struct_Member (Result_Struct, Call_Expr);
-      end;
+         return New_Function_Symbol_Entry (Name        => Func_Name,
+                                           Symbol_Type => Func_Type,
+                                           Value       =>
+                                             Build_Array_Lit_Func_Body (N),
+                                           A_Symbol_Table =>
+                                             Global_Symbol_Table);
+      end Build_Array_Lit_Func;
 
-      return Make_Let_Expr (Symbol => Literal_Temp,
-                            Value => Array_Expr,
-                            Where => Result_Struct,
-                            I_Type => Result_Type,
-                            Source_Location => Sloc (N));
+      -----------------------------------
+      -- Make_Array_Lit_Func_Call_Expr --
+      -----------------------------------
+
+      function Make_No_Args_Func_Call_Expr (Fun_Symbol : Irep;
+                                              Return_Type : Irep;
+                                              Source_Loc : Source_Ptr)
+                                              return Irep is
+         Call_Args  : constant Irep := New_Irep (I_Argument_List);
+         Fun_Call : constant Irep :=
+           Make_Side_Effect_Expr_Function_Call (Arguments       => Call_Args,
+                                                I_Function      => Fun_Symbol,
+                                                Source_Location => Source_Loc,
+                                               I_Type          => Return_Type);
+      begin
+         return Fun_Call;
+      end Make_No_Args_Func_Call_Expr;
+
+      Func_Symbol : constant Symbol := Build_Array_Lit_Func (N);
+   begin
+      return Make_No_Args_Func_Call_Expr (Fun_Symbol  =>
+                                              Symbol_Expr (Func_Symbol),
+                                            Return_Type => Result_Type,
+                                            Source_Loc  => Sloc (N));
    end Do_Aggregate_Literal_Array;
 
    ---------------------------------
