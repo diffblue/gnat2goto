@@ -3049,20 +3049,31 @@ package body Tree_Walk is
          Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
          Hbound : constant Irep := Do_Expression (High_Bound (Idx));
          Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
+         Source_Loc : constant Source_Ptr := Sloc (E);
          Len : constant Irep :=
            Make_Array_Length_Expr (Lbound, Hbound, Idx_Type);
          Component_Type : constant Irep :=
            Do_Type_Reference (Get_Array_Component_Type (E));
          Alloc : constant Irep :=
-           Make_Side_Effect_Expr_Cpp_New_Array
-           (Size => Len, I_Type => Make_Pointer_Type (Component_Type),
-            Source_Location => Sloc (E));
-         Ret : constant Irep := New_Irep (I_Struct_Expr);
+           Make_Malloc_Function_Call_Expr (Num_Elem          => Len,
+                                           Element_Type_Size =>
+                                          Esize (Get_Array_Component_Type (E)),
+                                           Source_Loc        => Source_Loc);
+         Pointer_Type : constant Irep :=
+           Make_Pointer_Type (I_Subtype => Component_Type,
+                              Width     => Pointer_Type_Width);
+         Data_Member : constant Irep :=
+           Make_Op_Typecast (Op0             => Alloc,
+                             Source_Location => Source_Loc,
+                             I_Type          => Pointer_Type);
+         Ret : constant Irep :=
+           Make_Struct_Expr (Source_Location => Source_Loc,
+                             I_Type          => Do_Type_Reference (E));
       begin
          Append_Struct_Member (Ret, Lbound);
          Append_Struct_Member (Ret, Hbound);
-         Append_Struct_Member (Ret, Alloc);
-         Set_Type (Ret, Do_Type_Reference (E));
+         Append_Struct_Member (Ret, Data_Member);
+
          return Ret;
       end Make_Array_Default_Initialiser;
 
