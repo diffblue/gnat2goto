@@ -311,10 +311,6 @@ package body Tree_Walk is
                                      Index_Type : Entity_Id) return Irep
    with Post => Kind (Get_Array_Copy_Function'Result) = I_Symbol_Expr;
 
-   function Get_Array_Dup_Function (Element_Type : Entity_Id;
-                                    Index_Type : Entity_Id) return Irep
-   with Post => Kind (Get_Array_Dup_Function'Result) = I_Symbol_Expr;
-
    function Can_Get_Array_Index_Type (N : Node_Id) return Boolean;
 
    function Get_Array_Index_Type (N : Node_Id) return Entity_Id
@@ -4677,124 +4673,6 @@ package body Tree_Walk is
 
       return Array_Copy_Maps.Element (Map_Cursor);
    end Get_Array_Copy_Function;
-
-   ----------------------------
-   -- Get_Array_Dup_Function --
-   ----------------------------
-
-   function Get_Array_Dup_Function (Element_Type : Entity_Id;
-                                    Index_Type : Entity_Id) return Irep is
-      Map_Key : constant Array_Dup_Key := (Element_Type, Index_Type);
-      Map_Cursor : Array_Dup_Maps.Cursor;
-      Map_Inserted : Boolean;
-   begin
-      Array_Dup_Map.Insert (Map_Key, Ireps.Empty, Map_Cursor, Map_Inserted);
-      if not Map_Inserted then
-         return Array_Dup_Maps.Element (Map_Cursor);
-      end if;
-
-      --  Build a function:
-      --  elem_type* dup_array(elem_type* ptr, int len) {
-      --    elem_type* new_array = alloc(sizeof(elem_type) * len);
-      --    copy_array(new_array, ptr, len);
-      --    return new_array;
-      --  }
-      declare
-         Func_Params : constant Irep := New_Irep (I_Parameter_List);
-         Map_Size_Str : constant String :=
-           Integer'Image (Integer (Array_Dup_Map.Length));
-         Func_Name : constant String :=
-           "__ada_dup_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
-         Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (Element_Type));
-         Func_Type : constant Irep :=
-           Make_Code_Type (Parameters  => Func_Params,
-                           --  the parameters are build later
-                           Ellipsis    => False,
-                           Return_Type => Ptr_Type,
-                           Inlined     => False,
-                           Knr         => False);
-         Source_Loc : constant Source_Ptr := Sloc (Element_Type);
-         Ptr_Param : constant Irep :=
-           Create_Fun_Parameter (Fun_Name        => Func_Name,
-                                 Param_Name      => "ptr",
-                                 Param_Type      => Ptr_Type,
-                                 Param_List      => Func_Params,
-                                 A_Symbol_Table  => Global_Symbol_Table,
-                                 Source_Location => Source_Loc);
-         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
-         Len_Param : constant Irep :=
-           Create_Fun_Parameter (Fun_Name        => Func_Name,
-                                 Param_Name      => "len",
-                                 Param_Type      => Len_Type,
-                                 Param_List      => Func_Params,
-                                 A_Symbol_Table  => Global_Symbol_Table,
-                                 Source_Location => Source_Loc);
-
-         Func_Symbol : Symbol;
-         Array_Copy : constant Irep :=
-           Fresh_Var_Symbol_Expr (Ptr_Type, "new_array");
-         Body_Block : constant Irep := Make_Code_Block (Source_Loc);
-         Call_Args : constant Irep := New_Irep (I_Argument_List);
-         Lhs_fun_call : constant Irep :=
-           Fresh_Var_Symbol_Expr (Do_Type_Reference (Element_Type),
-                                  "array_dup_fun_lhs");
-         Call_Inst : constant Irep :=
-           Make_Code_Function_Call (Arguments       => Call_Args,
-                                    --  the argument are appended later
-                                    I_Function      =>
-                                      Get_Array_Copy_Function (
-                                        Element_Type,
-                                        Element_Type,
-                                        Index_Type),
-                                    Lhs             => Lhs_fun_call,
-                                    Source_Location => Source_Loc);
-         Return_Inst : constant Irep :=
-           Make_Code_Return (Return_Value    => Array_Copy,
-                             Source_Location => Source_Loc);
-
-         --  new variables for malloc allocation
-         Member_Size : constant Irep :=
-           Make_Constant_Expr (Source_Location => Source_Loc,
-                               I_Type          => Len_Type,
-                               Range_Check     => False,
-                               Value           =>
-                    Convert_Uint_To_Hex (Value     => Esize (Element_Type) / 8,
-                                         Bit_Width => 64));
-      begin
-         --  Create body (allocate and then call array_copy)
-         Append_Declare_And_Init (
-           Array_Copy,
-           Make_Op_Typecast (
-             Op0 =>  Make_Malloc_Function_Call_Expr (
-               Make_Op_Mul (
-                 Lhs => Member_Size,
-                 Rhs => Param_Symbol (Len_Param),
-                 I_Type => Len_Type,
-                 Source_Location => Source_Loc)),
-                 I_Type => Ptr_Type,
-             Source_Location => Source_Loc),
-                                  Body_Block, 0);
-
-         Append_Argument (Call_Args, Array_Copy);
-         Append_Argument (Call_Args, Param_Symbol (Ptr_Param));
-         Append_Argument (Call_Args, Param_Symbol (Len_Param));
-         Append_Op (Body_Block, Call_Inst);
-         Append_Op (Body_Block, Return_Inst);
-
-         Func_Symbol :=
-           New_Function_Symbol_Entry (Name           => Func_Name,
-                                      Symbol_Type    => Func_Type,
-                                      Value          => Body_Block,
-                                      A_Symbol_Table => Global_Symbol_Table);
-
-         --  Record it for the future:
-         Array_Dup_Map.Replace_Element (Map_Cursor, Symbol_Expr (Func_Symbol));
-
-         return Array_Dup_Maps.Element (Map_Cursor);
-
-      end;
-   end Get_Array_Dup_Function;
 
    function Can_Get_Array_Index_Type (N : Node_Id) return Boolean is
       Ret : Entity_Id := Etype (First_Index (Etype (N)));
