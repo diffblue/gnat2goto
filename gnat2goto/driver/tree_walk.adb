@@ -28,7 +28,25 @@ with Range_Check; use Range_Check;
 
 package body Tree_Walk is
 
-   function Make_Malloc_Function_Call_Expr (Size : Irep) return Irep;
+   function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep
+     with Pre => Kind (Num_Elem) in Class_Expr,
+     Post => Kind (Make_Malloc_Function_Call_Expr'Result) =
+     I_Side_Effect_Expr_Function_Call;
+
+   function Make_Memcpy_Function_Call_Expr (Destination : Irep;
+                                            Source : Irep;
+                                            Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep
+     with Pre => (Kind (Get_Type (Destination)) = I_Pointer_Type
+                  and then Kind (Get_Type (Source)) = I_Pointer_Type
+                  and then Kind (Num_Elem) in Class_Expr),
+     Post => Kind (Make_Memcpy_Function_Call_Expr'Result) =
+     I_Side_Effect_Expr_Function_Call;
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
@@ -420,9 +438,16 @@ package body Tree_Walk is
                                         Fun_Name : String;
                                         Message : String) return Irep_Kind;
 
-   function Make_Malloc_Function_Call_Expr (Size : Irep) return Irep is
+   function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep is
+      Size : constant Irep :=
+        Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
+                            Element_Type_Size => Element_Type_Size,
+                            Index_Type        => CProver_Size_T,
+                            Source_Loc        => Source_Loc);
       Malloc_Args  : constant Irep := New_Irep (I_Argument_List);
-      Source_Loc : constant Source_Ptr := Get_Source_Location (Size);
       Malloc_Name : constant String := "malloc";
       Malloc_Call : constant Irep :=
         Make_Side_Effect_Expr_Function_Call (Arguments       => Malloc_Args,
@@ -434,9 +459,40 @@ package body Tree_Walk is
       Append_Argument (Malloc_Args,
                        Make_Op_Typecast (Op0             => Size,
                                          Source_Location => Source_Loc,
-                    I_Type          => Make_Symbol_Type ("__CPROVER_size_t")));
+                    I_Type          => CProver_Size_T));
       return Malloc_Call;
    end Make_Malloc_Function_Call_Expr;
+
+   function Make_Memcpy_Function_Call_Expr (Destination : Irep;
+                                            Source : Irep;
+                                            Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep is
+      Size : constant Irep :=
+        Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
+                            Element_Type_Size => Element_Type_Size,
+                            Index_Type        => CProver_Size_T,
+                            Source_Loc        => Source_Loc);
+      Memcpy_Args  : constant Irep := New_Irep (I_Argument_List);
+      Memcpy_Name : constant String := "memcpy";
+      Memcpy_Call : constant Irep :=
+        Make_Side_Effect_Expr_Function_Call (Arguments       => Memcpy_Args,
+                                             I_Function      => Symbol_Expr (
+                                   Global_Symbol_Table (Intern (Memcpy_Name))),
+                                             Source_Location => Source_Loc,
+                        I_Type          => Make_Pointer_Type (Make_Void_Type));
+   begin
+      Append_Argument (I     => Memcpy_Args,
+                       Value => Destination);
+      Append_Argument (I     => Memcpy_Args,
+                       Value => Source);
+      Append_Argument (Memcpy_Args,
+                       Make_Op_Typecast (Op0             => Size,
+                                         Source_Location => Source_Loc,
+                    I_Type          => CProver_Size_T));
+      return Memcpy_Call;
+   end Make_Memcpy_Function_Call_Expr;
 
    procedure Report_Unhandled_Node_Empty (N : Node_Id;
                                           Fun_Name : String;
@@ -4123,6 +4179,7 @@ package body Tree_Walk is
       Result : constant Irep := New_Irep (I_Struct_Expr);
    begin
       Set_Subtype (Pointer_Type, Do_Type_Reference (Element_Type));
+      Set_Width (Pointer_Type, Pointer_Type_Width);
 
       --  Adjust data pointer:
       Set_Lhs (Offset, New_First_Expr);
@@ -4463,6 +4520,7 @@ package body Tree_Walk is
       end loop;
 
       Set_Subtype (Data_Type, Sub);
+      Set_Width (Data_Type, Pointer_Type_Width);
       Append_Component (Ret_Components, Data_Member);
 
       Set_Components (Ret, Ret_Components);
@@ -4827,8 +4885,6 @@ package body Tree_Walk is
          return Deref;
       end if;
       Result_Type := Do_Type_Reference (Component_Type (Base_Type));
-      Set_Lhs (Zero_Based_Index, Idx_Irep);
-      Set_Rhs (Zero_Based_Index, First_Irep);
       if not (Kind (Zero_Based_Index) in Class_Expr) or else
         not (Kind (Get_Type (Idx_Irep)) in Class_Type)
       then
@@ -4836,16 +4892,13 @@ package body Tree_Walk is
                                       "Kinds not in classes");
          return Deref;
       end if;
-      Set_Type (Zero_Based_Index, Get_Type (Idx_Irep));
-      Set_Component_Name (Data, "data");
-      Set_Compound (Data, Base_Irep);
-      Set_Subtype (Pointer_Type, Result_Type);
-      Set_Type (Data, Pointer_Type);
-      Set_Lhs (Offset, Data);
-      Set_Rhs (Offset, Idx_Irep);
-      Set_Type (Offset, Pointer_Type);
-      Set_Object (Deref, Offset);
-      Set_Type (Deref, Result_Type);
+      Set_Subtype (I     => Pointer_Type,
+                Value => Result_Type);
+      Set_Width (I     => Pointer_Type,
+                 Value => Pointer_Type_Width);
+      Deref := Make_Dereference_Expr (Object          => Offset,
+                                      Source_Location => Source_Loc,
+                                      I_Type          => Result_Type);
       return Deref;
    end Make_Array_Index_Op;
 
