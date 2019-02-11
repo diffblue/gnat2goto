@@ -1,0 +1,5 @@
+[precondition_instance.1] memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] memcpy source region readable: SUCCESS
+[precondition_instance.3] memcpy destination region writeable: SUCCESS
+[1] file arrays_index.adb line 9 : SUCCESS
+VERIFICATION SUCCESSFUL
