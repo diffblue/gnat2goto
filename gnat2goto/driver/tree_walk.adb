@@ -3035,7 +3035,8 @@ package body Tree_Walk is
       function Needs_Default_Initialisation (E : Entity_Id) return Boolean is
       begin
          return Has_Defaulted_Discriminants (E)
-           or else Has_Defaulted_Components (E);
+           or else Has_Defaulted_Components (E)
+           or else Ekind (E) = E_Array_Subtype;
       end Needs_Default_Initialisation;
 
       function Disc_Expr (N : Node_Id) return Node_Id is
