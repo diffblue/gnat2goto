@@ -4795,14 +4795,31 @@ package body Tree_Walk is
    function Make_Array_Index_Op
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep
    is
+      Source_Loc : constant Source_Ptr := Sloc (Base_Type);
       First_Irep : constant Irep :=
         Make_Array_First_Expr (Base_Type, Base_Irep);
-      Zero_Based_Index : constant Irep := New_Irep (I_Op_Sub);
+      Zero_Based_Index : constant Irep :=
+        Make_Op_Sub (Rhs             => First_Irep,
+                     Lhs             => Idx_Irep,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Get_Type (Idx_Irep),
+                     Range_Check     => False);
       Result_Type : Irep;
-      Data : constant Irep := New_Irep (I_Member_Expr);
-      Offset : constant Irep := New_Irep (I_Op_Add);
-      Deref : constant Irep := New_Irep (I_Dereference_Expr);
       Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
+      Data : constant Irep :=
+        Make_Member_Expr (Compound         => Base_Irep,
+                          Source_Location  => Source_Loc,
+                          Component_Number => 2,
+                          I_Type           => Pointer_Type,
+                          Component_Name   => "data");
+      Offset : constant Irep :=
+        Make_Op_Add (Rhs             => Zero_Based_Index,
+                     Lhs             => Data,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Pointer_Type);
+      Deref : Irep := New_Irep (I_Dereference_Expr);
    begin
       if not Is_Array_Type (Base_Type) then
          Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
