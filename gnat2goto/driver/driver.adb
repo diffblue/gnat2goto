@@ -85,12 +85,60 @@ package body Driver is
       end if;
    end Add_Malloc_Symbol;
 
+   procedure Add_Memcpy_Symbol;
+
+   procedure Add_Memcpy_Symbol is
+      Memcpy_Name : constant String := "memcpy";
+      Memcpy_Params : constant Irep := New_Irep (I_Parameter_List);
+      Destination_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
+                              Param_Name      => "destination",
+                              Param_Type      =>
+                                Make_Pointer_Type (Make_Void_Type),
+                              Param_List      => Memcpy_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Source_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
+                              Param_Name      => "source",
+                              Param_Type      =>
+                                Make_Pointer_Type (Make_Void_Type),
+                              Param_List      => Memcpy_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Num_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
+                              Param_Name      => "num",
+                              Param_Type      =>
+                           Make_Symbol_Type (Identifier => "__CPROVER_size_t"),
+                              Param_List      => Memcpy_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Memcpy_Type : constant Irep :=
+        Make_Code_Type (Parameters  => Memcpy_Params,
+                        Ellipsis    => False,
+                        Return_Type => Make_Pointer_Type (Make_Void_Type),
+                        Inlined     => False,
+                        Knr         => False);
+      Memcpy_Symbol : Symbol;
+   begin
+      if Kind (Destination_Param) = I_Code_Parameter and then
+        Kind (Source_Param) = I_Code_Parameter and then
+        Kind (Num_Param) = I_Code_Parameter
+      then
+         Memcpy_Symbol :=
+           New_Function_Symbol_Entry (Name           => Memcpy_Name,
+                                      Symbol_Type    => Memcpy_Type,
+                                      Value          => Ireps.Empty,
+                                      A_Symbol_Table => Global_Symbol_Table);
+         pragma Assert (Kind (Memcpy_Symbol.SymType) = I_Code_Type);
+      end if;
+   end Add_Memcpy_Symbol;
+
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
    begin
       Translate_Standard_Types;
       Add_CProver_Internal_Symbols;
       Add_Malloc_Symbol;
+      Add_Memcpy_Symbol;
       Translate_Compilation_Unit (GNAT_Root);
    end GNAT_To_Goto;
 
