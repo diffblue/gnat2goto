@@ -1,10 +1,21 @@
 with Namet;   use Namet;
 with Nlists;  use Nlists;
 with Aspects; use Aspects;
+with Binary_To_Hex;         use Binary_To_Hex;
 
 with Ada.Text_IO;           use Ada.Text_IO;
 
 package body GOTO_Utils is
+
+   Size_T : Irep := Ireps.Empty;
+   function CProver_Size_T return Irep
+   is
+   begin
+      if Size_T = Ireps.Empty then
+         Size_T := Make_Symbol_Type ("__CPROVER_size_t");
+      end if;
+      return Size_T;
+   end CProver_Size_T;
 
    ---------------------
    -- Make_Address_Of --
@@ -187,6 +198,29 @@ package body GOTO_Utils is
       Append_Parameter (Param_List, Value_Arg);
       return Value_Arg;
    end Create_Fun_Parameter;
+
+   function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
+                                    Index_Type : Irep;
+                                    Source_Loc : Source_Ptr := No_Location)
+                                    return Irep is
+      Member_Size : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Index_Type,
+                            Range_Check     => False,
+                            Value           =>
+                              --  bytes to bits (div by 8)
+                       Convert_Uint_To_Hex (Value     => Element_Type_Size / 8,
+                                            Bit_Width => 32));
+   begin
+      return Make_Op_Mul (Rhs             => Member_Size,
+                          Lhs             =>
+                            Make_Op_Typecast (Op0             => Num_Elem,
+                                              Source_Location => Source_Loc,
+                                              I_Type          => Index_Type),
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Index_Type);
+   end Compute_Memory_Op_Size;
 
    ---------------------
    -- Name_Has_Prefix --
