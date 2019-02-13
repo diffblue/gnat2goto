@@ -116,8 +116,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Subexpr,
         Post => Kind (Do_Expression'Result) in Class_Expr;
 
-   procedure Do_Full_Type_Declaration (N : Node_Id;
-                                       Full_From_Incomplete : Boolean)
+   procedure Do_Full_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
 
    function Do_Function_Call (N : Node_Id) return Irep
@@ -410,6 +409,11 @@ package body Tree_Walk is
    procedure Register_Subprogram_Specification (N : Node_Id)
    with Pre => Nkind (N) in N_Subprogram_Specification;
    --  Insert the subprogram specification into the symbol table
+
+   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id)
+   with Pre => Nkind (N) = N_Full_Type_Declaration;
+   --  Common procedure for registering non-anonymous type declarations.
+   --  Called by Do_Full_Type_Declaration and Do_Incomplete_Type_Declaraion
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
@@ -1643,8 +1647,7 @@ package body Tree_Walk is
    -- Do_Full_Type_Declaration --
    ------------------------------
 
-   procedure Do_Full_Type_Declaration (N : Node_Id;
-                                       Full_From_Incomplete : Boolean) is
+   procedure Do_Full_Type_Declaration (N : Node_Id) is
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
       Put_Line ("In Do_Full_Type_Declaration");
@@ -1654,37 +1657,23 @@ package body Tree_Walk is
                                       "identifier not a type");
          return;
       end if;
+
       Put_Line ("Entity is a type");
-      if Full_From_Incomplete
-        or else not Present (Incomplete_View (N))
+
+      --  If this is the full_type_declaration of a previous
+      --  incomplete_type_declaration then the Incomplete_View of the
+      --  declaration will be present and the
+      --  full_type_declaration will have been registered when its
+      --  incomplete_type_declaration was processed.
+      --  If the Incomplete_View is not present then the full_type_declaration
+      --  has to be registered
+      if not Present (Incomplete_View (N))
       then
          Put_Line ("We are going to do the dec");
-         if Full_From_Incomplete then
-            Put_Line ("Process full view of incomplete_type_declaration");
-         else
-            Put_Line ("full_type_declaration with no incomplete_view");
-         end if;
-         declare
-            New_Type : constant Irep :=
-              Do_Type_Definition (Type_Definition (N),
-                                  Discriminant_Specifications (N));
-         begin
-            if Kind (New_Type) not in Class_Type then
-               Report_Unhandled_Node_Empty (N, "Do Full_Type_Declaration",
-                                            "identifier not in class type");
-               return;
-            end if;
-
-            Do_Type_Declaration (New_Type, E);
-
-            --  Declare the implicit initial subtype too
-            if Etype (E) /= E then
-               Do_Type_Declaration (New_Type, Etype (E));
-            end if;
-         end;
-
+         Put_Line ("full_type_declaration with no incomplete_view");
+         Register_Type_Declaration (N, E);
       else
-         Put_Line ("The incomplete declaration has already been processed");
+         Put_Line ("Already registered from incomplete type");
       end if;
 
    end Do_Full_Type_Declaration;
@@ -2094,9 +2083,13 @@ package body Tree_Walk is
 
    procedure Do_Incomplete_Type_Declaration (N : Node_Id) is
       Entity : constant Entity_Id := Defining_Identifier (N);
+      --  The full view of an incomplete_type_declaration is obtained
+      --  by calling the Full_View function.  As rthe compiler has completed
+      --  semantic analysis before invoking the gnat to goto translation
+      --  all incomplete_type_declarations should have a full view.
+      Full_View_Entity : constant Entity_Id := Full_View (Entity);
       Type_Name : constant String := To_String
         (To_Unbounded_String (Unique_Name (Entity)));
-      Full_From_Incomplete : constant Boolean := True;
    begin
       if Is_Incomplete_Or_Private_Type (Entity) then
          Put_Line ("Should be processing an incomplete_type_declaration "
@@ -2107,12 +2100,14 @@ package body Tree_Walk is
             Print_Node_Briefly (Etype (Full_View (Entity)));
             Put_Line ("This should be the full type dec:");
             Print_Node_Briefly (Declaration_Node (Full_View (Entity)));
-            if Nkind (Declaration_Node (Full_View (Entity))) =
+            if Nkind (Declaration_Node (Full_View_Entity)) =
               N_Full_Type_Declaration
             then
-               Do_Full_Type_Declaration
-                 (Declaration_Node (Full_View (Entity)),
-                 Full_From_Incomplete);
+               --  The full_type_declaration corresponding to the
+               --  incomplete_type_declaration
+               --  register its full view.
+               Register_Type_Declaration
+                 (Declaration_Node (Full_View_Entity), Full_View_Entity);
             else
                Put_Line ("Not a full type declaration_node");
             end if;
@@ -5052,7 +5047,7 @@ package body Tree_Walk is
          --  basic_declarations  --
 
          when N_Full_Type_Declaration =>
-            Do_Full_Type_Declaration (N, False);
+            Do_Full_Type_Declaration (N);
 
          when N_Incomplete_Type_Declaration =>
             Do_Incomplete_Type_Declaration (N);
@@ -5262,7 +5257,7 @@ package body Tree_Walk is
          when N_Pragma =>
             Do_Pragma (N, Block);
 
-         --  Not sure the nex two should be here -
+         --  Not sure the next two should be here -
          --  should they be in declarations? --
 --         when N_Itype_Reference =>
 --            Do_Itype_Reference (N);
@@ -5329,6 +5324,30 @@ package body Tree_Walk is
 
       Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
    end Register_Subprogram_Specification;
+
+   -------------------------------
+   -- Register_Type_Declaration --
+   -------------------------------
+
+   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id) is
+      New_Type : constant Irep :=
+        Do_Type_Definition (Type_Definition (N),
+                            Discriminant_Specifications (N));
+   begin
+      Put_Line ("Registering type declaration");
+      if Kind (New_Type) not in Class_Type then
+         Report_Unhandled_Node_Empty (N, "Register_Type_Declaration",
+                                      "identifier not in class type");
+         return;
+      end if;
+
+      Do_Type_Declaration (New_Type, E);
+
+      --  Declare the implicit initial subtype too
+      if Etype (E) /= E then
+         Do_Type_Declaration (New_Type, Etype (E));
+      end if;
+   end Register_Type_Declaration;
 
    procedure Remove_Entity_Substitution (E : Entity_Id) is
    begin
