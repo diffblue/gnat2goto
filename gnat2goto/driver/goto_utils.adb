@@ -180,19 +180,21 @@ package body GOTO_Utils is
                                   A_Symbol_Table : in out Symbol_Table;
                                   Source_Location : Source_Ptr := No_Location)
                                   return Irep is
-      Func_Param_Id : constant Symbol_Id := Intern (Fun_Name & Param_Name);
+      Unique_Name : constant String :=
+        Fun_Name & "::" & Fresh_Var_Name (Param_Name);
+      Func_Param_Id : constant Symbol_Id := Intern (Unique_Name);
       --  Create an irep for the parameter
       Value_Arg : constant Irep :=
         Make_Code_Parameter (Source_Location => Source_Location,
                              Default_Value   => Ireps.Empty,
                              I_Type          => Param_Type,
-                             Base_Name       => Param_Name,
+                             Base_Name       => Unique_Name,
                              This            => False,
                              Identifier      => Unintern (Func_Param_Id));
    begin
       --  Creates a symbol for the parameter
       New_Parameter_Symbol_Entry (Name_Id        => Func_Param_Id,
-                                  BaseName       => Param_Name,
+                                  BaseName       => Unique_Name,
                                   Symbol_Type    => Param_Type,
                                   A_Symbol_Table => A_Symbol_Table);
       Append_Parameter (Param_List, Value_Arg);

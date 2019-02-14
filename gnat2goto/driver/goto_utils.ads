@@ -35,12 +35,16 @@ package GOTO_Utils is
    procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
                                          BaseName :              String;
                                          Symbol_Type :           Irep;
-                                         A_Symbol_Table : in out Symbol_Table);
+                                         A_Symbol_Table : in out Symbol_Table)
+     with Pre => Kind (Symbol_Type) in Class_Type;
 
    function New_Function_Symbol_Entry (Name : String; Symbol_Type : Irep;
                                        Value : Irep;
                                        A_Symbol_Table : in out Symbol_Table)
-                                       return Symbol;
+                                       return Symbol
+     with Pre => (Kind (Symbol_Type) = I_Code_Type
+                  and then (Kind (Value) = I_Code_Block
+                    or else Value = Ireps.Empty));
 
    function Create_Fun_Parameter (Fun_Name : String; Param_Name : String;
                                   Param_Type : Irep; Param_List : Irep;
@@ -52,12 +56,13 @@ package GOTO_Utils is
      Post => Kind (Create_Fun_Parameter'Result) = I_Code_Parameter;
 
    function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
-                                    Index_Type : Irep;
                                     Source_Loc : Source_Ptr := No_Location)
                                     return Irep
-     with Pre => (Kind (Num_Elem) in Class_Expr
-                  and then Kind (Index_Type) in Class_Type),
-       Post => Kind (Compute_Memory_Op_Size'Result) = I_Op_Mul;
+     with Pre => Kind (Num_Elem) in Class_Expr,
+     Post => (Kind (Compute_Memory_Op_Size'Result) = I_Op_Mul
+              and then Get_Type (Compute_Memory_Op_Size'Result)
+              = CProver_Size_T);
+
    function Build_Function (Name : String; RType : Irep; Func_Params : Irep;
                             FBody : Irep; A_Symbol_Table : in out Symbol_Table)
                             return Symbol
