@@ -180,19 +180,21 @@ package body GOTO_Utils is
                                   A_Symbol_Table : in out Symbol_Table;
                                   Source_Location : Source_Ptr := No_Location)
                                   return Irep is
-      Func_Param_Id : constant Symbol_Id := Intern (Fun_Name & Param_Name);
+      Unique_Name : constant String :=
+        Fun_Name & "::" & Fresh_Var_Name (Param_Name);
+      Func_Param_Id : constant Symbol_Id := Intern (Unique_Name);
       --  Create an irep for the parameter
       Value_Arg : constant Irep :=
         Make_Code_Parameter (Source_Location => Source_Location,
                              Default_Value   => Ireps.Empty,
                              I_Type          => Param_Type,
-                             Base_Name       => Param_Name,
+                             Base_Name       => Unique_Name,
                              This            => False,
                              Identifier      => Unintern (Func_Param_Id));
    begin
       --  Creates a symbol for the parameter
       New_Parameter_Symbol_Entry (Name_Id        => Func_Param_Id,
-                                  BaseName       => Param_Name,
+                                  BaseName       => Unique_Name,
                                   Symbol_Type    => Param_Type,
                                   A_Symbol_Table => A_Symbol_Table);
       Append_Parameter (Param_List, Value_Arg);
@@ -200,27 +202,132 @@ package body GOTO_Utils is
    end Create_Fun_Parameter;
 
    function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
-                                    Index_Type : Irep;
                                     Source_Loc : Source_Ptr := No_Location)
                                     return Irep is
+
       Member_Size : constant Irep :=
         Make_Constant_Expr (Source_Location => Source_Loc,
-                            I_Type          => Index_Type,
+                            I_Type          => CProver_Size_T,
                             Range_Check     => False,
                             Value           =>
                               --  bytes to bits (div by 8)
                        Convert_Uint_To_Hex (Value     => Element_Type_Size / 8,
-                                            Bit_Width => 32));
+                                            Bit_Width => 64));
    begin
       return Make_Op_Mul (Rhs             => Member_Size,
                           Lhs             =>
-                            Make_Op_Typecast (Op0             => Num_Elem,
-                                              Source_Location => Source_Loc,
-                                              I_Type          => Index_Type),
+                            Typecast_If_Necessary (Expr      => Num_Elem,
+                                            New_Type => CProver_Size_T),
                           Source_Location => Source_Loc,
                           Overflow_Check  => False,
-                          I_Type          => Index_Type);
+                          I_Type          => CProver_Size_T);
    end Compute_Memory_Op_Size;
+
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep) return Irep
+   is
+   begin
+      if Get_Type (Expr) = New_Type then
+         return Expr;
+      else
+         return Make_Op_Typecast (Op0             => Expr,
+                                 Source_Location => Get_Source_Location (Expr),
+                                  I_Type          => New_Type);
+      end if;
+   end Typecast_If_Necessary;
+
+   function Build_Function (Name : String; RType : Irep; Func_Params : Irep;
+                            FBody : Irep; A_Symbol_Table : in out Symbol_Table)
+                            return Symbol is
+      Func_Name : constant String := Fresh_Var_Name (Name);
+      Func_Type : constant Irep := Make_Code_Type (Parameters  => Func_Params,
+                                                   Ellipsis    => False,
+                                                   Return_Type => RType,
+                                                   Inlined     => False,
+                                                   Knr         => False);
+   begin
+      return New_Function_Symbol_Entry (Name        => Func_Name,
+                                        Symbol_Type => Func_Type,
+                                        Value       => FBody,
+                                        A_Symbol_Table => A_Symbol_Table);
+   end Build_Function;
+
+   function Build_Index_Constant (Value : Int; Index_Type : Irep;
+                                  Source_Loc : Source_Ptr) return Irep
+   is
+      Type_Width : constant Int :=
+        (if not (Kind (Index_Type) in Class_Bitvector_Type)
+         then 32
+         else Int (Get_Width (Index_Type)));
+      Value_Hex : constant String :=
+        Convert_Uint_To_Hex (Value     => UI_From_Int (Value),
+                             Bit_Width => Type_Width);
+   begin
+      return Make_Constant_Expr (Source_Location => Source_Loc,
+                                 I_Type          => Index_Type,
+                                 Range_Check     => False,
+                                 Value           => Value_Hex);
+   end Build_Index_Constant;
+
+   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+                              return Irep
+   is
+      Source_Loc : constant Source_Ptr := Get_Source_Location (First);
+      Diff : constant Irep :=
+        Make_Op_Sub (Rhs             => First,
+                     Lhs             => Last,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Idx_Type);
+      One : constant Irep :=
+        Build_Index_Constant (Value      => 1,
+                              Index_Type => Idx_Type,
+                              Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Add (Rhs             => One,
+                          Lhs             => Diff,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Idx_Type);
+   end Build_Array_Size;
+
+   function Build_Array_Size (Array_Comp : Irep; Idx_Type : Irep) return Irep
+   is
+      Source_Loc : constant Source_Ptr := Get_Source_Location (Array_Comp);
+      First : constant Irep :=
+        Make_Member_Expr (Compound         => Array_Comp,
+                          Source_Location  => Source_Loc,
+                          Component_Number => 0,
+                          I_Type           => Idx_Type,
+                          Component_Name   => "first1");
+      Last : constant Irep :=
+        Make_Member_Expr (Compound         => Array_Comp,
+                          Source_Location  => Source_Loc,
+                          Component_Number => 1,
+                          I_Type           => Idx_Type,
+                          Component_Name   => "last1");
+
+   begin
+      return Build_Array_Size (First      => First,
+                               Last       => Last,
+                               Idx_Type => Idx_Type);
+   end Build_Array_Size;
+
+   function Offset_Array_Data (Base : Irep; Offset : Irep; Pointer_Type : Irep;
+                               Source_Loc : Source_Ptr) return Irep
+   is
+      Old_Data : constant Irep :=
+        Make_Member_Expr (Compound         => Base,
+                          Source_Location  => Source_Loc,
+                          Component_Number => 2,
+                          I_Type           => Pointer_Type,
+                          Component_Name   => "data");
+   begin
+      return Make_Op_Add (Rhs             => Offset,
+                          Lhs             => Old_Data,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Pointer_Type);
+   end Offset_Array_Data;
 
    ---------------------
    -- Name_Has_Prefix --
