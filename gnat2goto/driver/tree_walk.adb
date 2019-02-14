@@ -345,14 +345,6 @@ package body Tree_Walk is
    function Make_Array_Index_Op
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
 
-   function Make_Array_Length_Expr
-     (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
-   with Pre => Ekind (Index_Type) in Discrete_Kind;
-
-   function Make_Array_Length_Expr
-     (First_Expr : Irep; Last_Expr : Irep; Index_Type : Entity_Id) return Irep
-   with Pre => Ekind (Index_Type) in Discrete_Kind;
-
    function Make_Increment
      (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep;
 
@@ -383,10 +375,6 @@ package body Tree_Walk is
                 Nkind (Chosen_Var) = N_Variant,
         Post => Kind (Union_Expr) = I_Union_Expr and then
                 Kind (Struct_Expr) = I_Struct_Expr;
-
-   function Maybe_Make_Typecast (Expr     : Irep;
-                                 Old_Type : Entity_Id;
-                                 New_Type : Entity_Id) return Irep;
 
    type Construct is (Declaration, Statement);
 
@@ -445,7 +433,6 @@ package body Tree_Walk is
       Size : constant Irep :=
         Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
                             Element_Type_Size => Element_Type_Size,
-                            Index_Type        => CProver_Size_T,
                             Source_Loc        => Source_Loc);
       Malloc_Args  : constant Irep := New_Irep (I_Argument_List);
       Malloc_Name : constant String := "malloc";
@@ -456,10 +443,7 @@ package body Tree_Walk is
                                              Source_Location => Source_Loc,
                         I_Type          => Make_Pointer_Type (Make_Void_Type));
    begin
-      Append_Argument (Malloc_Args,
-                       Make_Op_Typecast (Op0             => Size,
-                                         Source_Location => Source_Loc,
-                    I_Type          => CProver_Size_T));
+      Append_Argument (Malloc_Args, Size);
       return Malloc_Call;
    end Make_Malloc_Function_Call_Expr;
 
@@ -472,7 +456,6 @@ package body Tree_Walk is
       Size : constant Irep :=
         Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
                             Element_Type_Size => Element_Type_Size,
-                            Index_Type        => CProver_Size_T,
                             Source_Loc        => Source_Loc);
       Memcpy_Args  : constant Irep := New_Irep (I_Argument_List);
       Memcpy_Name : constant String := "memcpy";
@@ -487,10 +470,7 @@ package body Tree_Walk is
                        Value => Destination);
       Append_Argument (I     => Memcpy_Args,
                        Value => Source);
-      Append_Argument (Memcpy_Args,
-                       Make_Op_Typecast (Op0             => Size,
-                                         Source_Location => Source_Loc,
-                    I_Type          => CProver_Size_T));
+      Append_Argument (Memcpy_Args, Size);
       return Memcpy_Call;
    end Make_Memcpy_Function_Call_Expr;
 
@@ -654,14 +634,18 @@ package body Tree_Walk is
       --    return temp_array;
       --  }
       function Build_Array_Lit_Func_Body (N : Node_Id) return Irep is
+
          Pos_Iter : Node_Id := First (Expressions (N));
          Source_Loc : constant Source_Ptr := Sloc (N);
          Bounds : constant Node_Id := Aggregate_Bounds (N);
          Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
          High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
          Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
+         Index_Type : constant Irep := Do_Type_Reference (Index_Type_Node);
          Len_Expr : constant Irep :=
-           Make_Array_Length_Expr (Low_Expr, High_Expr, Index_Type_Node);
+           Build_Array_Size (First      => Low_Expr,
+                             Last       => High_Expr,
+                             Idx_Type => Index_Type);
          Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
          Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
          Bare_Array_Type : constant Irep :=
@@ -1062,7 +1046,9 @@ package body Tree_Walk is
       end if;
       LHS_Idx_Type := Get_Array_Index_Type (Name (N));
       RHS_Idx_Type := Get_Array_Index_Type (Expression (N));
-      LHS_Length := Make_Array_Length_Expr (LHS, LHS_Idx_Type);
+      LHS_Length :=
+        Build_Array_Size (Array_Comp => LHS,
+                          Idx_Type => Do_Type_Reference (LHS_Idx_Type));
       Copy_Func :=
         Get_Array_Copy_Function (LHS_Element_Type,
                                  RHS_Element_Type,
@@ -1075,13 +1061,16 @@ package body Tree_Walk is
          return Ret;
       end if;
       RHS := Fresh_Var_Symbol_Expr (Get_Type (RHS_Expr), "array_assign_rhs");
-      RHS_Length := Make_Array_Length_Expr (RHS, RHS_Idx_Type);
+      RHS_Length :=
+        Build_Array_Size (Array_Comp => RHS,
+                          Idx_Type => Do_Type_Reference (RHS_Idx_Type));
 
       Append_Declare_And_Init (LHS, LHS_Expr, Ret, Sloc (N));
       Append_Declare_And_Init (RHS, RHS_Expr, Ret, Sloc (N));
 
       RHS_Length :=
-        Maybe_Make_Typecast (RHS_Length, RHS_Idx_Type, LHS_Idx_Type);
+        Typecast_If_Necessary (Expr     => RHS_Length,
+                        New_Type => Do_Type_Reference (LHS_Idx_Type));
 
       --  assert (RHS'Length == LHS'Length)
       declare
@@ -1135,7 +1124,8 @@ package body Tree_Walk is
       Array_Struct : constant Irep := Do_Expression (Prefix (N));
       Index_Type : constant Entity_Id := Get_Array_Index_Type (Prefix (N));
    begin
-      return Make_Array_Length_Expr (Array_Struct, Index_Type);
+      return Build_Array_Size (Array_Comp => Array_Struct,
+                               Idx_Type => Do_Type_Reference (Index_Type));
    end Do_Array_Length;
 
    --------------------
@@ -1253,17 +1243,15 @@ package body Tree_Walk is
          Set_Lhs (R, LHS);
          if Do_Range_Check (Expression (N)) then
             declare
-               Cast_RHS : constant Irep := New_Irep (I_Op_Typecast);
-            begin
-               Set_Op0 (I     => Cast_RHS,
-                        Value => Make_Range_Assert_Expr (
+               Range_Expr : constant Irep :=
+                 Make_Range_Assert_Expr (
                           N          => N,
                           Value      => RHS,
-                          Bounds_Type => Get_Type (LHS)));
-               --  Set_Op0 (Cast_RHS, RHS);
-               Set_Type (Cast_RHS, Get_Type (LHS));
-               Set_Rhs (I     => R,
-                        Value => Cast_RHS);
+                          Bounds_Type => Get_Type (LHS));
+            begin
+               Set_Rhs (R,
+                        Typecast_If_Necessary (Expr     => Range_Expr,
+                                        New_Type => Get_Type (LHS)));
             end;
          else
             Set_Rhs (R, RHS);
@@ -1909,24 +1897,21 @@ package body Tree_Walk is
             then
                --  If the value checked for being in the range is of smaller
                --  type then we need to cast it to the type of the bounds
-               Adjusted_Value_Expr := Make_Op_Typecast (
-                                            Op0             => Value_Expr,
-                                            Source_Location => Source_Location,
-                                            I_Type          => Bound_Type);
+               Adjusted_Value_Expr :=
+                 Typecast_If_Necessary (Expr     => Value_Expr,
+                                        New_Type => Bound_Type);
                Adjusted_Lower_Bound := Lower_Bound;
                Adjusted_Upper_Bound := Upper_Bound;
             else
                --  If the bounds are of smaller type then we cast the bounds
                --  to the type of the value being checked
                Adjusted_Value_Expr := Value_Expr;
-               Adjusted_Lower_Bound := Make_Op_Typecast (
-                           Op0             => Lower_Bound,
-                           Source_Location => Source_Location,
-                           I_Type          => Value_Expr_Type);
-               Adjusted_Upper_Bound := Make_Op_Typecast (
-                           Op0             => Upper_Bound,
-                           Source_Location => Source_Location,
-                           I_Type          => Value_Expr_Type);
+               Adjusted_Lower_Bound :=
+                 Typecast_If_Necessary (Expr     => Lower_Bound,
+                                 New_Type => Value_Expr_Type);
+               Adjusted_Upper_Bound :=
+                 Typecast_If_Necessary (Expr     => Upper_Bound,
+                                 New_Type => Value_Expr_Type);
             end if;
             Set_Lhs (Op_Geq, Adjusted_Value_Expr);
             Set_Type (I     => Lower_Bound,
@@ -3107,7 +3092,9 @@ package body Tree_Walk is
          Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
          Source_Loc : constant Source_Ptr := Sloc (E);
          Len : constant Irep :=
-           Make_Array_Length_Expr (Lbound, Hbound, Idx_Type);
+           Build_Array_Size (First      => Lbound,
+                             Last       => Hbound,
+                             Idx_Type => Do_Type_Reference (Idx_Type));
          Component_Type : constant Irep :=
            Do_Type_Reference (Get_Array_Component_Type (E));
          Alloc : constant Irep :=
@@ -3115,21 +3102,18 @@ package body Tree_Walk is
                                            Element_Type_Size =>
                                           Esize (Get_Array_Component_Type (E)),
                                            Source_Loc        => Source_Loc);
-         Pointer_Type : constant Irep :=
-           Make_Pointer_Type (I_Subtype => Component_Type,
-                              Width     => Pointer_Type_Width);
-         Data_Member : constant Irep :=
-           Make_Op_Typecast (Op0             => Alloc,
-                             Source_Location => Source_Loc,
-                             I_Type          => Pointer_Type);
          Ret : constant Irep :=
            Make_Struct_Expr (Source_Location => Source_Loc,
                              I_Type          => Do_Type_Reference (E));
+         Comp_P_Type : constant Irep :=
+           Make_Pointer_Type (I_Subtype => Component_Type,
+                              Width     => Pointer_Type_Width);
       begin
          Append_Struct_Member (Ret, Lbound);
          Append_Struct_Member (Ret, Hbound);
-         Append_Struct_Member (Ret, Data_Member);
-
+         Append_Struct_Member (Ret,
+                               Typecast_If_Necessary (Expr     => Alloc,
+                                               New_Type => Comp_P_Type));
          return Ret;
       end Make_Array_Default_Initialiser;
 
@@ -3428,11 +3412,13 @@ package body Tree_Walk is
                end if;
 
                Index_Type := Get_Array_Index_Type (Opnd);
-               Length_Expr := Make_Array_Length_Expr (Opnd_Irep, Index_Type);
+               Length_Expr :=
+                 Build_Array_Size (Array_Comp => Opnd_Irep,
+                                   Idx_Type => Do_Type_Reference (Index_Type));
 
-               return Maybe_Make_Typecast (Length_Expr,
-                                           Index_Type,
-                                           New_Index_Type);
+               return
+                 Typecast_If_Necessary (Expr     => Length_Expr,
+                               New_Type => Do_Type_Reference (New_Index_Type));
             end;
          end if;
       end Get_Length;
@@ -3472,9 +3458,9 @@ package body Tree_Walk is
                Set_Object (Deref, Target_Ptr);
                Set_Type (Deref, Get_Subtype (Get_Type (Target_Ptr)));
                Set_Lhs (Assign, Deref);
-               Set_Rhs (Assign, Maybe_Make_Typecast (Source_Irep,
-                                                     Etype (Source_Node),
-                                                     New_Component_Type));
+               Set_Rhs (Assign,
+                        Typecast_If_Necessary (Source_Irep,
+                          Do_Type_Reference (New_Component_Type)));
                return Assign;
             end;
          else
@@ -3578,7 +3564,8 @@ package body Tree_Walk is
             LHS_Idx_Type := Get_Array_Index_Type (LHS_Node);
             Set_Type (New_First, Do_Type_Reference (LHS_Idx_Type));
             New_First :=
-              Maybe_Make_Typecast (New_First, LHS_Idx_Type, New_Index_Type);
+              Typecast_If_Necessary (New_First,
+                                     Do_Type_Reference (New_Index_Type));
          end;
       end if;
 
@@ -4465,15 +4452,20 @@ package body Tree_Walk is
    ---------------------------------------
 
    function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Struct_Type);
       Ret_Components : constant Irep := New_Irep (I_Struct_Union_Components);
-      Data_Type : constant Irep := New_Irep (I_Pointer_Type);
-      Data_Member : constant Irep :=
-        Make_Struct_Component ("data", Data_Type);
+      Ret : constant Irep :=
+        Make_Struct_Type (Tag        => "unconstr_array",
+                          Components => Ret_Components);
       Sub_Identifier : constant Node_Id :=
         Subtype_Indication (Component_Definition (N));
       Sub : constant Irep :=
         Do_Type_Reference (Etype (Sub_Identifier));
+      Data_Type : constant Irep :=
+        Make_Pointer_Type (I_Subtype => Sub,
+                           Width     => Pointer_Type_Width);
+      Data_Member : constant Irep :=
+        Make_Struct_Component ("data", Data_Type);
+
       Dimension_Iter : Node_Id :=
         First ((if Nkind (N) = N_Unconstrained_Array_Definition then
                    Subtype_Marks (N) else
@@ -4519,13 +4511,8 @@ package body Tree_Walk is
          Next (Dimension_Iter);
       end loop;
 
-      Set_Subtype (Data_Type, Sub);
-      Set_Width (Data_Type, Pointer_Type_Width);
       Append_Component (Ret_Components, Data_Member);
-
-      Set_Components (Ret, Ret_Components);
       return Ret;
-
    end Do_Unconstrained_Array_Definition;
 
    -------------------------
@@ -4865,18 +4852,11 @@ package body Tree_Walk is
                      Range_Check     => False);
       Result_Type : Irep;
       Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
-      Data : constant Irep :=
-        Make_Member_Expr (Compound         => Base_Irep,
-                          Source_Location  => Source_Loc,
-                          Component_Number => 2,
-                          I_Type           => Pointer_Type,
-                          Component_Name   => "data");
-      Offset : constant Irep :=
-        Make_Op_Add (Rhs             => Zero_Based_Index,
-                     Lhs             => Data,
-                     Source_Location => Source_Loc,
-                     Overflow_Check  => False,
-                     I_Type          => Pointer_Type);
+      Indexed_Data : constant Irep :=
+        Offset_Array_Data (Base         => Base_Irep,
+                           Offset       => Zero_Based_Index,
+                           Pointer_Type => Pointer_Type,
+                           Source_Loc   => Source_Loc);
       Deref : Irep := New_Irep (I_Dereference_Expr);
    begin
       if not Is_Array_Type (Base_Type) then
@@ -4896,50 +4876,11 @@ package body Tree_Walk is
                 Value => Result_Type);
       Set_Width (I     => Pointer_Type,
                  Value => Pointer_Type_Width);
-      Deref := Make_Dereference_Expr (Object          => Offset,
+      Deref := Make_Dereference_Expr (Object          => Indexed_Data,
                                       Source_Location => Source_Loc,
                                       I_Type          => Result_Type);
       return Deref;
    end Make_Array_Index_Op;
-
-   ----------------------------
-   -- Make_Array_Length_Expr --
-   ----------------------------
-
-   function Make_Array_Length_Expr
-     (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
-   is
-      First_Expr : constant Irep := New_Irep (I_Member_Expr);
-      Last_Expr : constant Irep := New_Irep (I_Member_Expr);
-      Index_Type_Irep : constant Irep := Do_Type_Reference (Index_Type);
-   begin
-      Set_Compound (First_Expr, Array_Struct);
-      Set_Component_Name (First_Expr, "first1");
-      Set_Type (First_Expr, Index_Type_Irep);
-      Set_Compound (Last_Expr, Array_Struct);
-      Set_Component_Name (Last_Expr, "last1");
-      Set_Type (Last_Expr, Index_Type_Irep);
-      return Make_Array_Length_Expr (First_Expr, Last_Expr, Index_Type);
-   end Make_Array_Length_Expr;
-
-   ----------------------------
-   -- Make_Array_Length_Expr --
-   ----------------------------
-
-   function Make_Array_Length_Expr
-     (First_Expr : Irep; Last_Expr : Irep; Index_Type : Entity_Id) return Irep
-   is
-      Index_Type_Irep : constant Irep := Do_Type_Reference (Index_Type);
-      One : constant Irep := Make_Integer_Constant (1, Index_Type);
-   begin
-      return Make_Op_Add
-        (Lhs => Make_Op_Sub
-           (Lhs => Last_Expr, Rhs => First_Expr, I_Type => Index_Type_Irep,
-            Source_Location => Sloc (Index_Type)),
-         Rhs => One,
-         I_Type => Index_Type_Irep,
-         Source_Location => Sloc (Index_Type));
-   end Make_Array_Length_Expr;
 
    --------------------
    -- Make_Increment --
@@ -5054,18 +4995,16 @@ package body Tree_Walk is
    -----------------------------
 
    function Make_Struct_Component (Name : String; Ty : Irep) return Irep is
-      Ret : constant Irep := New_Irep (I_Struct_Union_Component);
    begin
-      --  Set attributes we don't use yet:
-      Set_Access (Ret, "public");
-      Set_Is_Padding (Ret, False);
-      Set_Anonymous (Ret, False);
-      --  Real attributes:
-      Set_Name        (Ret, Name);
-      Set_Prettyname (Ret, Name);
-      Set_Basename   (Ret, Name);
-      Set_Type        (Ret, Ty);
-      return Ret;
+      return Make_Struct_Union_Component (Source_Location => No_Location,
+                                          Is_Padding      => False,
+                                          I_Access        => "public",
+                                          I_Type          => Ty,
+                                          Range_Check     => False,
+                                          Anonymous       => False,
+                                          Prettyname      => Name,
+                                          Name            => Name,
+                                          Basename        => Name);
    end Make_Struct_Component;
 
    ------------------------
@@ -5101,27 +5040,6 @@ package body Tree_Walk is
          Source_Location => 0,
          Op0             => Struct_Expr);
    end Make_Variant_Literal;
-
-   ---------------------------
-   --  Maybe_Make_Typecast  --
-   ---------------------------
-
-   function Maybe_Make_Typecast (Expr : Irep;
-                                 Old_Type : Entity_Id;
-                                 New_Type : Entity_Id) return Irep
-   is
-   begin
-      if Old_Type = New_Type then
-         return Expr;
-      end if;
-      declare
-         Ret : constant Irep := New_Irep (I_Op_Typecast);
-      begin
-         Set_Type (Ret, Do_Type_Reference (New_Type));
-         Set_Op0 (Ret, Expr);
-         return Ret;
-      end;
-   end Maybe_Make_Typecast;
 
    --------------------------------
    --  Warn_Unhandled_Construct  --
