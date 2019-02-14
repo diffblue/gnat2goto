@@ -1,12 +1,8 @@
 package body Test
 is
-   procedure Foo(Input : Positive)
+   function Double(Input : Positive) return Positive
    is
    begin
-      if (Input > 5) then
-         null;
-      else
-         null;
-      end if;
-   end Foo;
+      return Input + Input;
+   end Double;
 end Test;

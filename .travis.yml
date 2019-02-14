@@ -45,8 +45,8 @@ install:
         echo "${GNAT}" > ${GNAT_TOOLS}/gnat_version
       fi
     )
-    export PATH=${GNAT_TOOLS}/bin:${PATH}
-    export GPR_PROJECT_PATH=${GNAT_TOOLS}/lib/gnat
+  - export PATH=${GNAT_TOOLS}/bin:${PATH}
+  - export GPR_PROJECT_PATH=${GNAT_TOOLS}/lib/gnat
 
   - |
     #build gnatcoll
@@ -72,7 +72,7 @@ install:
       make
       gprbuild -P unit_tests.gpr -cargs -largs
     )
-    export PATH=$(pwd)/gnat2goto/install/bin:${PATH}
+  - export PATH=$(pwd)/gnat2goto/install/bin:${PATH}
 
   - |
     #build updated cbmc
@@ -81,7 +81,7 @@ install:
       cmake -H. -Bbuild '-DCMAKE_BUILD_TYPE=Release'  '-DCMAKE_CXX_COMPILER=/usr/bin/g++-7'
       cmake --build build --target cbmc -- -j4
     )
-    export PATH=${TRAVIS_BUILD_DIR}/lib/cbmc/build/bin:${PATH}
+  - export PATH=${TRAVIS_BUILD_DIR}/lib/cbmc/build/bin:${PATH}
 
 script:
   #run the tests

@@ -2,6 +2,6 @@
   "namedSub": {
     "value": {"type": "string"},
     "identifier": {"type": "string"},
-    "base_name": {"type": "string"}
+    "baseName": {"type": "string"}
   }
 }

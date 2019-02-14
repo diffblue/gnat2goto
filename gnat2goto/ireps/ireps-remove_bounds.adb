@@ -1,15 +1,11 @@
 -------------------------------------------------------------------------------
---  Separate definition for following the symbol types throughout Irep_Lists(s)
+--  Separate definition for removing type bounds throughout Irep_Lists(s)
 --  Implementation is adopted from ireps-to_json.adb
 --  The rationale is to create a new list only when a new irep was created
---  by the respective Follow_Irep. First, that sounds efficient and second
---  Ireps were disappearing when new list was created (even if it was filled
---  with the same ireps).
+--  by the respective Remove_Bounds.
 -------------------------------------------------------------------------------
 separate (Ireps)
-function Follow_Irep (L : Irep_List;
-                     Follow_Symbol : not null access function (Symbol_I : Irep)
-                        return Irep) return Irep_List
+function Remove_Bounds (L : Irep_List) return Irep_List
 is
    The_List : Irep_List_Node;
    Ptr      : Internal_Irep_List;
@@ -22,8 +18,7 @@ begin
       while Ptr /= 0 loop
          declare
             Orig_Irep : constant Irep := Irep (Irep_List_Table.Table (Ptr).A);
-            New_Irep  : constant Irep := Follow_Irep (Orig_Irep,
-                                                      Follow_Symbol);
+            New_Irep  : constant Irep := Remove_Bounds (Orig_Irep);
          begin
             if Orig_Irep /= New_Irep then
                Append (Arr, New_Irep);
@@ -42,4 +37,4 @@ begin
    else
       return L;
    end if;
-end Follow_Irep;
+end Remove_Bounds;

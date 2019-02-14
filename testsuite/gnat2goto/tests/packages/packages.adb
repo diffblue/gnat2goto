@@ -3,5 +3,5 @@ with Test;
 procedure Packages
 is
 begin
-   Test.Foo (1);
+   pragma Assert (Test.Double (1) = 2);
 end Packages;

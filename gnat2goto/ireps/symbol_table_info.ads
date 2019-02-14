@@ -69,6 +69,6 @@ package Symbol_Table_Info is
 
    subtype Symbol_Table is Symbol_Maps.Map;
 
-   function SymbolTable2Json (Symtab : Symbol_Table) return JSON_Array;
+   function SymbolTable2Json (Symtab : Symbol_Table) return JSON_Value;
 
 end Symbol_Table_Info;

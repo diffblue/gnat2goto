@@ -52,14 +52,93 @@ package body Driver is
    procedure Translate_Standard_Types;
    procedure Initialize_CProver_Internal_Variables (Start_Body : Irep);
    procedure Add_CProver_Internal_Symbols;
-   procedure Follow_Type_Declarations (Old_Table : Symbol_Table;
+   procedure Sanitise_Type_Declarations (Old_Table : Symbol_Table;
                                        New_Table : in out Symbol_Table);
+
+   procedure Add_Malloc_Symbol;
+
+   procedure Add_Malloc_Symbol is
+      Malloc_Name : constant String := "malloc";
+      Malloc_Params : constant Irep := New_Irep (I_Parameter_List);
+      Size_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Malloc_Name,
+                              Param_Name      => "size",
+                              Param_Type      =>
+                           Make_Symbol_Type (Identifier => "__CPROVER_size_t"),
+                              Param_List      => Malloc_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Malloc_Type : constant Irep :=
+        Make_Code_Type (Parameters  => Malloc_Params,
+                        Ellipsis    => False,
+                        Return_Type => Make_Pointer_Type (Make_Void_Type),
+                        Inlined     => False,
+                        Knr         => False);
+      Malloc_Symbol : Symbol;
+   begin
+      if Kind (Size_Param) = I_Code_Parameter then
+         Malloc_Symbol :=
+           New_Function_Symbol_Entry (Name           => Malloc_Name,
+                                      Symbol_Type    => Malloc_Type,
+                                      Value          => Ireps.Empty,
+                                      A_Symbol_Table => Global_Symbol_Table);
+         pragma Assert (Kind (Malloc_Symbol.SymType) = I_Code_Type);
+      end if;
+   end Add_Malloc_Symbol;
+
+   procedure Add_Memcpy_Symbol;
+
+   procedure Add_Memcpy_Symbol is
+      Memcpy_Name : constant String := "memcpy";
+      Memcpy_Params : constant Irep := New_Irep (I_Parameter_List);
+      Destination_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
+                              Param_Name      => "destination",
+                              Param_Type      =>
+                                Make_Pointer_Type (Make_Void_Type),
+                              Param_List      => Memcpy_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Source_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
+                              Param_Name      => "source",
+                              Param_Type      =>
+                                Make_Pointer_Type (Make_Void_Type),
+                              Param_List      => Memcpy_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Num_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
+                              Param_Name      => "num",
+                              Param_Type      =>
+                           Make_Symbol_Type (Identifier => "__CPROVER_size_t"),
+                              Param_List      => Memcpy_Params,
+                              A_Symbol_Table  => Global_Symbol_Table);
+      Memcpy_Type : constant Irep :=
+        Make_Code_Type (Parameters  => Memcpy_Params,
+                        Ellipsis    => False,
+                        Return_Type => Make_Pointer_Type (Make_Void_Type),
+                        Inlined     => False,
+                        Knr         => False);
+      Memcpy_Symbol : Symbol;
+   begin
+      if Kind (Destination_Param) = I_Code_Parameter and then
+        Kind (Source_Param) = I_Code_Parameter and then
+        Kind (Num_Param) = I_Code_Parameter
+      then
+         Memcpy_Symbol :=
+           New_Function_Symbol_Entry (Name           => Memcpy_Name,
+                                      Symbol_Type    => Memcpy_Type,
+                                      Value          => Ireps.Empty,
+                                      A_Symbol_Table => Global_Symbol_Table);
+         pragma Assert (Kind (Memcpy_Symbol.SymType) = I_Code_Type);
+      end if;
+   end Add_Memcpy_Symbol;
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id)
    is
    begin
       Translate_Standard_Types;
       Add_CProver_Internal_Symbols;
+      Add_Malloc_Symbol;
+      Add_Memcpy_Symbol;
       Translate_Compilation_Unit (GNAT_Root);
    end GNAT_To_Goto;
 
@@ -197,7 +276,7 @@ package body Driver is
         File_Name_Without_Suffix
           (Get_Name_String (Unit_File_Name (Main_Unit)));
 
-      Followed_Symbol_Table : Symbol_Table;
+      Sanitised_Symbol_Table : Symbol_Table;
    begin
       Create (Sym_Tab_File, Out_File, Base_Name & ".json_symtab");
       --  Gather local symbols and put them in the symtab
@@ -226,6 +305,9 @@ package body Driver is
       end;
 
       if not Add_Start then
+         --  If the compilation unit is not a subprogram body then there is
+         --  no function/procedure to call
+         --  CBMC does not like that so we add cprover_start with empty body
          Start_Symbol.Name       := Start_Name;
          Start_Symbol.PrettyName := Start_Name;
          Start_Symbol.BaseName   := Start_Name;
@@ -238,7 +320,7 @@ package body Driver is
 
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          Put_Line (Sym_Tab_File,
-                   Create (SymbolTable2Json (Global_Symbol_Table)).Write);
+                   SymbolTable2Json (Global_Symbol_Table).Write (False));
       else
          Initialize_CProver_Internal_Variables (Start_Body);
          declare
@@ -344,9 +426,10 @@ package body Driver is
          Start_Symbol.Mode    := Intern ("C");
 
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
-         Follow_Type_Declarations (Global_Symbol_Table, Followed_Symbol_Table);
+         Sanitise_Type_Declarations (Global_Symbol_Table,
+                                     Sanitised_Symbol_Table);
          Put_Line (Sym_Tab_File,
-                   Create (SymbolTable2Json (Followed_Symbol_Table)).Write);
+                   SymbolTable2Json (Sanitised_Symbol_Table).Write (False));
       end if;
 
       Close (Sym_Tab_File);
@@ -409,6 +492,20 @@ package body Driver is
          Global_Symbol_Table.Insert (Builtin.Name, Builtin);
       end Add_Universal_Integer;
 
+      procedure Add_CProver_Size_T;
+      procedure Add_CProver_Size_T is
+         Builtin   : Symbol;
+         Type_Irep : constant Irep := New_Irep (I_Unsignedbv_Type);
+      begin
+         Set_Width (Type_Irep, 64);
+         Builtin.Name       := Intern ("__CPROVER_size_t");
+         Builtin.PrettyName := Builtin.Name;
+         Builtin.BaseName   := Builtin.Name;
+         Builtin.SymType    := Type_Irep;
+         Builtin.IsType     := True;
+
+         Global_Symbol_Table.Insert (Builtin.Name, Builtin);
+      end Add_CProver_Size_T;
    begin
       --  Add primitive types to the symtab
       for Standard_Type in S_Types'Range loop
@@ -469,6 +566,7 @@ package body Driver is
       end loop;
       Add_Universal_Integer;
       Add_Standard_String;
+      Add_CProver_Size_T;
    end Translate_Standard_Types;
 
    procedure Add_CProver_Internal_Symbols is
@@ -494,7 +592,13 @@ package body Driver is
       Add_Global_Sym (Intern ("__CPROVER_rounding_mode"), Int_32_T);
    end Add_CProver_Internal_Symbols;
 
-   procedure Follow_Type_Declarations (Old_Table : Symbol_Table;
+   --  Comprises a collection of sanitation procedures for cleaning ireps.
+   --  Presently, we:
+   --  1: follow symbolic types and replace them with concrete types
+   --  2: replace bounded_bv types with similar signed_bv types
+   --  the latter was introduced because CBMC require exact type equality in
+   --  both assignments and ireps-forming relations, e.g. a+b
+   procedure Sanitise_Type_Declarations (Old_Table : Symbol_Table;
                                        New_Table : in out Symbol_Table) is
       function Follow_Symbol (I : Irep) return Irep;
       function Follow_Symbol (I : Irep) return Irep is
@@ -512,9 +616,9 @@ package body Driver is
             Value : constant Irep := Current_Symbol.Value;
          begin
             Modified_Symbol.SymType :=
-                    Follow_Irep (SymType, Follow_Symbol'Access);
+              Remove_Bounds (Follow_Irep (SymType, Follow_Symbol'Access));
             Modified_Symbol.Value :=
-                    Follow_Irep (Value, Follow_Symbol'Access);
+              Remove_Bounds (Follow_Irep (Value, Follow_Symbol'Access));
 
             New_Table.Insert
                  (Key      => Symbol_Maps.Key (Sym_Iter),
@@ -523,5 +627,5 @@ package body Driver is
                   Position => Unused_Position);
          end;
       end loop;
-   end Follow_Type_Declarations;
+   end Sanitise_Type_Declarations;
 end Driver;

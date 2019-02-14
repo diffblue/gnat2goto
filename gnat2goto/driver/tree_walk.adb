@@ -28,10 +28,31 @@ with Range_Check; use Range_Check;
 
 package body Tree_Walk is
 
+   function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep
+     with Pre => Kind (Num_Elem) in Class_Expr,
+     Post => Kind (Make_Malloc_Function_Call_Expr'Result) =
+     I_Side_Effect_Expr_Function_Call;
+
+   function Make_Memcpy_Function_Call_Expr (Destination : Irep;
+                                            Source : Irep;
+                                            Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep
+     with Pre => (Kind (Get_Type (Destination)) = I_Pointer_Type
+                  and then Kind (Get_Type (Source)) = I_Pointer_Type
+                  and then Kind (Num_Elem) in Class_Expr),
+     Post => Kind (Make_Memcpy_Function_Call_Expr'Result) =
+     I_Side_Effect_Expr_Function_Call;
+
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
    procedure Append_Declare_And_Init
-     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr);
+     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
+   with Pre => Kind (Value) in Class_Expr;
 
    procedure Declare_Itype (Ty : Entity_Id);
 
@@ -62,7 +83,7 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N  : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Assignment_Statement,
         Post => Kind (Do_Assignment_Statement'Result) in
-                I_Code_Assign;
+                I_Code_Assign | I_Code_Block;
 
    function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
                                      return Irep
@@ -311,10 +332,6 @@ package body Tree_Walk is
                                      Index_Type : Entity_Id) return Irep
    with Post => Kind (Get_Array_Copy_Function'Result) = I_Symbol_Expr;
 
-   function Get_Array_Dup_Function (Element_Type : Entity_Id;
-                                    Index_Type : Entity_Id) return Irep
-   with Post => Kind (Get_Array_Dup_Function'Result) = I_Symbol_Expr;
-
    function Can_Get_Array_Index_Type (N : Node_Id) return Boolean;
 
    function Get_Array_Index_Type (N : Node_Id) return Entity_Id
@@ -330,14 +347,6 @@ package body Tree_Walk is
 
    function Make_Array_Index_Op
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
-
-   function Make_Array_Length_Expr
-     (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
-   with Pre => Ekind (Index_Type) in Discrete_Kind;
-
-   function Make_Array_Length_Expr
-     (First_Expr : Irep; Last_Expr : Irep; Index_Type : Entity_Id) return Irep
-   with Pre => Ekind (Index_Type) in Discrete_Kind;
 
    function Make_Increment
      (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep;
@@ -369,10 +378,6 @@ package body Tree_Walk is
                 Nkind (Chosen_Var) = N_Variant,
         Post => Kind (Union_Expr) = I_Union_Expr and then
                 Kind (Struct_Expr) = I_Struct_Expr;
-
-   function Maybe_Make_Typecast (Expr     : Irep;
-                                 Old_Type : Entity_Id;
-                                 New_Type : Entity_Id) return Irep;
 
    type Construct is (Declaration, Statement);
 
@@ -428,6 +433,54 @@ package body Tree_Walk is
    function Report_Unhandled_Node_Kind (N : Node_Id;
                                         Fun_Name : String;
                                         Message : String) return Irep_Kind;
+
+   function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep is
+      Size : constant Irep :=
+        Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
+                            Element_Type_Size => Element_Type_Size,
+                            Source_Loc        => Source_Loc);
+      Malloc_Args  : constant Irep := New_Irep (I_Argument_List);
+      Malloc_Name : constant String := "malloc";
+      Malloc_Call : constant Irep :=
+        Make_Side_Effect_Expr_Function_Call (Arguments       => Malloc_Args,
+                                             I_Function      => Symbol_Expr (
+                                   Global_Symbol_Table (Intern (Malloc_Name))),
+                                             Source_Location => Source_Loc,
+                        I_Type          => Make_Pointer_Type (Make_Void_Type));
+   begin
+      Append_Argument (Malloc_Args, Size);
+      return Malloc_Call;
+   end Make_Malloc_Function_Call_Expr;
+
+   function Make_Memcpy_Function_Call_Expr (Destination : Irep;
+                                            Source : Irep;
+                                            Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep is
+      Size : constant Irep :=
+        Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
+                            Element_Type_Size => Element_Type_Size,
+                            Source_Loc        => Source_Loc);
+      Memcpy_Args  : constant Irep := New_Irep (I_Argument_List);
+      Memcpy_Name : constant String := "memcpy";
+      Memcpy_Call : constant Irep :=
+        Make_Side_Effect_Expr_Function_Call (Arguments       => Memcpy_Args,
+                                             I_Function      => Symbol_Expr (
+                                   Global_Symbol_Table (Intern (Memcpy_Name))),
+                                             Source_Location => Source_Loc,
+                        I_Type          => Make_Pointer_Type (Make_Void_Type));
+   begin
+      Append_Argument (I     => Memcpy_Args,
+                       Value => Destination);
+      Append_Argument (I     => Memcpy_Args,
+                       Value => Source);
+      Append_Argument (Memcpy_Args, Size);
+      return Memcpy_Call;
+   end Make_Memcpy_Function_Call_Expr;
 
    procedure Report_Unhandled_Node_Empty (N : Node_Id;
                                           Fun_Name : String;
@@ -550,129 +603,270 @@ package body Tree_Walk is
 
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep is
       Result_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Array_Expr : Irep;
-      Result_Struct : constant Irep :=
-        Make_Struct_Expr (I_Type => Result_Type,
-                          Source_Location => Sloc (N));
-      Pos_Iter : Node_Id := First (Expressions (N));
-      Pos_Number : Natural := 0;
-      With_Mode : Boolean;
-      Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
-      Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
-      --  TODO: multi-dimensional aggregates
-      Bounds : constant Node_Id := Aggregate_Bounds (N);
-      Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
-      High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
-      Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
 
-      Len_Expr : constant Irep :=
-        Make_Array_Length_Expr (Low_Expr, High_Expr, Index_Type_Node);
+      function Build_Array_Lit_Func_Body (N : Node_Id) return Irep
+        with Pre => Ekind (Etype (N)) in E_Array_Type | E_Array_Subtype,
+        Post => Kind (Build_Array_Lit_Func_Body'Result) = I_Code_Block;
 
-      Bare_Array_Type : constant Irep :=
-        Make_Array_Type (I_Subtype => Element_Type,
-                         Size => Len_Expr);
+      function Build_Array_Lit_Func (N : Node_Id) return Symbol
+        with Pre => Ekind (Etype (N)) in E_Array_Type | E_Array_Subtype,
+        Post => not (Build_Array_Lit_Func'Result.Value = Ireps.Empty);
 
-      Literal_Temp : constant Irep :=
-        Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
+      function Make_No_Args_Func_Call_Expr (Fun_Symbol : Irep;
+                                              Return_Type : Irep;
+                                              Source_Loc : Source_Ptr)
+                                              return Irep
+        with Pre => (Kind (Fun_Symbol) = I_Symbol_Expr
+                     and then Kind (Return_Type) in Class_Type),
+        Post => Kind (Make_No_Args_Func_Call_Expr'Result) =
+        I_Side_Effect_Expr_Function_Call;
 
-      Typecast_Expr : constant Irep :=
-        Make_Op_Typecast (Op0 => Make_Address_Of (Literal_Temp),
-                          I_Type => Make_Pointer_Type (Element_Type),
-                          Source_Location => Sloc (N));
-   begin
-      --  Handle an "others" splat expression if present:
-      if Present (Component_Associations (N)) then
-         --  Produce something like array_of(others_expr)
-         --                         with 1 => 100, 2 => 200, ...
-         --  We expect only one named operand (others => ...):
-         if List_Length (Component_Associations (N)) /= 1 then
-            return Report_Unhandled_Node_Irep (N,
-                                               "Do_Aggregate_Literal_Array",
-                                               "More than one named operand");
-         end if;
+      -------------------------------
+      -- Build_Array_Lit_Func_Body --
+      -------------------------------
 
-         declare
-            Others_Node : constant Node_Id :=
-              First (Component_Associations (N));
-            Others_Choices : constant List_Id := Choices (Others_Node);
-            Expr : constant Irep := Do_Expression (Expression (Others_Node));
-         begin
-            if List_Length (Others_Choices) /= 1 then
+      --  build the following function:
+      --  struct array_struct {int first1; int last1; array_type* data; }
+      --  array_lit() {
+      --    array_type temp_literal[high_bound - low_bound + 1];
+      --    temp_literal = { literal_1, .. literal_n };
+      --    struct arrays_struct { int first1; int last1; array_type *data; }
+      --      temp_array;
+      --    temp_array.first1 = low_bound;
+      --    temp_array.last1 = high_bound;
+      --    temp_array.data = (array_type *)malloc((high_bound-low_bound+1)*
+      --                                           sizeof(array_type));
+      --    temp_lhs = memcpy(temp_array.data,
+      --                      &temp_literal,
+      --                      (high_bound-low_bound+1)*sizeof(array_type)));
+      --    return temp_array;
+      --  }
+      function Build_Array_Lit_Func_Body (N : Node_Id) return Irep is
+
+         Pos_Iter : Node_Id := First (Expressions (N));
+         Source_Loc : constant Source_Ptr := Sloc (N);
+         Bounds : constant Node_Id := Aggregate_Bounds (N);
+         Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
+         High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
+         Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
+         Index_Type : constant Irep := Do_Type_Reference (Index_Type_Node);
+         Len_Expr : constant Irep :=
+           Build_Array_Size (First      => Low_Expr,
+                             Last       => High_Expr,
+                             Idx_Type => Index_Type);
+         Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
+         Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
+         Bare_Array_Type : constant Irep :=
+           Make_Array_Type (I_Subtype => Element_Type,
+                            Size => Len_Expr);
+         Literal_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
+         Array_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
+         Lhs_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
+                                  "temp_lhs");
+         Array_Expr : Irep;
+         Result_Block : constant Irep := New_Irep (I_Code_Block);
+         With_Mode : Boolean;
+         Pos_Number : Natural := 0;
+
+         --  NB: Component number seem to be ignored by CBMC
+         --  We represent arrays as a structure of 3 members:
+         --  0: first index
+         --  1: last index
+         --  2: data pointer
+         --  Using the component numbers may be dropped in the future or it
+         --  may be enforced.
+         First1_Mem_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Array_Temp,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 0,
+                             I_Type           => Make_Int_Type (32),
+                             Component_Name   => "first1");
+         Last1_Mem_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Array_Temp,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 1,
+                             I_Type           => Make_Int_Type (32),
+                             Component_Name   => "last1");
+         Data_Mem_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Array_Temp,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 2,
+                             I_Type           =>
+                               Make_Pointer_Type (Element_Type),
+                             Component_Name   => "data");
+         Raw_Malloc_Call : constant Irep :=
+           Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
+                                           Element_Type_Size =>
+                                             Esize (Element_Type_Ent),
+                                           Source_Loc        => Source_Loc);
+         Malloc_Call_Expr : constant Irep :=
+           Make_Op_Typecast (Op0             =>  Raw_Malloc_Call,
+                           I_Type          => Make_Pointer_Type (Element_Type),
+                             Source_Location => Source_Loc);
+         Literal_Address : constant Irep :=
+           Make_Op_Typecast (Op0 => Make_Address_Of (Literal_Temp),
+                             I_Type => Make_Pointer_Type (Element_Type),
+                             Source_Location => Source_Loc);
+         Memcpy_Call_Expr : constant Irep :=
+           Make_Memcpy_Function_Call_Expr (Destination       => Data_Mem_Expr,
+                                          Source            => Literal_Address,
+                                           Num_Elem          => Len_Expr,
+                                           Element_Type_Size =>
+                                             Esize (Element_Type_Ent),
+                                           Source_Loc        => Source_Loc);
+      begin
+         --  Handle an "others" splat expression if present:
+         if Present (Component_Associations (N)) then
+            --  Produce something like array_of(others_expr)
+            --                         with 1 => 100, 2 => 200, ...
+            --  We expect only one named operand (others => ...):
+            if List_Length (Component_Associations (N)) /= 1 then
                return Report_Unhandled_Node_Irep (N,
                                                   "Do_Aggregate_Literal_Array",
-                                                 "More than one other choice");
+                                                "More than one named operand");
             end if;
-            if Nkind (First (Others_Choices)) /= N_Others_Choice then
-               return Report_Unhandled_Node_Irep (N,
+
+            declare
+               Others_Node : constant Node_Id :=
+                 First (Component_Associations (N));
+               Others_Choices : constant List_Id := Choices (Others_Node);
+               Expr : constant Irep :=
+                 Do_Expression (Expression (Others_Node));
+            begin
+               if List_Length (Others_Choices) /= 1 then
+                  return Report_Unhandled_Node_Irep (N,
+                                                 "Do_Aggregate_Literal_Array",
+                                                 "More than one other choice");
+               end if;
+               if Nkind (First (Others_Choices)) /= N_Others_Choice then
+                  return Report_Unhandled_Node_Irep (N,
                                                   "Do_Aggregate_Literal_Array",
                                                  "Wrong kind of other choice");
-            end if;
-            Array_Expr :=
-              Make_Op_Array_Of (I_Type => Bare_Array_Type,
-                                Op0 => Expr,
-                                Source_Location => Sloc (N));
-         end;
-         With_Mode := True;
-      else
-         Array_Expr := Make_Array_Expr (I_Type => Bare_Array_Type,
-                                        Source_Location => Sloc (N));
-         With_Mode := False;
-      end if;
+               end if;
+               Array_Expr :=
+                 Make_Op_Array_Of (I_Type => Bare_Array_Type,
+                                   Op0 => Expr,
+                                   Source_Location => Sloc (N));
+            end;
+            With_Mode := True;
+         else
+            Array_Expr := Make_Array_Expr (I_Type => Bare_Array_Type,
+                                           Source_Location => Sloc (N));
+            With_Mode := False;
+         end if;
 
-      Set_Type (Array_Expr, Bare_Array_Type);
+         Set_Type (Array_Expr, Bare_Array_Type);
 
-      while Present (Pos_Iter) loop
-         declare
-            Expr : constant Irep := Do_Expression (Pos_Iter);
-         begin
-            if With_Mode then
-               declare
-                  Pos_Str : constant String := Integer'Image (Pos_Number);
-                  Pos_Constant : constant Irep :=
-                    Make_Constant_Expr (Value => Pos_Str (2 .. Pos_Str'Last),
-                                        I_Type => Make_Integer_Type,
-                                        Source_Location => Sloc (N));
-                  New_With : constant Irep :=
-                    Make_With_Expr (Old => Array_Expr,
-                                    Where => Pos_Constant,
-                                    New_Value => Expr,
-                                    I_Type => Bare_Array_Type,
-                                    Source_Location => Sloc (N));
-               begin
-                  Array_Expr := New_With;
-               end;
-            else
-               Append_Operand (Array_Expr, Expr);
-            end if;
-         end;
-         Next (Pos_Iter);
-         Pos_Number := Pos_Number + 1;
-      end loop;
+         while Present (Pos_Iter) loop
+            declare
+               Expr : constant Irep := Do_Expression (Pos_Iter);
+            begin
+               if With_Mode then
+                  declare
+                     Pos_Str : constant String := Integer'Image (Pos_Number);
+                     Pos_Constant : constant Irep :=
+                       Make_Constant_Expr (Value =>
+                                             Pos_Str (2 .. Pos_Str'Last),
+                                           I_Type => Make_Integer_Type,
+                                           Source_Location => Sloc (N));
+                     New_With : constant Irep :=
+                       Make_With_Expr (Old => Array_Expr,
+                                       Where => Pos_Constant,
+                                       New_Value => Expr,
+                                       I_Type => Bare_Array_Type,
+                                       Source_Location => Sloc (N));
+                  begin
+                     Array_Expr := New_With;
+                  end;
+               else
+                  Append_Operand (Array_Expr, Expr);
+               end if;
+            end;
+            Next (Pos_Iter);
+            Pos_Number := Pos_Number + 1;
+         end loop;
 
-      --  We now have an array literal of some sort (Array_Expr).
-      --  Now encase it in an array structure,
-      --  and allocate memory to hold the literal:
-      Append_Struct_Member (Result_Struct, Low_Expr);
-      Append_Struct_Member (Result_Struct, High_Expr);
-      declare
-         Dup : constant Irep :=
-           Get_Array_Dup_Function (Element_Type_Ent, Index_Type_Node);
-         Call_Args : constant Irep := New_Irep (I_Argument_List);
-         Call_Expr : constant Irep :=
-           Make_Side_Effect_Expr_Function_Call (I_Function => Dup,
-                                                Arguments => Call_Args,
-                                                Source_Location => Sloc (N));
+         Append_Declare_And_Init (Symbol     => Literal_Temp,
+                                  Value      => Array_Expr,
+                                  Block      => Result_Block,
+                                  Source_Loc => Source_Loc);
+         Append_Op (Result_Block,
+                    Make_Code_Decl (Symbol          => Array_Temp,
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Result_Type));
+
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Low_Expr,
+                                      Lhs             => First1_Mem_Expr,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => High_Expr,
+                                      Lhs             => Last1_Mem_Expr,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Malloc_Call_Expr,
+                                      Lhs             => Data_Mem_Expr,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Memcpy_Call_Expr,
+                                      Lhs             => Lhs_Temp,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Return (Return_Value    => Array_Temp,
+                                      Source_Location => Source_Loc));
+
+         return Result_Block;
+      end Build_Array_Lit_Func_Body;
+
+      --------------------------
+      -- Build_Array_Lit_Func --
+      --------------------------
+
+      function Build_Array_Lit_Func (N : Node_Id) return Symbol is
+         Func_Name : constant String := Fresh_Var_Name ("array_lit");
+         Func_Params : constant Irep := New_Irep (I_Parameter_List);
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => Do_Type_Reference (Etype (N)),
+                           Inlined     => False,
+                           Knr         => False);
       begin
-         Append_Argument (Call_Args, Typecast_Expr);
-         Append_Argument (Call_Args, Len_Expr);
-         Append_Struct_Member (Result_Struct, Call_Expr);
-      end;
+         return New_Function_Symbol_Entry (Name        => Func_Name,
+                                           Symbol_Type => Func_Type,
+                                           Value       =>
+                                             Build_Array_Lit_Func_Body (N),
+                                           A_Symbol_Table =>
+                                             Global_Symbol_Table);
+      end Build_Array_Lit_Func;
 
-      return Make_Let_Expr (Symbol => Literal_Temp,
-                            Value => Array_Expr,
-                            Where => Result_Struct,
-                            I_Type => Result_Type,
-                            Source_Location => Sloc (N));
+      -----------------------------------
+      -- Make_Array_Lit_Func_Call_Expr --
+      -----------------------------------
+
+      function Make_No_Args_Func_Call_Expr (Fun_Symbol : Irep;
+                                              Return_Type : Irep;
+                                              Source_Loc : Source_Ptr)
+                                              return Irep is
+         Call_Args  : constant Irep := New_Irep (I_Argument_List);
+         Fun_Call : constant Irep :=
+           Make_Side_Effect_Expr_Function_Call (Arguments       => Call_Args,
+                                                I_Function      => Fun_Symbol,
+                                                Source_Location => Source_Loc,
+                                               I_Type          => Return_Type);
+      begin
+         return Fun_Call;
+      end Make_No_Args_Func_Call_Expr;
+
+      Func_Symbol : constant Symbol := Build_Array_Lit_Func (N);
+   begin
+      return Make_No_Args_Func_Call_Expr (Fun_Symbol  =>
+                                              Symbol_Expr (Func_Symbol),
+                                            Return_Type => Result_Type,
+                                            Source_Loc  => Sloc (N));
    end Do_Aggregate_Literal_Array;
 
    ---------------------------------
@@ -845,6 +1039,8 @@ package body Tree_Walk is
         Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
       RHS_Data_Type : constant Irep :=
         Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
+      LHS_fun_call : constant Irep :=
+        Fresh_Var_Symbol_Expr (LHS_Data_Type, "copy_fun_lhs");
    begin
       if not Can_Get_Array_Index_Type (Name (N)) then
          Report_Unhandled_Node_Empty (N, "Do_Array_Assignment",
@@ -858,7 +1054,9 @@ package body Tree_Walk is
       end if;
       LHS_Idx_Type := Get_Array_Index_Type (Name (N));
       RHS_Idx_Type := Get_Array_Index_Type (Expression (N));
-      LHS_Length := Make_Array_Length_Expr (LHS, LHS_Idx_Type);
+      LHS_Length :=
+        Build_Array_Size (Array_Comp => LHS,
+                          Idx_Type => Do_Type_Reference (LHS_Idx_Type));
       Copy_Func :=
         Get_Array_Copy_Function (LHS_Element_Type,
                                  RHS_Element_Type,
@@ -871,13 +1069,16 @@ package body Tree_Walk is
          return Ret;
       end if;
       RHS := Fresh_Var_Symbol_Expr (Get_Type (RHS_Expr), "array_assign_rhs");
-      RHS_Length := Make_Array_Length_Expr (RHS, RHS_Idx_Type);
+      RHS_Length :=
+        Build_Array_Size (Array_Comp => RHS,
+                          Idx_Type => Do_Type_Reference (RHS_Idx_Type));
 
       Append_Declare_And_Init (LHS, LHS_Expr, Ret, Sloc (N));
       Append_Declare_And_Init (RHS, RHS_Expr, Ret, Sloc (N));
 
       RHS_Length :=
-        Maybe_Make_Typecast (RHS_Length, RHS_Idx_Type, LHS_Idx_Type);
+        Typecast_If_Necessary (Expr     => RHS_Length,
+                        New_Type => Do_Type_Reference (LHS_Idx_Type));
 
       --  assert (RHS'Length == LHS'Length)
       declare
@@ -911,9 +1112,12 @@ package body Tree_Walk is
          Append_Argument (Copy_Args, LHS_Length);
       end;
 
-      Append_Op (Ret, Make_Code_Function_Call (I_Function => Copy_Func,
-                                               Arguments => Copy_Args,
-                                               Source_Location => Sloc (N)));
+      Append_Op (Ret,
+                 Make_Code_Function_Call (Arguments       => Copy_Args,
+                                          I_Function      => Copy_Func,
+                                          Lhs             => LHS_fun_call,
+                                          Source_Location => Sloc (N),
+                                          I_Type          => Make_Void_Type));
 
       return Ret;
 
@@ -928,7 +1132,8 @@ package body Tree_Walk is
       Array_Struct : constant Irep := Do_Expression (Prefix (N));
       Index_Type : constant Entity_Id := Get_Array_Index_Type (Prefix (N));
    begin
-      return Make_Array_Length_Expr (Array_Struct, Index_Type);
+      return Build_Array_Size (Array_Comp => Array_Struct,
+                               Idx_Type => Do_Type_Reference (Index_Type));
    end Do_Array_Length;
 
    --------------------
@@ -1046,17 +1251,15 @@ package body Tree_Walk is
          Set_Lhs (R, LHS);
          if Do_Range_Check (Expression (N)) then
             declare
-               Cast_RHS : constant Irep := New_Irep (I_Op_Typecast);
-            begin
-               Set_Op0 (I     => Cast_RHS,
-                        Value => Make_Range_Assert_Expr (
+               Range_Expr : constant Irep :=
+                 Make_Range_Assert_Expr (
                           N          => N,
                           Value      => RHS,
-                          Bounds_Type => Get_Type (LHS)));
-               --  Set_Op0 (Cast_RHS, RHS);
-               Set_Type (Cast_RHS, Get_Type (LHS));
-               Set_Rhs (I     => R,
-                        Value => Cast_RHS);
+                          Bounds_Type => Get_Type (LHS));
+            begin
+               Set_Rhs (R,
+                        Typecast_If_Necessary (Expr     => Range_Expr,
+                                        New_Type => Get_Type (LHS)));
             end;
          else
             Set_Rhs (R, RHS);
@@ -1376,25 +1579,27 @@ package body Tree_Walk is
 
    function Do_String_Constant (N : Node_Id) return Irep is
       Ret              : constant Irep := New_Irep (I_String_Constant_Expr);
-      Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
-      Element_Type     : constant Irep := Do_Type_Reference (Element_Type_Ent);
+     --  Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
+     --  Element_Type  : constant Irep := Do_Type_Reference (Element_Type_Ent);
       StrLen           : constant Integer :=
-                                    Integer (String_Length (Strval (N)));
-      String_Length_Expr : constant Irep := New_Irep (I_Constant_Expr);
+                                   Integer (String_Length (Strval (N)));
+      --  String_Length_Expr : constant Irep := New_Irep (I_Constant_Expr);
    begin
       --  FIXME: The size of this signedbv should probably not be a hardcoded
       --         magic number...(e.g. 32 on a 32bit system) this should be set
       --         programatically some how.
-      Set_Type (String_Length_Expr,
-        Make_Signedbv_Type (Ireps.Empty, 64));
-      Set_Value (String_Length_Expr,
-                 Convert_Uint_To_Hex (UI_From_Int (Int (String_Length
-                   (Strval (N)))), 64));
+      --  FIXME: Need to set a proper type, something like this:
+      --  Set_Type (String_Length_Expr,
+      --    Make_Signedbv_Type (Ireps.Empty, 64));
+      --  Set_Value (String_Length_Expr,
+      --             Convert_Uint_To_Hex (UI_From_Int (Int (String_Length
+      --               (Strval (N)))), 64));
 
-      Set_Type (Ret,
-                Make_Array_Type (
-                  I_Subtype => Element_Type,
-                  Size => String_Length_Expr));
+      Set_Type (Ret, Make_String_Type);
+      --  FIXME: We really need some sort of array type here, such as:
+      --  Make_Array_Type (
+      --     I_Subtype => Element_Type,
+      --     Size => String_Length_Expr));
       String_To_Name_Buffer (Strval (N));
       Set_Value (Ret, Name_Buffer (1 .. StrLen));
       Set_Source_Location (Ret, Sloc (N));
@@ -1536,7 +1741,7 @@ package body Tree_Walk is
          begin
             Set_Value (Element, Val_String);
             Set_Identifier (Element, Val_Name);
-            Set_Base_Name (Element, Base_Name);
+            Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
             Member_Symbol.Name := Intern (Val_Name);
             Member_Symbol.PrettyName := Intern (Base_Name);
@@ -1710,24 +1915,21 @@ package body Tree_Walk is
             then
                --  If the value checked for being in the range is of smaller
                --  type then we need to cast it to the type of the bounds
-               Adjusted_Value_Expr := Make_Op_Typecast (
-                                            Op0             => Value_Expr,
-                                            Source_Location => Source_Location,
-                                            I_Type          => Bound_Type);
+               Adjusted_Value_Expr :=
+                 Typecast_If_Necessary (Expr     => Value_Expr,
+                                        New_Type => Bound_Type);
                Adjusted_Lower_Bound := Lower_Bound;
                Adjusted_Upper_Bound := Upper_Bound;
             else
                --  If the bounds are of smaller type then we cast the bounds
                --  to the type of the value being checked
                Adjusted_Value_Expr := Value_Expr;
-               Adjusted_Lower_Bound := Make_Op_Typecast (
-                           Op0             => Lower_Bound,
-                           Source_Location => Source_Location,
-                           I_Type          => Value_Expr_Type);
-               Adjusted_Upper_Bound := Make_Op_Typecast (
-                           Op0             => Upper_Bound,
-                           Source_Location => Source_Location,
-                           I_Type          => Value_Expr_Type);
+               Adjusted_Lower_Bound :=
+                 Typecast_If_Necessary (Expr     => Lower_Bound,
+                                 New_Type => Value_Expr_Type);
+               Adjusted_Upper_Bound :=
+                 Typecast_If_Necessary (Expr     => Upper_Bound,
+                                 New_Type => Value_Expr_Type);
             end if;
             Set_Lhs (Op_Geq, Adjusted_Value_Expr);
             Set_Type (I     => Lower_Bound,
@@ -2936,7 +3138,8 @@ package body Tree_Walk is
       function Needs_Default_Initialisation (E : Entity_Id) return Boolean is
       begin
          return Has_Defaulted_Discriminants (E)
-           or else Has_Defaulted_Components (E);
+           or else Has_Defaulted_Components (E)
+           or else Ekind (E) = E_Array_Subtype;
       end Needs_Default_Initialisation;
 
       function Disc_Expr (N : Node_Id) return Node_Id is
@@ -2949,20 +3152,30 @@ package body Tree_Walk is
          Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
          Hbound : constant Irep := Do_Expression (High_Bound (Idx));
          Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
+         Source_Loc : constant Source_Ptr := Sloc (E);
          Len : constant Irep :=
-           Make_Array_Length_Expr (Lbound, Hbound, Idx_Type);
+           Build_Array_Size (First      => Lbound,
+                             Last       => Hbound,
+                             Idx_Type => Do_Type_Reference (Idx_Type));
          Component_Type : constant Irep :=
            Do_Type_Reference (Get_Array_Component_Type (E));
          Alloc : constant Irep :=
-           Make_Side_Effect_Expr_Cpp_New_Array
-           (Size => Len, I_Type => Make_Pointer_Type (Component_Type),
-            Source_Location => Sloc (E));
-         Ret : constant Irep := New_Irep (I_Struct_Expr);
+           Make_Malloc_Function_Call_Expr (Num_Elem          => Len,
+                                           Element_Type_Size =>
+                                          Esize (Get_Array_Component_Type (E)),
+                                           Source_Loc        => Source_Loc);
+         Ret : constant Irep :=
+           Make_Struct_Expr (Source_Location => Source_Loc,
+                             I_Type          => Do_Type_Reference (E));
+         Comp_P_Type : constant Irep :=
+           Make_Pointer_Type (I_Subtype => Component_Type,
+                              Width     => Pointer_Type_Width);
       begin
          Append_Struct_Member (Ret, Lbound);
          Append_Struct_Member (Ret, Hbound);
-         Append_Struct_Member (Ret, Alloc);
-         Set_Type (Ret, Do_Type_Reference (E));
+         Append_Struct_Member (Ret,
+                               Typecast_If_Necessary (Expr     => Alloc,
+                                               New_Type => Comp_P_Type));
          return Ret;
       end Make_Array_Default_Initialiser;
 
@@ -3261,11 +3474,13 @@ package body Tree_Walk is
                end if;
 
                Index_Type := Get_Array_Index_Type (Opnd);
-               Length_Expr := Make_Array_Length_Expr (Opnd_Irep, Index_Type);
+               Length_Expr :=
+                 Build_Array_Size (Array_Comp => Opnd_Irep,
+                                   Idx_Type => Do_Type_Reference (Index_Type));
 
-               return Maybe_Make_Typecast (Length_Expr,
-                                           Index_Type,
-                                           New_Index_Type);
+               return
+                 Typecast_If_Necessary (Expr     => Length_Expr,
+                               New_Type => Do_Type_Reference (New_Index_Type));
             end;
          end if;
       end Get_Length;
@@ -3305,9 +3520,9 @@ package body Tree_Walk is
                Set_Object (Deref, Target_Ptr);
                Set_Type (Deref, Get_Subtype (Get_Type (Target_Ptr)));
                Set_Lhs (Assign, Deref);
-               Set_Rhs (Assign, Maybe_Make_Typecast (Source_Irep,
-                                                     Etype (Source_Node),
-                                                     New_Component_Type));
+               Set_Rhs (Assign,
+                        Typecast_If_Necessary (Source_Irep,
+                          Do_Type_Reference (New_Component_Type)));
                return Assign;
             end;
          else
@@ -3411,7 +3626,8 @@ package body Tree_Walk is
             LHS_Idx_Type := Get_Array_Index_Type (LHS_Node);
             Set_Type (New_First, Do_Type_Reference (LHS_Idx_Type));
             New_First :=
-              Maybe_Make_Typecast (New_First, LHS_Idx_Type, New_Index_Type);
+              Typecast_If_Necessary (New_First,
+                                     Do_Type_Reference (New_Index_Type));
          end;
       end if;
 
@@ -4018,6 +4234,7 @@ package body Tree_Walk is
       Result : constant Irep := New_Irep (I_Struct_Expr);
    begin
       Set_Subtype (Pointer_Type, Do_Type_Reference (Element_Type));
+      Set_Width (Pointer_Type, Pointer_Type_Width);
 
       --  Adjust data pointer:
       Set_Lhs (Offset, New_First_Expr);
@@ -4303,15 +4520,20 @@ package body Tree_Walk is
    ---------------------------------------
 
    function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Struct_Type);
       Ret_Components : constant Irep := New_Irep (I_Struct_Union_Components);
-      Data_Type : constant Irep := New_Irep (I_Pointer_Type);
-      Data_Member : constant Irep :=
-        Make_Struct_Component ("data", Data_Type);
+      Ret : constant Irep :=
+        Make_Struct_Type (Tag        => "unconstr_array",
+                          Components => Ret_Components);
       Sub_Identifier : constant Node_Id :=
         Subtype_Indication (Component_Definition (N));
       Sub : constant Irep :=
         Do_Type_Reference (Etype (Sub_Identifier));
+      Data_Type : constant Irep :=
+        Make_Pointer_Type (I_Subtype => Sub,
+                           Width     => Pointer_Type_Width);
+      Data_Member : constant Irep :=
+        Make_Struct_Component ("data", Data_Type);
+
       Dimension_Iter : Node_Id :=
         First ((if Nkind (N) = N_Unconstrained_Array_Definition then
                    Subtype_Marks (N) else
@@ -4357,12 +4579,8 @@ package body Tree_Walk is
          Next (Dimension_Iter);
       end loop;
 
-      Set_Subtype (Data_Type, Sub);
       Append_Component (Ret_Components, Data_Member);
-
-      Set_Components (Ret, Ret_Components);
       return Ret;
-
    end Do_Unconstrained_Array_Definition;
 
    -------------------------
@@ -4472,187 +4690,121 @@ package body Tree_Walk is
         (LHS_Element_Type, RHS_Element_Type, Index_Type);
       Map_Cursor : Array_Copy_Maps.Cursor;
       Map_Inserted : Boolean;
+
+      function Build_Copy_Function return Symbol;
+
+      -------------------------
+      -- Build_Copy_Function --
+      -------------------------
+
+      --  Build a functions:
+      --  n.b.: the typecast is optional
+      --  void copy_array(lhs_type* out, rhs_type* in, int len) {
+      --    int idx = 0;
+      --    for (;idx < len; idx++)
+      --      out[idx] = (lhs_type)in[idx];
+      --  }
+      function Build_Copy_Function return Symbol
+      is
+         Source_Loc : constant Source_Ptr := Sloc (RHS_Element_Type);
+         Map_Size_Str : constant String :=
+           Integer'Image (Integer (Array_Copy_Map.Length));
+         Func_Name : constant String :=
+           "__ada_copy_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
+         Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+         Func_Params : constant Irep := New_Irep (I_Parameter_List);
+         LHS_Ptr_Type : constant Irep :=
+           Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
+         Write_Ptr_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "out",
+                                 Param_Type      => LHS_Ptr_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         RHS_Ptr_Type : constant Irep :=
+           Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
+         Read_Ptr_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "in",
+                                 Param_Type      => RHS_Ptr_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
+         Len_Param : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "len",
+                                 Param_Type      => Len_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => New_Irep (I_Void_Type),
+                           Inlined     => False,
+                           Knr         => False);
+         Counter_Sym : constant Irep :=
+           Fresh_Var_Symbol_Expr (Len_Type, "idx");
+         Loop_Test : constant Irep :=
+           Make_Op_Lt (Rhs             => Param_Symbol (Len_Param),
+                       Lhs             => Counter_Sym,
+                       Source_Location => Source_Loc,
+                       Overflow_Check  => False,
+                       I_Type          => New_Irep (I_Bool_Type));
+         RHS_Element : constant Irep :=
+           Make_Pointer_Index (Param_Symbol (Read_Ptr_Param), Counter_Sym);
+         RHS_Cast : Irep;
+         Loop_Assign : Irep;
+         For_Loop : Irep;
+         Assign_LHS : constant Irep :=
+           Make_Pointer_Index (Param_Symbol (Write_Ptr_Param), Counter_Sym);
+      begin
+         if LHS_Element_Type = RHS_Element_Type then
+            RHS_Cast := RHS_Element;
+         else
+            RHS_Cast :=
+              Make_Op_Typecast (Op0             => RHS_Element,
+                                Source_Location => Source_Loc,
+                                I_Type          =>
+                                  Get_Type (Assign_LHS));
+         end if;
+         Loop_Assign :=
+           Make_Code_Assign (Rhs             => RHS_Cast,
+                             Lhs             => Assign_LHS,
+                             Source_Location => Source_Loc);
+         For_Loop :=
+           Make_Code_For (Loop_Body       => Loop_Assign,
+                          Cond            => Loop_Test,
+                          Init            =>
+                            Make_Nil (Source_Loc),
+                          Iter            => Make_Increment (Counter_Sym,
+                            Index_Type, 1),
+                          Source_Location => Source_Loc);
+         Append_Declare_And_Init
+           (Counter_Sym, Make_Integer_Constant (0, Index_Type), Body_Block, 0);
+         Append_Op (Body_Block, For_Loop);
+
+         return New_Function_Symbol_Entry (
+                                        Name           => Func_Name,
+                                        Symbol_Type    => Func_Type,
+                                        Value          => Body_Block,
+                                        A_Symbol_Table => Global_Symbol_Table);
+      end Build_Copy_Function;
+
    begin
       Array_Copy_Map.Insert (Map_Key, Ireps.Empty, Map_Cursor, Map_Inserted);
       if not Map_Inserted then
          return Array_Copy_Maps.Element (Map_Cursor);
       end if;
 
-      --  Create a new copy function:
-      declare
-         Func_Type : constant Irep := New_Irep (I_Code_Type);
-         Func_Args : constant Irep := New_Irep (I_Parameter_List);
-         Write_Ptr_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Read_Ptr_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         LHS_Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (LHS_Element_Type));
-         RHS_Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (RHS_Element_Type));
-         Len_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
-         Func_Symbol : Symbol;
-         Map_Size_Str : constant String :=
-           Integer'Image (Integer (Array_Copy_Map.Length));
-         Func_Name : constant String :=
-           "__ada_copy_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
-         Body_Block : constant Irep := New_Irep (I_Code_Block);
-         Body_Loop : constant Irep := New_Irep (I_Code_For);
-         Loop_Test : constant Irep := New_Irep (I_Op_Lt);
-         Loop_Assign : constant Irep := New_Irep (I_Code_Assign);
-         RHS_Element : Irep;
-         RHS_Cast : Irep;
-         Counter_Sym : constant Irep :=
-           Fresh_Var_Symbol_Expr (Len_Type, "idx");
-      begin
-         --  Create type (lhs_el_type*, rhs_el_type*, index_type) -> void
-         Set_Type (Write_Ptr_Arg, LHS_Ptr_Type);
-         Set_Identifier (Write_Ptr_Arg, Func_Name & "::out");
-         Set_Base_Name (Write_Ptr_Arg, "out");
-         Set_Type (Read_Ptr_Arg, RHS_Ptr_Type);
-         Set_Identifier (Read_Ptr_Arg, Func_Name & "::in");
-         Set_Base_Name (Read_Ptr_Arg, "in");
-         Set_Type (Len_Arg, Len_Type);
-         Set_Identifier (Len_Arg, Func_Name & "::len");
-         Set_Base_Name (Len_Arg, "len");
-         Append_Parameter (Func_Args, Write_Ptr_Arg);
-         Append_Parameter (Func_Args, Read_Ptr_Arg);
-         Append_Parameter (Func_Args, Len_Arg);
-         Set_Parameters (Func_Type, Func_Args);
-         Set_Return_Type (Func_Type, New_Irep (I_Void_Type));
+      --  Record it for the future:
+      Array_Copy_Map.Replace_Element (Map_Cursor,
+                                      Symbol_Expr (Build_Copy_Function));
 
-         --  Create function body (declarations and a copy for-loop):
-         Append_Declare_And_Init
-           (Counter_Sym, Make_Integer_Constant (0, Index_Type), Body_Block, 0);
-
-         Set_Init (Body_Loop, Make_Nil (Get_Source_Location (Body_Loop)));
-         Set_Iter (Body_Loop, Make_Increment (Counter_Sym, Index_Type, 1));
-         Set_Type (Loop_Test, Make_Bool_Type);
-         Set_Lhs (Loop_Test, Counter_Sym);
-         Set_Rhs (Loop_Test, Param_Symbol (Len_Arg));
-         Set_Cond (Body_Loop, Loop_Test);
-
-         Set_Lhs (Loop_Assign,
-                  Make_Pointer_Index (Param_Symbol (Write_Ptr_Arg),
-                                      Counter_Sym));
-         RHS_Element := Make_Pointer_Index (Param_Symbol (Read_Ptr_Arg),
-                                            Counter_Sym);
-         if LHS_Element_Type = RHS_Element_Type then
-            RHS_Cast := RHS_Element;
-         else
-            RHS_Cast := New_Irep (I_Op_Typecast);
-            Set_Type (RHS_Cast, Get_Type (Get_Lhs (Loop_Assign)));
-            Set_Op0 (RHS_Cast, RHS_Element);
-         end if;
-
-         Set_Rhs (Loop_Assign, RHS_Element);
-         Set_Loop_Body (Body_Loop, Loop_Assign);
-
-         Append_Op (Body_Block, Body_Loop);
-
-         --  Make function symbol:
-         Func_Symbol.SymType := Func_Type;
-         Func_Symbol.Name := Intern (Func_Name);
-         Func_Symbol.PrettyName := Func_Symbol.Name;
-         Func_Symbol.BaseName := Func_Symbol.Name;
-         Func_Symbol.Mode := Intern ("C");
-         Func_Symbol.Value := Body_Block;
-         Global_Symbol_Table.Insert (Intern (Func_Name), Func_Symbol);
-
-         --  Record it for the future:
-         Array_Copy_Map.Replace_Element (Map_Cursor,
-                                         Symbol_Expr (Func_Symbol));
-
-         return Array_Copy_Maps.Element (Map_Cursor);
-      end;
-
+      return Array_Copy_Maps.Element (Map_Cursor);
    end Get_Array_Copy_Function;
-
-   ----------------------------
-   -- Get_Array_Dup_Function --
-   ----------------------------
-
-   function Get_Array_Dup_Function (Element_Type : Entity_Id;
-                                    Index_Type : Entity_Id) return Irep is
-      Map_Key : constant Array_Dup_Key := (Element_Type, Index_Type);
-      Map_Cursor : Array_Dup_Maps.Cursor;
-      Map_Inserted : Boolean;
-   begin
-      Array_Dup_Map.Insert (Map_Key, Ireps.Empty, Map_Cursor, Map_Inserted);
-      if not Map_Inserted then
-         return Array_Dup_Maps.Element (Map_Cursor);
-      end if;
-
-      --  Create a new duplicator function:
-      declare
-
-         Func_Type : constant Irep := New_Irep (I_Code_Type);
-         Func_Args : constant Irep := New_Irep (I_Parameter_List);
-         Ptr_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Ptr_Type : constant Irep :=
-           Make_Pointer_Type (Do_Type_Reference (Element_Type));
-         Len_Arg : constant Irep := New_Irep (I_Code_Parameter);
-         Len_Type : constant Irep := Do_Type_Reference (Index_Type);
-         Func_Symbol : Symbol;
-         Map_Size_Str : constant String :=
-           Integer'Image (Integer (Array_Dup_Map.Length));
-         Func_Name : constant String :=
-           "__ada_dup_array" & Map_Size_Str (2 .. Map_Size_Str'Last);
-         Array_Copy : constant Irep :=
-           Fresh_Var_Symbol_Expr (Ptr_Type, "new_array");
-         Array_Alloc : constant Irep :=
-           New_Irep (I_Side_Effect_Expr_Cpp_New_Array);
-         Body_Block : constant Irep := New_Irep (I_Code_Block);
-         Call_Inst : constant Irep := New_Irep (I_Code_Function_Call);
-         Call_Args : constant Irep := New_Irep (I_Argument_List);
-         Return_Inst : constant Irep := New_Irep (I_Code_Return);
-
-      begin
-
-         --  Create type (element_type*, index_type) -> element_type*
-         Set_Type (Ptr_Arg, Ptr_Type);
-         Set_Identifier (Ptr_Arg, Func_Name & "::ptr");
-         Set_Base_Name (Ptr_Arg, "ptr");
-         Set_Type (Len_Arg, Len_Type);
-         Set_Identifier (Len_Arg, Func_Name & "::len");
-         Set_Base_Name (Len_Arg, "len");
-         Append_Parameter (Func_Args, Ptr_Arg);
-         Append_Parameter (Func_Args, Len_Arg);
-         Set_Parameters (Func_Type, Func_Args);
-         Set_Return_Type (Func_Type, Ptr_Type);
-
-         --  Create body (allocate and then call array_copy)
-         Set_Size (Array_Alloc, Param_Symbol (Len_Arg));
-         Set_Type (Array_Alloc, Ptr_Type);
-         Append_Declare_And_Init (Array_Copy, Array_Alloc, Body_Block, 0);
-         Append_Argument (Call_Args, Array_Copy);
-         Append_Argument (Call_Args, Param_Symbol (Ptr_Arg));
-         Append_Argument (Call_Args, Param_Symbol (Len_Arg));
-         Set_Arguments (Call_Inst, Call_Args);
-         Set_Function (Call_Inst,
-                       Get_Array_Copy_Function (Element_Type,
-                                                Element_Type,
-                                                Index_Type));
-         Append_Op (Body_Block, Call_Inst);
-
-         Set_Return_Value (Return_Inst, Array_Copy);
-         Append_Op (Body_Block, Return_Inst);
-
-         --  Make function symbol:
-         Func_Symbol.SymType := Func_Type;
-         Func_Symbol.Name := Intern (Func_Name);
-         Func_Symbol.PrettyName := Func_Symbol.Name;
-         Func_Symbol.BaseName := Func_Symbol.Name;
-         Func_Symbol.Mode := Intern ("C");
-         Func_Symbol.Value := Body_Block;
-         Global_Symbol_Table.Insert (Intern (Func_Name), Func_Symbol);
-
-         --  Record it for the future:
-         Array_Dup_Map.Replace_Element (Map_Cursor, Symbol_Expr (Func_Symbol));
-
-         return Array_Dup_Maps.Element (Map_Cursor);
-
-      end;
-   end Get_Array_Dup_Function;
 
    function Can_Get_Array_Index_Type (N : Node_Id) return Boolean is
       Ret : Entity_Id := Etype (First_Index (Etype (N)));
@@ -4763,14 +4915,24 @@ package body Tree_Walk is
    function Make_Array_Index_Op
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep
    is
+      Source_Loc : constant Source_Ptr := Sloc (Base_Type);
       First_Irep : constant Irep :=
         Make_Array_First_Expr (Base_Type, Base_Irep);
-      Zero_Based_Index : constant Irep := New_Irep (I_Op_Sub);
+      Zero_Based_Index : constant Irep :=
+        Make_Op_Sub (Rhs             => First_Irep,
+                     Lhs             => Idx_Irep,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Get_Type (Idx_Irep),
+                     Range_Check     => False);
       Result_Type : Irep;
-      Data : constant Irep := New_Irep (I_Member_Expr);
-      Offset : constant Irep := New_Irep (I_Op_Add);
-      Deref : constant Irep := New_Irep (I_Dereference_Expr);
       Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
+      Indexed_Data : constant Irep :=
+        Offset_Array_Data (Base         => Base_Irep,
+                           Offset       => Zero_Based_Index,
+                           Pointer_Type => Pointer_Type,
+                           Source_Loc   => Source_Loc);
+      Deref : Irep := New_Irep (I_Dereference_Expr);
    begin
       if not Is_Array_Type (Base_Type) then
          Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
@@ -4778,8 +4940,6 @@ package body Tree_Walk is
          return Deref;
       end if;
       Result_Type := Do_Type_Reference (Component_Type (Base_Type));
-      Set_Lhs (Zero_Based_Index, Idx_Irep);
-      Set_Rhs (Zero_Based_Index, First_Irep);
       if not (Kind (Zero_Based_Index) in Class_Expr) or else
         not (Kind (Get_Type (Idx_Irep)) in Class_Type)
       then
@@ -4787,57 +4947,15 @@ package body Tree_Walk is
                                       "Kinds not in classes");
          return Deref;
       end if;
-      Set_Type (Zero_Based_Index, Get_Type (Idx_Irep));
-      Set_Component_Name (Data, "data");
-      Set_Compound (Data, Base_Irep);
-      Set_Subtype (Pointer_Type, Result_Type);
-      Set_Type (Data, Pointer_Type);
-      Set_Lhs (Offset, Data);
-      Set_Rhs (Offset, Idx_Irep);
-      Set_Type (Offset, Pointer_Type);
-      Set_Object (Deref, Offset);
-      Set_Type (Deref, Result_Type);
+      Set_Subtype (I     => Pointer_Type,
+                Value => Result_Type);
+      Set_Width (I     => Pointer_Type,
+                 Value => Pointer_Type_Width);
+      Deref := Make_Dereference_Expr (Object          => Indexed_Data,
+                                      Source_Location => Source_Loc,
+                                      I_Type          => Result_Type);
       return Deref;
    end Make_Array_Index_Op;
-
-   ----------------------------
-   -- Make_Array_Length_Expr --
-   ----------------------------
-
-   function Make_Array_Length_Expr
-     (Array_Struct : Irep; Index_Type : Entity_Id) return Irep
-   is
-      First_Expr : constant Irep := New_Irep (I_Member_Expr);
-      Last_Expr : constant Irep := New_Irep (I_Member_Expr);
-      Index_Type_Irep : constant Irep := Do_Type_Reference (Index_Type);
-   begin
-      Set_Compound (First_Expr, Array_Struct);
-      Set_Component_Name (First_Expr, "first1");
-      Set_Type (First_Expr, Index_Type_Irep);
-      Set_Compound (Last_Expr, Array_Struct);
-      Set_Component_Name (Last_Expr, "last1");
-      Set_Type (Last_Expr, Index_Type_Irep);
-      return Make_Array_Length_Expr (First_Expr, Last_Expr, Index_Type);
-   end Make_Array_Length_Expr;
-
-   ----------------------------
-   -- Make_Array_Length_Expr --
-   ----------------------------
-
-   function Make_Array_Length_Expr
-     (First_Expr : Irep; Last_Expr : Irep; Index_Type : Entity_Id) return Irep
-   is
-      Index_Type_Irep : constant Irep := Do_Type_Reference (Index_Type);
-      One : constant Irep := Make_Integer_Constant (1, Index_Type);
-   begin
-      return Make_Op_Add
-        (Lhs => Make_Op_Sub
-           (Lhs => Last_Expr, Rhs => First_Expr, I_Type => Index_Type_Irep,
-            Source_Location => Sloc (Index_Type)),
-         Rhs => One,
-         I_Type => Index_Type_Irep,
-         Source_Location => Sloc (Index_Type));
-   end Make_Array_Length_Expr;
 
    --------------------
    -- Make_Increment --
@@ -4952,18 +5070,16 @@ package body Tree_Walk is
    -----------------------------
 
    function Make_Struct_Component (Name : String; Ty : Irep) return Irep is
-      Ret : constant Irep := New_Irep (I_Struct_Union_Component);
    begin
-      --  Set attributes we don't use yet:
-      Set_Access (Ret, "public");
-      Set_Is_Padding (Ret, False);
-      Set_Anonymous (Ret, False);
-      --  Real attributes:
-      Set_Name        (Ret, Name);
-      Set_Pretty_Name (Ret, Name);
-      Set_Base_Name   (Ret, Name);
-      Set_Type        (Ret, Ty);
-      return Ret;
+      return Make_Struct_Union_Component (Source_Location => No_Location,
+                                          Is_Padding      => False,
+                                          I_Access        => "public",
+                                          I_Type          => Ty,
+                                          Range_Check     => False,
+                                          Anonymous       => False,
+                                          Prettyname      => Name,
+                                          Name            => Name,
+                                          Basename        => Name);
    end Make_Struct_Component;
 
    ------------------------
@@ -4999,27 +5115,6 @@ package body Tree_Walk is
          Source_Location => 0,
          Op0             => Struct_Expr);
    end Make_Variant_Literal;
-
-   ---------------------------
-   --  Maybe_Make_Typecast  --
-   ---------------------------
-
-   function Maybe_Make_Typecast (Expr : Irep;
-                                 Old_Type : Entity_Id;
-                                 New_Type : Entity_Id) return Irep
-   is
-   begin
-      if Old_Type = New_Type then
-         return Expr;
-      end if;
-      declare
-         Ret : constant Irep := New_Irep (I_Op_Typecast);
-      begin
-         Set_Type (Ret, Do_Type_Reference (New_Type));
-         Set_Op0 (Ret, Expr);
-         return Ret;
-      end;
-   end Maybe_Make_Typecast;
 
    --------------------------------
    --  Warn_Unhandled_Construct  --

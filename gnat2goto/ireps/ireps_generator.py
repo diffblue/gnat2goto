@@ -368,6 +368,25 @@ class IrepsGenerator(object):
                 write(b, "Integer (Follow_Irep (Irep (%s), Follow_Symbol));" % tbl_field)
         return needs_null
 
+    def remove_bounds_set_all_subs(self, b, sn, subs, i, needs_null):
+        needs_null = False
+        setter_name, is_list = subs[i]
+        layout_kind, layout_index, layout_typ =\
+            self.layout[sn][setter_name]
+        tbl_index = ada_component_name(layout_kind,
+                                       layout_index)
+        tbl_field = "N." + tbl_index
+        if is_list:
+            assert len(subs) == 1
+            write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+            with indent(b):
+                write(b, "Integer (Remove_Bounds (Irep_List (%s)));" % tbl_field)
+        else:
+            write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+            with indent(b):
+                write(b, "Integer (Remove_Bounds (Irep (%s)));" % tbl_field)
+        return needs_null
+
     def to_json_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
         for kind in self.named_setters[setter_name]:
             assert kind in ("irep", "list", "trivial")
@@ -380,7 +399,6 @@ class IrepsGenerator(object):
                 tbl_field = "N." + ada_component_name(layout_kind,
                                                       layout_index)
 
-                obj = "Comment" if is_comment else "Named_Sub"
                 if kind == "irep":
                     val = "To_JSON (Irep (%s))" % tbl_field
                 elif layout_kind == "str":
@@ -399,7 +417,7 @@ class IrepsGenerator(object):
                 else:
                     key_name = setter_name
 
-                tmp = "%s.Set_Field (" % obj
+                tmp = "Named_Sub.Set_Field ("
                 write(b, tmp + '"' + key_name + '",')
                 write(b, " " * len(tmp) + val + ");")
                 continuation(b)
@@ -418,7 +436,6 @@ class IrepsGenerator(object):
                                                layout_index)
                 tbl_field = "N." + tbl_index
 
-                obj = "Comment" if is_comment else "Named_Sub"
                 if kind == "irep":
                     write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
                     with indent(b):
@@ -426,13 +443,32 @@ class IrepsGenerator(object):
                     needs_null = False
         return needs_null
 
+    def remove_bounds_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
+        needs_null = True
+        for kind in self.named_setters[setter_name]:
+            assert kind in ("irep", "list", "trivial")
+            if sn in self.named_setters[setter_name][kind]:
+                is_comment, _, _ =\
+                    self.named_setters[setter_name][kind][sn]
+                layout_kind, layout_index, layout_typ =\
+                    self.layout[sn][setter_name]
+                tbl_index = ada_component_name(layout_kind,
+                                               layout_index)
+                tbl_field = "N." + tbl_index
+
+                obj = "Comment" if is_comment else "Named_Sub"
+                if kind == "irep":
+                    write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+                    with indent(b):
+                        write(b, "Integer (Remove_Bounds (Irep (%s)));" % tbl_field)
+                    needs_null = False
+        return needs_null
+
     def to_json_set_all_constants(self, b, sn, kind, data, needs_null):
         if kind == "id":
             return needs_null
-        elif kind == "namedSub":
+        elif kind == "namedSub" or kind == "comment":
             obj = "Named_Sub"
-        elif kind == "comment":
-            obj = "Comment"
         else:
             print sn, kind, self.const[sn]
             assert False
@@ -493,6 +529,27 @@ class IrepsGenerator(object):
                     write(b, "null;")
                 write(b, "")
 
+    def remove_bounds_single_schema_name(self, b, sn):
+        schema = self.schemata[sn]
+        with indent(b):
+            write(b, "when %s =>" % schema["ada_name"])
+            with indent(b):
+                # the ensuing case analysis may end up doing nothing for some irep kinds
+                # in Ada cases cannot be empty hence we insert null statement if necessary
+                needs_null = True
+
+                # Set all subs
+                subs = self.collect_subs(sn)
+                for i in xrange(len(subs)):
+                    needs_null = self.remove_bounds_set_all_subs(b, sn, subs, i, needs_null)
+
+                # Set all namedSub and comments
+                for setter_name in self.named_setters:
+                    needs_null = self.remove_bounds_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
+
+                if needs_null:
+                    write(b, "null;")
+                write(b, "")
 
     def register_schema(self, sn):
         if sn == "source_location":
@@ -1755,6 +1812,10 @@ class IrepsGenerator(object):
         write(s, "--  Replace Symbol Types")
         write(s, "")
 
+        write(s, "function Remove_Bounds (I : Irep) return Irep;")
+        write(s, "--  Remove Type Bounds")
+        write(s, "")
+
         write(b, "function To_JSON (L : Irep_List) return JSON_Array;")
         write(b, "--  Serialise list to JSON")
         write(b, "")
@@ -1765,6 +1826,10 @@ class IrepsGenerator(object):
         with indent(b):
             write(b, "return Irep) return Irep_List;")
         write(b, "--  Replace Symbol Types")
+        write(b, "")
+
+        write(b, "function Remove_Bounds (L : Irep_List) return Irep_List;")
+        write(b, "--  Remove Type Bounds")
         write(b, "")
 
         write (b, "function Trivial_Irep (S : String_Id) return JSON_Value;")
@@ -1814,6 +1879,11 @@ class IrepsGenerator(object):
         continuation(b)
         write(b, "")
 
+        write(b, "function Remove_Bounds (L : Irep_List) return Irep_List")
+        write(b, "is separate;")
+        continuation(b)
+        write(b, "")
+
         write_comment_block(b, "Trivial_Irep")
         write(b, "function Trivial_Irep (S : String_Id) return JSON_Value is")
         write(b, "begin")
@@ -1831,7 +1901,6 @@ class IrepsGenerator(object):
                 write(b, 'V.Set_Field ("id", S);')
                 write(b, 'V.Set_Field ("sub", Empty_Array);')
                 write(b, 'V.Set_Field ("namedSub", Create_Object);')
-                write(b, 'V.Set_Field ("comment", Create_Object);')
             write(b, "end return;")
         write(b, "end Trivial_Irep;")
         write(b, "")
@@ -1902,7 +1971,6 @@ class IrepsGenerator(object):
             write(b, "")
             write(b, "Sub       :          JSON_Array := Empty_Array;")
             write(b, "Named_Sub : constant JSON_Value := Create_Object;")
-            write(b, "Comment   : constant JSON_Value := Create_Object;")
         write(b, "begin")
         manual_indent(b)
         write(b, 'V.Set_Field ("id", Id (I));')
@@ -1916,9 +1984,14 @@ class IrepsGenerator(object):
             self.to_json_single_schema_name(b, sn)
         write(b, "end case;")
         write(b, "")
-        write(b, 'V.Set_Field ("sub",      Sub);')
-        write(b, 'V.Set_Field ("namedSub", Named_Sub);')
-        write(b, 'V.Set_Field ("comment",  Comment);')
+        write(b, "if not Is_Empty (Sub) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("sub",      Sub);')
+        write(b, "end if;")
+        write(b, "if not Is_Empty (Named_Sub) then")
+        with indent(b):
+            write(b, 'V.Set_Field ("namedSub", Named_Sub);')
+        write(b, "end if;")
         manual_outdent(b)
         write(b, "end;")
         write(b, "return V;")
@@ -1960,6 +2033,38 @@ class IrepsGenerator(object):
         write(b, "return I;")
         manual_outdent(b)
         write(b, "end Follow_Irep;")
+        write(b, "")
+
+        write_comment_block(b, "Remove_Bounds")
+        write(b, "function Remove_Bounds (I : Irep) return Irep")
+        write(b, "is")
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "if I = 0 then")
+        with indent(b):
+            write(b, "return I;")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "if Kind (I) = I_Bounded_Signedbv_Type then")
+        with indent(b):
+            write(b, "return Make_Signedbv_Type (Get_Subtype (I), Get_Width (I));")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "declare")
+        with indent(b):
+            write(b, "N : Irep_Node renames Irep_Table.Table (I);")
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "case N.Kind is")
+
+        for sn in self.top_sorted_sn:
+            self.remove_bounds_single_schema_name(b, sn)
+        write(b, "end case;")
+        manual_outdent(b)
+        write(b, "end;")
+        write(b, "return I;")
+        manual_outdent(b)
+        write(b, "end Remove_Bounds;")
         write(b, "")
 
         ##########################################################################

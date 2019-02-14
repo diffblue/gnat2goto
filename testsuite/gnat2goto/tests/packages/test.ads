@@ -1,4 +1,4 @@
 package Test
 is
-   procedure Foo(Input : Positive);
+   function Double(Input : Positive) return Positive;
 end Test;
