@@ -2286,39 +2286,53 @@ package body Tree_Walk is
    procedure Do_Incomplete_Type_Declaration (N : Node_Id) is
       Entity : constant Entity_Id := Defining_Identifier (N);
       --  The full view of an incomplete_type_declaration is obtained
-      --  by calling the Full_View function.  As rthe compiler has completed
+      --  by calling the Full_View function.  As the compiler has completed
       --  semantic analysis before invoking the gnat to goto translation
       --  all incomplete_type_declarations should have a full view.
       Full_View_Entity : constant Entity_Id := Full_View (Entity);
       Type_Name : constant String := To_String
         (To_Unbounded_String (Unique_Name (Entity)));
    begin
-      if Is_Incomplete_Or_Private_Type (Entity) then
+      if Is_Incomplete_Type (Entity) then
          Put_Line ("Should be processing an incomplete_type_declaration "
-           & Type_Name);
+                   & Type_Name);
          Print_Node_Briefly (N);
-         if Is_Type (Entity) then
+         --   If an incomplete_type_declaration is completed by a
+         --   private_type_declaration, then its Full_View
+         --   is given by the Full_View of the private_type_declaration.
+         --   Process it as a private_type_declaration
+         if not Is_Private_Type (Full_View_Entity) then
             Put_Line ("Full declaration is at ");
-            Print_Node_Briefly (Etype (Full_View (Entity)));
+            Print_Node_Briefly (Etype (Full_View_Entity));
             Put_Line ("This should be the full type dec:");
-            Print_Node_Briefly (Declaration_Node (Full_View (Entity)));
+            Print_Node_Briefly (Declaration_Node (Full_View_Entity));
             if Nkind (Declaration_Node (Full_View_Entity)) =
               N_Full_Type_Declaration
             then
                --  The full_type_declaration corresponding to the
-               --  incomplete_type_declaration
-               --  register its full view.
+               --  incomplete_type_declaration is Full_View_Entity
+               --  register the full view in the symbol_table.
                Register_Type_Declaration
                  (Declaration_Node (Full_View_Entity), Full_View_Entity);
             else
-               Put_Line ("Not a full type declaration_node");
+               Warn_Unhandled_Construct
+                 (Declaration,
+                  "Private types not currently handled");
             end if;
-
          else
-            Put_Line ("Can't find its full declaration");
+
+            Report_Unhandled_Node_Empty
+              (Declaration_Node (Full_View_Entity),
+               "Do_Incomplete_Type_Declaration",
+               "Full view of incomplete_type_declaration " &
+                 "Does not yield a full_type_declaration node");
          end if;
+
       else
-         Put_Line ("Entity is not an incomplete_type_declaration");
+         Report_Unhandled_Node_Empty
+           (N,
+            "Do_Private_Type_Declaration",
+            "The node is not a incomplete type");
       end if;
 
    end Do_Incomplete_Type_Declaration;
