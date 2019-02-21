@@ -34,8 +34,32 @@ done
 
 echo "$1: Unsupported features\n" > "$file_name".txt
 
+if ! command -v gnat > /dev/null; then
+   echo >&2 "Gnat not on PATH!"
+   exit 4
+fi
+
+ADA_HOME=`which gnat`
+ADA_HOME="$(dirname "$ADA_HOME")/.."
+PLATFORM=`uname -m`
+DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}-pc-linux-gnu"
+ADA_VERSION=$(find ${DEF_ADA_INCLUDE_PATH} -maxdepth 1 -type d -name '*.*.*' -print -quit)
+DEF_ADA_INCLUDE_PATH="${ADA_VERSION}/rts-native/adainclude"
+export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
+
+export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
+if [ ! -d "$GPR_PROJECT_PATH" ]; then
+   echo >&2 "GPR project path does not exists!"
+   exit 6
+fi
+
 for filename in $(find ${path} -name *.adb); do
    gnat2goto ${include_path} "${filename}" >>"$file_name".txt 2>&1
+   if [ "$?" -gt 0 ]; then
+      echo >&2 "Errors occurred during feature collection."
+      echo >&2 "See \"${file_name}.txt\" for details."
+      exit 7
+   fi
 done
 
 sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
