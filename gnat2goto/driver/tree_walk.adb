@@ -1870,10 +1870,9 @@ package body Tree_Walk is
       --  declaration will be present and the
       --  full_type_declaration will have been registered when its
       --  incomplete_type_declaration was processed.
-      --  If the Incomplete_View is not present then the full_type_declaration
-      --  has to be registered
-      if not Present (Incomplete_View (N))
-      then
+      --  If the Incomplete_View is not present then the
+      --   full_type_declaration has to be registered
+      if not (Present (Incomplete_View (N))) then
          Put_Line ("We are going to do the dec");
          Put_Line ("full_type_declaration with no incomplete_view");
          Register_Type_Declaration (N, E);
@@ -2315,17 +2314,15 @@ package body Tree_Walk is
                Register_Type_Declaration
                  (Declaration_Node (Full_View_Entity), Full_View_Entity);
             else
-               Warn_Unhandled_Construct
-                 (Declaration,
-                  "Private types not currently handled");
+               Report_Unhandled_Node_Empty
+                 (Declaration_Node (Full_View_Entity),
+                  "Do_Incomplete_Type_Declaration",
+                  "Full view of incomplete_type_declaration " &
+                    "Does not yield a full_type_declaration node");
             end if;
          else
-
-            Report_Unhandled_Node_Empty
-              (Declaration_Node (Full_View_Entity),
-               "Do_Incomplete_Type_Declaration",
-               "Full view of incomplete_type_declaration " &
-                 "Does not yield a full_type_declaration node");
+            Warn_Unhandled_Construct
+              (Declaration, "Private type");
          end if;
 
       else
