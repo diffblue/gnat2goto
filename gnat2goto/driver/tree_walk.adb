@@ -2284,6 +2284,10 @@ package body Tree_Walk is
 
    procedure Do_Incomplete_Type_Declaration (N : Node_Id) is
       Entity : constant Entity_Id := Defining_Identifier (N);
+      --  Only complete types should be inserted in the symbol table.
+      --  If an incomplete type declaration is inserted it will prevent
+      --  the full declaration being entered into the symbol talble.
+      --
       --  The full view of an incomplete_type_declaration is obtained
       --  by calling the Full_View function.  As the compiler has completed
       --  semantic analysis before invoking the gnat to goto translation
@@ -2296,10 +2300,9 @@ package body Tree_Walk is
          Put_Line ("Should be processing an incomplete_type_declaration "
                    & Type_Name);
          Print_Node_Briefly (N);
-         --   If an incomplete_type_declaration is completed by a
-         --   private_type_declaration, then its Full_View
-         --   is given by the Full_View of the private_type_declaration.
-         --   Process it as a private_type_declaration
+         --   If the incomplete_type_declaration is completed by a
+         --   private_type_declaration, the private_type_declaration
+         --   has to be processed to obtain the full view of the type.
          if not Is_Private_Type (Full_View_Entity) then
             Put_Line ("Full declaration is at ");
             Print_Node_Briefly (Etype (Full_View_Entity));
