@@ -1,0 +1,1 @@
+ALL XFAIL gna2goto fails with unsupported kind of lhs
