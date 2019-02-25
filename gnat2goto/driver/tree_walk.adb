@@ -771,27 +771,25 @@ package body Tree_Walk is
             Pos_Number := Pos_Number + 1;
          end loop;
 
+         Append_Struct_Member (Array_Temp_Struct, Low_Expr);
+         Append_Struct_Member (Array_Temp_Struct, High_Expr);
+         Append_Struct_Member (Array_Temp_Struct, Malloc_Call_Expr);
+
          Append_Declare_And_Init (Symbol     => Literal_Temp,
                                   Value      => Array_Expr,
                                   Block      => Result_Block,
                                   Source_Loc => Source_Loc);
-         Append_Op (Result_Block,
-                    Make_Code_Decl (Symbol          => Array_Temp,
-                                    Source_Location => Source_Loc,
-                                    I_Type          => Result_Type));
-
-         Append_Op (Result_Block,
-                    Make_Code_Assign (Rhs             => Low_Expr,
-                                      Lhs             => First1_Mem_Expr,
-                                      Source_Location => Source_Loc));
-         Append_Op (Result_Block,
-                    Make_Code_Assign (Rhs             => High_Expr,
-                                      Lhs             => Last1_Mem_Expr,
-                                      Source_Location => Source_Loc));
-         Append_Op (Result_Block,
-                    Make_Code_Assign (Rhs             => Malloc_Call_Expr,
-                                      Lhs             => Data_Mem_Expr,
-                                      Source_Location => Source_Loc));
+         --  As long as symex is field-insensitive we need to initialise the
+         --  array structure with the information about allocated size.
+         --  I.e. Create a temporary struct and assign it in one swoop to
+         --  Array_Temp - so that Symex does not see the struct as having been
+         --  changed after its creation and can therefore see it as constant -
+         --  which means that the struct member that refers to "allocated size"
+         --  remains visible/accessible.
+         Append_Declare_And_Init (Symbol     => Array_Temp,
+                                  Value      => Array_Temp_Struct,
+                                  Block      => Result_Block,
+                                  Source_Loc => Source_Loc);
          Append_Op (Result_Block,
                     Make_Code_Assign (Rhs             => Memcpy_Call_Expr,
                                       Lhs             => Lhs_Temp,
