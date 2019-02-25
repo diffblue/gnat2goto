@@ -660,18 +660,6 @@ package body Tree_Walk is
          --  2: data pointer
          --  Using the component numbers may be dropped in the future or it
          --  may be enforced.
-         First1_Mem_Expr : constant Irep :=
-           Make_Member_Expr (Compound         => Array_Temp,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 0,
-                             I_Type           => Make_Int_Type (32),
-                             Component_Name   => "first1");
-         Last1_Mem_Expr : constant Irep :=
-           Make_Member_Expr (Compound         => Array_Temp,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 1,
-                             I_Type           => Make_Int_Type (32),
-                             Component_Name   => "last1");
          Data_Mem_Expr : constant Irep :=
            Make_Member_Expr (Compound         => Array_Temp,
                              Source_Location  => Source_Loc,
@@ -679,19 +667,20 @@ package body Tree_Walk is
                              I_Type           =>
                                Make_Pointer_Type (Element_Type),
                              Component_Name   => "data");
+         Array_Temp_Struct : constant Irep :=
+           Make_Struct_Expr (Source_Location => Source_Loc,
+                             I_Type          => Result_Type);
          Raw_Malloc_Call : constant Irep :=
            Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
                                            Element_Type_Size =>
                                              Esize (Element_Type_Ent),
                                            Source_Loc        => Source_Loc);
          Malloc_Call_Expr : constant Irep :=
-           Make_Op_Typecast (Op0             =>  Raw_Malloc_Call,
-                           I_Type          => Make_Pointer_Type (Element_Type),
-                             Source_Location => Source_Loc);
+           Typecast_If_Necessary (Expr     => Raw_Malloc_Call,
+                                 New_Type => Make_Pointer_Type (Element_Type));
          Literal_Address : constant Irep :=
-           Make_Op_Typecast (Op0 => Make_Address_Of (Literal_Temp),
-                             I_Type => Make_Pointer_Type (Element_Type),
-                             Source_Location => Source_Loc);
+           Typecast_If_Necessary (Expr     => Make_Address_Of (Literal_Temp),
+                                 New_Type => Make_Pointer_Type (Element_Type));
          Memcpy_Call_Expr : constant Irep :=
            Make_Memcpy_Function_Call_Expr (Destination       => Data_Mem_Expr,
                                           Source            => Literal_Address,
@@ -3520,7 +3509,8 @@ package body Tree_Walk is
    function Do_Operator_General (N : Node_Id) return Irep is
    begin
       if Nkind (N) = N_Op_Concat then
-         return Do_Op_Concat (N);
+         return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
+                                            "Concat unsupported");
       elsif Nkind (N) = N_Op_Not then
          return Do_Op_Not (N);
       else
