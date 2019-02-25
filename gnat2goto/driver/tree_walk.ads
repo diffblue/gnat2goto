@@ -76,4 +76,5 @@ package Tree_Walk is
      return Symbol
    with Pre => Nkind (N) = N_Compilation_Unit;
 
+   type Irep_Array is array (Positive range <>) of Irep;
 end Tree_Walk;
