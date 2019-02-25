@@ -4313,53 +4313,109 @@ package body Tree_Walk is
    -- Do_Slice --
    --------------
 
+   --  The following build an expression representing slice
+   --  orig(start .. end)
+   --  Let ArrT := struct { int first; int last; T* data; }
+   ----------------------------------------------------------------------------
+   --  ArrT slice_expr(ArrT orig) {
+   --    T* new_data = data + (start - orig.first);
+   --    ArrT temp_array = {.first=start, .last=end, .data=new_data};
+   --    return temp_array;
+   --  }
+   ----------------------------------------------------------------------------
    function Do_Slice (N : Node_Id) return Irep is
+      Source_Loc : constant Source_Ptr := Sloc (N);
       Result_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Base : constant Irep := Do_Expression (Prefix (N));
-      Let_Sym : constant Irep :=
-        Fresh_Var_Symbol_Expr (Result_Type, "slice_prefix");
-      Idx_Type : constant Entity_Id :=
-        Etype (First_Index (Etype (N)));
-      Old_First_Expr : constant Irep :=
-        Make_Array_First_Expr (Etype (Prefix (N)), Let_Sym);
-      New_First_Expr : constant Irep :=
-        Do_Expression (Low_Bound (Scalar_Range (Idx_Type)));
-      New_Last_Expr : constant Irep :=
-        Do_Expression (High_Bound (Scalar_Range (Idx_Type)));
-      Offset : constant Irep := New_Irep (I_Op_Sub);
-      Ret : constant Irep := New_Irep (I_Let_Expr);
-      Element_Type : constant Entity_Id := Get_Array_Component_Type (N);
-      Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
-      Old_Data : constant Irep := New_Irep (I_Member_Expr);
-      New_Data : constant Irep := New_Irep (I_Op_Add);
-      Result : constant Irep := New_Irep (I_Struct_Expr);
+      Slice_Params : constant Irep := New_Irep (I_Parameter_List);
+      Slice_Args : constant Irep := New_Irep (I_Argument_List);
+      Function_Name : constant String := "slice_expr";
+      Array_Param : constant Irep :=
+        Create_Fun_Parameter (Fun_Name        => Function_Name,
+                              Param_Name      => "orig_array",
+                              Param_Type      => Result_Type,
+                              Param_List      => Slice_Params,
+                              A_Symbol_Table  => Global_Symbol_Table,
+                              Source_Location => Source_Loc);
+
+      function Build_Slice_Func_Body return Irep;
+
+      function Build_Slice_Func_Body return Irep is
+         Base : constant Irep := Param_Symbol (Array_Param);
+         Idx_Type : constant Entity_Id :=
+           Etype (First_Index (Etype (N)));
+         New_First_Expr : constant Irep :=
+           Do_Expression (Low_Bound (Scalar_Range (Idx_Type)));
+         First_Type : constant Irep := Get_Type (New_First_Expr);
+         Old_First_Expr : constant Irep :=
+           Make_Member_Expr (Compound         => Base,
+                             Source_Location  => Source_Loc,
+                             Component_Number => 0,
+                             I_Type           => First_Type,
+                             Component_Name   => "first1");
+
+         New_Last_Expr : constant Irep :=
+           Do_Expression (High_Bound (Scalar_Range (Idx_Type)));
+         Element_Type : constant Entity_Id := Get_Array_Component_Type (N);
+
+         Result_Block : constant Irep := New_Irep (I_Code_Block);
+         Array_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
+
+         Offset : constant Irep :=
+           Make_Op_Sub (Rhs             => Old_First_Expr,
+                        Lhs             => New_First_Expr,
+                        Source_Location => Source_Loc,
+                        Overflow_Check  => False,
+                        I_Type          => First_Type);
+         Pointer_Type : constant Irep :=
+           Make_Pointer_Type (I_Subtype => Do_Type_Reference (Element_Type),
+                              Width     => Pointer_Type_Width);
+         New_Data : constant Irep :=
+           Offset_Array_Data (Base         => Base,
+                              Offset       => Offset,
+                              Pointer_Type => Pointer_Type,
+                              Source_Loc   => Source_Loc);
+         Result : constant Irep :=
+           Make_Struct_Expr (Source_Location => Source_Loc,
+                             I_Type          => Result_Type);
+
+         Data_Temp : constant Irep :=
+           Fresh_Var_Symbol_Expr (Get_Type (New_Data), "temp_array_data");
+      begin
+         Append_Struct_Member (Result, New_First_Expr);
+         Append_Struct_Member (Result, New_Last_Expr);
+         Append_Struct_Member (Result, Data_Temp);
+
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => New_Data,
+                                      Lhs             => Data_Temp,
+                                      Source_Location => Source_Loc));
+         Append_Op (Result_Block,
+                    Make_Code_Assign (Rhs             => Result,
+                                      Lhs             => Array_Temp,
+                                      Source_Location => Source_Loc));
+
+         Append_Op (Result_Block,
+                    Make_Code_Return (Return_Value    => Array_Temp,
+                                      Source_Location => Source_Loc));
+         return Result_Block;
+      end Build_Slice_Func_Body;
+
+      Func_Symbol : constant Symbol :=
+        Build_Function (Name           => Function_Name,
+                        RType          => Result_Type,
+                        Func_Params    => Slice_Params,
+                        FBody          => Build_Slice_Func_Body,
+                        A_Symbol_Table => Global_Symbol_Table);
+      Slice_Id : constant Irep := Do_Expression (Prefix (N));
    begin
-      Set_Subtype (Pointer_Type, Do_Type_Reference (Element_Type));
-      Set_Width (Pointer_Type, Pointer_Type_Width);
-
-      --  Adjust data pointer:
-      Set_Lhs (Offset, New_First_Expr);
-      Set_Rhs (Offset, Old_First_Expr);
-      Set_Compound (Old_Data, Let_Sym);
-      Set_Component_Name (Old_Data, "data");
-      Set_Type (Old_Data, Pointer_Type);
-      Set_Lhs (New_Data, Old_Data);
-      Set_Rhs (New_Data, Offset);
-      Set_Type (New_Data, Pointer_Type);
-
-      --  Build result structure:
-      Append_Struct_Member (Result, New_First_Expr);
-      Append_Struct_Member (Result, New_Last_Expr);
-      Append_Struct_Member (Result, New_Data);
-      Set_Type (Result, Result_Type);
-
-      --  Return:
-      Set_Symbol (Ret, Let_Sym);
-      Set_Value (Ret, Base);
-      Set_Where (Ret, Result);
-      Set_Type (Ret, Result_Type);
-
-      return Ret;
+      Append_Argument (Slice_Args,
+                       Slice_Id);
+      return Make_Side_Effect_Expr_Function_Call (
+                             Arguments       => Slice_Args,
+                             I_Function      => Symbol_Expr (Func_Symbol),
+                             Source_Location => Source_Loc,
+                             I_Type          => Result_Type);
    end Do_Slice;
 
    ------------------------
