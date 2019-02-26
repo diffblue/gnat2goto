@@ -4939,6 +4939,9 @@ package body Tree_Walk is
             --  Ignore, nothing to generate
             null;
 
+         when N_Private_Type_Declaration =>
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                       "Private type declaration unsupported");
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");
