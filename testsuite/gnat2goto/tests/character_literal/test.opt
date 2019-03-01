@@ -1,0 +1,1 @@
+ALL XFAIL gnat2goto fails with character literal unsupported

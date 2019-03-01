@@ -1967,6 +1967,9 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Quantified");
+         when N_Character_Literal =>
+            return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                             "Character Literals unsupported");
          when others                 =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Unknown expression kind");
