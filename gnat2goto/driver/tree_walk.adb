@@ -1998,11 +1998,16 @@ package body Tree_Walk is
                             Discriminant_Specifications (N));
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
-      if not Is_Type (E) or else
-        not (Kind (New_Type) in Class_Type)
+      if not (Kind (New_Type) in Class_Type)
       then
          Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
-                                 "identifier not a type or not in class type");
+                      "Identifier not in class type. Type definition failed.");
+         return;
+      end if;
+      if not Is_Type (E)
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
+                                      "identifier not a type");
          return;
       end if;
       Do_Type_Declaration (New_Type, E);
@@ -4369,6 +4374,9 @@ package body Tree_Walk is
             return Do_Unconstrained_Array_Definition (N);
          when N_Modular_Type_Definition =>
             return Create_Dummy_Irep;
+         when N_Floating_Point_Definition =>
+            return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
+                                     "Floating Point Definitions unsupported");
          when others =>
             return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
                                                "Unknown expression kind");
