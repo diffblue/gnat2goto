@@ -19,6 +19,7 @@ if [ "$1" = '--help' ]; then
    exit 3
 fi
 
+echo >&2 "Project to build: $1"
 path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 include_path=""
 DIR=`dirname "$0"`
@@ -41,10 +42,10 @@ fi
 
 ADA_HOME=`which gnat`
 ADA_HOME="$(dirname "$ADA_HOME")/.."
-PLATFORM=`uname -m`
-DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}-pc-linux-gnu"
-ADA_VERSION=$(find ${DEF_ADA_INCLUDE_PATH} -maxdepth 1 -type d -name '*.*.*' -print -quit)
-DEF_ADA_INCLUDE_PATH="${ADA_VERSION}/rts-native/adainclude"
+PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
+DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}/"
+ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
+DEF_ADA_INCLUDE_PATH+="${ADA_GCC_VERSION}/rts-native/adainclude"
 export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
 
 export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
@@ -53,12 +54,15 @@ if [ ! -d "$GPR_PROJECT_PATH" ]; then
    exit 6
 fi
 
-for filename in $(find ${path} -name *.adb); do
+# Log whether a file failed to compile due to incorrect syntax, or
+# some other error that caused the compiler to exit with non-zero
+# exit code
+compile_error_occured=0
+for filename in $(find ${path} -name '*.adb'); do
+   echo >&2 "Compiling $filename..."
    gnat2goto ${include_path} "${filename}" >>"$file_name".txt 2>&1
    if [ "$?" -gt 0 ]; then
-      echo >&2 "Errors occurred during feature collection."
-      echo >&2 "See \"${file_name}.txt\" for details."
-      exit 7
+      compile_error_occured=1
    fi
 done
 
@@ -66,3 +70,11 @@ sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 ./CollectUnsupported "$file_name"_redacted.txt
+
+if [ "$compile_error_occured" -gt 0 ]; then
+   echo >&2 "-------------------------------------------------------"
+   echo >&2 "Some files failed to compile during feature collection."
+   echo >&2 "See \"${file_name}.txt\" for details."
+   echo >&2 "-------------------------------------------------------"
+   exit 7
+fi
