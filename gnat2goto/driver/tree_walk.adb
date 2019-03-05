@@ -230,6 +230,9 @@ package body Tree_Walk is
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Op_Or (N : Node_Id) return Irep
+   with Pre => Nkind (N) in N_Op;
+
    procedure Do_Package_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Package_Declaration;
 
@@ -3525,6 +3528,20 @@ package body Tree_Walk is
    end Do_Op_Minus;
 
    -------------------------
+   --      Do_Op_Or       --
+   -------------------------
+
+   function Do_Op_Or (N : Node_Id) return Irep is
+      LHS_Bool_Value : constant Irep := Do_Expression (Left_Opnd (N));
+      RHS_Bool_Value : constant Irep := Do_Expression (Right_Opnd (N));
+      R : constant Irep := Make_Op_Or (Sloc (N), Make_Bool_Type, False);
+   begin
+      Append_Op (R, LHS_Bool_Value);
+      Append_Op (R, RHS_Bool_Value);
+      return R;
+   end Do_Op_Or;
+
+   -------------------------
    -- Do_Operator_General --
    -------------------------
 
@@ -3537,6 +3554,8 @@ package body Tree_Walk is
          return Do_Op_Not (N);
       elsif Nkind (N) = N_Op_Minus then
          return Do_Op_Minus (N);
+      elsif Nkind (N) = N_Op_Or then
+         return Do_Op_Or (N);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
