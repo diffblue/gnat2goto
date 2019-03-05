@@ -227,6 +227,9 @@ package body Tree_Walk is
    function Do_Op_Not (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Op_Minus (N : Node_Id) return Irep
+   with Pre => Nkind (N) in N_Op;
+
    procedure Do_Package_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Package_Declaration;
 
@@ -3511,6 +3514,17 @@ package body Tree_Walk is
    end Do_Op_Not;
 
    -------------------------
+   --     Do_Op_Minus    --
+   -------------------------
+
+   function Do_Op_Minus (N : Node_Id) return Irep is
+      Original_Value : constant Irep := Do_Expression (Right_Opnd (N));
+      Original_Value_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      return Make_Op_Neg (Original_Value, Sloc (N), Original_Value_Type);
+   end Do_Op_Minus;
+
+   -------------------------
    -- Do_Operator_General --
    -------------------------
 
@@ -3521,6 +3535,8 @@ package body Tree_Walk is
                                             "Concat unsupported");
       elsif Nkind (N) = N_Op_Not then
          return Do_Op_Not (N);
+      elsif Nkind (N) = N_Op_Minus then
+         return Do_Op_Minus (N);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
