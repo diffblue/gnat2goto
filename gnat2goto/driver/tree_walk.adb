@@ -3537,11 +3537,23 @@ package body Tree_Walk is
    function Do_Op_Or (N : Node_Id) return Irep is
       LHS_Bool_Value : constant Irep := Do_Expression (Left_Opnd (N));
       RHS_Bool_Value : constant Irep := Do_Expression (Right_Opnd (N));
-      R : constant Irep := Make_Op_Or (Sloc (N), Make_Bool_Type, False);
+      Cast_LHS_To_Integer : constant Irep :=
+        Make_Op_Typecast (Op0 => LHS_Bool_Value,
+                          Source_Location => Sloc (N),
+                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
+      Cast_RHS_To_Integer : constant Irep :=
+        Make_Op_Typecast (Op0 => RHS_Bool_Value,
+                          Source_Location => Sloc (N),
+                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
+      R : constant Irep := Make_Op_Bitor (Lhs => Cast_LHS_To_Integer,
+                                          Rhs => Cast_RHS_To_Integer,
+                                          Source_Location => Sloc (N),
+                                          I_Type =>
+                                            Get_Type (Cast_LHS_To_Integer));
    begin
-      Append_Op (R, LHS_Bool_Value);
-      Append_Op (R, RHS_Bool_Value);
-      return R;
+      return Make_Op_Typecast (Op0 => R,
+                               Source_Location => Sloc (N),
+                               I_Type => Make_Bool_Type);
    end Do_Op_Or;
 
    -------------------------
