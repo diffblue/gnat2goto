@@ -17,7 +17,9 @@ os.chdir(TESTDIR)
 
 def ada_body_files():
     """Return list of *.adb files in the current folder."""
-    return [f for f in os.listdir(os.curdir)\
+    files = os.listdir(os.curdir)
+    files.sort()
+    return [f for f in files\
             if os.path.isfile(f) and fnmatch.fnmatch (f, "*.adb")]
 
 def filter_timing(results):
@@ -59,7 +61,7 @@ def process(debug, file, cbmcargs):
         print "ERROR code ", g2go_results.status, " returned by gnat2goto when translating " + unit
         print "CBMC not run"
         return ""
-    
+
     # only run the following if gnat2goto succeeded
     # Run(["cbmc", jsout, "--show-symbol-table"], output=symtab)
     # Run(["cbmc", jsout, "--show-goto-functions"], output=gotoprog)
@@ -75,7 +77,7 @@ def process(debug, file, cbmcargs):
         print cbmcerr_text
     if results.status != 0 and results.status != 10:
         print "ERROR code ", results.status, "returned by cbmc when processing " + unit
-    
+
     return filter_timing(results.out)
 
 
