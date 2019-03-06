@@ -233,6 +233,9 @@ package body Tree_Walk is
    function Do_Op_Or (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Op_And (N : Node_Id) return Irep
+   with Pre => Nkind (N) in N_Op;
+
    procedure Do_Package_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Package_Declaration;
 
@@ -3542,6 +3545,32 @@ package body Tree_Walk is
    end Do_Op_Or;
 
    -------------------------
+   --      Do_Op_And      --
+   -------------------------
+
+   function Do_Op_And (N : Node_Id) return Irep is
+      LHS_Bool_Value : constant Irep := Do_Expression (Left_Opnd (N));
+      RHS_Bool_Value : constant Irep := Do_Expression (Right_Opnd (N));
+      Cast_LHS_To_Integer : constant Irep :=
+        Make_Op_Typecast (Op0 => LHS_Bool_Value,
+                          Source_Location => Sloc (N),
+                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
+      Cast_RHS_To_Integer : constant Irep :=
+        Make_Op_Typecast (Op0 => RHS_Bool_Value,
+                          Source_Location => Sloc (N),
+                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
+      R : constant Irep := Make_Op_Bitand (Rhs => Cast_RHS_To_Integer,
+                                           Lhs => Cast_LHS_To_Integer,
+                                           Source_Location => Sloc (N),
+                                           I_Type =>
+                                             Get_Type (Cast_LHS_To_Integer));
+   begin
+      return Make_Op_Typecast (Op0 => R,
+                               Source_Location => Sloc (N),
+                               I_Type => Make_Bool_Type);
+   end Do_Op_And;
+
+   -------------------------
    -- Do_Operator_General --
    -------------------------
 
@@ -3556,6 +3585,8 @@ package body Tree_Walk is
          return Do_Op_Minus (N);
       elsif Nkind (N) = N_Op_Or then
          return Do_Op_Or (N);
+      elsif Nkind (N) = N_Op_And then
+         return Do_Op_And (N);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
