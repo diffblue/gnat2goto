@@ -1,0 +1,10 @@
+[1] file op_and_example.adb line 11 : SUCCESS
+[2] file op_and_example.adb line 15 : SUCCESS
+[3] file op_and_example.adb line 16 : FAILURE
+VERIFICATION FAILED
+[1] file op_and.adb line 7 : FAILURE
+[2] file op_and.adb line 9 : FAILURE
+[3] file op_and.adb line 11 : SUCCESS
+[4] file op_and.adb line 13 : FAILURE
+[5] file op_and.adb line 15 : FAILURE
+VERIFICATION FAILED
