@@ -230,10 +230,18 @@ package body Tree_Walk is
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
-   function Do_Op_Or (N : Node_Id) return Irep
-   with Pre => Nkind (N) in N_Op;
+   type Bit_Operand_Constructor is
+     access function (Lhs : Irep;
+                      Rhs : Irep;
+                      Source_Location : Source_Ptr;
+                      Overflow_Check : Boolean;
+                      I_Type : Irep;
+                      Range_Check : Boolean)
+                     return Irep;
 
-   function Do_Op_And (N : Node_Id) return Irep
+   function Do_Bit_Op (N : Node_Id;
+                       Operator : Bit_Operand_Constructor)
+                      return Irep
    with Pre => Nkind (N) in N_Op;
 
    procedure Do_Package_Declaration (N : Node_Id)
@@ -3531,10 +3539,26 @@ package body Tree_Walk is
    end Do_Op_Minus;
 
    -------------------------
-   --      Do_Op_Or       --
+   --      Do_Bit_Op      --
    -------------------------
 
-   function Do_Op_Or (N : Node_Id) return Irep is
+   --  We identified that the constructor for operator `or` and operator
+   --  `and` were pretty much the same, with the only difference being
+   --  the constructor being called. So to avoid needless duplication,
+   --  we simplified it to a single function that does the same thing,
+   --  and just calls the appropriate constructor via a function pointer.
+   --
+   --  This produces the following code in pseudocode (let A and B be True):
+   --    A or B
+   --  --
+   --    int intA = (int) A;       // 1
+   --    int intB = (int) B;       // 1
+   --    int intC = A bitop B      // bitop can be `or` or `and`
+   --    int R = (boolean) intC;
+   --    return R;
+   function Do_Bit_Op (N : Node_Id;
+                       Operator : Bit_Operand_Constructor)
+                      return Irep is
       LHS_Bool_Value : constant Irep := Do_Expression (Left_Opnd (N));
       RHS_Bool_Value : constant Irep := Do_Expression (Right_Opnd (N));
       Cast_LHS_To_Integer : constant Irep :=
@@ -3545,42 +3569,18 @@ package body Tree_Walk is
         Make_Op_Typecast (Op0 => RHS_Bool_Value,
                           Source_Location => Sloc (N),
                           I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
-      R : constant Irep := Make_Op_Bitor (Lhs => Cast_LHS_To_Integer,
-                                          Rhs => Cast_RHS_To_Integer,
-                                          Source_Location => Sloc (N),
-                                          I_Type =>
-                                            Get_Type (Cast_LHS_To_Integer));
+      R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
+                                     Rhs => Cast_RHS_To_Integer,
+                                     Source_Location => Sloc (N),
+                                     Overflow_Check => False,
+                                     Range_Check => False,
+                                     I_Type =>
+                                       Get_Type (Cast_LHS_To_Integer));
    begin
       return Make_Op_Typecast (Op0 => R,
                                Source_Location => Sloc (N),
                                I_Type => Make_Bool_Type);
-   end Do_Op_Or;
-
-   -------------------------
-   --      Do_Op_And      --
-   -------------------------
-
-   function Do_Op_And (N : Node_Id) return Irep is
-      LHS_Bool_Value : constant Irep := Do_Expression (Left_Opnd (N));
-      RHS_Bool_Value : constant Irep := Do_Expression (Right_Opnd (N));
-      Cast_LHS_To_Integer : constant Irep :=
-        Make_Op_Typecast (Op0 => LHS_Bool_Value,
-                          Source_Location => Sloc (N),
-                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
-      Cast_RHS_To_Integer : constant Irep :=
-        Make_Op_Typecast (Op0 => RHS_Bool_Value,
-                          Source_Location => Sloc (N),
-                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
-      R : constant Irep := Make_Op_Bitand (Rhs => Cast_RHS_To_Integer,
-                                           Lhs => Cast_LHS_To_Integer,
-                                           Source_Location => Sloc (N),
-                                           I_Type =>
-                                             Get_Type (Cast_LHS_To_Integer));
-   begin
-      return Make_Op_Typecast (Op0 => R,
-                               Source_Location => Sloc (N),
-                               I_Type => Make_Bool_Type);
-   end Do_Op_And;
+   end Do_Bit_Op;
 
    -------------------------
    -- Do_Operator_General --
@@ -3596,9 +3596,9 @@ package body Tree_Walk is
       elsif Nkind (N) = N_Op_Minus then
          return Do_Op_Minus (N);
       elsif Nkind (N) = N_Op_Or then
-         return Do_Op_Or (N);
+         return Do_Bit_Op (N, Make_Op_Bitor'Access);
       elsif Nkind (N) = N_Op_And then
-         return Do_Op_And (N);
+         return Do_Bit_Op (N, Make_Op_Bitand'Access);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
