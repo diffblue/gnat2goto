@@ -3,6 +3,8 @@ package body Test_Util is
 
    package IO renames Ada.Text_IO;
 
+   Unexpected_Success : exception;
+
    Suite_Test_Count : Natural;
    Suite_Failed_Test_Count : Natural;
 
@@ -20,6 +22,27 @@ package body Test_Util is
             Suite_Failed_Test_Count := Suite_Failed_Test_Count + 1;
             IO.Put_Line (" [Fail]");
    end Run_Test;
+
+   procedure Expect_Failure (Name : String; Test : Unit_Test) is
+      procedure Expect_Failure_Test;
+      procedure Expect_Failure_Test is
+      begin
+         begin
+            Test.all;
+         exception
+            when others =>
+               return;
+         end;
+         raise Unexpected_Success;
+      end Expect_Failure_Test;
+   begin
+      --  Unrestricted Access is a GNAT extension
+      --  that allows us to access things that
+      --  are more deeply nested than the access type
+      --  itself
+      Run_Test ("[Expect Failure] " & Name,
+                Expect_Failure_Test'Unrestricted_Access);
+   end Expect_Failure;
 
    procedure Run_Test_Suite (Name : String; Suite : Test_Suite) is
    begin
