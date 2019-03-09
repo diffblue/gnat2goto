@@ -146,6 +146,10 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Loop_Statement,
         Post => Kind (Do_Loop_Statement'Result) in Class_Code;
 
+   function Do_N_Block_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Block_Statement,
+        Post => Kind (Do_N_Block_Statement'Result) = I_Code_Block;
+
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Object_Declaration
                  and then Kind (Block) = I_Code_Block;
@@ -1948,6 +1952,15 @@ package body Tree_Walk is
       end if;
       return Loop_Wrapper;
    end Do_Loop_Statement;
+
+   -----------------------------------------
+   --  Do_N_Block_Statement (nested declares)
+   -----------------------------------------
+
+   function Do_N_Block_Statement (N : Node_Id) return Irep is
+   begin
+      return Do_Subprogram_Or_Block (N);
+   end Do_N_Block_Statement;
 
    ---------------
    -- Do_Pragma --
@@ -4024,7 +4037,7 @@ package body Tree_Walk is
             Append_Op (Block, Do_Loop_Statement (N));
 
          when N_Block_Statement =>
-            Warn_Unhandled_Construct (Statement, "block");
+            Append_Op (Block, Do_N_Block_Statement (N));
 
          when N_Handled_Sequence_Of_Statements =>  -- this seems incorrct
             --  It should be block_statement
