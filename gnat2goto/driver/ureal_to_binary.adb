@@ -130,10 +130,10 @@ package body Ureal_To_Binary is
       procedure Do_Fraction;
       procedure Do_Fraction is
          Fraction_Bit : Integer := Fraction_Start_Index;
+         First_One : Boolean := True;
 
          procedure Do_Integer_Part;
          procedure Do_Integer_Part is
-            First_One : Boolean := True;
          begin
             for Bit of Int_Part (1 .. Int_End) loop
                if First_One then
@@ -150,7 +150,6 @@ package body Ureal_To_Binary is
 
          procedure Do_Fraction_Part;
          procedure Do_Fraction_Part is
-            First_One : Boolean := True;
             Is_LT_One : constant Boolean := Abs_Number < Ureal_1;
          begin
             for Bit of Frac_Part (1 .. Frac_End) loop

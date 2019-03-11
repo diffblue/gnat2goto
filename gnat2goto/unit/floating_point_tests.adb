@@ -127,12 +127,13 @@ package body Floating_Point_Tests is
         & "01111111"
         & "00110011"
         & "00110011"
-        & "0011010";
+        & "0011001";
       One_Point_Two : constant Ureal := UR_From_Components (Uint_2, Uint_10)
         + Ureal_1;
+      Converted_Value : constant String :=
+        Convert_Ureal_To_Binary_IEEE (One_Point_Two, 23, 8, 127);
    begin
-      pragma Assert
-        (Convert_Ureal_To_Binary_IEEE (One_Point_Two, 23, 8, 127) = IEEE_Bits);
+      pragma Assert (Converted_Value = IEEE_Bits);
    end Test_One_Point_Two;
 
    procedure Test_Suite is
@@ -152,7 +153,7 @@ package body Floating_Point_Tests is
 
       Test_Util.Run_Test ("Zero",
                          Test_Zero'Access);
-      Test_Util.Expect_Failure ("1.2 is incorrectly converted",
+      Test_Util.Run_Test ("1.2 is correctly converted",
                          Test_One_Point_Two'Access);
    end Test_Suite;
 
