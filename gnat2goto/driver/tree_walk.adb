@@ -4953,7 +4953,8 @@ package body Tree_Walk is
             Warn_Unhandled_Construct (Declaration, "Package");
 
          when N_Renaming_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Renaming");
+            --  renaming declarations are handled by the gnat front-end;
+            null;
 
          when N_Exception_Declaration =>
             Warn_Unhandled_Construct (Declaration, "Exception");
