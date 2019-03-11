@@ -3582,13 +3582,27 @@ package body Tree_Walk is
                                I_Type => Make_Bool_Type);
    end Do_Bit_Op;
 
+   function Do_Op_Abs (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_Op_Abs);
+
+   function Do_Op_Abs (N : Node_Id) return Irep is
+      Operand : constant Irep := Do_Expression (Right_Opnd (N));
+   begin
+      return Make_Op_Abs
+        (Op0 => Operand,
+         Source_Location => Sloc (N),
+         I_Type => Do_Type_Reference (Etype (N)));
+   end Do_Op_Abs;
+
    -------------------------
    -- Do_Operator_General --
    -------------------------
 
    function Do_Operator_General (N : Node_Id) return Irep is
    begin
-      if Nkind (N) = N_Op_Concat then
+      if Nkind (N) = N_Op_Abs then
+         return Do_Op_Abs (N);
+      elsif Nkind (N) = N_Op_Concat then
          return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
                                             "Concat unsupported");
       elsif Nkind (N) = N_Op_Not then
