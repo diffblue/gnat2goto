@@ -106,9 +106,9 @@ package body Ureal_To_Binary is
    end Convert_Ureal_To_Binary_Fixed;
 
    function Convert_Ureal_To_Binary_IEEE (Number : Ureal;
-                                         Fraction_Bits : Positive := 23;
-                                         Exponent_Bits : Positive := 8;
-                                         Exponent_Bias : Positive := 127)
+                                         Fraction_Bits : Positive;
+                                         Exponent_Bits : Positive;
+                                         Exponent_Bias : Positive)
                                          return String is
       Is_Negative : constant Boolean := Number < Ureal_0;
       Int_Part : String (1 .. 2**(Exponent_Bits - 1));

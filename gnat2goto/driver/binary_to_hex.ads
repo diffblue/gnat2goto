@@ -11,8 +11,11 @@ package Binary_To_Hex is
 
    function Convert_Ureal_To_Hex_IEEE
      (Value : Ureal;
-      Fraction_Bits : Positive := 23;
-      Exponent_Bits : Positive := 8;
-      Exponent_Bias : Positive := 127) return String
+      Fraction_Bits : Positive;
+      Exponent_Bits : Positive;
+      Exponent_Bias : Positive) return String
      with Pre => ((Fraction_Bits + Exponent_Bits + 1) mod 4 = 0);
+
+   function Convert_Ureal_To_Hex_32bits_IEEE (Value : Ureal) return String;
+   function Convert_Ureal_To_Hex_64bits_IEEE (Value : Ureal) return String;
 end Binary_To_Hex;
