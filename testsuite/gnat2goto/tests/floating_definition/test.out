@@ -1,0 +1,4 @@
+[assertion.1] Range Check: SUCCESS
+[1] file floating_definition.adb line 10 : SUCCESS
+[2] file floating_definition.adb line 11 : FAILURE
+VERIFICATION FAILED

@@ -542,15 +542,7 @@ package body Driver is
                      --  interesting for now... Let's use float32 or float64
                      --  for now and fix this later.
 
-                     Set_F (Type_Irep,
-                            (case Esize_Width is
-                                when 32     => 23,
-                                --  23-bit mantissa, 8-bit exponent
-
-                                when 64     => 52,
-                                --  52-bit mantissa, 11-bit exponent
-
-                                when others => raise Program_Error));
+                     Set_F (Type_Irep, Float_Mantissa_Size (Type_Irep));
                   end if;
 
                   Builtin.Name       := Intern (Unique_Name (Builtin_Node));

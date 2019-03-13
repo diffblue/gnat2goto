@@ -271,6 +271,12 @@ package body Tree_Walk is
         Post => Kind (Do_Signed_Integer_Definition'Result) =
                   I_Bounded_Signedbv_Type;
 
+   function Do_Floating_Point_Definition (N : Node_Id) return Irep
+     with Pre  => (Nkind (N) = N_Floating_Point_Definition
+                   and then Is_Type (Defining_Entity (Parent (N)))),
+     Post => Kind (Do_Floating_Point_Definition'Result) in
+     I_Floatbv_Type | I_Bounded_Floatbv_Type;
+
    function Do_Simple_Return_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Simple_Return_Statement,
         Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
@@ -1767,6 +1773,8 @@ package body Tree_Walk is
    function Do_Real_Constant (N : Node_Id) return Irep is
       Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Real_Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Bit_Width : constant Nat := UI_To_Int (Esize (Etype (N)));
+      Unknown_Float_Width : exception;
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Real_Constant_Type);
@@ -1779,7 +1787,14 @@ package body Tree_Walk is
       end if;
 
       begin
-         Set_Value (Ret, Convert_Ureal_To_Hex_IEEE (Realval (N)));
+         Set_Value (Ret,
+                    (case Bit_Width is
+                        when 32 =>
+                           Convert_Ureal_To_Hex_32bits_IEEE (Realval (N)),
+                        when 64 =>
+                           Convert_Ureal_To_Hex_64bits_IEEE (Realval (N)),
+                        when others => raise Unknown_Float_Width));
+
       exception
          when Error : others =>
             Report_Unhandled_Node_Empty (N, "Do_Real_Constant",
@@ -2047,9 +2062,10 @@ package body Tree_Walk is
                                                         Global_Symbol_Table);
       Value_Expr_Type : constant Irep := Follow_Symbol_Type (
                                                     Get_Type (Value_Expr),
-                                                    Global_Symbol_Table);
+                                                          Global_Symbol_Table);
    begin
-      if Kind (Bound_Type) = I_Bounded_Signedbv_Type then
+      if Kind (Bound_Type) in I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+      then
          declare
             Op_Geq : constant Irep := New_Irep (I_Op_Geq);
             Op_Leq : constant Irep := New_Irep (I_Op_Leq);
@@ -2060,6 +2076,20 @@ package body Tree_Walk is
             Adjusted_Upper_Bound : Irep;
             Source_Location : constant Source_Ptr := Get_Source_Location
               (Value_Expr);
+
+            function Get_Bound_In_Hex (Bound_Index : Integer) return String;
+            function Get_Bound_In_Hex (Bound_Index : Integer) return String is
+            begin
+               if Kind (Bound_Type) = I_Bounded_Signedbv_Type then
+                  return Load_Bound_In_Hex (Bound_Index, Bound_Type);
+               elsif Kind (Bound_Type) = I_Bounded_Floatbv_Type then
+                  return Load_Real_Bound_In_Hex (Bound_Index, Bound_Type);
+               else
+                  --  cannot happen (precondition)
+                  raise Program_Error;
+               end if;
+            end Get_Bound_In_Hex;
+
          begin
             --  The compared expressions (value and bound) have to be of the
             --  same type
@@ -2086,17 +2116,17 @@ package body Tree_Walk is
             Set_Lhs (Op_Geq, Adjusted_Value_Expr);
             Set_Type (I     => Lower_Bound,
                       Value => Bound_Type);
-            Set_Value (I     => Lower_Bound,
-                      Value => Load_Bound_In_Hex (Get_Lower_Bound (Bound_Type),
-                        Pos (Get_Width (Bound_Type))));
             Set_Rhs (Op_Geq, Adjusted_Lower_Bound);
             Set_Type (Op_Geq, Make_Bool_Type);
             Set_Lhs (Op_Leq, Adjusted_Value_Expr);
             Set_Type (I     => Upper_Bound,
                       Value => Bound_Type);
-            Set_Value (I     => Upper_Bound,
-                      Value => Load_Bound_In_Hex (Get_Upper_Bound (Bound_Type),
-                        Pos (Get_Width (Bound_Type))));
+
+            Set_Value (Lower_Bound,
+                       Get_Bound_In_Hex (Get_Lower_Bound (Bound_Type)));
+            Set_Value (Upper_Bound,
+                       Get_Bound_In_Hex (Get_Upper_Bound (Bound_Type)));
+
             Set_Rhs (Op_Leq, Adjusted_Upper_Bound);
             Set_Type (Op_Leq, Make_Bool_Type);
             return R : constant Irep := New_Irep (I_Op_And) do
@@ -4101,6 +4131,43 @@ package body Tree_Walk is
       return  Ret;
    end Do_Signed_Integer_Definition;
 
+   ----------------------------------
+   -- Do_Floating_Point_Definition --
+   ----------------------------------
+
+   function Do_Floating_Point_Definition (N : Node_Id) return Irep is
+      E : constant Entity_Id := Defining_Entity (Parent (N));
+
+      --  This determines if ranges were specified or not
+      Scalar_Range_Ent : constant Node_Id := Scalar_Range (E);
+      Ret : constant Irep :=
+        New_Irep (if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification
+                  then I_Bounded_Floatbv_Type
+                  else I_Floatbv_Type);
+      Esize_Width : constant Nat := UI_To_Int (Esize (E));
+   begin
+      Set_Width (Ret, Integer (Esize_Width));
+      Set_F (Ret, Float_Mantissa_Size (Ret));
+
+      --  If user specified range bounds we store them
+      if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification then
+         declare
+            Range_Spec : constant Node_Id := Real_Range_Specification (N);
+            Lower_Bound : constant Integer :=
+              Store_Real_Bound (Bound_Type_Real (Realval (
+                                Low_Bound (Range_Spec))));
+            Upper_Bound : constant Integer :=
+              Store_Real_Bound (Bound_Type_Real (Realval (
+                                High_Bound (Range_Spec))));
+         begin
+            Set_Lower_Bound (Ret, Lower_Bound);
+            Set_Upper_Bound (Ret, Upper_Bound);
+         end;
+      end if;
+
+      return Ret;
+   end Do_Floating_Point_Definition;
+
    --------------------------------
    -- Do_Simple_Return_Statement --
    --------------------------------
@@ -4467,8 +4534,7 @@ package body Tree_Walk is
          when N_Modular_Type_Definition =>
             return Create_Dummy_Irep;
          when N_Floating_Point_Definition =>
-            return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
-                                     "Floating Point Definitions unsupported");
+            return Do_Floating_Point_Definition (N);
          when others =>
             return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
                                                "Unknown expression kind");

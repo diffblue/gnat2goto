@@ -56,11 +56,16 @@ package body Binary_To_Hex is
         Convert_Uint_To_Binary (Value, Bit_Width));
    end Convert_Uint_To_Hex;
 
+   --  This function should not be used directly: used the wrappers below
+   --  instead.
+   --  See e.g. https://en.wikipedia.org/wiki/IEEE_754 for more info on the
+   --  fraction and exponent bits and the exponent bias; and the conversion
+   --  algorithm in general.
    function Convert_Ureal_To_Hex_IEEE
      (Value : Ureal;
-      Fraction_Bits : Positive := 23;
-      Exponent_Bits : Positive := 8;
-      Exponent_Bias : Positive := 127) return String
+      Fraction_Bits : Positive;
+      Exponent_Bits : Positive;
+      Exponent_Bias : Positive) return String
    is begin
       return Convert_Binary_To_Hex (
        Convert_Ureal_To_Binary_IEEE
@@ -69,6 +74,24 @@ package body Binary_To_Hex is
           Exponent_Bits,
           Exponent_Bias));
    end Convert_Ureal_To_Hex_IEEE;
+
+   --  Convert Ada real to IEEE float in HEX (as a string)
+   function Convert_Ureal_To_Hex_32bits_IEEE (Value : Ureal) return String
+   is begin
+      return Convert_Ureal_To_Hex_IEEE (Value         => Value,
+                                        Fraction_Bits => 23,
+                                        Exponent_Bits => 8,
+                                        Exponent_Bias => 127);
+   end Convert_Ureal_To_Hex_32bits_IEEE;
+
+   --  Convert Ada real to IEEE double in HEX (as a string)
+   function Convert_Ureal_To_Hex_64bits_IEEE (Value : Ureal) return String
+   is begin
+      return Convert_Ureal_To_Hex_IEEE (Value         => Value,
+                                        Fraction_Bits => 52,
+                                        Exponent_Bits => 11,
+                                        Exponent_Bias => 1023);
+   end Convert_Ureal_To_Hex_64bits_IEEE;
 
    function Strip_Leading_Zeroes (Str : String) return String is
    begin
