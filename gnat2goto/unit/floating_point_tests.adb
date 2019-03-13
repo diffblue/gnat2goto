@@ -35,7 +35,8 @@ package body Floating_Point_Tests is
         & "00000000"
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Eight) = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE (Eight, 23, 8, 127)
+                     = IEEE_Bits);
    end Test_Integer;
 
    procedure Test_Between_0_And_1 is
@@ -48,8 +49,8 @@ package body Floating_Point_Tests is
         & "00000000"
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Zero_Point_Seven_Five)
-                    = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE
+                     (Zero_Point_Seven_Five, 23, 8, 127) = IEEE_Bits);
    end Test_Between_0_And_1;
 
    procedure Test_General is
@@ -62,8 +63,8 @@ package body Floating_Point_Tests is
         & "00000000"
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Three_Point_Five)
-                    = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE
+                     (Three_Point_Five, 23, 8, 127) = IEEE_Bits);
    end Test_General;
 
    procedure Test_Negative_Integer is
@@ -76,8 +77,8 @@ package body Floating_Point_Tests is
         & "00000000"
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Minus_Three)
-                    = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE (Minus_Three, 23, 8, 127)
+                     = IEEE_Bits);
    end Test_Negative_Integer;
 
    procedure Test_Negative_Between_0_And_1 is
@@ -90,8 +91,8 @@ package body Floating_Point_Tests is
         & "00000000"
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Minus_Zero_Point_Five)
-                    = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE
+                     (Minus_Zero_Point_Five, 23, 8, 127) = IEEE_Bits);
    end Test_Negative_Between_0_And_1;
 
    procedure Test_Negative_General is
@@ -104,8 +105,8 @@ package body Floating_Point_Tests is
         & "00000000"
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Minus_Forty_Point_Five)
-                       = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE
+                     (Minus_Forty_Point_Five, 23, 8, 127) = IEEE_Bits);
    end Test_Negative_General;
 
    procedure Test_Zero is
@@ -116,8 +117,8 @@ package body Floating_Point_Tests is
         & "00000000" -- which is the closest we get to 0 with 32 bit float
         & "0000000";
    begin
-      pragma Assert (Convert_Ureal_To_Binary_IEEE (Ureal_0)
-                    = IEEE_Bits);
+      pragma Assert (Convert_Ureal_To_Binary_IEEE (Ureal_0, 23, 8, 127)
+                     = IEEE_Bits);
    end Test_Zero;
 
    procedure Test_One_Point_Two is
@@ -131,7 +132,7 @@ package body Floating_Point_Tests is
         + Ureal_1;
    begin
       pragma Assert
-        (Convert_Ureal_To_Binary_IEEE (One_Point_Two) = IEEE_Bits);
+        (Convert_Ureal_To_Binary_IEEE (One_Point_Two, 23, 8, 127) = IEEE_Bits);
    end Test_One_Point_Two;
 
    procedure Test_Suite is
