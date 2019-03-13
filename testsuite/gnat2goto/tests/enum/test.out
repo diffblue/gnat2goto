@@ -1,5 +1,5 @@
-[1] file enum.adb line 8 : SUCCESS
-[2] file enum.adb line 10 : SUCCESS
-[3] file enum.adb line 12 : SUCCESS
-[4] file enum.adb line 14 : FAILURE
+[1] file enum.adb line 8 assertion: SUCCESS
+[2] file enum.adb line 10 assertion: SUCCESS
+[3] file enum.adb line 12 assertion: SUCCESS
+[4] file enum.adb line 14 assertion: FAILURE
 VERIFICATION FAILED

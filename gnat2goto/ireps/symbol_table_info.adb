@@ -18,7 +18,13 @@ package body Symbol_Table_Info is
       Ret.Set_Field ("name",               Unintern (Sym.Name));
       Ret.Set_Field ("module",             Unintern (Sym.Module));
       Ret.Set_Field ("baseName",          Unintern (Sym.BaseName));
-      Ret.Set_Field ("mode",               Unintern (Sym.Mode));
+      if Unintern (Sym.Mode) = "" then
+         --  All symbols must have a 'mode' - default to 'C' if no other mode
+         --  is already specified
+         Ret.Set_Field ("mode", "C");
+      else
+         Ret.Set_Field ("mode",               Unintern (Sym.Mode));
+      end if;
       Ret.Set_Field ("prettyName",        Unintern (Sym.PrettyName));
       Ret.Set_Field ("isType",            Sym.IsType);
       Ret.Set_Field ("isMacro",           Sym.IsMacro);

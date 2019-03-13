@@ -1,6 +1,6 @@
 Standard_Error from gnat2goto pragmas:
 pragmas.adb:2:04: warning: variable "i" is read but never assigned
 
-[1] file pragmas.adb line 11 : SUCCESS
-[2] file pragmas.adb line 12 : FAILURE
+[1] file pragmas.adb line 11 assertion: SUCCESS
+[2] file pragmas.adb line 12 assertion: FAILURE
 VERIFICATION FAILED

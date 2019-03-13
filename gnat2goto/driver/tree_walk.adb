@@ -4179,6 +4179,10 @@ package body Tree_Walk is
       Set_Source_Location (R, Sloc (N));
       if Present (Expr) then
          Set_Return_Value (R, Do_Expression (Expr));
+      else
+         --  A return statement always needs a value, so make a nil value
+         --  if this is a plain 'Return' statement
+         Set_Return_Value (R, Make_Nil (Sloc (N)));
       end if;
       return R;
    end Do_Simple_Return_Statement;
