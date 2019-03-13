@@ -329,6 +329,32 @@ package body GOTO_Utils is
                           I_Type          => Pointer_Type);
    end Offset_Array_Data;
 
+   function To_Float_Format (Float_Type : Irep) return Float_Format
+   is
+      Float_Width : constant Integer := Get_Width (Float_Type);
+      Unsupported_Float_Width : exception;
+   begin
+      case Float_Width is
+         when 32 => return IEEE_32_Bit;
+         when 64 => return IEEE_64_Bit;
+         when others =>
+            raise Unsupported_Float_Width
+              with "Unsupported float width: " &  Integer'Image (Float_Width);
+      end case;
+   end To_Float_Format;
+
+   function Float_Mantissa_Size (Float_Type : Irep) return Integer
+   is
+      Format : constant Float_Format := To_Float_Format (Float_Type);
+   begin
+      case Format is
+         when IEEE_32_Bit =>
+            return 23;
+         when IEEE_64_Bit =>
+            return 52;
+      end case;
+   end Float_Mantissa_Size;
+
    ---------------------
    -- Name_Has_Prefix --
    ---------------------
