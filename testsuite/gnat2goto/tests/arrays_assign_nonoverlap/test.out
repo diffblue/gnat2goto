@@ -19,8 +19,8 @@
 [precondition_instance.7] memcpy src/dst overlap: SUCCESS
 [precondition_instance.8] memcpy source region readable: SUCCESS
 [precondition_instance.9] memcpy destination region writeable: SUCCESS
-[1] file arrays_assign_nonoverlap.adb line 8 : SUCCESS
-[2] file arrays_assign_nonoverlap.adb line 9 : SUCCESS
-[3] file arrays_assign_nonoverlap.adb line 10 : SUCCESS
-[4] file arrays_assign_nonoverlap.adb line 11 : SUCCESS
+[1] file arrays_assign_nonoverlap.adb line 8 assertion: SUCCESS
+[2] file arrays_assign_nonoverlap.adb line 9 assertion: SUCCESS
+[3] file arrays_assign_nonoverlap.adb line 10 assertion: SUCCESS
+[4] file arrays_assign_nonoverlap.adb line 11 assertion: SUCCESS
 VERIFICATION SUCCESSFUL

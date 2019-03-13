@@ -1,5 +1,5 @@
-[1] file func_args.adb line 15 : SUCCESS
-[2] file func_args.adb line 16 : SUCCESS
-[3] file func_args.adb line 17 : SUCCESS
-[4] file func_args.adb line 18 : FAILURE
+[1] file func_args.adb line 15 assertion: SUCCESS
+[2] file func_args.adb line 16 assertion: SUCCESS
+[3] file func_args.adb line 17 assertion: SUCCESS
+[4] file func_args.adb line 18 assertion: FAILURE
 VERIFICATION FAILED

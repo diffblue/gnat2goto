@@ -1,4 +1,4 @@
-[1] file divide.adb line 4 : SUCCESS
-[2] file divide.adb line 6 : SUCCESS
-[3] file divide.adb line 8 : FAILURE
+[1] file divide.adb line 4 assertion: SUCCESS
+[2] file divide.adb line 6 assertion: SUCCESS
+[3] file divide.adb line 8 assertion: FAILURE
 VERIFICATION FAILED

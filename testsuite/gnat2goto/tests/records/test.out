@@ -1,3 +1,3 @@
-[1] file records.adb line 11 : SUCCESS
-[2] file records.adb line 12 : SUCCESS
+[1] file records.adb line 11 assertion: SUCCESS
+[2] file records.adb line 12 assertion: SUCCESS
 VERIFICATION SUCCESSFUL

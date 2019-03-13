@@ -1,4 +1,4 @@
-[1] file whileloop.adb line 7 : SUCCESS
-[2] file whileloop.adb line 9 : SUCCESS
-[3] file whileloop.adb line 11 : FAILURE
+[1] file whileloop.adb line 7 assertion: SUCCESS
+[2] file whileloop.adb line 9 assertion: SUCCESS
+[3] file whileloop.adb line 11 assertion: FAILURE
 VERIFICATION FAILED
