@@ -1,1 +1,0 @@
-ALL XFAIL CBMC reads wrong value of the non-zero fraction

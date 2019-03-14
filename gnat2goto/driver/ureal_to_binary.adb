@@ -1,8 +1,29 @@
 with Uintp; use Uintp;
 with Types; use Types;
 
+--  Known Bugs:
+
+--  Currently doesn't actually work with very large floating point constants
+
+--  This is a _very_ sketchy implementation and probably has loads of bugs.
+--  This will probably need a full rewrite going forward
 package body Ureal_To_Binary is
 
+   --   Convert a Ureal to a binary representation. We write the 'integer' and
+   --  'fraction' parts (left and right of the dot if you will) into separate
+   --  strings so we don't have to remember which is which in the end
+   --
+   --   Number: The number to be converted (normalised Ureal)
+   --   Int_Part: Where to write the integer bits
+   --   Frac_Part: Where to write the fraction bits
+   --   Int_End: The index of the last bit we wrote to
+   --            in the integer part
+   --   frac_end: The index of the last bit we wrote to
+   --            in the frac part
+   --
+   --   Callers are responsible for ensuring the int part and frac part are
+   --  large enough for storing the resultant number (easiest way to achieve
+   --  this is to just pass large strings)
    procedure Get_Integer_And_Fractional_Parts (Number : Ureal;
                                               Int_Part : out String;
                                               Frac_Part : out String;
@@ -15,6 +36,7 @@ package body Ureal_To_Binary is
                                                Frac_Part : out String;
                                                Int_End : out Integer;
                                                Frac_End : out Integer) is
+      --   Current numerator, we change this throughout the algorithm
       Num : Uint := Norm_Num (Number);
       Den : constant Uint := Norm_Den (Number);
 
@@ -22,6 +44,7 @@ package body Ureal_To_Binary is
       procedure Do_Integer_Part;
       procedure Do_Fractional_Part;
 
+      --   Get the smallest E so that 2^E > Num
       function Get_Next_Exponent return Int is
          E : Int := 0;
          Eth_Power_Of_Two : Uint := Uint_1;
@@ -40,24 +63,27 @@ package body Ureal_To_Binary is
       begin
          --  we start with a string filled with 0
          Int_Part := (others => '0');
-         --  if n is the smallest integer so that
-         --  our number is < 2^n,
-         --  then we'll need n digits
-         --  (powers of 2 from 2^0 to 2^(n-1))
+         --  if n is the smallest integer so that our number is < 2^n, then
+         --  we'll need up to n digits (powers of 2 from 2^0 to 2^(n-1))
          if E > Int_Part'Length then
             raise Integer_Part_Too_Large;
          end if;
          --  writing to the first position
          Int_End := Int_Part'First + Integer (E);
+
+         if Int_End > Int_Part'Last then
+            raise Integer_Part_Too_Large;
+         end if;
+
          pragma Assert (Int_End <= Int_Part'Last);
+         --  use the definition of the binary representation to get the integer
+         --  part of the fraction, i.e. our integer part is going to be b_E
+         --  b_(E-1) ... b_0 (binary digits) with the integer part of
+         --  our number being sum (n <- 0..E) { b_n * 2^n}
          while E >= Uint_0 loop
-            pragma Assert (Digit_Position in Int_Part'Range);
+            pragma Assert (Digit_Position <= Int_End);
             declare Subtrahend : constant Uint := Mantissa * Den;
             begin
-               if Int_End > Int_Part'Last then
-                  raise Integer_Part_Too_Large;
-               end if;
-
                if Subtrahend <= Num then
                   Num := Num - Subtrahend;
                   Int_Part (Digit_Position) := '1';
@@ -75,6 +101,18 @@ package body Ureal_To_Binary is
          pragma Assert (Frac_Part'Length >= 1);
          Frac_Part := (others => '0');
          Frac_End := Frac_Part'First;
+         --  basically, use the long form division algorithm,
+         --  for example for 6/5
+
+         --   110 / 101 = 1.0011...
+         --  -101
+         --   ---
+         --     10 / 101 (too small)
+         --     100 / 101 (too small)
+         --     1000 / 101 = 1
+         --    -0101
+         --     ----
+         --       110 / 101 = 1 (and now we're in a loop)
          while Num /= Uint_0 and Frac_End <= Frac_Part'Last loop
             Num := Num * Uint_2;
             if Den <= Num then
@@ -83,6 +121,8 @@ package body Ureal_To_Binary is
             end if;
             Frac_End := Frac_End + 1;
          end loop;
+         --  if we ended up running past the end we cut off the fraction
+         --  (i.e. round down)
          if Frac_End > Frac_Part'Last then
             Frac_End := Frac_Part'Last;
          end if;
@@ -127,16 +167,28 @@ package body Ureal_To_Binary is
       Fraction_End_Index : constant Integer :=
           Fraction_Start_Index + Fraction_Bits - 1;
 
+      --  Do the fraction parts
+      --
+      --  This NEEDS to happen first, because this is also where we determine
+      --  how big the exponent is (or alternatively, where in the mantiss the
+      --  "dot" is)
       procedure Do_Fraction;
       procedure Do_Fraction is
+         --  the mantissa is somewhere in the 'middle' of the bitfield, so we
+         --  need to remember where we are
          Fraction_Bit : Integer := Fraction_Start_Index;
+         --  the first one is implicit in the mantissa so we need to remember
+         --  to omit it
+         First_One : Boolean := True;
 
+         --  copy the 'integer part' to the mantissa doesn't actually work if
+         --  the integer part is larger than the mantissa, this is a bug
          procedure Do_Integer_Part;
          procedure Do_Integer_Part is
-            First_One : Boolean := True;
          begin
-            for Bit of Int_Part (1 .. Int_End) loop
+            for Bit of Int_Part (Int_Part'First .. Int_End) loop
                if First_One then
+                  --  the first 1 in the mantissa is implicit
                   if Bit = '1' then
                      First_One := False;
                   end if;
@@ -150,10 +202,9 @@ package body Ureal_To_Binary is
 
          procedure Do_Fraction_Part;
          procedure Do_Fraction_Part is
-            First_One : Boolean := True;
             Is_LT_One : constant Boolean := Abs_Number < Ureal_1;
          begin
-            for Bit of Frac_Part (1 .. Frac_End) loop
+            for Bit of Frac_Part (Frac_Part'First .. Frac_End) loop
                if First_One then
                   if Bit = '1' then
                      First_One := False;
