@@ -167,6 +167,12 @@ package body Tree_Walk is
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Or_Else (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Or_Else;
+
+   function Do_And_Then (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_And_Then);
+
    type Bit_Operand_Constructor is
      access function (Lhs : Irep;
                       Rhs : Irep;
@@ -1192,9 +1198,6 @@ package body Tree_Walk is
       return Ret;
    end Do_Enumeration_Definition;
 
-   function Do_And_Then (N : Node_Id) return Irep
-   with Pre => (Nkind (N) = N_And_Then);
-
    -------------------
    -- Do_Expression --
    -------------------
@@ -1218,6 +1221,7 @@ package body Tree_Walk is
          when N_Character_Literal    => return Do_Character_Constant (N);
          when N_Type_Conversion      => return Do_Type_Conversion (N);
          when N_Function_Call        => return Do_Function_Call (N);
+         when N_Or_Else              => return Do_Or_Else (N);
          when N_Attribute_Reference  =>
             case Get_Attribute_Id (Attribute_Name (N)) is
                when Attribute_Access => return Do_Address_Of (N);
@@ -1246,9 +1250,6 @@ package body Tree_Walk is
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
          when N_And_Then => return Do_And_Then (N);
-         when N_Or_Else =>
-            return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                               "Or else");
          when N_Qualified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Qualified");
@@ -1261,6 +1262,10 @@ package body Tree_Walk is
       end case;
    end Do_Expression;
 
+   -------------------
+   --  Do_And_Then  --
+   -------------------
+
    function Do_And_Then (N : Node_Id) return Irep is
       L : constant Node_Id := Left_Opnd (N);
       R : constant Node_Id := Right_Opnd (N);
@@ -1272,6 +1277,22 @@ package body Tree_Walk is
       Set_Source_Location (Expr, Sloc (N));
       return Expr;
    end Do_And_Then;
+
+   ------------------
+   --  Do_Or_Else  --
+   ------------------
+
+   function Do_Or_Else (N : Node_Id) return Irep is
+      L : constant Node_Id := Left_Opnd (N);
+      R : constant Node_Id := Right_Opnd (N);
+      Expr : constant Irep := New_Irep (I_Op_Or);
+   begin
+      Append_Op (Expr, Do_Expression (L));
+      Append_Op (Expr, Do_Expression (R));
+      Set_Type (Expr, Make_Bool_Type);
+      Set_Source_Location (Expr, Sloc (N));
+      return Expr;
+   end Do_Or_Else;
 
    ------------------------------
    -- Do_Full_Type_Declaration --
