@@ -4,6 +4,9 @@ with Types;             use Types;
 with Symbol_Table_Info; use Symbol_Table_Info;
 with Ada.Containers.Ordered_Maps;
 
+with Einfo;                 use Einfo;
+with Uintp;                 use Uintp;
+
 with Ireps;                 use Ireps;
 
 package Tree_Walk is
@@ -73,8 +76,63 @@ package Tree_Walk is
    Check_Function_Symbol : Irep := Ireps.Empty;
 
    function Do_Compilation_Unit (N : Node_Id; Add_Start : out Boolean)
-     return Symbol
-   with Pre => Nkind (N) = N_Compilation_Unit;
+                                 return Symbol
+     with Pre => Nkind (N) = N_Compilation_Unit;
 
-   type Irep_Array is array (Positive range <>) of Irep;
+   function Do_Type_Reference (E : Entity_Id) return Irep
+     with Pre  => Is_Type (E),
+     Post => Kind (Do_Type_Reference'Result) in Class_Type;
+
+   procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id)
+     with Pre => Is_Type (E) and then
+     Kind (New_Type_In) in Class_Type;
+
+   function Do_Subtype_Indication (N : Node_Id) return Irep
+     with Pre  => Nkind (N) in N_Subtype_Indication | N_Identifier,
+     Post => Kind (Do_Subtype_Indication'Result) in Class_Type;
+
+   function Make_Struct_Component (Name : String; Ty : Irep) return Irep;
+
+   function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep
+     with Pre => Kind (Num_Elem) in Class_Expr,
+     Post => Kind (Make_Malloc_Function_Call_Expr'Result) =
+     I_Side_Effect_Expr_Function_Call;
+
+   function Do_Expression (N : Node_Id) return Irep
+     with Pre  => Nkind (N) in N_Subexpr,
+     Post => Kind (Do_Expression'Result) in Class_Expr;
+
+   function Make_Memcpy_Function_Call_Expr (Destination : Irep;
+                                            Source : Irep;
+                                            Num_Elem : Irep;
+                                            Element_Type_Size : Uint;
+                                            Source_Loc : Source_Ptr)
+                                            return Irep
+     with Pre => (Kind (Get_Type (Destination)) = I_Pointer_Type
+                  and then Kind (Get_Type (Source)) = I_Pointer_Type
+                  and then Kind (Num_Elem) in Class_Expr),
+     Post => Kind (Make_Memcpy_Function_Call_Expr'Result) =
+     I_Side_Effect_Expr_Function_Call;
+
+   procedure Report_Unhandled_Node_Empty (N : Node_Id;
+                                          Fun_Name : String;
+                                          Message : String);
+   function Report_Unhandled_Node_Irep (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep;
+   function Report_Unhandled_Node_Kind (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep_Kind;
+
+   function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
+                                      return Irep
+     with Pre => Nkind (Range_Expr) = N_Range;
+
+   procedure Append_Declare_And_Init
+     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
+     with Pre => Kind (Value) in Class_Expr;
+
 end Tree_Walk;
