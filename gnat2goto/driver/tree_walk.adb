@@ -68,10 +68,6 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Real_Literal,
         Post => Kind (Do_Real_Constant'Result) = I_Constant_Expr;
 
-   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
-   with Pre  => Nkind (N) in N_Array_Type_Definition,
-        Post => Kind (Do_Constrained_Array_Definition'Result) = I_Struct_Type;
-
    function Do_Defining_Identifier (E : Entity_Id) return Irep
    with Pre  => Nkind (E) = N_Defining_Identifier,
         Post => Kind (Do_Defining_Identifier'Result) in
@@ -126,9 +122,6 @@ package body Tree_Walk is
    function Do_Exit_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Exit_Statement,
         Post => Kind (Do_Exit_Statement'Result) in Class_Code;
-
-   function Do_Indexed_Component (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Indexed_Component;
 
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
@@ -1146,14 +1139,6 @@ package body Tree_Walk is
       return Ret;
    end Do_Real_Constant;
 
-   -------------------------------------
-   -- Do_Constrained_Array_Definition --
-   -------------------------------------
-
-   --  No difference between representations at the moment:
-   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
-   is (Do_Unconstrained_Array_Definition (N));
-
    ----------------------------
    -- Do_Defining_Identifier --
    ----------------------------
@@ -1810,17 +1795,6 @@ package body Tree_Walk is
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
    is (Underlying);
-
-   --------------------------
-   -- Do_Indexed_Component --
-   --------------------------
-
-   --  TODO: multi-dimensional arrays.
-   function Do_Indexed_Component (N : Node_Id) return Irep is
-      (Make_Array_Index_Op
-         (Do_Expression (Prefix (N)),
-          Etype (Prefix (N)),
-          Do_Expression (First (Expressions (N)))));
 
    ----------------------------
    -- Do_Itype_Array_Subtype --

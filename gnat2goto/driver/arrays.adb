@@ -309,6 +309,14 @@ package body Arrays is
       return Ret;
    end Make_Array_Default_Initialiser;
 
+   -------------------------------------
+   -- Do_Constrained_Array_Definition --
+   -------------------------------------
+
+   --  No difference between representations at the moment:
+   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
+   is (Do_Unconstrained_Array_Definition (N));
+
    ---------------------------------------
    -- Do_Unconstrained_Array_Definition --
    ---------------------------------------
@@ -884,5 +892,16 @@ package body Arrays is
                                  Source_Location => Source_Loc,
                                  I_Type          => Result_Type);
    end Do_Slice;
+
+   --------------------------
+   -- Do_Indexed_Component --
+   --------------------------
+
+   --  TODO: multi-dimensional arrays.
+   function Do_Indexed_Component (N : Node_Id) return Irep is
+      (Make_Array_Index_Op
+         (Do_Expression (Prefix (N)),
+          Etype (Prefix (N)),
+          Do_Expression (First (Expressions (N)))));
 
 end Arrays;
