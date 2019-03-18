@@ -3,4 +3,5 @@ procedure Character_Literal is
    B : Character := 'b';
 begin
    pragma Assert (A > B);
+   pragma Assert (B > A);
 end Character_Literal;

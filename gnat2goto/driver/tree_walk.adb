@@ -60,6 +60,10 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
 
+   function Do_Character_Constant (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Character_Literal,
+        Post => Kind (Do_Character_Constant'Result) = I_Constant_Expr;
+
    function Do_String_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_String_Literal,
         Post => Kind (Do_String_Constant'Result) = I_String_Constant_Expr;
@@ -975,6 +979,23 @@ package body Tree_Walk is
       return Ret;
    end Do_Constant;
 
+   ---------------------------
+   -- Do_Character_Constant --
+   ---------------------------
+
+   function Do_Character_Constant (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_Constant_Expr);
+      Resolved_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Character_Size : constant Int := UI_To_Int (Esize (Etype (N)));
+   begin
+      Set_Type (Ret, Resolved_Type);
+      Set_Source_Location (Ret, Sloc (N));
+      Set_Value (Ret,
+                 Convert_Uint_To_Hex
+                   (Char_Literal_Value (N), Pos (Character_Size)));
+      return Ret;
+   end Do_Character_Constant;
+
    ------------------------
    -- Do_String_Constant --
    ------------------------
@@ -1194,6 +1215,7 @@ package body Tree_Walk is
          when N_Op                   => return Do_Operator_General (N);
          when N_Integer_Literal      => return Do_Constant (N);
          when N_String_Literal       => return Do_String_Constant (N);
+         when N_Character_Literal    => return Do_Character_Constant (N);
          when N_Type_Conversion      => return Do_Type_Conversion (N);
          when N_Function_Call        => return Do_Function_Call (N);
          when N_Attribute_Reference  =>
@@ -1233,9 +1255,6 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Quantified");
-         when N_Character_Literal =>
-            return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                             "Character Literals unsupported");
          when others                 =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Unknown expression kind");

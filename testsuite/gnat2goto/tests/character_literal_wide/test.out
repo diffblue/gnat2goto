@@ -1,0 +1,3 @@
+[1] file character_literal_wide.adb line 5 assertion: FAILURE
+[2] file character_literal_wide.adb line 6 assertion: SUCCESS
+VERIFICATION FAILED
