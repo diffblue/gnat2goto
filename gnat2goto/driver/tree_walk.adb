@@ -1744,13 +1744,13 @@ package body Tree_Walk is
    function Do_Character_Constant (N : Node_Id) return Irep is
       Ret : constant Irep := New_Irep (I_Constant_Expr);
       Resolved_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Constant_Width : constant Integer := 8;
+      Character_Size : constant Int := UI_To_Int (Esize (Etype (N)));
    begin
       Set_Type (Ret, Resolved_Type);
       Set_Source_Location (Ret, Sloc (N));
       Set_Value (Ret,
                  Convert_Uint_To_Hex
-                   (Char_Literal_Value (N), Pos (Constant_Width)));
+                   (Char_Literal_Value (N), Pos (Character_Size)));
       return Ret;
    end Do_Character_Constant;
 
