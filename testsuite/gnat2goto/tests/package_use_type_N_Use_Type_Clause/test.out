@@ -1,0 +1,7 @@
+VERIFICATION SUCCESSFUL
+Error from cbmc use_type_clause:
+**** WARNING: no body for function count_types__double
+
+[1] file use_type_clause.adb line 21 assertion: SUCCESS
+[2] file use_type_clause.adb line 24 assertion: FAILURE
+VERIFICATION FAILED
