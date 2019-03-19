@@ -155,8 +155,8 @@ package body Ureal_To_Binary is
                                          return String is
       Is_Negative : constant Boolean := Number < Ureal_0;
       --  this buffer needs to be big enough to store the integer part
-      --  which may be one bit wider than the exponent.
-      Int_Part : String (1 .. 2**(Exponent_Bits + 1));
+      --  which may need one more character than is the value of the exponent
+      Int_Part : String (1 .. (2**(Exponent_Bits - 1) + 1));
       Frac_Part : String (1 .. 2**(Exponent_Bits - 1));
       Abs_Number : constant Ureal := (if Is_Negative then -Number else Number);
       Result : String (1 .. Fraction_Bits + Exponent_Bits + 1)
