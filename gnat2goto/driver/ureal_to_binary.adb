@@ -29,7 +29,7 @@ package body Ureal_To_Binary is
                                               Frac_Part : out String;
                                               Int_End : out Integer;
                                               Frac_End : out Integer)
-     with Pre => (Denominator (Number) > Uint_0);
+     with Pre => (Norm_Den (Number) > Uint_0);
 
    procedure Get_Integer_And_Fractional_Parts (Number : Ureal;
                                                Int_Part : out String;
@@ -38,6 +38,9 @@ package body Ureal_To_Binary is
                                                Frac_End : out Integer) is
       --   Current numerator, we change this throughout the algorithm
       Num : Uint := Norm_Num (Number);
+      --  Norm_Den is what you'd normally think of in a rational number, and
+      --  Denominator is a part of GNATs weird "sometimes rational number,
+      --  sometimes weird exponent notation" thing
       Den : constant Uint := Norm_Den (Number);
 
       function Get_Next_Exponent return Int;
@@ -151,7 +154,9 @@ package body Ureal_To_Binary is
                                          Exponent_Bias : Positive)
                                          return String is
       Is_Negative : constant Boolean := Number < Ureal_0;
-      Int_Part : String (1 .. 2**(Exponent_Bits - 1));
+      --  this buffer needs to be big enough to store the integer part
+      --  which may be one bit wider than the exponent.
+      Int_Part : String (1 .. 2**(Exponent_Bits + 1));
       Frac_Part : String (1 .. 2**(Exponent_Bits - 1));
       Abs_Number : constant Ureal := (if Is_Negative then -Number else Number);
       Result : String (1 .. Fraction_Bits + Exponent_Bits + 1)
@@ -193,10 +198,15 @@ package body Ureal_To_Binary is
                      First_One := False;
                   end if;
                else
-                  Result (Fraction_Bit) := Bit;
-                  Fraction_Bit := Fraction_Bit + 1;
                   Exponent := Exponent + 1;
+                  --  check that we do not start writing past the fraction part
+                  --  (it also marks the end of the result buffer)
+                  if Fraction_Bit <= Fraction_End_Index then
+                     Result (Fraction_Bit) := Bit;
+                     Fraction_Bit := Fraction_Bit + 1;
+                  end if;
                end if;
+
             end loop;
          end Do_Integer_Part;
 
@@ -267,9 +277,6 @@ package body Ureal_To_Binary is
                                       Frac_Part,
                                       Int_End,
                                       Frac_End);
-      if Int_End > Fraction_Bits then
-         raise Integer_Part_Too_Large;
-      end if;
 
       Do_Fraction;
       Exponent := Exponent + Exponent_Bias;

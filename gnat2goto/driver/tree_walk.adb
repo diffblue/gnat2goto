@@ -19,7 +19,6 @@ with Ada.Text_IO;           use Ada.Text_IO;
 with Ada.Exceptions;
 
 with GNAT2GOTO.Options;
-with Urealp; use Urealp;
 
 with Range_Check; use Range_Check;
 with Arrays; use Arrays;
@@ -1051,13 +1050,6 @@ package body Tree_Walk is
    begin
       Set_Source_Location (Ret, Sloc (N));
       Set_Type (Ret, Real_Constant_Type);
-
-      if Denominator (Realval (N)) <= Uint_0 then
-         Report_Unhandled_Node_Empty (N, "Do_Real_Constant",
-                                      "negative denominator");
-         Set_Value (Ret, "00000000000000000000000000000000");
-         return Ret;
-      end if;
 
       begin
          Set_Value (Ret,
