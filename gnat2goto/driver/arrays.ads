@@ -32,6 +32,12 @@ package Arrays is
    function Do_Array_Length (N : Node_Id) return Irep
      with Pre => Nkind (N) = N_Attribute_Reference;
 
+   function Do_Array_First (N : Node_Id) return Irep
+     with Pre => Nkind (N) = N_Attribute_Reference;
+
+   function Do_Array_Last (N : Node_Id) return Irep
+     with Pre => Nkind (N) = N_Attribute_Reference;
+
    function Get_Array_Component_Type (N : Node_Id) return Entity_Id
      with Post => Is_Type (Get_Array_Component_Type'Result);
 

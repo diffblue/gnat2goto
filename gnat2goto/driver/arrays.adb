@@ -669,6 +669,22 @@ package body Arrays is
                                Idx_Type => Do_Type_Reference (Index_Type));
    end Do_Array_Length;
 
+   function Do_Array_First (N : Node_Id) return Irep
+   is
+   begin
+      return Get_First_Index (Array_Struct   => Do_Expression (Prefix (N)),
+                              Source_Loc     => Sloc (N),
+                              A_Symbol_Table => Global_Symbol_Table);
+   end Do_Array_First;
+
+   function Do_Array_Last (N : Node_Id) return Irep
+   is
+   begin
+      return Get_Last_Index (Array_Struct   => Do_Expression (Prefix (N)),
+                              Source_Loc     => Sloc (N),
+                              A_Symbol_Table => Global_Symbol_Table);
+   end Do_Array_Last;
+
    --  This handled the oddball anonymous range nodes that can occur
    --  in array type declarations; they're effectively subtype indication
    --  nodes with an implied base type and a range constraint.
