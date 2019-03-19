@@ -1,1 +1,1 @@
-ALL XFAIL CBMC fails with __new_array not found, like in arrays
+ALL XFAIL CBMC fails with invariant violation Condition: op.operands()[number].type() == expr.type()
