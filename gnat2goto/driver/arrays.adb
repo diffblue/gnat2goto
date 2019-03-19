@@ -2,9 +2,8 @@ with Nlists;                use Nlists;
 with Uintp;                 use Uintp;
 
 with GOTO_Utils;            use GOTO_Utils;
-
-with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
+with Follow;                use Follow;
 
 package body Arrays is
 
@@ -903,5 +902,81 @@ package body Arrays is
          (Do_Expression (Prefix (N)),
           Etype (Prefix (N)),
           Do_Expression (First (Expressions (N)))));
+
+   function Get_First_Index_Component (Array_Struct : Irep;
+                                       A_Symbol_Table : Symbol_Table)
+                                       return Irep
+   is
+      Array_Struct_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+      Struct_Component : constant Irep_List :=
+        Get_Component (Get_Components (Array_Struct_Type));
+   begin
+      return List_Element (Struct_Component, List_First (Struct_Component));
+   end Get_First_Index_Component;
+
+   function Get_Last_Index_Component (Array_Struct : Irep;
+                                      A_Symbol_Table : Symbol_Table)
+                                      return Irep
+   is
+      Array_Struct_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+      Struct_Component : constant Irep_List :=
+        Get_Component (Get_Components (Array_Struct_Type));
+      Last_Cursor :  constant List_Cursor :=
+        List_Next (Struct_Component, List_First (Struct_Component));
+   begin
+      return List_Element (Struct_Component, Last_Cursor);
+   end Get_Last_Index_Component;
+
+   function Get_Data_Component (Array_Struct : Irep;
+                                A_Symbol_Table : Symbol_Table)
+                                return Irep
+   is
+      Array_Struct_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+      Struct_Component : constant Irep_List :=
+        Get_Component (Get_Components (Array_Struct_Type));
+      Last_Cursor :  constant List_Cursor :=
+        List_Next (Struct_Component,
+                   List_Next (Struct_Component,
+                     List_First (Struct_Component)));
+   begin
+      return List_Element (Struct_Component, Last_Cursor);
+   end Get_Data_Component;
+
+   function Get_First_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
+                             A_Symbol_Table : Symbol_Table)
+                             return Irep
+   is
+      First_Index_Component : constant Irep :=
+        Get_First_Index_Component (Array_Struct   => Array_Struct,
+                                   A_Symbol_Table => A_Symbol_Table);
+   begin
+      return Make_Member_Expr (Compound         => Array_Struct,
+                               Source_Location  => Source_Loc,
+                               Component_Number => 0,
+                               I_Type           =>
+                                 Get_Type (First_Index_Component),
+                               Component_Name   =>
+                                 Get_Name (First_Index_Component));
+   end Get_First_Index;
+
+   function Get_Last_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
+                             A_Symbol_Table : Symbol_Table)
+                             return Irep
+   is
+      Last_Index_Component : constant Irep :=
+        Get_Last_Index_Component (Array_Struct   => Array_Struct,
+                                   A_Symbol_Table => A_Symbol_Table);
+   begin
+      return Make_Member_Expr (Compound         => Array_Struct,
+                               Source_Location  => Source_Loc,
+                               Component_Number => 1,
+                               I_Type           =>
+                                 Get_Type (Last_Index_Component),
+                               Component_Name   =>
+                                 Get_Name (Last_Index_Component));
+   end Get_Last_Index;
 
 end Arrays;
