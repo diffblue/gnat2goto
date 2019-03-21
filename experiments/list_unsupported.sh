@@ -82,7 +82,7 @@ echo >&2 "-------------------------------------------------------"
 # exit code
 compile_error_occured=0
 for filename in $(find ${path} -name '*.adb'); do
-   echo >&2 "Compiling $filename..."
+   printf "Compiling %s..." "${filename}" >&2
    echo "---------- COMPILING: $filename" >>"$file_name".txt
    "${GNAT2GOTO}" ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
    result=$?
@@ -91,12 +91,15 @@ for filename in $(find ${path} -name '*.adb'); do
       # Got a non-zero exit code, check if we managed to get a list of
       # missing features or not
       if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
+         printf " [UNSUPPORTED FEATURES]\n" >&2
          echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
       else
          compile_error_occured=1
+         printf " [FAILED]\n" >&2
          echo "---------- FAILED ----------------------------" >>"$file_name".txt
       fi
    else
+      printf " [OK]\n" >&2
       echo "---------- OK --------------------------------" >>"$file_name".txt
    fi
 done
