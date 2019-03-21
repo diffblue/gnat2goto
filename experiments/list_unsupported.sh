@@ -109,14 +109,20 @@ sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 ./CollectUnsupported "$file_name"_redacted.txt
 
+total_count=`grep -c -E '^---------- COMPILING: ' "$file_name".txt`
 fail_count=`grep -c -E '^---------- FAILED ----------------------------' "$file_name".txt`
 missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ----------------------------' "$file_name".txt`
+ok_count=`grep -c -E '^---------- OK ----------------------------' "$file_name".txt`
 
+
+echo >&2 "--------------------------------------------------------"
+echo >&2 "${total_count} files processed during feature collection."
+echo >&2 "${fail_count} files failed to compile."
+echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
+echo >&2 "${ok_count} compiled successfully."
+echo >&2 "See \"${file_name}.txt\" for details."
+echo >&2 "-------------------------------------------------------"
+   
 if [ "$compile_error_occured" -gt 0 ]; then
-   echo >&2 "--------------------------------------------------------"
-   echo >&2 "${fail_count} files failed to compile during feature collection."
-   echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
-   echo >&2 "See \"${file_name}.txt\" for details."
-   echo >&2 "-------------------------------------------------------"
    exit 7
 fi
