@@ -43,9 +43,9 @@ fi
 ADA_HOME=`which gnat`
 ADA_HOME="$(dirname "$ADA_HOME")/.."
 PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
-DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}/"
+DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
 ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
-DEF_ADA_INCLUDE_PATH+="${ADA_GCC_VERSION}/rts-native/adainclude"
+DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude"
 export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
 
 export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
