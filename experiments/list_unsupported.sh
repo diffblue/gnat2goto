@@ -70,12 +70,12 @@ done
 # Before attempting to start compiling, make a clear log of the environment
 # we will be using:
 echo >&2 "-------------------------------------------------------"
-echo "gnat2goto =" "${GNAT2GOTO}"
-echo "ada gcc version =" "${ADA_GCC_VERSION}"
-echo "ADA_INCLUDE_PATH =" "${ADA_INCLUDE_PATH}"
-echo "GPR_PROJECT_PATH =" "${GPR_PROJECT_PATH}"
-echo "addtional include path flags:"
-echo "${include_path}"
+echo >&2 "gnat2goto =" "${GNAT2GOTO}"
+echo >&2 "ada gcc version =" "${ADA_GCC_VERSION}"
+echo >&2 "ADA_INCLUDE_PATH =" "${ADA_INCLUDE_PATH}"
+echo >&2 "GPR_PROJECT_PATH =" "${GPR_PROJECT_PATH}"
+echo >&2 "addtional include path flags:"
+echo >&2 "${include_path}"
 echo >&2 "-------------------------------------------------------"
 # Log whether a file failed to compile due to incorrect syntax, or
 # some other error that caused the compiler to exit with non-zero
