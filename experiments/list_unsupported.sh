@@ -40,12 +40,13 @@ if ! command -v gnat > /dev/null; then
    exit 4
 fi
 
-ADA_HOME=`which gnat`
+GNAT2GOTO=`command -v gnat2goto`
+ADA_HOME=`command -v gnat`
 ADA_HOME="$(dirname "$ADA_HOME")/.."
 PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
 DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
 ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
-DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude"
+DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude:${ADA_HOME}/include"
 export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
 
 export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
@@ -54,15 +55,49 @@ if [ ! -d "$GPR_PROJECT_PATH" ]; then
    exit 6
 fi
 
+# Enumerate all the sub directories of ADA_INCLUDE_PATH
+for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
+   echo "Expanding $include_folder..."
+   for foldername in $(find ${include_folder} -type d -name "*"); do
+      count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
+      if [ $count != 0 ]
+      then
+         ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH}:${foldername}"
+      fi
+   done
+done
+
+# Before attempting to start compiling, make a clear log of the environment
+# we will be using:
+echo >&2 "-------------------------------------------------------"
+echo "gnat2goto =" "${GNAT2GOTO}"
+echo "ada gcc version =" "${ADA_GCC_VERSION}"
+echo "ADA_INCLUDE_PATH =" "${ADA_INCLUDE_PATH}"
+echo "GPR_PROJECT_PATH =" "${GPR_PROJECT_PATH}"
+echo "addtional include path flags:"
+echo "${include_path}"
+echo >&2 "-------------------------------------------------------"
 # Log whether a file failed to compile due to incorrect syntax, or
 # some other error that caused the compiler to exit with non-zero
 # exit code
 compile_error_occured=0
 for filename in $(find ${path} -name '*.adb'); do
    echo >&2 "Compiling $filename..."
-   gnat2goto ${include_path} "${filename}" >>"$file_name".txt 2>&1
-   if [ "$?" -gt 0 ]; then
-      compile_error_occured=1
+   echo "---------- COMPILING: $filename" >>"$file_name".txt
+   "${GNAT2GOTO}" ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
+   result=$?
+   cat "$file_name".txt.compiling >> "$file_name".txt
+   if [ "$result" -gt 0 ]; then
+      # Got a non-zero exit code, check if we managed to get a list of
+      # missing features or not
+      if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
+         echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
+      else
+         compile_error_occured=1
+         echo "---------- FAILED ----------------------------" >>"$file_name".txt
+      fi
+   else
+      echo "---------- OK --------------------------------" >>"$file_name".txt
    fi
 done
 
@@ -71,9 +106,13 @@ sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 ./CollectUnsupported "$file_name"_redacted.txt
 
+fail_count=`grep -c -E '^---------- FAILED ----------------------------' "$file_name".txt`
+missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ----------------------------' "$file_name".txt`
+
 if [ "$compile_error_occured" -gt 0 ]; then
-   echo >&2 "-------------------------------------------------------"
-   echo >&2 "Some files failed to compile during feature collection."
+   echo >&2 "--------------------------------------------------------"
+   echo >&2 "${fail_count} files failed to compile during feature collection."
+   echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
    echo >&2 "See \"${file_name}.txt\" for details."
    echo >&2 "-------------------------------------------------------"
    exit 7
