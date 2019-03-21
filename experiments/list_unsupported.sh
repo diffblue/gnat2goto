@@ -40,7 +40,8 @@ if ! command -v gnat > /dev/null; then
    exit 4
 fi
 
-ADA_HOME=`which gnat`
+GNAT2GOTO=`command -v gnat2goto`
+ADA_HOME=`command -v gnat`
 ADA_HOME="$(dirname "$ADA_HOME")/.."
 PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
 DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
@@ -54,13 +55,23 @@ if [ ! -d "$GPR_PROJECT_PATH" ]; then
    exit 6
 fi
 
+# Before attempting to start compiling, make a clear log of the environment
+# we will be using:
+echo >&2 "-------------------------------------------------------"
+echo "gnat2goto =" "${GNAT2GOTO}"
+echo "ada gcc version =" "${ADA_GCC_VERSION}"
+echo "ADA_INCLUDE_PATH =" "${ADA_INCLUDE_PATH}"
+echo "GPR_PROJECT_PATH =" "${GPR_PROJECT_PATH}"
+echo "addtional include path flags:"
+echo "${include_path}"
+echo >&2 "-------------------------------------------------------"
 # Log whether a file failed to compile due to incorrect syntax, or
 # some other error that caused the compiler to exit with non-zero
 # exit code
 compile_error_occured=0
 for filename in $(find ${path} -name '*.adb'); do
    echo >&2 "Compiling $filename..."
-   gnat2goto ${include_path} "${filename}" >>"$file_name".txt 2>&1
+   "${GNAT2GOTO}" ${include_path} "${filename}" >>"$file_name".txt 2>&1
    if [ "$?" -gt 0 ]; then
       compile_error_occured=1
    fi
