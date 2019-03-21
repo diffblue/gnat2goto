@@ -46,7 +46,7 @@ ADA_HOME="$(dirname "$ADA_HOME")/.."
 PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
 DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
 ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
-DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude"
+DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude:${ADA_HOME}/include"
 export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
 
 export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
@@ -54,6 +54,18 @@ if [ ! -d "$GPR_PROJECT_PATH" ]; then
    echo >&2 "GPR project path does not exists!"
    exit 6
 fi
+
+# Enumerate all the sub directories of ADA_INCLUDE_PATH
+for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
+   echo "Expanding $include_folder..."
+   for foldername in $(find ${include_folder} -type d -name "*"); do
+      count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
+      if [ $count != 0 ]
+      then
+         ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH}:${foldername}"
+      fi
+   done
+done
 
 # Before attempting to start compiling, make a clear log of the environment
 # we will be using:
