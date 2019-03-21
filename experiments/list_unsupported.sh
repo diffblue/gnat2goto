@@ -87,17 +87,15 @@ for filename in $(find ${path} -name '*.adb'); do
    "${GNAT2GOTO}" ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
    result=$?
    cat "$file_name".txt.compiling >> "$file_name".txt
-   if [ "$result" -gt 0 ]; then
-      # Got a non-zero exit code, check if we managed to get a list of
-      # missing features or not
-      if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
-         printf " [UNSUPPORTED FEATURES]\n" >&2
-         echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
-      else
-         compile_error_occured=1
-         printf " [FAILED]\n" >&2
-         echo "---------- FAILED ----------------------------" >>"$file_name".txt
-      fi
+
+   # Check if we managed to get a list of missing features or not
+   if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
+      printf " [UNSUPPORTED FEATURES]\n" >&2
+      echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
+   elif [ "$result" -gt 0 ]; then
+      compile_error_occured=1
+      printf " [FAILED]\n" >&2
+      echo "---------- FAILED ----------------------------" >>"$file_name".txt
    else
       printf " [OK]\n" >&2
       echo "---------- OK --------------------------------" >>"$file_name".txt
@@ -122,7 +120,7 @@ echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto.
 echo >&2 "${ok_count} compiled successfully."
 echo >&2 "See \"${file_name}.txt\" for details."
 echo >&2 "-------------------------------------------------------"
-   
+
 if [ "$compile_error_occured" -gt 0 ]; then
    exit 7
 fi
