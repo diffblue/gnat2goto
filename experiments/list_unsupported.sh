@@ -84,10 +84,18 @@ compile_error_occured=0
 for filename in $(find ${path} -name '*.adb'); do
    echo >&2 "Compiling $filename..."
    echo "---------- COMPILING: $filename" >>"$file_name".txt
-   "${GNAT2GOTO}" ${include_path} "${filename}" >>"$file_name".txt 2>&1
-   if [ "$?" -gt 0 ]; then
-      compile_error_occured=1
-      echo "---------- FAILED ----------------------------" >>"$file_name".txt
+   "${GNAT2GOTO}" ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
+   result=$?
+   cat "$file_name".txt.compiling >> "$file_name".txt
+   if [ "$result" -gt 0 ]; then
+      # Got a non-zero exit code, check if we managed to get a list of
+      # missing features or not
+      if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
+         echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
+      else
+         compile_error_occured=1
+         echo "---------- FAILED ----------------------------" >>"$file_name".txt
+      fi
    else
       echo "---------- OK --------------------------------" >>"$file_name".txt
    fi
@@ -98,9 +106,13 @@ sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 ./CollectUnsupported "$file_name"_redacted.txt
 
+fail_count=`grep -c -E '^---------- FAILED ----------------------------' "$file_name".txt`
+missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ----------------------------' "$file_name".txt`
+
 if [ "$compile_error_occured" -gt 0 ]; then
-   echo >&2 "-------------------------------------------------------"
-   echo >&2 "Some files failed to compile during feature collection."
+   echo >&2 "--------------------------------------------------------"
+   echo >&2 "${fail_count} files failed to compile during feature collection."
+   echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
    echo >&2 "See \"${file_name}.txt\" for details."
    echo >&2 "-------------------------------------------------------"
    exit 7
