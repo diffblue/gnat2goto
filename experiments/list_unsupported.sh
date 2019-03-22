@@ -104,13 +104,51 @@ done
 
 sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 
+# Collate and summarise unsupported features
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 ./CollectUnsupported "$file_name"_redacted.txt
 
+# Collate and summarize compile errors from builds that did not generate
+# unsupported features lists
+
+# Find all the error messages, dropping the initial file name, column, and
+# line number, and any trailing "at filename:line" info, then sort and
+# collate them into descending counts of unique error messages.
+#
+# Finally, then output them in a form that looks similar to the output of the
+# CollectUnsupported program, like this:
+#
+# --------------------------------------------------------------------------------
+# Occurs: 3 times
+# Redacted compiler error message:
+# redacted error message
+# Raw compiler error message:
+# unredacted error message
+# --------------------------------------------------------------------------------
+#
+sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$file_name".txt | \
+   sed 's/ at [^ ][^ ]*:[0-9][0-9]*$//' | \
+      sort | uniq -c | sort -n -r | \
+         awk '/^ *[0-9]+ .*$/ { \
+            count=$1; \
+            raw=$0; sub(/^ *[0-9]+ /, "", raw); \
+            redacted=raw; gsub(/"[^"]+"/, "\"REDACTED\"", redacted); \
+            print "--------------------------------------------------------------------------------"; \
+            print "Occurs:", count, "times"; \
+            print "Redacted compiler error message:"; \
+            print redacted; \
+            print "Raw compiler error message:"; \
+            print raw; \
+            print "--------------------------------------------------------------------------------"; \
+         }'
+
+# FIXME: Also need to summarise non-compile error message failures (e.g. compiler crashes)
+
+# Gather overall statistics
 total_count=`grep -c -E '^---------- COMPILING: ' "$file_name".txt`
-fail_count=`grep -c -E '^---------- FAILED ----------------------------' "$file_name".txt`
-missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ----------------------------' "$file_name".txt`
-ok_count=`grep -c -E '^---------- OK ----------------------------' "$file_name".txt`
+fail_count=`grep -c -E '^---------- FAILED ' "$file_name".txt`
+missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ' "$file_name".txt`
+ok_count=`grep -c -E '^---------- OK ' "$file_name".txt`
 
 
 echo >&2 "--------------------------------------------------------"
