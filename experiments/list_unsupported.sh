@@ -110,7 +110,12 @@ for filename in $(find ${path} -name '*.adb'); do
    fi
 done
 
-sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
+# This redacting system is really pretty crude...
+sed '/^\[/ d' < "$file_name".txt | \
+   sed 's/"[^"][^"]*"/"REDACTED"/g' | \
+      sed 's/[^ ][^ ]*\.adb/REDACTED.adb/g' | \
+         sed 's/[^ ][^ ]*\.ads/REDACTED.ads/g' \
+   > "$file_name"_redacted.txt
 
 # Collate and summarise unsupported features
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
