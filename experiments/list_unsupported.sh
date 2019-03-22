@@ -84,7 +84,7 @@ compile_error_occured=0
 for filename in $(find ${path} -name '*.adb'); do
    printf "Compiling %s..." "${filename}" >&2
    echo "---------- COMPILING: $filename" >>"$file_name".txt
-   "${GNAT2GOTO}" ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
+   "${GNAT2GOTO}" -gnatU ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
    result=$?
    cat "$file_name".txt.compiling >> "$file_name".txt
 
