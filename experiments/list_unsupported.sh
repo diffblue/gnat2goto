@@ -106,7 +106,7 @@ sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
 
 # Collate and summarise unsupported features
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
-./CollectUnsupported "$file_name"_redacted.txt
+./CollectUnsupported "$file_name".txt
 
 # Collate and summarize compile errors from builds that did not generate
 # unsupported features lists
