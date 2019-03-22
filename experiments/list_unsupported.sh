@@ -95,6 +95,14 @@ for filename in $(find ${path} -name '*.adb'); do
    elif [ "$result" -gt 0 ]; then
       compile_error_occured=1
       printf " [COMPILE ERROR]\n" >&2
+      # If the gnat compiler (gnat2goto in this case) fails with a standard
+      # compiler error message, it's exit code will be '5' - and those messages
+      # will be collated later. In the case where the exit code is different, we
+      # really don't know a priori what has gone wrong, so log the exit code if
+      # its one of those cases and collate the exit codes later.
+      if [ "$result" != "5" ]; then
+         echo "gnat2goto exit code: $result"  >>"$file_name".txt
+      fi
       echo "---------- FAILED ----------------------------" >>"$file_name".txt
    else
       printf " [OK]\n" >&2
@@ -142,11 +150,36 @@ sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$file_name".txt | \
             print "--------------------------------------------------------------------------------"; \
          }'
 
-# FIXME: Also need to summarise non-compile error message failures (e.g. compiler crashes)
+# For any other kind of failure, we will have logged the exit code. To summarize
+# these cases, we convert the log output into a single line 'canonical form'
+# (replace newlines with '<<<>>>>') then we can sort and uniq the list, before
+# then turning the resulting list back into the same format as the report above.
+# Yes, it's ugly...
+awk  '/^---------- COMPILING: / { \
+         buf = ""; count=0; \
+      } \
+      /^gnat2goto exit code: [0-9]*/ { \
+         sub(/^.*---------- COMPILING: [^<]*<<<>>>/,"",buf); \
+         print buf "<<<>>>" $0; \
+      } \
+      { \
+         buf = buf "<<<>>>" $0 \
+      }' "$file_name".txt \
+   | sort | uniq -c | sort -n -r | \
+      awk '/^ *[0-9][0-9]* .*/ { \
+         print "--------------------------------------------------------------------------------"; \
+         print "Occurs:", $1, "times"; \
+         sub(/^ *[0-9][0-9]* */,"",$0); \
+         gsub(/<<<>>>/,"\
+         ", $0); \
+         print $0; \
+         print "--------------------------------------------------------------------------------"; \
+      }'
 
 # Gather overall statistics
 total_count=`grep -c -E '^---------- COMPILING: ' "$file_name".txt`
 fail_count=`grep -c -E '^---------- FAILED ' "$file_name".txt`
+non_compile_error_fail_count=`grep -c -E '^gnat2goto exit code: [0-9]*' "$file_name".txt`
 missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ' "$file_name".txt`
 ok_count=`grep -c -E '^---------- OK ' "$file_name".txt`
 
@@ -154,6 +187,7 @@ ok_count=`grep -c -E '^---------- OK ' "$file_name".txt`
 echo >&2 "--------------------------------------------------------"
 echo >&2 "${total_count} files processed during feature collection."
 echo >&2 "${fail_count} files failed to compile."
+echo >&2 "${non_compile_error_fail_count} miscellaneous compiler failures."
 echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
 echo >&2 "${ok_count} compiled successfully."
 echo >&2 "See \"${file_name}.txt\" for details."
