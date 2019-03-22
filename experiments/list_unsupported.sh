@@ -70,50 +70,134 @@ done
 # Before attempting to start compiling, make a clear log of the environment
 # we will be using:
 echo >&2 "-------------------------------------------------------"
-echo "gnat2goto =" "${GNAT2GOTO}"
-echo "ada gcc version =" "${ADA_GCC_VERSION}"
-echo "ADA_INCLUDE_PATH =" "${ADA_INCLUDE_PATH}"
-echo "GPR_PROJECT_PATH =" "${GPR_PROJECT_PATH}"
-echo "addtional include path flags:"
-echo "${include_path}"
+echo >&2 "gnat2goto =" "${GNAT2GOTO}"
+echo >&2 "ada gcc version =" "${ADA_GCC_VERSION}"
+echo >&2 "ADA_INCLUDE_PATH =" "${ADA_INCLUDE_PATH}"
+echo >&2 "GPR_PROJECT_PATH =" "${GPR_PROJECT_PATH}"
+echo >&2 "addtional include path flags:"
+echo >&2 "${include_path}"
 echo >&2 "-------------------------------------------------------"
 # Log whether a file failed to compile due to incorrect syntax, or
 # some other error that caused the compiler to exit with non-zero
 # exit code
 compile_error_occured=0
 for filename in $(find ${path} -name '*.adb'); do
-   echo >&2 "Compiling $filename..."
+   printf "Compiling %s..." "${filename}" >&2
    echo "---------- COMPILING: $filename" >>"$file_name".txt
-   "${GNAT2GOTO}" ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
+   "${GNAT2GOTO}" -gnatU ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
    result=$?
    cat "$file_name".txt.compiling >> "$file_name".txt
-   if [ "$result" -gt 0 ]; then
-      # Got a non-zero exit code, check if we managed to get a list of
-      # missing features or not
-      if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
-         echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
-      else
-         compile_error_occured=1
-         echo "---------- FAILED ----------------------------" >>"$file_name".txt
+
+   # Check if we managed to get a list of missing features or not
+   if grep -q -E '^----------At:' "$file_name".txt.compiling ; then
+      printf " [UNSUPPORTED FEATURES]\n" >&2
+      echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
+   elif [ "$result" -gt 0 ]; then
+      compile_error_occured=1
+      printf " [COMPILE ERROR]\n" >&2
+      # If the gnat compiler (gnat2goto in this case) fails with a standard
+      # compiler error message, it's exit code will be '5' - and those messages
+      # will be collated later. In the case where the exit code is different, we
+      # really don't know a priori what has gone wrong, so log the exit code if
+      # its one of those cases and collate the exit codes later.
+      if [ "$result" != "5" ]; then
+         echo "gnat2goto exit code: $result"  >>"$file_name".txt
       fi
+      echo "---------- FAILED ----------------------------" >>"$file_name".txt
    else
+      printf " [OK]\n" >&2
       echo "---------- OK --------------------------------" >>"$file_name".txt
    fi
 done
 
-sed '/^\[/ d' < "$file_name".txt > "$file_name"_redacted.txt
+# This redacting system is really pretty crude...
+sed '/^\[/ d' < "$file_name".txt | \
+   sed 's/"[^"][^"]*"/"REDACTED"/g' | \
+      sed 's/[^ ][^ ]*\.adb/REDACTED.adb/g' | \
+         sed 's/[^ ][^ ]*\.ads/REDACTED.ads/g' \
+   > "$file_name"_redacted.txt
 
+# Collate and summarise unsupported features
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
-./CollectUnsupported "$file_name"_redacted.txt
+./CollectUnsupported "$file_name".txt
 
-fail_count=`grep -c -E '^---------- FAILED ----------------------------' "$file_name".txt`
-missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ----------------------------' "$file_name".txt`
+# Collate and summarize compile errors from builds that did not generate
+# unsupported features lists
+
+# Find all the error messages, dropping the initial file name, column, and
+# line number, and any trailing "at filename:line" info, then sort and
+# collate them into descending counts of unique error messages.
+#
+# Finally, then output them in a form that looks similar to the output of the
+# CollectUnsupported program, like this:
+#
+# --------------------------------------------------------------------------------
+# Occurs: 3 times
+# Redacted compiler error message:
+# redacted error message
+# Raw compiler error message:
+# unredacted error message
+# --------------------------------------------------------------------------------
+#
+sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$file_name".txt | \
+   sed 's/ at [^ ][^ ]*:[0-9][0-9]*$//' | \
+      sort | uniq -c | sort -n -r | \
+         awk '/^ *[0-9]+ .*$/ { \
+            count=$1; \
+            raw=$0; sub(/^ *[0-9]+ /, "", raw); \
+            redacted=raw; gsub(/"[^"]+"/, "\"REDACTED\"", redacted); \
+            print "--------------------------------------------------------------------------------"; \
+            print "Occurs:", count, "times"; \
+            print "Redacted compiler error message:"; \
+            print redacted; \
+            print "Raw compiler error message:"; \
+            print raw; \
+            print "--------------------------------------------------------------------------------"; \
+         }'
+
+# For any other kind of failure, we will have logged the exit code. To summarize
+# these cases, we convert the log output into a single line 'canonical form'
+# (replace newlines with '<<<>>>>') then we can sort and uniq the list, before
+# then turning the resulting list back into the same format as the report above.
+# Yes, it's ugly...
+awk  '/^---------- COMPILING: / { \
+         buf = ""; count=0; \
+      } \
+      /^gnat2goto exit code: [0-9]*/ { \
+         sub(/^.*---------- COMPILING: [^<]*<<<>>>/,"",buf); \
+         print buf "<<<>>>" $0; \
+      } \
+      { \
+         buf = buf "<<<>>>" $0 \
+      }' "$file_name".txt \
+   | sort | uniq -c | sort -n -r | \
+      awk '/^ *[0-9][0-9]* .*/ { \
+         print "--------------------------------------------------------------------------------"; \
+         print "Occurs:", $1, "times"; \
+         sub(/^ *[0-9][0-9]* */,"",$0); \
+         gsub(/<<<>>>/,"\
+         ", $0); \
+         print $0; \
+         print "--------------------------------------------------------------------------------"; \
+      }'
+
+# Gather overall statistics
+total_count=`grep -c -E '^---------- COMPILING: ' "$file_name".txt`
+fail_count=`grep -c -E '^---------- FAILED ' "$file_name".txt`
+non_compile_error_fail_count=`grep -c -E '^gnat2goto exit code: [0-9]*' "$file_name".txt`
+missing_feature_count=`grep -c -E '^---------- MISSING FEATURES ' "$file_name".txt`
+ok_count=`grep -c -E '^---------- OK ' "$file_name".txt`
+
+
+echo >&2 "--------------------------------------------------------"
+echo >&2 "${total_count} files processed during feature collection."
+echo >&2 "${fail_count} files failed to compile."
+echo >&2 "${non_compile_error_fail_count} miscellaneous compiler failures."
+echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
+echo >&2 "${ok_count} compiled successfully."
+echo >&2 "See \"${file_name}.txt\" for details."
+echo >&2 "-------------------------------------------------------"
 
 if [ "$compile_error_occured" -gt 0 ]; then
-   echo >&2 "--------------------------------------------------------"
-   echo >&2 "${fail_count} files failed to compile during feature collection."
-   echo >&2 "${missing_feature_count} files used features unsupported by gnat2goto."
-   echo >&2 "See \"${file_name}.txt\" for details."
-   echo >&2 "-------------------------------------------------------"
    exit 7
 fi
