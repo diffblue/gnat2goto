@@ -146,6 +146,10 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Loop_Statement,
         Post => Kind (Do_Loop_Statement'Result) in Class_Code;
 
+   function Do_Case_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Case_Statement,
+        Post => Kind (Do_Case_Statement'Result) = I_Code_Block;
+
    function Do_N_Block_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Block_Statement,
         Post => Kind (Do_N_Block_Statement'Result) = I_Code_Block;
@@ -1763,6 +1767,57 @@ package body Tree_Walk is
    begin
       Do_Type_Declaration (New_Type, Typedef);
    end Do_Itype_Reference;
+
+   -----------------------
+   -- Do_Case_Statement --
+   -----------------------
+
+   function Do_Case_Statement (N : Node_Id) return Irep is
+      Ret : constant Irep := New_Irep (I_Code_Block);
+      Value : constant Irep := Do_Expression (Expression (N));
+
+      --  Auxiliary function to create a single test case
+      --  to emplace in a condition from a list of alternative
+      --  values.
+      function Make_Single_Test (Alt : Node_Id) return Irep;
+      function Make_Single_Test (Alt : Node_Id) return Irep is
+         Ret : constant Irep := New_Irep (I_Op_Eq);
+         Rhs : constant Irep := Do_Expression (Alt);
+      begin
+         Set_Lhs (Ret, Value);
+         Set_Rhs (Ret, Rhs);
+         Set_Type (Ret, New_Irep (I_Bool_Type));
+         return Ret;
+      end Make_Single_Test;
+
+      This_Alt : Node_Id := First (Alternatives (N));
+   begin
+      --  Do-while loop because there must be at least one alternative.
+      loop
+         declare
+            This_Stmt : constant Irep :=
+             Process_Statements (Statements (This_Alt));
+            This_Alt_Copy : constant Node_Id := This_Alt;
+            This_Test : Irep;
+         begin
+            Next (This_Alt);
+            if not Present (This_Alt) then
+               --  Omit test, this is either `others`
+               --  or the last case of complete coverage
+               This_Test := This_Stmt;
+            else
+               This_Test := New_Irep (I_Code_Ifthenelse);
+               Set_Cond (This_Test,
+                         Make_Single_Test
+                           (First (Discrete_Choices (This_Alt_Copy))));
+               Set_Then_Case (This_Test, This_Stmt);
+               Append_Op (Ret, This_Test);
+            end if;
+         end;
+         exit when not Present (This_Alt);
+      end loop;
+      return Ret;
+   end Do_Case_Statement;
 
    -----------------------
    -- Do_Loop_Statement --
@@ -4031,7 +4086,7 @@ package body Tree_Walk is
             Append_Op (Block, Do_If_Statement (N));
 
          when N_Case_Statement =>
-            Warn_Unhandled_Construct (Statement, "case");
+            Append_Op (Block, Do_Case_Statement (N));
 
          when N_Loop_Statement =>
             Append_Op (Block, Do_Loop_Statement (N));
