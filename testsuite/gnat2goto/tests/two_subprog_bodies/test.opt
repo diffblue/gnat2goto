@@ -1,1 +1,1 @@
-ALL XFAIL gnat2goto doesn't see second subprogram
+ALL XFAIL 'with' clause support required - body of function 'withed' is missing

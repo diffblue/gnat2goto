@@ -1,0 +1,5 @@
+[4] file statement_block.adb line 12 assertion: SUCCESS
+[1] file statement_block.adb line 30 assertion: SUCCESS
+[2] file statement_block.adb line 35 assertion: SUCCESS
+[3] file statement_block.adb line 45 assertion: SUCCESS
+VERIFICATION SUCCESSFUL

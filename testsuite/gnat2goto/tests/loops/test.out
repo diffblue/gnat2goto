@@ -1,2 +1,2 @@
-[1] file loops.adb line 32 : FAILURE
+[1] file loops.adb line 32 assertion: FAILURE
 VERIFICATION FAILED

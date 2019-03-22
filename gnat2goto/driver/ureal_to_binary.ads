@@ -6,9 +6,9 @@ package Ureal_To_Binary is
                                            Max_Digits : Positive := 30)
                                           return String;
    function Convert_Ureal_To_Binary_IEEE (Number : Ureal;
-                                         Fraction_Bits : Positive := 23;
-                                         Exponent_Bits : Positive := 8;
-                                         Exponent_Bias : Positive := 127)
+                                         Fraction_Bits : Positive;
+                                         Exponent_Bits : Positive;
+                                         Exponent_Bias : Positive)
      return String
      with Post => (Convert_Ureal_To_Binary_IEEE'Result'Length
                      = Fraction_Bits + Exponent_Bits + 1);

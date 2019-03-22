@@ -93,7 +93,14 @@ package GOTO_Utils is
      with Pre => (Kind (Base) in Class_Expr
                   and then Kind (Offset) in Class_Expr
                   and then Kind (Pointer_Type) = I_Pointer_Type),
-       Post => Get_Type (Offset_Array_Data'Result) = Pointer_Type;
+     Post => Get_Type (Offset_Array_Data'Result) = Pointer_Type;
+
+   type Float_Format is (IEEE_32_Bit, IEEE_64_Bit);
+
+   function To_Float_Format (Float_Type : Irep) return Float_Format
+     with Pre => Kind (Float_Type) in I_Floatbv_Type | I_Bounded_Floatbv_Type;
+
+   function Float_Mantissa_Size (Float_Type : Irep) return Integer;
 
    function Build_Index_Constant (Value : Int; Index_Type : Irep;
                                   Source_Loc : Source_Ptr) return Irep

@@ -2050,6 +2050,11 @@ class IrepsGenerator(object):
             write(b, "return Make_Signedbv_Type (Get_Subtype (I), Get_Width (I));")
         write(b, "end if;")
         write(b, "")
+        write(b, "if Kind (I) = I_Bounded_Floatbv_Type then")
+        with indent(b):
+            write(b, "return Make_Floatbv_Type (Get_Subtype (I), Get_Width (I), Get_F (I));")
+        write(b, "end if;")
+        write(b, "")
         write(b, "declare")
         with indent(b):
             write(b, "N : Irep_Node renames Irep_Table.Table (I);")

@@ -1,5 +1,6 @@
-[1] file floating_point_literals.adb line 6 : FAILURE
-[2] file floating_point_literals.adb line 7 : SUCCESS
-[3] file floating_point_literals.adb line 8 : FAILURE
-[4] file floating_point_literals.adb line 9 : SUCCESS
+[1] file floating_point_literals.adb line 8 assertion: FAILURE
+[2] file floating_point_literals.adb line 10 assertion: SUCCESS
+[3] file floating_point_literals.adb line 12 assertion: FAILURE
+[4] file floating_point_literals.adb line 14 assertion: SUCCESS
+[5] file floating_point_literals.adb line 16 assertion: SUCCESS
 VERIFICATION FAILED

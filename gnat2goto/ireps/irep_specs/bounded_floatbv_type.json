@@ -1,0 +1,9 @@
+{
+  "parent": "bitvector_type",
+  "id": "bounded_floatbv",
+   "namedSub": {
+      "f": {"type": "integer"},
+    "lower_bound": {"type": "integer"},
+    "upper_bound": {"type": "integer"}
+  }
+}

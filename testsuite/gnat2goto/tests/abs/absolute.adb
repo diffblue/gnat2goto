@@ -1,7 +1,11 @@
 procedure Absolute is
-   A : Integer := -22;
-   B : Integer;
+   function Symmetric_Difference (A : Integer; B : Integer) return Integer is
+      (abs (A - B));
+   X : constant Integer := 10;
+   Y : constant Integer := 15;
 begin
-   B := abs A;
-   pragma Assert (B >= 0);
+   pragma Assert (Symmetric_Difference (X, Y) = Symmetric_Difference (Y, X));
+   pragma Assert (Symmetric_Difference (X, Y) = 5);
+   --  Intentional false assert
+   pragma Assert (Symmetric_Difference (Y, X) /= 5);
 end Absolute;
