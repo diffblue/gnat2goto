@@ -94,7 +94,7 @@ for filename in $(find ${path} -name '*.adb'); do
       echo "---------- MISSING FEATURES ----------------------------" >>"$file_name".txt
    elif [ "$result" -gt 0 ]; then
       compile_error_occured=1
-      printf " [FAILED]\n" >&2
+      printf " [COMPILE ERROR]\n" >&2
       echo "---------- FAILED ----------------------------" >>"$file_name".txt
    else
       printf " [OK]\n" >&2
