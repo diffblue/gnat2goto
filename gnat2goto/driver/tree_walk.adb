@@ -1805,6 +1805,7 @@ package body Tree_Walk is
                --  Omit test, this is either `others`
                --  or the last case of complete coverage
                This_Test := This_Stmt;
+               Append_Op (Ret, This_Test);
             else
                This_Test := New_Irep (I_Code_Ifthenelse);
                Set_Cond (This_Test,
