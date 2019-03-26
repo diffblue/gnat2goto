@@ -344,7 +344,7 @@ package body Tree_Walk is
    procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
    --  Common procedure for registering non-anonymous type declarations.
-   --  Called by Do_Full_Type_Declaration and Do_Incomplete_Type_Declaraion
+   --  Called by Do_Incomplete_Type_Declaraion
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
@@ -1330,9 +1330,12 @@ package body Tree_Walk is
       --  If the Incomplete_View is not present then the
       --   full_type_declaration has to be registered
       if not (Present (Incomplete_View (N))) then
-         Put_Line ("We are going to do the dec");
-         Put_Line ("full_type_declaration with no incomplete_view");
-         Register_Type_Declaration (N, E);
+         Do_Type_Declaration (New_Type, E);
+
+         --  Declare the implicit initial subtype too
+         if Etype (E) /= E then
+            Do_Type_Declaration (New_Type, Etype (E));
+         end if;
       end if;
 
    end Do_Full_Type_Declaration;
