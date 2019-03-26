@@ -1,0 +1,1 @@
+ALL XFAIL gnat2goto can't handle ranges in case statements
