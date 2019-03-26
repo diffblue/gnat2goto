@@ -200,6 +200,9 @@ package body Tree_Walk is
    procedure Do_Package_Specification (N : Node_Id)
    with Pre => Nkind (N) = N_Package_Specification;
 
+   procedure Do_Private_Type_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Private_Type_Declaration;
+
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Procedure_Call_Statement,
         Post => Kind (Do_Procedure_Call_Statement'Result) =
@@ -344,7 +347,7 @@ package body Tree_Walk is
    procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
    --  Common procedure for registering non-anonymous type declarations.
-   --  Called by Do_Full_Type_Declaration and Do_Incomplete_Type_Declaraion
+   --  Called by Do_Incomplete_Type_Declaration and Do_Private_Type_Declaration
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
@@ -1315,24 +1318,28 @@ package body Tree_Walk is
                       "Identifier not in class type. Type definition failed.");
          return;
       end if;
-      if not Is_Type (E)
-      then
+
+      if not Is_Type (E) then
          Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
                                       "identifier not a type");
          return;
       end if;
 
       --  If this is the full_type_declaration of a previous
-      --  incomplete_type_declaration then the Incomplete_View of the
-      --  declaration will be present and the
+      --  private_type_declaration or incomplete_type_declaration then the
+      --  either it will have a previous private declaration or an
+      --  Incomplete_View of the declaration will be present and the
       --  full_type_declaration will have been registered when its
-      --  incomplete_type_declaration was processed.
-      --  If the Incomplete_View is not present then the
-      --   full_type_declaration has to be registered
-      if not (Present (Incomplete_View (N))) then
-         Put_Line ("We are going to do the dec");
-         Put_Line ("full_type_declaration with no incomplete_view");
-         Register_Type_Declaration (N, E);
+      --  private or incomplete_type_declaration was processed.
+      --  If it has no private declaration or the Incomplete_View is not
+      --  present then the full_type_declaration has to be registered
+      if not (Has_Private_Declaration (E)
+              or else Present (Incomplete_View (N)))
+      then
+         Do_Type_Declaration (New_Type, E);
+         if Etype (E) /= E then
+            Do_Type_Declaration (New_Type, Etype (E));
+         end if;
       end if;
 
    end Do_Full_Type_Declaration;
@@ -1664,14 +1671,14 @@ package body Tree_Walk is
                     "Does not yield a full_type_declaration node");
             end if;
          else
-            Warn_Unhandled_Construct
-              (Declaration, "Private type");
+            Do_Private_Type_Declaration
+              (Declaration_Node (Full_View_Entity));
          end if;
 
       else
          Report_Unhandled_Node_Empty
            (N,
-            "Do_Private_Type_Declaration",
+            "Do_Incomplete_Type_Declaration",
             "The node is not a incomplete type");
       end if;
 
@@ -2947,6 +2954,72 @@ package body Tree_Walk is
    end Do_Package_Specification;
 
    ---------------------------------
+   -- Do_Private_Type_Declaration --
+   ---------------------------------
+
+   procedure Do_Private_Type_Declaration (N : Node_Id) is
+      Entity : constant Entity_Id := Defining_Identifier (N);
+      --  A partial view of a type declaration must not be inserted into
+      --  the symbol table.
+      --
+      --  The full view of a private_type_declaration is obtained
+      --  by calling the Full_View function.  As the compiler has completed
+      --  semantic analysis before invoking the gnat to goto translation
+      --  all private_type_declarations should have a full view.
+      Full_View_Entity : constant Entity_Id := Full_View (Entity);
+   begin
+      if Is_Private_Type (Entity) then
+         --  At the moment tagged types and abstract types are not supported.
+         --  Limited types should be ok as limiting a type only applies
+         --  constraints on its use within an Ada program.  The gnat
+         --  front-end checks that these constraints are maintained by
+         --  the code being analysed.
+         if Is_Abstract_Type (Entity) then
+            Warn_Unhandled_Construct (Declaration, "abstract_type");
+            return;
+         elsif Is_Tagged_Type (Entity) then
+            Warn_Unhandled_Construct (Declaration, "tagged_type");
+            return;
+         end if;
+         --  The private_type_declaration is neither tagged or abstract.
+         --  The Full_View of the declaratin will have been processed by the
+         --  gnat front-end and will be Full_View_Entity.
+
+         --  A private_type_declaration may be the completion of an
+         --  incomplete_type_declaration.  The processing of the
+         --  incomplete_type_declaration will have inserted (registered) the
+         --  full view of the private_type_declartion into the table already.
+         --  It is not obvious how to check that the private_type_declaration
+         --  is a completion of an incomplete_type_declaration from the tree
+         --  but it does not matter because its prior existence in the symbol
+         --  will prevent it being re-inserted through a second registration.
+
+         if Nkind (Declaration_Node (Full_View_Entity)) =
+           N_Full_Type_Declaration
+         then
+            --  The full_type_declaration corresponding to the
+            --  private_type_declaration is Full_View_Entity
+            --  register the full view in the symbol table.
+            Register_Type_Declaration
+              (Declaration_Node (Full_View_Entity), Full_View_Entity);
+         else
+            Report_Unhandled_Node_Empty
+              (Declaration_Node (Full_View_Entity),
+               "Do_Private_Type_Declaration",
+               "Full view of private_type_declaration " &
+               "Does not yield a full_type_declaration node");
+         end if;
+
+      else
+         Report_Unhandled_Node_Empty
+              (N,
+               "Do_Private_Type_Declaration",
+               "The node is not a private entity");
+      end if;
+
+   end Do_Private_Type_Declaration;
+
+   ---------------------------------
    -- Do_Procedure_Call_Statement --
    ---------------------------------
 
@@ -3918,6 +3991,9 @@ package body Tree_Walk is
          when N_Incomplete_Type_Declaration =>
             Do_Incomplete_Type_Declaration (N);
 
+         when N_Private_Type_Declaration =>
+            Do_Private_Type_Declaration (N);
+
          when N_Subtype_Declaration =>
             Do_Subtype_Declaration (N);
 
@@ -4014,9 +4090,6 @@ package body Tree_Walk is
             --  Ignore, nothing to generate
             null;
 
-         when N_Private_Type_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                       "Private type declaration unsupported");
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");
