@@ -1788,7 +1788,7 @@ package body Tree_Walk is
          begin
             Set_Lhs (Ret, Value);
             Set_Rhs (Ret, Rhs);
-            Set_Type (Ret, New_Irep (I_Bool_Type));
+            Set_Type (Ret, Make_Bool_Type);
             return Ret;
          end Make_Single_Test;
          First_Alt_Test : constant Irep := Make_Single_Test (First (Alts));
@@ -1813,6 +1813,7 @@ package body Tree_Walk is
 
       This_Alt : Node_Id := First (Alternatives (N));
    begin
+      pragma Assert (List_Length (Alternatives (N)) >= 1);
       --  Do-while loop because there must be at least one alternative.
       loop
          declare
