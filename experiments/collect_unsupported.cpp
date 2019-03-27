@@ -152,7 +152,9 @@ int main(int argc, char** argv)
          instances.push_back({k, unsupported_features.count(k)});
       });
 
-   sort(instances.begin(), instances.end(), [&] (const auto& l, const auto& r) {return l.second > r.second;});
+   sort(instances.begin(), instances.end(), [&] (const auto& l, const auto& r) {
+         return l.second == r.second ? l.first < r.first : l.second > r.second;
+      });
 
    string temp;
    cout << "Unsupported features: " << unsupported_features.size() << endl;
