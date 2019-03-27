@@ -1,0 +1,1 @@
+ALL XFAIL CBMC fails with invariant failure "Condition: op.operands()[number].type() == expr.type()"
