@@ -1,0 +1,1 @@
+ALL XFAIL CBMC crashes with first argument of if must be boolean, but got or
