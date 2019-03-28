@@ -828,6 +828,7 @@ package body Tree_Walk is
          declare
             Big_Or : constant Irep := New_Irep (I_Op_Or);
          begin
+            Set_Type (Big_Or, Make_Bool_Type);
             Append_Op (Big_Or, First_Alt_Test);
             while Present (This_Alt) loop
                Append_Op (Big_Or, Make_Single_Test (This_Alt));
