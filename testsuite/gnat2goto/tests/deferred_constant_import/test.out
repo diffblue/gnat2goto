@@ -1,0 +1,5 @@
+Standard_Error from gnat2goto deferred_const_import:
+Warning: Pragmas in declarations unhandled
+
+[assertion.1] Range Check: SUCCESS
+VERIFICATION SUCCESSFUL
