@@ -68,6 +68,29 @@ through to final analysis by CBMC.
 
 Instructions for running the regression test suite are described in [testsuite/gnat2goto/README.md](testsuite/gnat2goto/README.md)
 
+# Running and updating missing features tests
+
+Currently gnat2goto is lacking support for a number of Ada language features.
+The CI system runs gnat2goto on a number of open source Ada projects to track
+changes in feature coverage. These tests can be run locally by performing the
+following commands:
+
+- `$ export PATH=/opt/gnat/bin:/path/to/gnat2goto/bin:${PATH}`
+- `$ export GPR_PROJECT_PATH=/opt/gnat/lib/gnat`
+- `$ cd gnat2goto/experiments`
+- `$ ./CI-list_unsupported.sh`
+
+This script will checkout a number of Ada projects, then for each project it will
+run gnat2goto and summarize the unsupported features used by the project. The
+summary is then compared against a 'golden' reference summary.
+
+If you make changes to gnat2goto that cause it to support previously unsupported
+features you will need to then also update these 'golden' reference files. These
+files are stored in `gnat2goto/experiments/golden-results/<project>-summary.txt`
+one file per project. Simply copy the '<project>-summary.txt' file from
+`gnat2goto/experiments/ada-ci-projects/<project>-summary.txt` into
+`gnat2goto/experiments/golden-results/` and include that as part of your PR.
+
 # Updating the CBMC submodule
 
 As described in [testsuite/gnat2goto/README.md](testsuite/gnat2goto/README.md)

@@ -1,0 +1,34 @@
+Occurs: 26 times
+Calling function: Process_Declaration
+Error message: Private type declaration unsupported
+Nkind: N_Private_Type_Declaration
+--
+Occurs: 25 times
+Calling function: Do_Full_Type_Declaration
+Error message: Identifier not in class type. Type definition failed.
+Nkind: N_Full_Type_Declaration
+--
+Occurs: 19 times
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Access_To_Object_Definition
+--
+Occurs: 9 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Null
+--
+Occurs: 6 times
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Access_Function_Definition
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: Unknown attribute
+Nkind: N_Attribute_Reference
+--
+Occurs: 3 times
+Redacted compiler error message:
+generic parameter "REDACTED" is missing from input dependence list
+Raw compiler error message:

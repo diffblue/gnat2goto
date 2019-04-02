@@ -87,6 +87,7 @@ script:
   #run the tests
   - (cd testsuite/gnat2goto; ./testsuite.py --timeout 60 --diffs --enable-color -j 2 )
   - gnat2goto/install/bin/unit_tests
+  - (gnat --version; cd ${TRAVIS_BUILD_DIR}/experiments; ./CI-list_unsupported.sh )
 
 before_cache:
   - ccache -s
