@@ -104,11 +104,6 @@ Error message: Unknown expression kind
 Nkind: N_Freeze_Entity
 --
 Occurs: 5 times
-Calling function: Do_Constant
-Error message: Constant Type not in Class_Bitvector_Type
-Nkind: N_Integer_Literal
---
-Occurs: 5 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
@@ -149,9 +144,9 @@ Error message: Unknown tree node
 Nkind: N_Compilation_Unit
 --
 Occurs: 1 times
-Calling function: Do_Modular_Type_Definition
-Error message: can not handle modular types with non-power-of-2 bounds at the moment
-Nkind: N_Modular_Type_Definition
+Calling function: Do_Constant
+Error message: Constant Type not in Class_Bitvector_Type
+Nkind: N_Integer_Literal
 --
 Occurs: 1 times
 Calling function: Do_Pragma
