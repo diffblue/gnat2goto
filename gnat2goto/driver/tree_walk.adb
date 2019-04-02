@@ -418,6 +418,14 @@ package body Tree_Walk is
       return I_Empty;
    end Report_Unhandled_Node_Kind;
 
+   function Report_Unhandled_Node_Type (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep
+   is begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return Make_Nil_Type;
+   end Report_Unhandled_Node_Type;
+
    -----------------------------
    -- Add_Entity_Substitution --
    -----------------------------

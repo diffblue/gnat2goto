@@ -127,6 +127,10 @@ package Tree_Walk is
                                         Fun_Name : String;
                                         Message : String) return Irep_Kind;
 
+   function Report_Unhandled_Node_Type (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep;
+
    function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
                                       return Irep
      with Pre => Nkind (Range_Expr) = N_Range;
