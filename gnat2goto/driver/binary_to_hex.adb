@@ -2,7 +2,6 @@ with Uint_To_Binary; use Uint_To_Binary;
 with Ureal_To_Binary; use Ureal_To_Binary;
 
 package body Binary_To_Hex is
-
    function Strip_Leading_Zeroes (Str : String) return String;
 
    function Convert_Binary_To_Hex (Binary : String) return String is
@@ -32,15 +31,23 @@ package body Binary_To_Hex is
          return Hex_Digit'Val (Pos);
       end Convert_Binary_To_Hex_Digit;
 
-      Result : String (1 .. ((Binary'Length / 4)));
+      Binary_Length_Diff : constant Integer := Binary'Length mod 4;
+      Zero_Filled_Binary : String (1 .. Binary'Length + Binary_Length_Diff);
+      Result : String (1 .. ((Zero_Filled_Binary'Length / 4)));
    begin
+      if Binary_Length_Diff > 0 then
+         Zero_Filled_Binary (1 .. Binary_Length_Diff) := (others => '0');
+      end if;
+      Zero_Filled_Binary (1 + Binary_Length_Diff .. Zero_Filled_Binary'Last)
+        := Binary;
       for I in Result'Range loop
          declare
-            Binary_Quartet_Start : constant Integer := Binary'First +
+            Binary_Quartet_Start : constant Integer :=
+              Zero_Filled_Binary'First +
               --  -1 because I starts at 1
               (I - 1) * 4;
             Binary_Quartet_End : constant Integer := Binary_Quartet_Start + 3;
-            Binary_Quartet : constant Binary_Quartet_T := Binary
+            Binary_Quartet : constant Binary_Quartet_T := Zero_Filled_Binary
               (Binary_Quartet_Start .. Binary_Quartet_End);
          begin
             Result (I) := Character'Value (Hex_Digit'Image
