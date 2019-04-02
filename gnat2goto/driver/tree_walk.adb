@@ -71,6 +71,11 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Real_Literal,
         Post => Kind (Do_Real_Constant'Result) = I_Constant_Expr;
 
+   function Do_Modular_Type_Definition (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Modular_Type_Definition,
+        Post => Kind (Do_Modular_Type_Definition'Result)
+                in Class_Type;
+
    function Do_Defining_Identifier (E : Entity_Id) return Irep
    with Pre  => Nkind (E) = N_Defining_Identifier,
         Post => Kind (Do_Defining_Identifier'Result) in
@@ -441,6 +446,14 @@ package body Tree_Walk is
       Report_Unhandled_Node_Empty (N, Fun_Name, Message);
       return I_Empty;
    end Report_Unhandled_Node_Kind;
+
+   function Report_Unhandled_Node_Type (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep
+   is begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return Make_Nil_Type;
+   end Report_Unhandled_Node_Type;
 
    -----------------------------
    -- Add_Entity_Substitution --
@@ -3699,7 +3712,7 @@ package body Tree_Walk is
          when N_Unconstrained_Array_Definition =>
             return Do_Unconstrained_Array_Definition (N);
          when N_Modular_Type_Definition =>
-            return Create_Dummy_Irep;
+            return Do_Modular_Type_Definition (N);
          when N_Floating_Point_Definition =>
             return Do_Floating_Point_Definition (N);
          when others =>
@@ -4262,6 +4275,31 @@ package body Tree_Walk is
 
       return Reps;
    end Process_Statements;
+
+   function Do_Modular_Type_Definition (N : Node_Id) return Irep is
+      Mod_Max : constant Uint := Intval (Expression (N));
+      --  We start at 1, not 0, because our bitvectors
+      --  can't be smaller than 1 bit
+      Mod_Max_Binary_Logarithm : Integer := 1;
+      Power_Of_Two : Uint := Uint_2;
+   begin
+      while Power_Of_Two < Mod_Max loop
+         Mod_Max_Binary_Logarithm := Mod_Max_Binary_Logarithm + 1;
+         Power_Of_Two := Power_Of_Two * 2;
+      end loop;
+      --  If the max value is 2^w (for w > 0) then we can just
+      --  use an unsignedbv of width w
+      if Mod_Max = Power_Of_Two then
+         return Make_Unsignedbv_Type
+           (I_Subtype => Make_Nil_Type,
+            Width => Mod_Max_Binary_Logarithm);
+      end if;
+      return Report_Unhandled_Node_Type
+        (N,
+         "Do_Modular_Type_Definition",
+         "can not handle modular types "
+         & "with non-power-of-2 bounds at the moment");
+   end Do_Modular_Type_Definition;
 
    ---------------------------------------
    -- Register_Subprogram_Specification --
