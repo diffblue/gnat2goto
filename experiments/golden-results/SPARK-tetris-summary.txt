@@ -1,0 +1,14 @@
+Occurs: 10 times
+Calling function: Do_Base_Range_Constraint
+Error message: range expression not bitvector type
+Nkind: N_Range
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" not declared in "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+ghost entity cannot appear in this context
+Raw compiler error message:
