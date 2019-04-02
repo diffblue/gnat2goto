@@ -343,6 +343,30 @@ package body Tree_Walk is
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
 
+   function Do_Attribute_Pos_Val (N : Node_Id) return Irep
+     with Pre => (Ekind (Etype (N)) in Discrete_Kind
+                 and then Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) in
+                    Attribute_Val | Attribute_Pos
+                 and then List_Length (Expressions (N)) = 1),
+     Post => Kind (Do_Attribute_Pos_Val'Result) in Class_Expr;
+
+   function Do_Attribute_Pred_Discrete (N : Node_Id) return Irep
+     with Pre => (Ekind (Etype (N)) in Discrete_Kind
+                 and then Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Pred
+                 and then List_Length (Expressions (N)) = 1),
+     Post => Kind (Do_Attribute_Pred_Discrete'Result) in Class_Expr;
+
+   function Do_Attribute_Succ_Discrete (N : Node_Id) return Irep
+     with Pre => (Ekind (Etype (N)) in Discrete_Kind
+                 and then Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Succ
+                 and then List_Length (Expressions (N)) = 1),
+          Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
+
    function Create_Dummy_Irep return Irep;
 
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
@@ -1199,6 +1223,53 @@ package body Tree_Walk is
       return Ret;
    end Do_Enumeration_Definition;
 
+   function Do_Attribute_Pos_Val (N : Node_Id) return Irep is
+      --  Expressions function returns a list of arguments
+      Arguments : constant List_Id := Expressions (N);
+      --  We check in the precondition that there's only one
+      Argument : constant Node_Id := First (Arguments);
+   begin
+      return Do_Expression (Argument);
+   end Do_Attribute_Pos_Val;
+
+   function Do_Attribute_Pred_Discrete (N : Node_Id) return Irep is
+      Arguments : constant List_Id := Expressions (N);
+      Argument : constant Node_Id := First (Arguments);
+      Arg_Expr : constant Irep := Do_Expression (Argument);
+      Result_Type : constant Irep := Get_Type (Arg_Expr);
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      --  Need to increment by one discrete step
+      --  Using index constant
+      One : constant Irep :=
+           Build_Index_Constant (Value      => 1,
+                                 Index_Type => Result_Type,
+                                 Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Sub (Rhs             => One,
+                          Lhs             => Arg_Expr,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Result_Type);
+   end Do_Attribute_Pred_Discrete;
+
+   function Do_Attribute_Succ_Discrete (N : Node_Id) return Irep is
+      Arguments : constant List_Id := Expressions (N);
+      Argument : constant Node_Id := First (Arguments);
+      Arg_Expr : constant Irep := Do_Expression (Argument);
+      Result_Type : constant Irep := Get_Type (Arg_Expr);
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      One : constant Irep :=
+           Build_Index_Constant (Value      => 1,
+                                 Index_Type => Result_Type,
+                                 Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Add (Rhs             => One,
+                          Lhs             => Arg_Expr,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Result_Type);
+   end Do_Attribute_Succ_Discrete;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1236,6 +1307,14 @@ package body Tree_Walk is
                when Attribute_Last   =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Last attribute");
+               when Attribute_Val =>
+                  return Do_Attribute_Pos_Val (N);
+               when Attribute_Pos =>
+                  return Do_Attribute_Pos_Val (N);
+               when Attribute_Pred =>
+                  return Do_Attribute_Pred_Discrete (N);
+               when Attribute_Succ =>
+                  return Do_Attribute_Succ_Discrete (N);
                when others           =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Unknown attribute");
