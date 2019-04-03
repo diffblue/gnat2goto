@@ -24,11 +24,6 @@ Error message: range expression not bitvector type
 Nkind: N_Range
 --
 Occurs: 12 times
-Calling function: Do_Full_Type_Declaration
-Error message: Identifier not in class type. Type definition failed.
-Nkind: N_Full_Type_Declaration
---
-Occurs: 12 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
