@@ -608,9 +608,11 @@ package body Driver is
             Value : constant Irep := Current_Symbol.Value;
          begin
             Modified_Symbol.SymType :=
-              Remove_Bounds (Follow_Irep (SymType, Follow_Symbol'Access));
+              Remove_Extra_Type_Information
+              (Follow_Irep (SymType, Follow_Symbol'Access));
             Modified_Symbol.Value :=
-              Remove_Bounds (Follow_Irep (Value, Follow_Symbol'Access));
+              Remove_Extra_Type_Information
+              (Follow_Irep (Value, Follow_Symbol'Access));
 
             New_Table.Insert
                  (Key      => Symbol_Maps.Key (Sym_Iter),

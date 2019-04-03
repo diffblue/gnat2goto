@@ -368,7 +368,7 @@ class IrepsGenerator(object):
                 write(b, "Integer (Follow_Irep (Irep (%s), Follow_Symbol));" % tbl_field)
         return needs_null
 
-    def remove_bounds_set_all_subs(self, b, sn, subs, i, needs_null):
+    def remove_extra_type_information_set_all_subs(self, b, sn, subs, i, needs_null):
         needs_null = False
         setter_name, is_list = subs[i]
         layout_kind, layout_index, layout_typ =\
@@ -380,11 +380,12 @@ class IrepsGenerator(object):
             assert len(subs) == 1
             write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
             with indent(b):
-                write(b, "Integer (Remove_Bounds (Irep_List (%s)));" % tbl_field)
+                write(b, "Integer (Remove_Extra_Type_Information")
+                write(b, "  (Irep_List (%s)));" % tbl_field)
         else:
             write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
             with indent(b):
-                write(b, "Integer (Remove_Bounds (Irep (%s)));" % tbl_field)
+                write(b, "Integer (Remove_Extra_Type_Information (Irep (%s)));" % tbl_field)
         return needs_null
 
     def to_json_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
@@ -443,7 +444,7 @@ class IrepsGenerator(object):
                     needs_null = False
         return needs_null
 
-    def remove_bounds_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
+    def remove_extra_type_information_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
         needs_null = True
         for kind in self.named_setters[setter_name]:
             assert kind in ("irep", "list", "trivial")
@@ -460,7 +461,7 @@ class IrepsGenerator(object):
                 if kind == "irep":
                     write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
                     with indent(b):
-                        write(b, "Integer (Remove_Bounds (Irep (%s)));" % tbl_field)
+                        write(b, "Integer (Remove_Extra_Type_Information (Irep (%s)));" % tbl_field)
                     needs_null = False
         return needs_null
 
@@ -529,7 +530,7 @@ class IrepsGenerator(object):
                     write(b, "null;")
                 write(b, "")
 
-    def remove_bounds_single_schema_name(self, b, sn):
+    def remove_extra_type_information_single_schema_name(self, b, sn):
         schema = self.schemata[sn]
         with indent(b):
             write(b, "when %s =>" % schema["ada_name"])
@@ -541,11 +542,11 @@ class IrepsGenerator(object):
                 # Set all subs
                 subs = self.collect_subs(sn)
                 for i in xrange(len(subs)):
-                    needs_null = self.remove_bounds_set_all_subs(b, sn, subs, i, needs_null)
+                    needs_null = self.remove_extra_type_information_set_all_subs(b, sn, subs, i, needs_null)
 
                 # Set all namedSub and comments
                 for setter_name in self.named_setters:
-                    needs_null = self.remove_bounds_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
+                    needs_null = self.remove_extra_type_information_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
 
                 if needs_null:
                     write(b, "null;")
@@ -1812,7 +1813,7 @@ class IrepsGenerator(object):
         write(s, "--  Replace Symbol Types")
         write(s, "")
 
-        write(s, "function Remove_Bounds (I : Irep) return Irep;")
+        write(s, "function Remove_Extra_Type_Information (I : Irep) return Irep;")
         write(s, "--  Remove Type Bounds")
         write(s, "")
 
@@ -1828,7 +1829,7 @@ class IrepsGenerator(object):
         write(b, "--  Replace Symbol Types")
         write(b, "")
 
-        write(b, "function Remove_Bounds (L : Irep_List) return Irep_List;")
+        write(b, "function Remove_Extra_Type_Information (L : Irep_List) return Irep_List;")
         write(b, "--  Remove Type Bounds")
         write(b, "")
 
@@ -1879,7 +1880,7 @@ class IrepsGenerator(object):
         continuation(b)
         write(b, "")
 
-        write(b, "function Remove_Bounds (L : Irep_List) return Irep_List")
+        write(b, "function Remove_Extra_Type_Information (L : Irep_List) return Irep_List")
         write(b, "is separate;")
         continuation(b)
         write(b, "")
@@ -2035,8 +2036,8 @@ class IrepsGenerator(object):
         write(b, "end Follow_Irep;")
         write(b, "")
 
-        write_comment_block(b, "Remove_Bounds")
-        write(b, "function Remove_Bounds (I : Irep) return Irep")
+        write_comment_block(b, "Remove_Extra_Type_Information")
+        write(b, "function Remove_Extra_Type_Information (I : Irep) return Irep")
         write(b, "is")
         write(b, "begin")
         manual_indent(b)
@@ -2054,6 +2055,10 @@ class IrepsGenerator(object):
         with indent(b):
             write(b, "return Make_Floatbv_Type (Get_Subtype (I), Get_Width (I), Get_F (I));")
         write(b, "end if;")
+        write(b, "if Kind (I) = I_Ada_Mod_Type then")
+        with indent(b):
+            write(b, "return Make_Unsignedbv_Type (Make_Nil_Type, Get_Width (I));")
+        write(b, "end if;")
         write(b, "")
         write(b, "declare")
         with indent(b):
@@ -2063,13 +2068,13 @@ class IrepsGenerator(object):
         write(b, "case N.Kind is")
 
         for sn in self.top_sorted_sn:
-            self.remove_bounds_single_schema_name(b, sn)
+            self.remove_extra_type_information_single_schema_name(b, sn)
         write(b, "end case;")
         manual_outdent(b)
         write(b, "end;")
         write(b, "return I;")
         manual_outdent(b)
-        write(b, "end Remove_Bounds;")
+        write(b, "end Remove_Extra_Type_Information;")
         write(b, "")
 
         ##########################################################################

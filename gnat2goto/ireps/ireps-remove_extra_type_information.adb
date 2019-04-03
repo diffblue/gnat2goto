@@ -2,10 +2,10 @@
 --  Separate definition for removing type bounds throughout Irep_Lists(s)
 --  Implementation is adopted from ireps-to_json.adb
 --  The rationale is to create a new list only when a new irep was created
---  by the respective Remove_Bounds.
+--  by the respective Remove_Extra_Type_Information.
 -------------------------------------------------------------------------------
 separate (Ireps)
-function Remove_Bounds (L : Irep_List) return Irep_List
+function Remove_Extra_Type_Information (L : Irep_List) return Irep_List
 is
    The_List : Irep_List_Node;
    Ptr      : Internal_Irep_List;
@@ -18,7 +18,8 @@ begin
       while Ptr /= 0 loop
          declare
             Orig_Irep : constant Irep := Irep (Irep_List_Table.Table (Ptr).A);
-            New_Irep  : constant Irep := Remove_Bounds (Orig_Irep);
+            New_Irep  : constant Irep := Remove_Extra_Type_Information
+              (Orig_Irep);
          begin
             if Orig_Irep /= New_Irep then
                Append (Arr, New_Irep);
@@ -37,4 +38,4 @@ begin
    else
       return L;
    end if;
-end Remove_Bounds;
+end Remove_Extra_Type_Information;
