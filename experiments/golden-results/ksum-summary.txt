@@ -1,3 +1,18 @@
+Occurs: 31 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 5 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 4 times
+Calling function: Process_Declaration
+Error message: Exception declaration
+Nkind: N_Exception_Declaration
+--
 Occurs: 2 times
 Calling function: Process_Declaration
 Error message: Private type declaration unsupported

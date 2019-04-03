@@ -1,7 +1,22 @@
+Occurs: 2448 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 1272 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
+--
 Occurs: 168 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
+--
+Occurs: 160 times
+Calling function: Process_Declaration
+Error message: Number declaration
+Nkind: N_Number_Declaration
 --
 Occurs: 132 times
 Calling function: Do_Expression
@@ -13,6 +28,11 @@ Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
 --
+Occurs: 107 times
+Calling function: Process_Declaration
+Error message: Generic declaration
+Nkind: N_Generic_Subprogram_Declaration
+--
 Occurs: 93 times
 Calling function: Do_Expression
 Error message: Last attribute
@@ -23,10 +43,20 @@ Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
 --
+Occurs: 49 times
+Calling function: Process_Statement
+Error message: Raise statement
+Nkind: N_Raise_Statement
+--
 Occurs: 42 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
+--
+Occurs: 37 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
 --
 Occurs: 29 times
 Calling function: Do_Expression
@@ -42,6 +72,26 @@ Occurs: 21 times
 Calling function: Process_Declaration
 Error message: Private type declaration unsupported
 Nkind: N_Private_Type_Declaration
+--
+Occurs: 20 times
+Calling function: Process_Declaration
+Error message: Exception declaration
+Nkind: N_Exception_Declaration
+--
+Occurs: 20 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
+--
+Occurs: 19 times
+Calling function: Process_Declaration
+Error message: Package body declaration
+Nkind: N_Package_Body
+--
+Occurs: 18 times
+Calling function: Process_Statement
+Error message: Extended return statement
+Nkind: N_Extended_Return_Statement
 --
 Occurs: 17 times
 Calling function: Make_Array_First_Expr
@@ -73,6 +123,11 @@ Calling function: Do_Expression
 Error message: In
 Nkind: N_In
 --
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Package_Instantiation
+--
 Occurs: 7 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
@@ -94,6 +149,11 @@ Error message: Unsupported operand
 Nkind: N_Op_Expon
 --
 Occurs: 6 times
+Calling function: Process_Declaration
+Error message: Use package clause declaration
+Nkind: N_Use_Package_Clause
+--
+Occurs: 6 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Freeze_Entity
@@ -113,10 +173,25 @@ Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
 --
+Occurs: 5 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
+--
+Occurs: 5 times
+Calling function: Process_Declaration
+Error message: Use type clause declaration
+Nkind: N_Use_Type_Clause
+--
 Occurs: 4 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
+--
+Occurs: 4 times
+Calling function: Process_Declaration
+Error message: Generic declaration
+Nkind: N_Generic_Package_Declaration
 --
 Occurs: 3 times
 Calling function: Process_Statement
@@ -152,6 +227,11 @@ Occurs: 1 times
 Calling function: Do_Pragma
 Error message: Unknown pragma name
 Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Subprogram body stub declaration
+Nkind: N_Subprogram_Body_Stub
 --
 Occurs: 1 times
 Calling function: Process_Statement

@@ -1,12 +1,37 @@
+Occurs: 411 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 192 times
+Calling function: Process_Declaration
+Error message: Exception declaration
+Nkind: N_Exception_Declaration
+--
+Occurs: 176 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
+--
 Occurs: 94 times
 Calling function: Do_Expression
 Error message: Qualified
 Nkind: N_Qualified_Expression
 --
+Occurs: 82 times
+Calling function: Process_Declaration
+Error message: Number declaration
+Nkind: N_Number_Declaration
+--
 Occurs: 62 times
 Calling function: Process_Declaration
 Error message: Private type declaration unsupported
 Nkind: N_Private_Type_Declaration
+--
+Occurs: 36 times
+Calling function: Process_Declaration
+Error message: Abstract subprogram declaration
+Nkind: N_Abstract_Subprogram_Declaration
 --
 Occurs: 32 times
 Calling function: Do_Expression
@@ -27,6 +52,11 @@ Occurs: 12 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
+--
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Enumeration_Representation_Clause
 --
 Occurs: 4 times
 Calling function: Do_Expression

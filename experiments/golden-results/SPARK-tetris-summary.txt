@@ -1,7 +1,27 @@
+Occurs: 49 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 36 times
+Calling function: Process_Declaration
+Error message: Number declaration
+Nkind: N_Number_Declaration
+--
+Occurs: 15 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
+--
 Occurs: 10 times
 Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 1 times
 Redacted compiler error message:

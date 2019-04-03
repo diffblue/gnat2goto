@@ -1,7 +1,27 @@
+Occurs: 573 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 265 times
+Calling function: Process_Declaration
+Error message: Number declaration
+Nkind: N_Number_Declaration
+--
+Occurs: 136 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
+--
 Occurs: 26 times
 Calling function: Do_Expression
 Error message: Qualified
 Nkind: N_Qualified_Expression
+--
+Occurs: 7 times
+Calling function: Process_Declaration
+Error message: Subprogram body stub declaration
+Nkind: N_Subprogram_Body_Stub
 --
 Occurs: 6 times
 Calling function: Do_Expression
@@ -47,6 +67,11 @@ Occurs: 1 times
 Calling function: Make_Array_Index_Op
 Error message: Kinds not in classes
 Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Use package clause declaration
+Nkind: N_Use_Package_Clause
 --
 Occurs: 5 times
 Redacted compiler error message:
