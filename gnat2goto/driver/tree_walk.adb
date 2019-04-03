@@ -4307,11 +4307,12 @@ package body Tree_Walk is
            (I_Subtype => Make_Nil_Type,
             Width => Mod_Max_Binary_Logarithm);
       end if;
-      return Report_Unhandled_Node_Type
-        (N,
-         "Do_Modular_Type_Definition",
-         "can not handle modular types "
-         & "with non-power-of-2 bounds at the moment");
+
+      return Make_Ada_Mod_Type
+        (I_Subtype => Make_Nil_Type,
+         Width => Mod_Max_Binary_Logarithm,
+         Ada_Mod_Max => Convert_Uint_To_Hex
+           (Mod_Max, Pos (Mod_Max_Binary_Logarithm)));
    end Do_Modular_Type_Definition;
 
    ---------------------------------------

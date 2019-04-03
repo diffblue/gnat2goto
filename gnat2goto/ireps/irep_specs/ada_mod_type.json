@@ -1,0 +1,7 @@
+{
+   "parent": "bitvector_type",
+   "id": "ada_mod_type",
+   "namedSub": {
+      "ada_mod_max": {"type": "string"}
+   }
+}
