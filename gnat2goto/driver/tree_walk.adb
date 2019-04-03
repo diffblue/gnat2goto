@@ -3715,8 +3715,11 @@ package body Tree_Walk is
             return Do_Modular_Type_Definition (N);
          when N_Floating_Point_Definition =>
             return Do_Floating_Point_Definition (N);
+         when N_Access_To_Object_Definition =>
+            return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
+                                               "Access type unsupported");
          when others =>
-            return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
+            return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
                                                "Unknown expression kind");
       end case;
    end Do_Type_Definition;
