@@ -4,6 +4,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")"; pwd)"
 CI_WORKING_DIR="${SCRIPT_DIR}/ada-ci-projects"
 CI_GOLDEN_RESULTS="${SCRIPT_DIR}/golden-results"
 
+
+# Accumulator variable to gather a list of projects
+# that failed
+ci_failed_projects=""
+
 test_all()
 {
 	ci_failed=0
@@ -27,7 +32,10 @@ test_all()
 		# https://github.com/pauljaxon/vct.git 18439b3337eb36e896fa89507c102d919692fcec
 
 	if [ "$ci_failed" -gt 0 ]; then
-		echo_bold_red "FAILED CI-list_unsupported.sh: Some golden results out of date."
+		echo_bold_red "FAILED CI-list_unsupported.sh: Golden results out of date for the following projects:"
+		for project in ${ci_failed_projects}; do
+			echo_red "    $project"
+		done
 	else
 		echo_bold_green "PASSED CI-list_unsupported.sh: Golden results up to date."
 	fi
@@ -75,6 +83,7 @@ test_repo()
 	diff_result="$?"
 
 	if [ "$diff_result" -gt 0 ]; then
+		ci_failed_projects="${ci_failed_projects} ${repo_checkout_dir}"
 		echo_red "FAILED: Golden results out of date for ${repo_checkout_dir}. Diff:"
 		cat "${CI_WORKING_DIR}/${repo_checkout_dir}-ci_result.txt"
 	else
