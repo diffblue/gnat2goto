@@ -310,10 +310,6 @@ package body Tree_Walk is
         Post => Kind (Union_Expr) = I_Union_Expr and then
                 Kind (Struct_Expr) = I_Struct_Expr;
 
-   type Construct is (Declaration, Statement);
-
-   procedure Warn_Unhandled_Construct (C : Construct; Mess : String);
-
    procedure Process_Declaration (N : Node_Id; Block : Irep);
 --     with Pre => Nkind (N) in N_Declaration or else
 --                 Nkind (N) in N_Number_Declaration or else
@@ -3997,19 +3993,6 @@ package body Tree_Walk is
          Op0             => Struct_Expr);
    end Make_Variant_Literal;
 
-   --------------------------------
-   --  Warn_Unhandled_Construct  --
-   --------------------------------
-
-   procedure Warn_Unhandled_Construct (C : Construct; Mess : String) is
-      S : constant String :=
-        (case C is
-            when Declaration => " declarations ",
-            when Statement   => " statements ") & "unhandled";
-   begin
-      Put_Line (Standard_Error, "Warning: " & Mess & S);
-   end Warn_Unhandled_Construct;
-
    --------------------------
    -- Process_Declaration --
    --------------------------
@@ -4032,41 +4015,47 @@ package body Tree_Walk is
             Do_Object_Declaration (N, Block);
 
          when N_Number_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Number");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Number declaration");
 
          when N_Subprogram_Declaration =>
             Do_Subprogram_Declaration (N);
 
          when N_Abstract_Subprogram_Declaration =>
-            Warn_Unhandled_Construct
-              (Declaration, "Abstract subprogram");
-
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Abstract subprogram declaration");
          when N_Package_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Package");
-
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Package declaration");
          when N_Renaming_Declaration =>
             --  renaming declarations are handled by the gnat front-end;
             null;
 
          when N_Exception_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Exception");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Exception declaration");
 
          when N_Generic_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Generic");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Generic declaration");
 
          when N_Generic_Instantiation =>
-            Warn_Unhandled_Construct (Declaration, "Generic instantiation");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Generic instantiation declaration");
 
             --  basic_declarative_items  --
 
          when N_Representation_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Representation clause");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Representation clause declaration");
 
          when N_Use_Package_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Use package clause");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Use package clause declaration");
 
          when N_Use_Type_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Use type clause");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Use type clause declaration");
 
          --  remaining declarative items  --
 
@@ -4076,32 +4065,40 @@ package body Tree_Walk is
             Do_Subprogram_Body (N);
 
          when N_Package_Body =>
-            Warn_Unhandled_Construct (Declaration, "Package body");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Package body declaration");
 
          when N_Task_Body =>
-            Warn_Unhandled_Construct (Declaration, "Task body");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Task body declaration");
 
          when N_Protected_Body =>
-            Warn_Unhandled_Construct (Declaration, "Protected body");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Protected body declaration");
 
             --  body_stub  --
 
          when N_Subprogram_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Subprogram body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Subprogram body stub declaration");
 
          when N_Package_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Package body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Package body stub declaration");
 
          when N_Task_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Task body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Task body stub declaration");
 
          when N_Protected_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Protected body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Protected body stub declaration");
 
          --  Pragmas may appear in declarations  --
 
          when N_Pragma =>
-            Warn_Unhandled_Construct (Declaration, "Pragmas in");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Pragmas in declaration");
 
             --  Every code lable is implicitly declared in  --
             --  the closest surrounding block               --
@@ -4165,7 +4162,8 @@ package body Tree_Walk is
             Append_Op (Block, Do_Exit_Statement (N));
 
          when N_Goto_Statement =>
-            Warn_Unhandled_Construct (Statement, "goto");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Goto statement");
 
          when N_Procedure_Call_Statement =>
             Append_Op (Block, Do_Procedure_Call_Statement (N));
@@ -4174,22 +4172,28 @@ package body Tree_Walk is
             Append_Op (Block, Do_Simple_Return_Statement (N));
 
          when N_Entry_Call_Statement =>
-            Warn_Unhandled_Construct (Statement, "entry_call");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Entry call statement");
 
          when N_Requeue_Statement =>
-            Warn_Unhandled_Construct (Statement, "requeue");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Requeue statement");
 
          when N_Delay_Statement =>
-            Warn_Unhandled_Construct (Statement, "delay");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Delay statement");
 
          when N_Abort_Statement =>
-            Warn_Unhandled_Construct (Statement, "abort");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Abort statement");
 
          when N_Raise_Statement =>
-            Warn_Unhandled_Construct (Statement, "raise");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Raise statement");
 
          when N_Code_Statement =>
-            Warn_Unhandled_Construct (Statement, "code");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Code statement");
 
          --  Compound statements
 
@@ -4210,24 +4214,30 @@ package body Tree_Walk is
             Append_Op (Block, Do_Handled_Sequence_Of_Statements (N));
 
          when N_Extended_Return_Statement =>
-            Warn_Unhandled_Construct (Statement, "extended_return");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Extended return statement");
 
          when N_Accept_Statement =>
-            Warn_Unhandled_Construct (Statement, "accept");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Accept statement");
 
             -- Select statements --
 
          when N_Selective_Accept =>
-            Warn_Unhandled_Construct (Statement, "selective_accept");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Selective Accept");
 
          when N_Timed_Entry_Call =>
-            Warn_Unhandled_Construct (Statement, "timed_entry_call");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Timed entry call");
 
          when N_Conditional_Entry_Call =>
-            Warn_Unhandled_Construct (Statement, "conditional_entry_call");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Conditional entry call");
 
          when N_Asynchronous_Select =>
-            Warn_Unhandled_Construct (Statement, "asychronous select");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Asynchronous select");
 
          -- Pragmas may placed in sequences of statements --
 

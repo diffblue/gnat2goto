@@ -1,3 +1,23 @@
+Occurs: 1508 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 852 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 240 times
+Calling function: Process_Declaration
+Error message: Number declaration
+Nkind: N_Number_Declaration
+--
+Occurs: 112 times
+Calling function: Process_Declaration
+Error message: Exception declaration
+Nkind: N_Exception_Declaration
+--
 Occurs: 105 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
@@ -7,6 +27,16 @@ Occurs: 97 times
 Calling function: Process_Declaration
 Error message: Private type declaration unsupported
 Nkind: N_Private_Type_Declaration
+--
+Occurs: 32 times
+Calling function: Process_Declaration
+Error message: Abstract subprogram declaration
+Nkind: N_Abstract_Subprogram_Declaration
+--
+Occurs: 24 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Record_Representation_Clause
 --
 Occurs: 16 times
 Calling function: Do_Expression
@@ -22,6 +52,11 @@ Occurs: 13 times
 Calling function: Do_Derived_Type_Definition
 Error message: abstract present not true
 Nkind: N_Derived_Type_Definition
+--
+Occurs: 13 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
 --
 Occurs: 13 times
 Calling function: Process_Declaration
@@ -43,6 +78,11 @@ Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
 --
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Use type clause declaration
+Nkind: N_Use_Type_Clause
+--
 Occurs: 8 times
 Calling function: Do_Constant
 Error message: Constant Type not in symbol table
@@ -53,15 +93,30 @@ Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
+Occurs: 7 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
+--
 Occurs: 6 times
 Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
 --
+Occurs: 6 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
+--
 Occurs: 4 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
+--
+Occurs: 4 times
+Calling function: Process_Declaration
+Error message: Package body declaration
+Nkind: N_Package_Body
 --
 Occurs: 3 times
 Calling function: Do_Address_Of
@@ -77,6 +132,11 @@ Occurs: 3 times
 Calling function: Do_Identifier
 Error message: Etype not a type
 Nkind: N_Identifier
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Generic declaration
+Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 2 times
 Calling function: Do_Procedure_Call_Statement
@@ -117,6 +177,11 @@ Occurs: 1 times
 Calling function: Do_Operator_Simple
 Error message: Unsupported operand
 Nkind: N_Op_Expon
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Use package clause declaration
+Nkind: N_Use_Package_Clause
 --
 Occurs: 291 times
 Redacted compiler error message:
