@@ -139,4 +139,7 @@ package Tree_Walk is
      (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
      with Pre => Kind (Value) in Class_Expr;
 
+   function Create_Dummy_Irep return Irep;
+
+   function Make_Type_Symbol (Name : Symbol_Id; Defn : Irep) return Symbol;
 end Tree_Walk;
