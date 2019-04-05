@@ -1,0 +1,1119 @@
+Occurs: 411 times
+Calling function: Process_Declaration
+Error message: Pragmas in declaration
+Nkind: N_Pragma
+--
+Occurs: 192 times
+Calling function: Process_Declaration
+Error message: Exception declaration
+Nkind: N_Exception_Declaration
+--
+Occurs: 176 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 94 times
+Calling function: Do_Expression
+Error message: Qualified
+Nkind: N_Qualified_Expression
+--
+Occurs: 82 times
+Calling function: Process_Declaration
+Error message: Number declaration
+Nkind: N_Number_Declaration
+--
+Occurs: 62 times
+Calling function: Process_Declaration
+Error message: Private type declaration unsupported
+Nkind: N_Private_Type_Declaration
+--
+Occurs: 36 times
+Calling function: Process_Declaration
+Error message: Abstract subprogram declaration
+Nkind: N_Abstract_Subprogram_Declaration
+--
+Occurs: 32 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 28 times
+Calling function: Do_Base_Range_Constraint
+Error message: high bound range expression not literal
+Nkind: N_Range
+--
+Occurs: 15 times
+Calling function: Do_Base_Range_Constraint
+Error message: range expression not bitvector type
+Nkind: N_Range
+--
+Occurs: 12 times
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Access_Function_Definition
+--
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Representation clause declaration
+Nkind: N_Enumeration_Representation_Clause
+--
+Occurs: 4 times
+Calling function: Do_Expression
+Error message: First attribute
+Nkind: N_Attribute_Reference
+--
+Occurs: 4 times
+Calling function: Do_Expression
+Error message: Last attribute
+Nkind: N_Attribute_Reference
+--
+Occurs: 4 times
+Calling function: Do_Expression
+Error message: Unknown attribute
+Nkind: N_Attribute_Reference
+--
+Occurs: 3 times
+Calling function: Do_While_Statement
+Error message: Wrong Nkind spec
+Nkind: N_Loop_Statement
+--
+Occurs: 3 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Object_Declaration
+--
+Occurs: 2 times
+Calling function: Do_Operator_General
+Error message: Concat unsupported
+Nkind: N_Op_Concat
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Private_Extension_Declaration
+--
+Occurs: 1 times
+Calling function: Do_Itype_Integer_Subtype
+Error message: Non-literal bound unsupported
+Nkind: N_Defining_Identifier
+--
+Occurs: 159 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 146 times
+Redacted compiler error message:
+prefix for selection is not a name
+Raw compiler error message:
+--
+Occurs: 42 times
+Redacted compiler error message:
+"REDACTED" should be "REDACTED"
+Raw compiler error message:
+--
+Occurs: 29 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 26 times
+Redacted compiler error message:
+reserved word "REDACTED" cannot be used as identifier
+Raw compiler error message:
+--
+Occurs: 25 times
+Redacted compiler error message:
+subtype indication expected
+Raw compiler error message:
+--
+Occurs: 19 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 17 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 15 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 13 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 12 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 11 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 10 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 10 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 10 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 10 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 9 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 9 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 9 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 8 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 8 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 8 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 8 times
+Redacted compiler error message:
+missing "REDACTED"
+Raw compiler error message:
+--
+Occurs: 8 times
+Redacted compiler error message:
+statement expected
+Raw compiler error message:
+--
+Occurs: 7 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 7 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 7 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 7 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 7 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 6 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 6 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 6 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 5 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 5 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 4 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 4 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 4 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 4 times
+Redacted compiler error message:
+missing "REDACTED"
+Raw compiler error message:
+--
+Occurs: 4 times
+Redacted compiler error message:
+missing "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+missing "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+missing "REDACTED"
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+no "REDACTED" for this "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 2 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" should be "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" expected for "REDACTED" at line 191
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+(Ada 2005) cannot copy object of a limited type (RM-2005 6.5(5.5/2))
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+consider switching to return of access type
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+declaration expected
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+declarations must come before "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+keyword "REDACTED" expected here [see file name]
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+loop or block statement must follow label
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+missing "REDACTED" for "REDACTED" at line 123
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+missing "REDACTED" for "REDACTED" at line 149
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+missing "REDACTED" for "REDACTED" at line 97
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+missing "REDACTED" for "REDACTED" at line 209
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+missing "REDACTED" for "REDACTED" at line 339
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+missing "REDACTED" for "REDACTED" at line 556
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+range must be preceded by subtype mark
+Raw compiler error message:

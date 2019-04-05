@@ -25,7 +25,7 @@ include_path=""
 DIR=`dirname "$0"`
 file_name=$(basename "$1")
 
-for foldername in $(find ${path} -type d -name "*"); do
+for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
    count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
    if [ $count != 0 ]
    then
@@ -58,7 +58,7 @@ fi
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
 for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
    echo "Expanding $include_folder..."
-   for foldername in $(find ${include_folder} -type d -name "*"); do
+   for foldername in $(find ${include_folder} -type d -name "*" | LC_ALL=posix sort); do
       count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
       if [ $count != 0 ]
       then
@@ -81,7 +81,7 @@ echo >&2 "-------------------------------------------------------"
 # some other error that caused the compiler to exit with non-zero
 # exit code
 compile_error_occured=0
-for filename in $(find ${path} -name '*.adb'); do
+for filename in $(find ${path} -name '*.adb' | LC_ALL=posix sort); do
    printf "Compiling %s..." "${filename}" >&2
    echo "---------- COMPILING: $filename" >>"$file_name".txt
    "${GNAT2GOTO}" -gnatU ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
@@ -119,7 +119,7 @@ sed '/^\[/ d' < "$file_name".txt | \
 
 # Collate and summarise unsupported features
 g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
-./CollectUnsupported "$file_name".txt
+LC_ALL=posix ./CollectUnsupported "$file_name".txt
 
 # Collate and summarize compile errors from builds that did not generate
 # unsupported features lists
@@ -141,7 +141,7 @@ g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 #
 sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$file_name".txt | \
    sed 's/ at [^ ][^ ]*:[0-9][0-9]*$//' | \
-      sort | uniq -c | sort -n -r | \
+      LC_ALL=posix sort | uniq -c | LC_ALL=posix sort -k1,1nr -k2 | \
          awk '/^ *[0-9]+ .*$/ { \
             count=$1; \
             raw=$0; sub(/^ *[0-9]+ /, "", raw); \
@@ -170,13 +170,12 @@ awk  '/^---------- COMPILING: / { \
       { \
          buf = buf "<<<>>>" $0 \
       }' "$file_name".txt \
-   | sort | uniq -c | sort -n -r | \
+   | LC_ALL=posix sort | uniq -c | LC_ALL=posix sort -k1,1nr -k2 | \
       awk '/^ *[0-9][0-9]* .*/ { \
          print "--------------------------------------------------------------------------------"; \
          print "Occurs:", $1, "times"; \
          sub(/^ *[0-9][0-9]* */,"",$0); \
-         gsub(/<<<>>>/,"\
-         ", $0); \
+         gsub(/<<<>>>/,"\n", $0); \
          print $0; \
          print "--------------------------------------------------------------------------------"; \
       }'

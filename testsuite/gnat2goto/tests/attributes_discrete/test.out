@@ -1,0 +1,11 @@
+[1] file attributes_discrete.adb line 7 assertion: FAILURE
+[2] file attributes_discrete.adb line 8 assertion: SUCCESS
+[3] file attributes_discrete.adb line 9 assertion: SUCCESS
+[4] file attributes_discrete.adb line 11 assertion: SUCCESS
+[5] file attributes_discrete.adb line 12 assertion: SUCCESS
+[6] file attributes_discrete.adb line 13 assertion: SUCCESS
+[7] file attributes_discrete.adb line 15 assertion: SUCCESS
+[8] file attributes_discrete.adb line 16 assertion: SUCCESS
+[9] file attributes_discrete.adb line 17 assertion: SUCCESS
+[10] file attributes_discrete.adb line 18 assertion: SUCCESS
+VERIFICATION FAILED

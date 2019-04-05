@@ -71,6 +71,11 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Real_Literal,
         Post => Kind (Do_Real_Constant'Result) = I_Constant_Expr;
 
+   function Do_Modular_Type_Definition (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Modular_Type_Definition,
+        Post => Kind (Do_Modular_Type_Definition'Result)
+                in Class_Type;
+
    function Do_Defining_Identifier (E : Entity_Id) return Irep
    with Pre  => Nkind (E) = N_Defining_Identifier,
         Post => Kind (Do_Defining_Identifier'Result) in
@@ -305,10 +310,6 @@ package body Tree_Walk is
         Post => Kind (Union_Expr) = I_Union_Expr and then
                 Kind (Struct_Expr) = I_Struct_Expr;
 
-   type Construct is (Declaration, Statement);
-
-   procedure Warn_Unhandled_Construct (C : Construct; Mess : String);
-
    procedure Process_Declaration (N : Node_Id; Block : Irep);
 --     with Pre => Nkind (N) in N_Declaration or else
 --                 Nkind (N) in N_Number_Declaration or else
@@ -342,6 +343,30 @@ package body Tree_Walk is
    --  Insert the subprogram specification into the symbol table
 
    procedure Remove_Entity_Substitution (E : Entity_Id);
+
+   function Do_Attribute_Pos_Val (N : Node_Id) return Irep
+     with Pre => (Ekind (Etype (N)) in Discrete_Kind
+                 and then Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) in
+                    Attribute_Val | Attribute_Pos
+                 and then List_Length (Expressions (N)) = 1),
+     Post => Kind (Do_Attribute_Pos_Val'Result) in Class_Expr;
+
+   function Do_Attribute_Pred_Discrete (N : Node_Id) return Irep
+     with Pre => (Ekind (Etype (N)) in Discrete_Kind
+                 and then Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Pred
+                 and then List_Length (Expressions (N)) = 1),
+     Post => Kind (Do_Attribute_Pred_Discrete'Result) in Class_Expr;
+
+   function Do_Attribute_Succ_Discrete (N : Node_Id) return Irep
+     with Pre => (Ekind (Etype (N)) in Discrete_Kind
+                 and then Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Succ
+                 and then List_Length (Expressions (N)) = 1),
+          Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
 
    function Create_Dummy_Irep return Irep;
 
@@ -417,6 +442,14 @@ package body Tree_Walk is
       Report_Unhandled_Node_Empty (N, Fun_Name, Message);
       return I_Empty;
    end Report_Unhandled_Node_Kind;
+
+   function Report_Unhandled_Node_Type (N : Node_Id;
+                                        Fun_Name : String;
+                                        Message : String) return Irep
+   is begin
+      Report_Unhandled_Node_Empty (N, Fun_Name, Message);
+      return Make_Nil_Type;
+   end Report_Unhandled_Node_Type;
 
    -----------------------------
    -- Add_Entity_Substitution --
@@ -828,6 +861,7 @@ package body Tree_Walk is
          declare
             Big_Or : constant Irep := New_Irep (I_Op_Or);
          begin
+            Set_Type (Big_Or, Make_Bool_Type);
             Append_Op (Big_Or, First_Alt_Test);
             while Present (This_Alt) loop
                Append_Op (Big_Or, Make_Single_Test (This_Alt));
@@ -1198,6 +1232,53 @@ package body Tree_Walk is
       return Ret;
    end Do_Enumeration_Definition;
 
+   function Do_Attribute_Pos_Val (N : Node_Id) return Irep is
+      --  Expressions function returns a list of arguments
+      Arguments : constant List_Id := Expressions (N);
+      --  We check in the precondition that there's only one
+      Argument : constant Node_Id := First (Arguments);
+   begin
+      return Do_Expression (Argument);
+   end Do_Attribute_Pos_Val;
+
+   function Do_Attribute_Pred_Discrete (N : Node_Id) return Irep is
+      Arguments : constant List_Id := Expressions (N);
+      Argument : constant Node_Id := First (Arguments);
+      Arg_Expr : constant Irep := Do_Expression (Argument);
+      Result_Type : constant Irep := Get_Type (Arg_Expr);
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      --  Need to increment by one discrete step
+      --  Using index constant
+      One : constant Irep :=
+           Build_Index_Constant (Value      => 1,
+                                 Index_Type => Result_Type,
+                                 Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Sub (Rhs             => One,
+                          Lhs             => Arg_Expr,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Result_Type);
+   end Do_Attribute_Pred_Discrete;
+
+   function Do_Attribute_Succ_Discrete (N : Node_Id) return Irep is
+      Arguments : constant List_Id := Expressions (N);
+      Argument : constant Node_Id := First (Arguments);
+      Arg_Expr : constant Irep := Do_Expression (Argument);
+      Result_Type : constant Irep := Get_Type (Arg_Expr);
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      One : constant Irep :=
+           Build_Index_Constant (Value      => 1,
+                                 Index_Type => Result_Type,
+                                 Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Add (Rhs             => One,
+                          Lhs             => Arg_Expr,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Result_Type);
+   end Do_Attribute_Succ_Discrete;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1235,6 +1316,14 @@ package body Tree_Walk is
                when Attribute_Last   =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Last attribute");
+               when Attribute_Val =>
+                  return Do_Attribute_Pos_Val (N);
+               when Attribute_Pos =>
+                  return Do_Attribute_Pos_Val (N);
+               when Attribute_Pred =>
+                  return Do_Attribute_Pred_Discrete (N);
+               when Attribute_Succ =>
+                  return Do_Attribute_Succ_Discrete (N);
                when others           =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Unknown attribute");
@@ -3619,11 +3708,14 @@ package body Tree_Walk is
          when N_Unconstrained_Array_Definition =>
             return Do_Unconstrained_Array_Definition (N);
          when N_Modular_Type_Definition =>
-            return Create_Dummy_Irep;
+            return Do_Modular_Type_Definition (N);
          when N_Floating_Point_Definition =>
             return Do_Floating_Point_Definition (N);
+         when N_Access_To_Object_Definition =>
+            return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
+                                               "Access type unsupported");
          when others =>
-            return Report_Unhandled_Node_Irep (N, "Do_Type_Definition",
+            return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
                                                "Unknown expression kind");
       end case;
    end Do_Type_Definition;
@@ -3901,19 +3993,6 @@ package body Tree_Walk is
          Op0             => Struct_Expr);
    end Make_Variant_Literal;
 
-   --------------------------------
-   --  Warn_Unhandled_Construct  --
-   --------------------------------
-
-   procedure Warn_Unhandled_Construct (C : Construct; Mess : String) is
-      S : constant String :=
-        (case C is
-            when Declaration => " declarations ",
-            when Statement   => " statements ") & "unhandled";
-   begin
-      Put_Line (Standard_Error, "Warning: " & Mess & S);
-   end Warn_Unhandled_Construct;
-
    --------------------------
    -- Process_Declaration --
    --------------------------
@@ -3936,41 +4015,47 @@ package body Tree_Walk is
             Do_Object_Declaration (N, Block);
 
          when N_Number_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Number");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Number declaration");
 
          when N_Subprogram_Declaration =>
             Do_Subprogram_Declaration (N);
 
          when N_Abstract_Subprogram_Declaration =>
-            Warn_Unhandled_Construct
-              (Declaration, "Abstract subprogram");
-
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Abstract subprogram declaration");
          when N_Package_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Package");
-
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Package declaration");
          when N_Renaming_Declaration =>
             --  renaming declarations are handled by the gnat front-end;
             null;
 
          when N_Exception_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Exception");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Exception declaration");
 
          when N_Generic_Declaration =>
-            Warn_Unhandled_Construct (Declaration, "Generic");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Generic declaration");
 
          when N_Generic_Instantiation =>
-            Warn_Unhandled_Construct (Declaration, "Generic instantiation");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Generic instantiation declaration");
 
             --  basic_declarative_items  --
 
          when N_Representation_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Representation clause");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Representation clause declaration");
 
          when N_Use_Package_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Use package clause");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Use package clause declaration");
 
          when N_Use_Type_Clause =>
-            Warn_Unhandled_Construct (Declaration, "Use type clause");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Use type clause declaration");
 
          --  remaining declarative items  --
 
@@ -3980,32 +4065,40 @@ package body Tree_Walk is
             Do_Subprogram_Body (N);
 
          when N_Package_Body =>
-            Warn_Unhandled_Construct (Declaration, "Package body");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Package body declaration");
 
          when N_Task_Body =>
-            Warn_Unhandled_Construct (Declaration, "Task body");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Task body declaration");
 
          when N_Protected_Body =>
-            Warn_Unhandled_Construct (Declaration, "Protected body");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Protected body declaration");
 
             --  body_stub  --
 
          when N_Subprogram_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Subprogram body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Subprogram body stub declaration");
 
          when N_Package_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Package body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Package body stub declaration");
 
          when N_Task_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Task body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Task body stub declaration");
 
          when N_Protected_Body_Stub =>
-            Warn_Unhandled_Construct (Declaration, "Protected body stub");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Protected body stub declaration");
 
          --  Pragmas may appear in declarations  --
 
          when N_Pragma =>
-            Warn_Unhandled_Construct (Declaration, "Pragmas in");
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Pragmas in declaration");
 
             --  Every code lable is implicitly declared in  --
             --  the closest surrounding block               --
@@ -4069,7 +4162,8 @@ package body Tree_Walk is
             Append_Op (Block, Do_Exit_Statement (N));
 
          when N_Goto_Statement =>
-            Warn_Unhandled_Construct (Statement, "goto");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Goto statement");
 
          when N_Procedure_Call_Statement =>
             Append_Op (Block, Do_Procedure_Call_Statement (N));
@@ -4078,22 +4172,28 @@ package body Tree_Walk is
             Append_Op (Block, Do_Simple_Return_Statement (N));
 
          when N_Entry_Call_Statement =>
-            Warn_Unhandled_Construct (Statement, "entry_call");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Entry call statement");
 
          when N_Requeue_Statement =>
-            Warn_Unhandled_Construct (Statement, "requeue");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Requeue statement");
 
          when N_Delay_Statement =>
-            Warn_Unhandled_Construct (Statement, "delay");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Delay statement");
 
          when N_Abort_Statement =>
-            Warn_Unhandled_Construct (Statement, "abort");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Abort statement");
 
          when N_Raise_Statement =>
-            Warn_Unhandled_Construct (Statement, "raise");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Raise statement");
 
          when N_Code_Statement =>
-            Warn_Unhandled_Construct (Statement, "code");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Code statement");
 
          --  Compound statements
 
@@ -4114,24 +4214,30 @@ package body Tree_Walk is
             Append_Op (Block, Do_Handled_Sequence_Of_Statements (N));
 
          when N_Extended_Return_Statement =>
-            Warn_Unhandled_Construct (Statement, "extended_return");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Extended return statement");
 
          when N_Accept_Statement =>
-            Warn_Unhandled_Construct (Statement, "accept");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Accept statement");
 
             -- Select statements --
 
          when N_Selective_Accept =>
-            Warn_Unhandled_Construct (Statement, "selective_accept");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Selective Accept");
 
          when N_Timed_Entry_Call =>
-            Warn_Unhandled_Construct (Statement, "timed_entry_call");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Timed entry call");
 
          when N_Conditional_Entry_Call =>
-            Warn_Unhandled_Construct (Statement, "conditional_entry_call");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Conditional entry call");
 
          when N_Asynchronous_Select =>
-            Warn_Unhandled_Construct (Statement, "asychronous select");
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                         "Asynchronous select");
 
          -- Pragmas may placed in sequences of statements --
 
@@ -4182,6 +4288,32 @@ package body Tree_Walk is
 
       return Reps;
    end Process_Statements;
+
+   function Do_Modular_Type_Definition (N : Node_Id) return Irep is
+      Mod_Max : constant Uint := Intval (Expression (N));
+      --  We start at 1, not 0, because our bitvectors
+      --  can't be smaller than 1 bit
+      Mod_Max_Binary_Logarithm : Integer := 1;
+      Power_Of_Two : Uint := Uint_2;
+   begin
+      while Power_Of_Two < Mod_Max loop
+         Mod_Max_Binary_Logarithm := Mod_Max_Binary_Logarithm + 1;
+         Power_Of_Two := Power_Of_Two * 2;
+      end loop;
+      --  If the max value is 2^w (for w > 0) then we can just
+      --  use an unsignedbv of width w
+      if Mod_Max = Power_Of_Two then
+         return Make_Unsignedbv_Type
+           (I_Subtype => Make_Nil_Type,
+            Width => Mod_Max_Binary_Logarithm);
+      end if;
+
+      return Make_Ada_Mod_Type
+        (I_Subtype => Make_Nil_Type,
+         Width => Mod_Max_Binary_Logarithm,
+         Ada_Mod_Max => Convert_Uint_To_Hex
+           (Mod_Max, Pos (Mod_Max_Binary_Logarithm)));
+   end Do_Modular_Type_Definition;
 
    ---------------------------------------
    -- Register_Subprogram_Specification --

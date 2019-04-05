@@ -53,7 +53,7 @@ def main():
     if m.options.discs:
         discs += m.options.discs.split(',')
 
-    test_metrics = {'total': len(test_list), 'uok': 0}
+    test_metrics = {'total': len(test_list), 'uok': 0, 'invalid': 0}
 
     # Generate a standard 'collect_result' function...
     generated_collect_result = generate_collect_result(
@@ -63,8 +63,8 @@ def main():
         metrics = test_metrics)
 
     # ... and then wrap that generated 'collect_result' function in something
-    # that will also accumulate 'UOK' test results
-    def collect_result_including_uok(name, process, _job_info):
+    # that will also accumulate 'UOK' test results and failed tests
+    def collect_test_metrics(name, process, _job_info):
         generated_collect_result(name, process, _job_info)
         test_name = os.path.basename(name)
         test_result = split_file(
@@ -74,19 +74,24 @@ def main():
             test_status = test_result[0].split(':')[0]
             if test_status == 'UOK':
                 test_metrics['uok'] += 1
+            elif test_status == 'INVALID_TEST':
+                test_metrics['invalid'] += 1
 
     run_testcase = generate_run_testcase('run-test', discs, m.options)
 
-    MainLoop(test_list, run_testcase, collect_result_including_uok, m.options.mainloop_jobs)
+    MainLoop(test_list, run_testcase, collect_test_metrics, m.options.mainloop_jobs)
 
-    print "Summary: Ran %(run)s/%(total)s tests, with %(failed)s failed, %(crashed)s crashed, %(uok)s unexpectedly passed." % test_metrics
+    print "Summary: Ran %(run)s/%(total)s tests, with %(failed)s failed, %(crashed)s crashed, %(uok)s unexpectedly passed, %(invalid)s invalid." % test_metrics
 
     # Generate the report file
     ReportDiff(m.options.output_dir,
                m.options.old_output_dir).txt_image(m.options.report_file)
 
-    if test_metrics['failed'] > 0 or test_metrics['crashed'] > 0 or test_metrics['uok'] > 0:
-        sys.exit(1)
+    if (test_metrics['failed'] > 0 or
+        test_metrics['crashed'] > 0 or
+        test_metrics['uok'] > 0 or
+        test_metrics['invalid'] > 0):
+           sys.exit(1)
 
 
 if __name__ == "__main__":
