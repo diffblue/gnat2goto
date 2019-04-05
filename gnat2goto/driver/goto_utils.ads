@@ -21,6 +21,12 @@ package GOTO_Utils is
 
    function Make_Int_Type (Width : Positive) return Irep;
 
+   function Make_Signedint_Type (Width : Positive) return Irep;
+
+   function Make_Signedbv_Type (Width : Positive) return Irep;
+
+   function Make_Unsignedbv_Type (Width : Positive) return Irep;
+
    function Make_Pointer_Type (Base : Irep) return Irep;
 
    function Make_Address_Of (Base : Irep) return Irep;

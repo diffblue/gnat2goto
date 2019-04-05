@@ -40,6 +40,21 @@ package body GOTO_Utils is
       return I;
    end Make_Int_Type;
 
+   function Make_Signedint_Type (Width : Positive) return Irep is
+   begin
+      return Make_Signedbv_Type (I_Subtype => Make_Nil_Type, Width => Width);
+   end Make_Signedint_Type;
+
+   function Make_Signedbv_Type (Width : Positive) return Irep is
+   begin
+      return Make_Signedbv_Type (I_Subtype => Make_Nil_Type, Width => Width);
+   end Make_Signedbv_Type;
+
+   function Make_Unsignedbv_Type (Width : Positive) return Irep is
+   begin
+      return Make_Unsignedbv_Type (I_Subtype => Make_Nil_Type, Width => Width);
+   end Make_Unsignedbv_Type;
+
    -----------------------
    -- Make_Pointer_Type --
    -----------------------
