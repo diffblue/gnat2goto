@@ -5,8 +5,8 @@ with GOTO_Utils;            use GOTO_Utils;
 
 with Binary_To_Hex;         use Binary_To_Hex;
 with Follow;                use Follow;
-with Tree_Walk;             use Tree_Walk;
 with Symbol_Table_Info;     use Symbol_Table_Info;
+with Tree_Walk;             use Tree_Walk;
 
 package body Range_Check is
 

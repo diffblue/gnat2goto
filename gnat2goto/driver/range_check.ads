@@ -1,9 +1,10 @@
-with Uintp;                     use Uintp;
-with Urealp;                    use Urealp;
 with Ada.Containers.Vectors;    use Ada.Containers;
 
-with Ireps;                     use Ireps;
 with Types;                     use Types;
+with Uintp;                     use Uintp;
+with Urealp;                    use Urealp;
+
+with Ireps;                     use Ireps;
 
 package Range_Check is
 
