@@ -143,7 +143,7 @@ package body Driver is
    end GNAT_To_Goto;
 
    procedure Initialize_CProver_Internal_Variables (Start_Body : Irep) is
-      Int_32_T : constant Irep := Make_Signedbv_Type (Ireps.Empty, 32);
+      Int_32_T : constant Irep := Make_Signedint_Type (32);
 
       procedure Initialize_CProver_Rounding_Mode;
       procedure Initialize_CProver_Rounding_Mode is
@@ -579,7 +579,8 @@ package body Driver is
          Global_Symbol_Table.Insert (Name, Sym);
       end Add_Global_Sym;
 
-      Int_32_T : constant Irep := Make_Signedbv_Type (Ireps.Empty, 32);
+      --  must be int type or error when using __CPROVER_rounded_mode
+      Int_32_T : constant Irep := Make_Int_Type (32);
    begin
       Add_Global_Sym (Intern ("__CPROVER_rounding_mode"), Int_32_T);
    end Add_CProver_Internal_Symbols;

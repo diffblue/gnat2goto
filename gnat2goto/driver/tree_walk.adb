@@ -930,7 +930,7 @@ package body Tree_Walk is
       -- Dummy value initialisation --
       -- To be removed once the Unsupported reports are removed --
       Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Make_Signedbv_Type (Ireps.Empty, 32));
+      Set_Type (Ret, Make_Signedint_Type (32));
       Set_Value (Ret, "00000000000000000000000000000000");
 
       if Is_Integer_Literal then
@@ -2687,11 +2687,11 @@ package body Tree_Walk is
       Cast_LHS_To_Integer : constant Irep :=
         Make_Op_Typecast (Op0 => LHS_Bool_Value,
                           Source_Location => Sloc (N),
-                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
+                          I_Type => Make_Signedint_Type (32));
       Cast_RHS_To_Integer : constant Irep :=
         Make_Op_Typecast (Op0 => RHS_Bool_Value,
                           Source_Location => Sloc (N),
-                          I_Type => Make_Signedbv_Type (Make_Nil_Type, 32));
+                          I_Type => Make_Signedint_Type (32));
       R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
                                      Rhs => Cast_RHS_To_Integer,
                                      Source_Location => Sloc (N),
@@ -4115,9 +4115,7 @@ package body Tree_Walk is
       --  If the max value is 2^w (for w > 0) then we can just
       --  use an unsignedbv of width w
       if Mod_Max = Power_Of_Two then
-         return Make_Unsignedbv_Type
-           (I_Subtype => Make_Nil_Type,
-            Width => Mod_Max_Binary_Logarithm);
+         return Make_Unsignedbv_Type (Width => Mod_Max_Binary_Logarithm);
       end if;
 
       return Make_Ada_Mod_Type
