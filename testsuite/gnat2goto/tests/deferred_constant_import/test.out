@@ -1,0 +1,13 @@
+Standard_Output from gnat2goto deferred_const_import:
+N_Pragma (Node_Id=2342) (source,analyzed)
+ Sloc = 16562  deferred_const_import.ads:10:4
+ Pragma_Argument_Associations = List (List_Id=-99999970)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=2343)
+
+Standard_Error from gnat2goto deferred_const_import:
+----------At: Process_Declaration----------
+----------Pragmas in declaration----------
+
+[assertion.1] Range Check: SUCCESS
+VERIFICATION SUCCESSFUL
+
