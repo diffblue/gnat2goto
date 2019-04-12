@@ -1,0 +1,3 @@
+[overflow.1] file use_number_declarations.adb line 11 arithmetic overflow on signed + in use_number_declarations__useless_int + 99: SUCCESS
+[overflow.2] file use_number_declarations.adb line 14 arithmetic overflow on signed + in use_number_declarations__useless_int + 2147483647: FAILURE
+VERIFICATION FAILED
