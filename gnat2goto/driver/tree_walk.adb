@@ -146,6 +146,10 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Object_Declaration
                  and then Kind (Block) = I_Code_Block;
 
+   procedure Do_Object_Declaration_Full_Declaration (N : Node_Id; Block : Irep)
+   with Pre => Nkind (N) = N_Object_Declaration
+                 and then Kind (Block) = I_Code_Block;
+
    procedure Do_Pragma (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Pragma
      and then Kind (Block) = I_Code_Block; -- FIXME: what about decls?
@@ -2514,6 +2518,78 @@ package body Tree_Walk is
    ---------------------------
 
    procedure Do_Object_Declaration (N : Node_Id; Block : Irep) is
+      Obj_Id : constant Symbol_Id :=
+        Intern (Unique_Name (Defining_Identifier (N)));
+   begin
+      --  First check for object declarations which are not constants
+      if not Constant_Present (N) then
+         --  Not any sort of constant.
+         --  Process non-constant object_declaration.
+         Do_Object_Declaration_Full_Declaration (N, Block);
+      elsif --  Check that this isn't a completion of a deferred constant.
+         not Global_Symbol_Table.Contains (Obj_Id)
+      then
+         --  The declaration is of constant which may be deferred.
+         declare
+            Entity : constant Entity_Id := Defining_Identifier (N);
+            --  The full view of a deferred constant is obtained
+            --  by calling the Full_View function.  As the gnat front-end
+            --  has completed semantic analysis before invoking the
+            --  gnat to goto translation all object_declarations that are
+            --  deferred constants should have a full view unless the
+            --  declaration has the pragma Import applied.
+            Full_View_Entity : constant Entity_Id := Full_View (Entity);
+
+            procedure Register_Constant_In_Symbol_Table (N : Node_Id);
+            --  Adds a dummy entry to the symbol table to register that a
+            --  constant has already been processed.
+
+            procedure Register_Constant_In_Symbol_Table (N : Node_Id) is
+               Constant_Name : constant Symbol_Id :=
+                 Intern (Unique_Name (Defining_Identifier (N)));
+               Constant_Symbol : Symbol;
+            begin
+               Constant_Symbol.Name := Constant_Name;
+               Constant_Symbol.BaseName   := Constant_Name;
+               Constant_Symbol.PrettyName := Constant_Name;
+               Constant_Symbol.SymType    := Make_Nil (Sloc (N));
+               Constant_Symbol.Mode       := Intern ("C");
+               Constant_Symbol.Value      := Make_Nil (Sloc (N));
+               Global_Symbol_Table.Insert (Constant_Name, Constant_Symbol);
+
+            end Register_Constant_In_Symbol_Table;
+
+         begin
+            if not Has_Init_Expression (N) and then
+              Present (Full_View_Entity)
+            then
+               --  The constant declaration has no initialisation expression
+               --  so it is a deferred constant declaration with a completion.
+               --  The completion must be a full constant declaration given
+               --  by the full view of the entity.
+               --  Process the declaration node of the full view and
+               --  register it in the symbol table so that it is not
+               --  processed again when the completion is encountered in
+               --  the tree.
+               Register_Constant_In_Symbol_Table (N);
+               Do_Object_Declaration_Full_Declaration
+                 (Declaration_Node (Full_View_Entity), Block);
+            else
+               --  The constant declaration is not deferred or has the
+               --  pragma Import applied and its value is defined externally.
+               Do_Object_Declaration_Full_Declaration (N, Block);
+            end if;
+         end;
+      end if;
+
+   end Do_Object_Declaration;
+
+   --------------------------------------------
+   -- Do_Object_Declaration_Full_Declaration --
+   --------------------------------------------
+
+   procedure Do_Object_Declaration_Full_Declaration
+     (N : Node_Id; Block : Irep) is
       Defined : constant Entity_Id := Defining_Identifier (N);
       Id   : constant Irep := Do_Defining_Identifier (Defined);
       Decl : constant Irep := New_Irep (I_Code_Decl);
@@ -2542,7 +2618,7 @@ package body Tree_Walk is
          if Nkind (Record_Def) /= N_Record_Definition and then
            Nkind (Record_Def) /= N_Variant
          then
-            Report_Unhandled_Node_Empty (Do_Object_Declaration.N,
+            Report_Unhandled_Node_Empty (N,
                                          "Do_Object_Declaration",
                                          "Record definition of wrong nkind");
             return False;
@@ -2771,7 +2847,7 @@ package body Tree_Walk is
          end if;
       end Make_Default_Initialiser;
 
-      --  Begin processing for Do_Object_Declaration
+      --  Begin processing for Do_Object_Declaration_Full_Declaration
 
    begin
       Set_Source_Location (Decl, (Sloc (N)));
@@ -2798,7 +2874,7 @@ package body Tree_Walk is
                                              Rhs => Init_Expr,
                                              Source_Location => Sloc (N)));
       end if;
-   end Do_Object_Declaration;
+   end Do_Object_Declaration_Full_Declaration;
 
    -------------------------
    --     Do_Op_Not       --
