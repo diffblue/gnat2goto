@@ -1678,6 +1678,12 @@ package body Tree_Walk is
          end if;
       end if;
 
+      --  If an identifier is the name of a number_declaration, the identifier
+      --  is replaced by its static initialisation expression.
+      if Nkind (Dec_Node) = N_Number_Declaration then
+         return Do_Expression (Expression (Dec_Node));
+      end if;
+
       if Identifier_Maps.Has_Element (Subst_Cursor) then
          --  Indicates instead of literally referring to the given
          --  name, we should return some replacement irep. Currently
@@ -4558,8 +4564,10 @@ package body Tree_Walk is
             Do_Object_Declaration (N, Block);
 
          when N_Number_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Number declaration");
+            --  A number declaration is replaced by its static initialisation
+            --  expression.
+            --  No action is required at the point of it's declaration;
+            null;
 
          when N_Subprogram_Declaration =>
             Do_Subprogram_Declaration (N);
