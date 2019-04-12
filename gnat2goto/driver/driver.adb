@@ -319,8 +319,10 @@ package body Driver is
          Start_Symbol.Mode    := Intern ("C");
 
          Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
+         Sanitise_Type_Declarations (Global_Symbol_Table,
+                                     Sanitised_Symbol_Table);
          Put_Line (Sym_Tab_File,
-                   SymbolTable2Json (Global_Symbol_Table).Write (False));
+                   SymbolTable2Json (Sanitised_Symbol_Table).Write (False));
       else
          Initialize_CProver_Internal_Variables (Start_Body);
          declare
