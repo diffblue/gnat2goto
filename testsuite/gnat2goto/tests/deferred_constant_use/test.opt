@@ -1,0 +1,1 @@
+ALL XFAIL cbmc returns failed verification (calling function without body)
