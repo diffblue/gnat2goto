@@ -1,0 +1,3 @@
+[overflow.1] file use_const_decs.adb line 5 arithmetic overflow on signed + in use_const_decs__loc + 42: SUCCESS
+[overflow.2] file use_const_decs.adb line 6 arithmetic overflow on signed + in const_decs__read_only_var + 1: FAILURE
+VERIFICATION FAILED
