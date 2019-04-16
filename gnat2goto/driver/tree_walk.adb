@@ -167,6 +167,10 @@ package body Tree_Walk is
    function Do_Op_Not (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Op_Mod_Not (N : Node_Id; Ret_Type : Irep) return Irep
+     with Pre => (Nkind (N) = N_Op_Not and then Kind (Ret_Type) in Class_Type),
+     Post => Kind (Do_Op_Mod_Not'Result) in Class_Expr;
+
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
@@ -2663,6 +2667,40 @@ package body Tree_Walk is
       return Make_Op_Not (Boolean_Value, Sloc (N), Make_Bool_Type);
    end Do_Op_Not;
 
+   function Do_Op_Mod_Not (N : Node_Id; Ret_Type : Irep) return Irep is
+      Followed_Type : constant Irep :=
+              Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+      Value : constant Irep := Do_Expression (Right_Opnd (N));
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      --  In case the not-operator (not X) is called on a modular-type
+      --  (mod Y) variable the result should be: (Y-1)-X
+      Mod_Max_String : constant String :=
+        Get_Ada_Mod_Max (Followed_Type);
+      Mod_Max : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Ret_Type,
+                            Range_Check     => False,
+                            Value           => Mod_Max_String);
+      One : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Ret_Type,
+                            Range_Check     => False,
+                            Value           => "1");
+      Mod_Max_Value : constant Irep :=
+        Make_Op_Sub (Rhs             => One,
+                     Lhs             => Mod_Max,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Ret_Type);
+   begin
+      pragma Assert (Kind (Followed_Type) = I_Ada_Mod_Type);
+      return Make_Op_Sub (Rhs             => Value,
+                          Lhs             => Mod_Max_Value,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Ret_Type);
+   end Do_Op_Mod_Not;
+
    -------------------------
    --     Do_Op_Minus    --
    -------------------------
@@ -2742,7 +2780,19 @@ package body Tree_Walk is
          return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
                                             "Concat unsupported");
       elsif Nkind (N) = N_Op_Not then
-         return Do_Op_Not (N);
+         declare
+            Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
+            Followed_Type : constant Irep :=
+              Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+         begin
+            case Kind (Followed_Type) is
+               when I_Bool_Type => return Do_Op_Not (N);
+               when I_Ada_Mod_Type => return Do_Op_Mod_Not (N, Ret_Type);
+               when others =>
+                  return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
+                                                    "Mod of unsupported type");
+            end case;
+         end;
       elsif Nkind (N) = N_Op_Minus then
          return Do_Op_Minus (N);
       elsif Nkind (N) = N_Op_Or then
