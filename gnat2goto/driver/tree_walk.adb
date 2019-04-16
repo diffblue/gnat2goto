@@ -2814,10 +2814,25 @@ package body Tree_Walk is
 
       Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
       Ret     : constant Irep      := New_Irep (Op_Kind);
+      Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Followed_Type : constant Irep :=
+        Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
 
    --  Start of processing for Do_Operator_Simple
 
    begin
+      if Kind (Followed_Type) = I_Ada_Mod_Type
+      then
+         case Op_Kind is
+            when I_Op_Add | I_Op_Mul =>
+               return Do_Operator_Mod (LHS, Op_Kind, RHS, Ret_Type);
+            when I_Op_Sub =>
+               return Do_Operator_Sub_Mod (LHS, RHS, Ret_Type);
+            when others =>
+               null; --  proceed as with non-mod types
+         end case;
+      end if;
+
       Set_Source_Location (Ret, Sloc (N));
       if not (Kind (Ret) in Class_Binary_Expr
         | I_Code_Assign
@@ -2831,7 +2846,7 @@ package body Tree_Walk is
       end if;
       Set_Lhs (Ret, LHS);
       Set_Rhs (Ret, RHS);
-      Set_Type (Ret, Do_Type_Reference (Etype (N)));
+      Set_Type (Ret, Ret_Type);
 
       if Do_Overflow_Check (N) then
          Set_Overflow_Check (Ret, True);
