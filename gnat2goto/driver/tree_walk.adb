@@ -148,6 +148,19 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Op,
         Post => Kind (Do_Operator_Simple'Result) in Class_Expr;
 
+   function Do_Operator_Mod (LHS : Irep; Op_Kind : Irep_Kind;
+                                    RHS : Irep; Ret_Type : Irep)
+                                    return Irep
+     with Pre => Op_Kind in I_Op_Add | I_Op_Mul,
+     Post => (Kind (Do_Operator_Mod'Result) in Class_Expr
+              and then Get_Type (Do_Operator_Mod'Result) = Ret_Type);
+
+   function Do_Operator_Sub_Mod (LHS : Irep;
+                                 RHS : Irep; Ret_Type : Irep)
+                                 return Irep
+     with Post => (Kind (Do_Operator_Sub_Mod'Result) in Class_Expr
+                   and then Get_Type (Do_Operator_Sub_Mod'Result) = Ret_Type);
+
    function Do_Operator_General (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op;
 
@@ -2832,6 +2845,88 @@ package body Tree_Walk is
 
       return Ret;
    end Do_Operator_Simple;
+
+   --  In case the type of operands in modular we attach a I_Op_Mod to the
+   --  result.
+   --  Note that we do not set the overflow check it should not be necessary
+   --  for modular types.
+   function Do_Operator_Mod (LHS : Irep; Op_Kind : Irep_Kind;
+                                    RHS : Irep; Ret_Type : Irep)
+                                    return Irep is
+      Followed_Ret_Type : constant Irep :=
+        Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+
+      --  Multiplication can result in intermediate results larger than what
+      --  could be stored in Ret_Type: we cast to a wider type
+      Large_Enough_Type : constant Irep :=
+        Make_Signedbv_Type (Get_Width (Followed_Ret_Type) * 2);
+
+      Lhs_Cast : constant Irep :=
+        Typecast_If_Necessary (LHS, Large_Enough_Type);
+      Rhs_Cast : constant Irep :=
+        Typecast_If_Necessary (RHS, Large_Enough_Type);
+      Full_Result : constant Irep := New_Irep (Op_Kind);
+
+      Mod_Max_String : constant String :=
+        Get_Ada_Mod_Max (Followed_Ret_Type);
+      Source_Loc : constant Source_Ptr := Get_Source_Location (LHS);
+
+      --  Extract the modulus from Ret_Type
+      Mod_Max : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Large_Enough_Type,
+                            Range_Check     => False,
+                            Value           => Mod_Max_String);
+      Mod_Ret : constant Irep := New_Irep (I_Op_Mod);
+   begin
+      Set_Source_Location (Full_Result, Source_Loc);
+      Set_Lhs (Full_Result, Lhs_Cast);
+      Set_Rhs (Full_Result, Rhs_Cast);
+      Set_Type (Full_Result, Large_Enough_Type);
+
+      --  Build the operator in the wider type
+      Set_Lhs (Mod_Ret, Full_Result);
+      Set_Rhs (Mod_Ret, Mod_Max);
+      Set_Type (Mod_Ret, Large_Enough_Type);
+      Set_Source_Location (Mod_Ret, Source_Loc);
+
+      --  And return the result casted to the origin type
+      return Typecast_If_Necessary (Mod_Ret, Ret_Type);
+   end Do_Operator_Mod;
+
+   --  Modular minus gets special treatment, effectively x - y =>
+   --  x + (Mod_Max (T) - y)
+   --  this expression never over/under-flows so no type widening is necessary
+   function Do_Operator_Sub_Mod (LHS : Irep; RHS : Irep; Ret_Type : Irep)
+                                 return Irep is
+      Followed_Ret_Type : constant Irep :=
+        Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+
+      Mod_Max_String : constant String :=
+        Get_Ada_Mod_Max (Followed_Ret_Type);
+      Source_Loc : constant Source_Ptr := Get_Source_Location (LHS);
+
+      --  Extract the modulus from Ret_Type
+      Mod_Max : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Ret_Type,
+                            Range_Check     => False,
+                            Value           => Mod_Max_String);
+      Mod_Rhs : constant Irep :=
+        Make_Op_Sub (Rhs             => RHS,
+                     Lhs             => Mod_Max,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Ret_Type);
+
+   begin
+      return
+        Make_Op_Add (Rhs             => Mod_Rhs,
+                     Lhs             => LHS,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Ret_Type);
+   end Do_Operator_Sub_Mod;
 
    ----------------------------
    -- Do_Package_Declaration --
