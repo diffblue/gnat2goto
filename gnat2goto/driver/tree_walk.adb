@@ -1125,6 +1125,10 @@ package body Tree_Walk is
       Subtype_Irep : constant Irep :=
         Do_Subtype_Indication (Subtype_Indication (N));
    begin
+      if Present (Record_Extension_Part (N)) then
+         return Report_Unhandled_Node_Type (N, "Do_Derived_Type_Definition",
+                                            "record extension unsupported");
+      end if;
       if Abstract_Present (N)
         or else Null_Exclusion_Present (N)
         or else Present (Record_Extension_Part (N))
@@ -1135,9 +1139,8 @@ package body Tree_Walk is
         or else Present (Interface_List (N))
         or else Interface_Present (N)
       then
-         Report_Unhandled_Node_Empty (N, "Do_Derived_Type_Definition",
-                                      "abstract present not true");
-         return New_Irep (I_Bool_Type);
+         return Report_Unhandled_Node_Type (N, "Do_Derived_Type_Definition",
+                                   "derived type definition unsupported here");
       end if;
 
       return Subtype_Irep;
@@ -4134,6 +4137,9 @@ package body Tree_Walk is
          when N_Private_Type_Declaration =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                        "Private type declaration unsupported");
+         when N_Private_Extension_Declaration =>
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                  "Private extension declaration unsupported");
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");
