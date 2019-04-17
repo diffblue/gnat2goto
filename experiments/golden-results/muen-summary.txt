@@ -38,11 +38,6 @@ Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Record_Representation_Clause
 --
-Occurs: 16 times
-Calling function: Do_Expression
-Error message: First attribute
-Nkind: N_Attribute_Reference
---
 Occurs: 14 times
 Calling function: Do_Expression
 Error message: Qualified
@@ -64,11 +59,6 @@ Error message: Private extension declaration unsupported
 Nkind: N_Private_Extension_Declaration
 --
 Occurs: 10 times
-Calling function: Do_Expression
-Error message: Last attribute
-Nkind: N_Attribute_Reference
---
-Occurs: 10 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
@@ -83,7 +73,7 @@ Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
 --
-Occurs: 7 times
+Occurs: 8 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier

@@ -60,16 +60,6 @@ Nkind: N_Enumeration_Representation_Clause
 --
 Occurs: 4 times
 Calling function: Do_Expression
-Error message: First attribute
-Nkind: N_Attribute_Reference
---
-Occurs: 4 times
-Calling function: Do_Expression
-Error message: Last attribute
-Nkind: N_Attribute_Reference
---
-Occurs: 4 times
-Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
 --
