@@ -50,7 +50,7 @@ Nkind: N_Qualified_Expression
 --
 Occurs: 13 times
 Calling function: Do_Derived_Type_Definition
-Error message: abstract present not true
+Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
 Occurs: 13 times
@@ -60,7 +60,7 @@ Nkind: N_Package_Declaration
 --
 Occurs: 13 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
+Error message: Private extension declaration unsupported
 Nkind: N_Private_Extension_Declaration
 --
 Occurs: 10 times

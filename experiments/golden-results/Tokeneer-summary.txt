@@ -90,7 +90,7 @@ Nkind: N_Op_Concat
 --
 Occurs: 2 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
+Error message: Private extension declaration unsupported
 Nkind: N_Private_Extension_Declaration
 --
 Occurs: 1 times
