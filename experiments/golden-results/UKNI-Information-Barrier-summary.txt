@@ -64,6 +64,11 @@ Error message: Wrong Nkind spec
 Nkind: N_Loop_Statement
 --
 Occurs: 1 times
+Calling function: Do_Operator_General
+Error message: Mod of unsupported type
+Nkind: N_Op_Not
+--
+Occurs: 1 times
 Calling function: Make_Array_Index_Op
 Error message: Kinds not in classes
 Nkind: N_Defining_Identifier

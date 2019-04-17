@@ -167,6 +167,10 @@ package body Tree_Walk is
    function Do_Op_Not (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Op_Mod_Not (N : Node_Id; Ret_Type : Irep) return Irep
+     with Pre => (Nkind (N) = N_Op_Not and then Kind (Ret_Type) in Class_Type),
+     Post => Kind (Do_Op_Mod_Not'Result) in Class_Expr;
+
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
@@ -2658,10 +2662,44 @@ package body Tree_Walk is
    -------------------------
 
    function Do_Op_Not (N : Node_Id) return Irep is
-      Boolean_Value : constant Irep := Do_Expression (Right_Opnd (N));
+      Value : constant Irep := Do_Expression (Right_Opnd (N));
    begin
-      return Make_Op_Not (Boolean_Value, Sloc (N), Make_Bool_Type);
+      return Make_Op_Not (Value, Sloc (N), Make_Bool_Type);
    end Do_Op_Not;
+
+   function Do_Op_Mod_Not (N : Node_Id; Ret_Type : Irep) return Irep is
+      Followed_Type : constant Irep :=
+              Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+      Value : constant Irep := Do_Expression (Right_Opnd (N));
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      --  In case the not-operator (not X) is called on a modular-type
+      --  (mod Y) variable the result should be: (Y-1)-X
+      Mod_Max_String : constant String :=
+        Get_Ada_Mod_Max (Followed_Type);
+      Mod_Max : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Ret_Type,
+                            Range_Check     => False,
+                            Value           => Mod_Max_String);
+      One : constant Irep :=
+        Make_Constant_Expr (Source_Location => Source_Loc,
+                            I_Type          => Ret_Type,
+                            Range_Check     => False,
+                            Value           => "1");
+      Mod_Max_Value : constant Irep :=
+        Make_Op_Sub (Rhs             => One,
+                     Lhs             => Mod_Max,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Ret_Type);
+   begin
+      pragma Assert (Kind (Followed_Type) = I_Ada_Mod_Type);
+      return Make_Op_Sub (Rhs             => Value,
+                          Lhs             => Mod_Max_Value,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Ret_Type);
+   end Do_Op_Mod_Not;
 
    -------------------------
    --     Do_Op_Minus    --
@@ -2694,28 +2732,67 @@ package body Tree_Walk is
    --    return R;
    function Do_Bit_Op (N : Node_Id;
                        Operator : Bit_Operand_Constructor)
-                      return Irep is
-      LHS_Bool_Value : constant Irep := Do_Expression (Left_Opnd (N));
-      RHS_Bool_Value : constant Irep := Do_Expression (Right_Opnd (N));
-      Cast_LHS_To_Integer : constant Irep :=
-        Make_Op_Typecast (Op0 => LHS_Bool_Value,
-                          Source_Location => Sloc (N),
-                          I_Type => Make_Signedint_Type (32));
-      Cast_RHS_To_Integer : constant Irep :=
-        Make_Op_Typecast (Op0 => RHS_Bool_Value,
-                          Source_Location => Sloc (N),
-                          I_Type => Make_Signedint_Type (32));
-      R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
-                                     Rhs => Cast_RHS_To_Integer,
-                                     Source_Location => Sloc (N),
-                                     Overflow_Check => False,
-                                     Range_Check => False,
-                                     I_Type =>
-                                       Get_Type (Cast_LHS_To_Integer));
+                       return Irep is
+      Source_Loc : constant Source_Ptr := Sloc (N);
+      LHS_Value : constant Irep := Do_Expression (Left_Opnd (N));
+      RHS_Value : constant Irep := Do_Expression (Right_Opnd (N));
+
+      Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Followed_Type : constant Irep :=
+        Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+
    begin
-      return Make_Op_Typecast (Op0 => R,
-                               Source_Location => Sloc (N),
-                               I_Type => Make_Bool_Type);
+      if Kind (Followed_Type) = I_Ada_Mod_Type then
+         declare
+            Mod_Max_String : constant String :=
+              Get_Ada_Mod_Max (Followed_Type);
+            Mod_Max : constant Irep :=
+              Make_Constant_Expr (Source_Location => Source_Loc,
+                                  I_Type          => Ret_Type,
+                                  Range_Check     => False,
+                                  Value           => Mod_Max_String);
+            Full_Result : constant Irep :=
+              Operator (Lhs => LHS_Value,
+                        Rhs => RHS_Value,
+                        Source_Location => Source_Loc,
+                        Overflow_Check => False,
+                        Range_Check => False,
+                        I_Type => Ret_Type);
+         begin
+            if Nkind (N) = N_Op_And then
+               return Full_Result;
+            else
+               return Make_Op_Mod (Rhs               => Mod_Max,
+                                   Lhs               => Full_Result,
+                                   Div_By_Zero_Check => False,
+                                   Source_Location   => Source_Loc,
+                                   Overflow_Check    => False,
+                                   I_Type            => Ret_Type);
+            end if;
+         end;
+      else
+         declare
+            Cast_LHS_To_Integer : constant Irep :=
+              Make_Op_Typecast (Op0 => LHS_Value,
+                                Source_Location => Source_Loc,
+                                I_Type => Make_Signedint_Type (32));
+            Cast_RHS_To_Integer : constant Irep :=
+              Make_Op_Typecast (Op0 => RHS_Value,
+                                Source_Location => Source_Loc,
+                                I_Type => Make_Signedint_Type (32));
+            R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
+                                           Rhs => Cast_RHS_To_Integer,
+                                           Source_Location => Source_Loc,
+                                           Overflow_Check => False,
+                                           Range_Check => False,
+                                           I_Type =>
+                                             Get_Type (Cast_LHS_To_Integer));
+         begin
+            return Make_Op_Typecast (Op0 => R,
+                                     Source_Location => Source_Loc,
+                                     I_Type => Make_Bool_Type);
+         end;
+      end if;
    end Do_Bit_Op;
 
    function Do_Op_Abs (N : Node_Id) return Irep
@@ -2742,13 +2819,27 @@ package body Tree_Walk is
          return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
                                             "Concat unsupported");
       elsif Nkind (N) = N_Op_Not then
-         return Do_Op_Not (N);
+         declare
+            Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
+            Followed_Type : constant Irep :=
+              Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
+         begin
+            case Kind (Followed_Type) is
+               when I_Bool_Type => return Do_Op_Not (N);
+               when I_Ada_Mod_Type => return Do_Op_Mod_Not (N, Ret_Type);
+               when others =>
+                  return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
+                                                    "Mod of unsupported type");
+            end case;
+         end;
       elsif Nkind (N) = N_Op_Minus then
          return Do_Op_Minus (N);
       elsif Nkind (N) = N_Op_Or then
          return Do_Bit_Op (N, Make_Op_Bitor'Access);
       elsif Nkind (N) = N_Op_And then
          return Do_Bit_Op (N, Make_Op_Bitand'Access);
+      elsif Nkind (N) = N_Op_Xor then
+         return Do_Bit_Op (N, Make_Op_Bitxor'Access);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
