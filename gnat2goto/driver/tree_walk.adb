@@ -1277,12 +1277,8 @@ package body Tree_Walk is
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
-               when Attribute_First  =>
-                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                     "First attribute");
-               when Attribute_Last   =>
-                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                     "Last attribute");
+               when Attribute_First  => return Do_Array_First (N);
+               when Attribute_Last   => return Do_Array_Last (N);
                when Attribute_Val =>
                   return Do_Attribute_Pos_Val (N);
                when Attribute_Pos =>

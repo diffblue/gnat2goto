@@ -1,0 +1,7 @@
+[precondition_instance.1] memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] memcpy source region readable: SUCCESS
+[precondition_instance.3] memcpy destination region writeable: SUCCESS
+[1] file array_attributes_dynamic.adb line 7 assertion: SUCCESS
+[2] file array_attributes_dynamic.adb line 8 assertion: FAILURE
+[3] file array_attributes_dynamic.adb line 9 assertion: SUCCESS
+VERIFICATION FAILED

@@ -25,11 +25,6 @@ Nkind: N_Subprogram_Body_Stub
 --
 Occurs: 6 times
 Calling function: Do_Expression
-Error message: First attribute
-Nkind: N_Attribute_Reference
---
-Occurs: 6 times
-Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
@@ -53,11 +48,6 @@ Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
 --
-Occurs: 4 times
-Calling function: Do_Expression
-Error message: Last attribute
-Nkind: N_Attribute_Reference
---
 Occurs: 2 times
 Calling function: Do_While_Statement
 Error message: Wrong Nkind spec
@@ -67,11 +57,6 @@ Occurs: 1 times
 Calling function: Do_Operator_General
 Error message: Mod of unsupported type
 Nkind: N_Op_Not
---
-Occurs: 1 times
-Calling function: Make_Array_Index_Op
-Error message: Kinds not in classes
-Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
 Calling function: Process_Declaration
