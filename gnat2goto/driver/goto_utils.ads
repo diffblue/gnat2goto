@@ -7,6 +7,8 @@ with Uintp;                 use Uintp;
 
 package GOTO_Utils is
 
+   type Irep_Array is array (Integer range <>) of Irep;
+
    function CProver_Size_T return Irep;
 
    --  Utility routines for high-level GOTO AST construction
@@ -122,5 +124,18 @@ package GOTO_Utils is
    with Pre => Nkind (Def_Id) = N_Defining_Identifier;
    --  checks whether an entity has a certain GNAT2goto annotation.
    --  This can be either an aspect, or a pragma.
+
+   function Integer_Constant_To_Expr
+     (Value : Uint;
+      Expr_Type : Irep;
+      Source_Location : Source_Ptr)
+   return Irep
+   with Pre => Kind (Expr_Type) in Class_Bitvector_Type,
+        Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
+
+   function Make_Simple_Side_Effect_Expr_Function_Call
+     (Arguments : Irep_Array;
+      Function_Expr : Irep;
+      Source_Location : Source_Ptr) return Irep;
 
 end GOTO_Utils;
