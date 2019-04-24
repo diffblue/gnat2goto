@@ -177,6 +177,9 @@ package body Tree_Walk is
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
+   function Do_Op_Expon (N : Node_Id) return Irep
+      with Pre => Nkind (N) = N_Op_Expon;
+
    function Do_Or_Else (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Or_Else;
 
@@ -2871,6 +2874,204 @@ package body Tree_Walk is
          I_Type => Do_Type_Reference (Etype (N)));
    end Do_Op_Abs;
 
+   function Make_Mod_Expon_Function
+     (Mod_Type : Irep;
+      Exponent_Type : Irep;
+      Source_Location : Source_Ptr)
+   return Irep;
+
+--  'fast' exponentiation, using the fact that
+--  if e is divisible by two, then
+--  b^e == b^(2 * (e/2)) == (b*b)^(e/2)
+--  and otherwise if e == 2p + 1
+--  then b^e = b * b^(2p)
+--  so we only have to do log2(e) multiplications
+--  rather than e
+--
+--  generates a function like this:
+--  modN exp_by_squaring(modN base, unsigned exponent) {
+--    modN exp_result = 1;
+--    while(exponent > 0) {
+--      if(exponent % 2 == 0) {
+--        base *= base;
+--        exponent /= 2;
+--      } else {
+--        exp_result *= exp_base;
+--        --exponent;
+--      }
+--    }
+--    return exp_result;
+--  }
+   function Make_Mod_Expon_Function
+     (Mod_Type : Irep;
+      Exponent_Type : Irep;
+      Source_Location : Source_Ptr)
+   return Irep is
+      Function_Name : constant String := Fresh_Var_Name ("mod_op_expon");
+      Function_Body : constant Irep := Make_Code_Block (Source_Location);
+      Function_Params : constant Irep := Make_Parameter_List;
+      Base_Arg : constant Irep := Create_Fun_Parameter
+        (Fun_Name => Function_Name,
+         Param_Name => "base",
+         Param_Type => Mod_Type,
+         Param_List => Function_Params,
+         A_Symbol_Table => Global_Symbol_Table,
+         Source_Location => Source_Location);
+      Exponent_Arg : constant Irep := Create_Fun_Parameter
+        (Fun_Name => Function_Name,
+         Param_Name => "exponent",
+         Param_Type => Exponent_Type,
+         Param_List => Function_Params,
+         A_Symbol_Table => Global_Symbol_Table,
+         Source_Location => Source_Location);
+
+      Function_Type : constant Irep := Make_Code_Type
+        (Parameters => Function_Params,
+         Ellipsis => False,
+         Return_Type => Mod_Type,
+         Inlined => False,
+         Knr => False);
+
+      Base_Sym : constant Irep := Param_Symbol (Base_Arg);
+      Exponent_Sym : constant Irep := Param_Symbol (Exponent_Arg);
+
+      Expon_Result : constant Irep := Fresh_Var_Symbol_Expr
+        (Ty => Mod_Type,
+         Infix => "mod_expon_result");
+      Declare_Expon_Result : constant Irep := Make_Code_Decl
+        (Symbol => Expon_Result,
+         Source_Location => Source_Location);
+      Expon_Divisible_By_Two : constant Irep := Make_Op_Eq
+        (Lhs => Make_Op_Mod
+           (Lhs => Exponent_Sym,
+            Rhs => Integer_Constant_To_Expr
+              (Value => Uint_2,
+               Expr_Type => Exponent_Type,
+               Source_Location => Source_Location),
+            Source_Location => Source_Location,
+            Div_By_Zero_Check => False,
+            I_Type => Exponent_Type),
+         Rhs => Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Exponent_Type,
+            Source_Location => Source_Location),
+         I_Type => Make_Bool_Type,
+         Source_Location => Source_Location);
+      Expon_Greater_Zero : constant Irep := Make_Op_Gt
+        (Lhs => Exponent_Sym,
+         Rhs => Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Exponent_Type,
+            Source_Location => Source_Location),
+         Source_Location => Source_Location,
+         I_Type => Make_Bool_Type);
+      Set_Expon_Result_To_One : constant Irep := Make_Code_Assign
+        (Lhs => Expon_Result,
+         Rhs => Integer_Constant_To_Expr
+           (Value => Uint_1,
+            Expr_Type => Mod_Type,
+            Source_Location => Source_Location),
+         Source_Location => Source_Location);
+      Square_Base : constant Irep := Make_Code_Assign
+        (Lhs => Base_Sym,
+         Rhs => Do_Operator_Mod
+           (LHS => Base_Sym,
+            Op_Kind => I_Op_Mul,
+            RHS => Base_Sym,
+            Ret_Type => Mod_Type),
+         Source_Location => Source_Location);
+      Halve_Exponent : constant Irep := Make_Code_Assign
+        (Lhs => Exponent_Sym,
+         Rhs => Make_Op_Div
+           (Lhs => Exponent_Sym,
+            Rhs => Integer_Constant_To_Expr
+              (Value => Uint_2,
+               Expr_Type => Exponent_Type,
+               Source_Location => Source_Location),
+            I_Type => Exponent_Type,
+            Source_Location => Source_Location,
+            Div_By_Zero_Check => False),
+         Source_Location => Source_Location);
+      Multiply_Result_With_Base : constant Irep := Make_Code_Assign
+        (Lhs => Expon_Result,
+         Rhs => Do_Operator_Mod
+           (LHS => Expon_Result,
+            Op_Kind => I_Op_Mul,
+            RHS => Base_Sym,
+            Ret_Type => Mod_Type),
+         Source_Location => Source_Location);
+      Decrement_Exponent : constant Irep := Make_Code_Assign
+        (Lhs => Exponent_Sym,
+         Rhs => Make_Op_Sub
+           (Lhs => Exponent_Sym,
+            Rhs => Integer_Constant_To_Expr
+              (Value => Uint_1,
+               Expr_Type => Exponent_Type,
+               Source_Location => Source_Location),
+            I_Type => Exponent_Type,
+            Source_Location => Source_Location),
+         Source_Location => Source_Location);
+      Multiply_Loop_Body : constant Irep := Make_Code_Block
+        (Source_Location => Source_Location);
+      If_Even_Body : constant Irep := Make_Code_Block
+        (Source_Location => Source_Location);
+      If_Odd_Body : constant Irep := Make_Code_Block
+        (Source_Location => Source_Location);
+      Multiply_Loop : constant Irep := Make_Code_While
+        (Loop_Body => Multiply_Loop_Body,
+         Cond => Expon_Greater_Zero,
+         Source_Location => Source_Location);
+      If_Even_Or_Odd_Exponent : constant Irep := Make_Code_Ifthenelse
+        (Cond => Expon_Divisible_By_Two,
+         Then_Case => If_Even_Body,
+         Else_Case => If_Odd_Body,
+         Source_Location => Source_Location);
+   begin
+      Append_Op (Function_Body, Declare_Expon_Result);
+      Append_Op (Function_Body, Set_Expon_Result_To_One);
+      Append_Op (Function_Body, Multiply_Loop);
+      Append_Op (Function_Body, Make_Code_Return
+        (Return_Value => Expon_Result,
+         Source_Location => Source_Location));
+
+      Append_Op (Multiply_Loop_Body, If_Even_Or_Odd_Exponent);
+
+      Append_Op (If_Even_Body, Square_Base);
+      Append_Op (If_Even_Body, Halve_Exponent);
+
+      Append_Op (If_Odd_Body, Multiply_Result_With_Base);
+      Append_Op (If_Odd_Body, Decrement_Exponent);
+
+      return Symbol_Expr (New_Function_Symbol_Entry
+        (Name => Function_Name,
+         Symbol_Type => Function_Type,
+         Value => Function_Body,
+         A_Symbol_Table => Global_Symbol_Table));
+   end Make_Mod_Expon_Function;
+
+   function Do_Op_Expon (N : Node_Id) return Irep is
+      LHS : constant Irep := Do_Expression (Left_Opnd (N));
+      RHS : constant Irep := Do_Expression (Right_Opnd (N));
+      LHS_Resolved_Type : constant Irep := Follow_Symbol_Type
+        (Get_Type (LHS), Global_Symbol_Table);
+      RHS_Resolved_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (RHS), Global_Symbol_Table);
+   begin
+      if Kind (LHS_Resolved_Type) = I_Ada_Mod_Type then
+         declare
+            Expon_Function : constant Irep := Make_Mod_Expon_Function
+              (LHS_Resolved_Type, RHS_Resolved_Type, Sloc (N));
+         begin
+            return Make_Simple_Side_Effect_Expr_Function_Call
+              (Arguments => (LHS, RHS),
+               Function_Expr => Expon_Function,
+               Source_Location => Sloc (N));
+         end;
+      end if;
+      return Report_Unhandled_Node_Irep (N, "Do_Op_Expon",
+        "Exponentiation unhandled for non mod types at the moment");
+   end Do_Op_Expon;
+
    -------------------------
    -- Do_Operator_General --
    -------------------------
@@ -2904,6 +3105,8 @@ package body Tree_Walk is
          return Do_Bit_Op (N, Make_Op_Bitand'Access);
       elsif Nkind (N) = N_Op_Xor then
          return Do_Bit_Op (N, Make_Op_Bitxor'Access);
+      elsif Nkind (N) = N_Op_Expon then
+         return Do_Op_Expon (N);
       else
          if Nkind (N) /= N_And_Then
            and then Nkind (N) /= N_In
