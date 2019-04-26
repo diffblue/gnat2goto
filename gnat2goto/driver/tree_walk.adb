@@ -1439,6 +1439,7 @@ package body Tree_Walk is
    function Do_Nondet_Function_Call (N : Node_Id) return Irep is
       Func_Str     : constant String := Unique_Name (Entity (Name (N)));
       Func_Name    : constant Symbol_Id := Intern (Func_Str);
+      Source_Loc   : constant Source_Ptr := Sloc (N);
    begin
       if Global_Symbol_Table.Contains (Func_Name) then
          --  ??? why not get this from the entity
@@ -1458,9 +1459,8 @@ package body Tree_Walk is
               Get_Return_Type (Func_Symbol.SymType);
             Sym_Nondet   : constant Irep :=
               Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
-            SE_Call_Expr : constant Irep :=
-              Make_Assume_Expr (N, Make_Range_Expression (Sym_Nondet,
-                                                       Get_Type (Sym_Nondet)));
+            Followed_Type : constant Irep :=
+              Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
             Nondet_Expr  : constant Irep :=
               New_Irep (I_Side_Effect_Expr_Nondet);
             Assume_And_Yield : constant Irep := New_Irep (I_Op_Comma);
@@ -1469,7 +1469,23 @@ package body Tree_Walk is
             Set_Type (Nondet_Expr, Type_Irep);
             Set_Source_Location (Nondet_Expr, Sloc (N));
 
-            Set_Lhs (Assume_And_Yield, SE_Call_Expr);
+            if Kind (Followed_Type) in
+              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+            then
+               Set_Lhs (Assume_And_Yield,
+                        Make_Assume_Expr (N,
+                          Make_Range_Expression (Sym_Nondet,
+                            Get_Bound (Followed_Type, Bound_Low),
+                            Get_Bound (Followed_Type, Bound_High))));
+            else
+               Set_Lhs (Assume_And_Yield,
+                        Make_Assume_Expr (N,
+                          Make_Constant_Expr (Source_Location => Source_Loc,
+                                             I_Type          => Make_Bool_Type,
+                                              Range_Check     => False,
+                                              Value           => "true")));
+            end if;
+
             Set_Rhs (Assume_And_Yield, Sym_Nondet);
             Set_Source_Location (Assume_And_Yield, Sloc (N));
             return Make_Let_Expr
@@ -3446,10 +3462,10 @@ package body Tree_Walk is
          return Ret;
       end if;
       Set_Lower_Bound (I     => Ret,
-                       Value => Store_Bound (Bound_Type (Intval (
+                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
                          Low_Bound (N)))));
       Set_Upper_Bound (I     => Ret,
-                       Value => Store_Bound (Bound_Type (Intval (
+                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
                          High_Bound (N)))));
       Set_Width (I     => Ret,
                  Value => Positive (UI_To_Int (Esize (E))));

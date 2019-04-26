@@ -25,11 +25,15 @@ package Range_Check is
      Post => Kind (Get_Bound'Result) in Class_Expr;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
-                                    Bounds_Type : Irep) return Irep;
+                                    Bounds_Type : Irep) return Irep
+     with Pre => Kind (Bounds_Type) in
+     I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type;
 
-   function Make_Range_Expression (Value_Expr : Irep; Val_Type : Irep)
+   function Make_Range_Expression (Value_Expr : Irep; Lower_Bound : Irep;
+                                   Upper_Bound : Irep)
                                    return Irep
-     with Post => Kind (Make_Range_Expression'Result) in Class_Expr;
+     with Pre => Kind (Get_Type (Lower_Bound)) = Kind (Get_Type (Lower_Bound)),
+       Post => Kind (Make_Range_Expression'Result) in Class_Expr;
 
 private
    type Bound_Type is (Nat_Bound, Real_Bound, Symb_Bound);
