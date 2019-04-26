@@ -9,6 +9,7 @@ with Ireps;                     use Ireps;
 
 package Range_Check is
 
+   type Bound_Low_Or_High is (Bound_Low, Bound_High);
 
    type Bound_Type_Nat is new Uint;
    type Bound_Type_Real is new Ureal;
@@ -17,6 +18,11 @@ package Range_Check is
    function Store_Nat_Bound (Number : Bound_Type_Nat) return Integer;
    function Store_Real_Bound (Number : Bound_Type_Real) return Integer;
    function Store_Symbol_Bound (Number : Bound_Type_Symbol) return Integer;
+
+   function Get_Bound (Bound_Type : Irep; Pos : Bound_Low_Or_High) return Irep
+     with Pre => Kind (Bound_Type) in
+     I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type,
+     Post => Kind (Get_Bound'Result) in Class_Expr;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
                                     Bounds_Type : Irep) return Irep;

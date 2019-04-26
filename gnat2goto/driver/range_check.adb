@@ -72,6 +72,29 @@ package body Range_Check is
       return All_Bounds_Table.Element (Bound_Index);
    end Get_Bound_Type;
 
+   function Get_Bound (Bound_Type : Irep; Pos : Bound_Low_Or_High) return Irep
+   is
+      Bound_Index : constant Integer := (if Pos = Bound_Low
+                                         then Get_Lower_Bound (Bound_Type)
+                                         else Get_Upper_Bound (Bound_Type));
+      Source_Loc : constant Source_Ptr := No_Location;
+   begin
+      case Get_Bound_Type (Bound_Index) is
+         when Nat_Bound =>
+            return Make_Constant_Expr (Source_Location => Source_Loc,
+                                       I_Type          => Bound_Type,
+                                       Range_Check     => False,
+                     Value => Load_Nat_Bound_In_Hex (Bound_Index, Bound_Type));
+         when Real_Bound =>
+            return Make_Constant_Expr (Source_Location => Source_Loc,
+                                       I_Type          => Bound_Type,
+                                       Range_Check     => False,
+                   Value => Load_Real_Bound_In_Hex (Bound_Index, Bound_Type));
+         when Symb_Bound =>
+            return Load_Symbol_Bound (Bound_Index);
+      end case;
+   end Get_Bound;
+
    ----------------------------
    -- Make_Range_Assert_Expr --
    ----------------------------
