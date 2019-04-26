@@ -1,4 +1,4 @@
-[assertion.1] Range Check: SUCCESS
-[assertion.2] Range Check: FAILURE
+[assertion.1] Range Check: FAILURE
+[assertion.2] Range Check: SUCCESS
 [assertion.3] Range Check: FAILURE
 VERIFICATION FAILED
