@@ -1,7 +1,6 @@
 with Nlists;                use Nlists;
 with Uintp;                 use Uintp;
 
-with GOTO_Utils;            use GOTO_Utils;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 

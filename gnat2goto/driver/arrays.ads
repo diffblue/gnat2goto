@@ -6,10 +6,9 @@ with Ireps;             use Ireps;
 with Types;             use Types;
 
 with Symbol_Table_Info; use Symbol_Table_Info;
+with GOTO_Utils;        use GOTO_Utils;
 
 package Arrays is
-
-   type Irep_Array is array (Positive range <>) of Irep;
 
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep
      with Pre  => Nkind (N) = N_Aggregate;
