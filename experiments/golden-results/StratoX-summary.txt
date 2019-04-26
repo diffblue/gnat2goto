@@ -13,22 +13,22 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
 --
-Occurs: 159 times
+Occurs: 146 times
 Calling function: Process_Declaration
 Error message: Number declaration
 Nkind: N_Number_Declaration
---
-Occurs: 117 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
 --
 Occurs: 107 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
 --
-Occurs: 78 times
+Occurs: 99 times
+Calling function: Do_Function_Call
+Error message: func name not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 62 times
 Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
@@ -43,7 +43,7 @@ Calling function: Process_Statement
 Error message: Raise statement
 Nkind: N_Raise_Statement
 --
-Occurs: 37 times
+Occurs: 35 times
 Calling function: Process_Declaration
 Error message: Package declaration
 Nkind: N_Package_Declaration
@@ -63,15 +63,10 @@ Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Function_Instantiation
 --
-Occurs: 19 times
+Occurs: 17 times
 Calling function: Process_Declaration
 Error message: Package body declaration
 Nkind: N_Package_Body
---
-Occurs: 17 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
 --
 Occurs: 15 times
 Calling function: Process_Declaration
@@ -82,6 +77,11 @@ Occurs: 13 times
 Calling function: Do_Constant
 Error message: Constant Type not in symbol table
 Nkind: N_Integer_Literal
+--
+Occurs: 13 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
 --
 Occurs: 11 times
 Calling function: Do_Expression
@@ -130,11 +130,6 @@ Nkind: N_Access_Procedure_Definition
 --
 Occurs: 5 times
 Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Procedure_Instantiation
---
-Occurs: 5 times
-Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
 --
@@ -152,6 +147,11 @@ Occurs: 3 times
 Calling function: Do_Operator_Simple
 Error message: Unsupported operand
 Nkind: N_Op_Expon
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
 --
 Occurs: 3 times
 Calling function: Process_Statement
@@ -185,8 +185,13 @@ Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
-Error message: low bound range expression not literal
-Nkind: N_Range
+Error message: unsupported lower range kind
+Nkind: N_Real_Literal
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Real_Literal
 --
 Occurs: 1 times
 Calling function: Do_Compilation_Unit
