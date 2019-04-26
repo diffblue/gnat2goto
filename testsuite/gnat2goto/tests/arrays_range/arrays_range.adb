@@ -5,7 +5,12 @@ procedure Arrays_Range is
       subtype My_Index is Integer range Arr'Range;
       An_Index : My_Index := 1;
    begin
-      pragma Assert(An_Index = 1);
+      An_Index := An_Index + 1; -- to invoke the range check
+      pragma Assert(An_Index = 2);
+      An_Index := An_Index + 2;
+      pragma Assert(An_Index = 4);
+      An_Index := An_Index - 5;
+      pragma Assert(An_Index = -1);
    end Array_Consumer;
 
    My_Arr : Indet_Array(1..2) := (others => 0);

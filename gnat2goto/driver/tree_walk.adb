@@ -694,31 +694,63 @@ package body Tree_Walk is
       Resolved_Underlying : constant Irep :=
         Follow_Symbol_Type (Underlying, Global_Symbol_Table);
       --  ??? why not get this from the entity
+
+      function Get_Array_Attr_Bound_Symbol (Bound_Node : Node_Id)
+                                            return Bound_Type_Symbol
+        with Pre => Get_Attribute_Id (Attribute_Name (Bound_Node))
+          in Attribute_First | Attribute_Last;
+      function Get_Array_Attr_Bound_Symbol (Bound_Node : Node_Id)
+                                            return Bound_Type_Symbol
+      is
+      begin
+         if Get_Attribute_Id (Attribute_Name (Bound_Node)) = Attribute_First
+         then
+            return Bound_Type_Symbol (Do_Array_First (Bound_Node));
+         else
+            return Bound_Type_Symbol (Do_Array_Last (Bound_Node));
+         end if;
+      end Get_Array_Attr_Bound_Symbol;
+
+      Lower_Bound : constant Node_Id := Low_Bound (Range_Expr);
+      Upper_Bound : constant Node_Id := High_Bound (Range_Expr);
+
+      Lower_Bound_Value : Integer;
+      Upper_Bound_Value : Integer;
+
+      Result_Type : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
    begin
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type) then
-         Report_Unhandled_Node_Empty (Range_Expr, "Do_Base_Range_Constraint",
-                                      "range expression not bitvector type");
-         return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+         return Report_Unhandled_Node_Type (Range_Expr,
+                                            "Do_Base_Range_Constraint",
+                                        "range expression not bitvector type");
       end if;
-      if Nkind (Low_Bound (Range_Expr)) /= N_Integer_Literal then
-         Report_Unhandled_Node_Empty (Range_Expr, "Do_Base_Range_Constraint",
-                                     "low bound range expression not literal");
-         return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
-      end if;
-      if Nkind (High_Bound (Range_Expr)) /= N_Integer_Literal then
-         Report_Unhandled_Node_Empty (Range_Expr, "Do_Base_Range_Constraint",
-                                    "high bound range expression not literal");
-         return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
-      end if;
-      return R : constant Irep := New_Irep (I_Bounded_Signedbv_Type) do
-         Set_Width (R, Get_Width (Resolved_Underlying));
-         Set_Lower_Bound (I     => R,
-                          Value => Store_Bound (Bound_Type (Intval (
-                            Low_Bound (Range_Expr)))));
-         Set_Upper_Bound (I     => R,
-                          Value => Store_Bound (Bound_Type (Intval (
-                            High_Bound (Range_Expr)))));
-      end return;
+
+      case Nkind (Lower_Bound) is
+         when N_Integer_Literal => Lower_Bound_Value :=
+              Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound)));
+         when N_Attribute_Reference => Lower_Bound_Value :=
+              Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Lower_Bound));
+         when others =>
+            Report_Unhandled_Node_Empty (Lower_Bound,
+                                         "Do_Base_Range_Constraint",
+                                         "unsupported lower range kind");
+      end case;
+
+      case Nkind (Upper_Bound) is
+         when N_Integer_Literal => Upper_Bound_Value :=
+              Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound)));
+         when N_Attribute_Reference => Upper_Bound_Value :=
+              Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
+         when others =>
+            Report_Unhandled_Node_Empty (Upper_Bound,
+                                         "Do_Base_Range_Constraint",
+                                         "unsupported upper range kind");
+      end case;
+
+      Set_Width (Result_Type, Get_Width (Resolved_Underlying));
+      Set_Lower_Bound (Result_Type, Lower_Bound_Value);
+      Set_Upper_Bound (Result_Type, Upper_Bound_Value);
+      return Result_Type;
    end Do_Bare_Range_Constraint;
 
    ------------------------
@@ -1407,6 +1439,7 @@ package body Tree_Walk is
    function Do_Nondet_Function_Call (N : Node_Id) return Irep is
       Func_Str     : constant String := Unique_Name (Entity (Name (N)));
       Func_Name    : constant Symbol_Id := Intern (Func_Str);
+      Source_Loc   : constant Source_Ptr := Sloc (N);
    begin
       if Global_Symbol_Table.Contains (Func_Name) then
          --  ??? why not get this from the entity
@@ -1426,9 +1459,8 @@ package body Tree_Walk is
               Get_Return_Type (Func_Symbol.SymType);
             Sym_Nondet   : constant Irep :=
               Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
-            SE_Call_Expr : constant Irep :=
-              Make_Assume_Expr (N, Make_Range_Expression (Sym_Nondet,
-                                                       Get_Type (Sym_Nondet)));
+            Followed_Type : constant Irep :=
+              Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
             Nondet_Expr  : constant Irep :=
               New_Irep (I_Side_Effect_Expr_Nondet);
             Assume_And_Yield : constant Irep := New_Irep (I_Op_Comma);
@@ -1437,7 +1469,23 @@ package body Tree_Walk is
             Set_Type (Nondet_Expr, Type_Irep);
             Set_Source_Location (Nondet_Expr, Sloc (N));
 
-            Set_Lhs (Assume_And_Yield, SE_Call_Expr);
+            if Kind (Followed_Type) in
+              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+            then
+               Set_Lhs (Assume_And_Yield,
+                        Make_Assume_Expr (N,
+                          Make_Range_Expression (Sym_Nondet,
+                            Get_Bound (Followed_Type, Bound_Low),
+                            Get_Bound (Followed_Type, Bound_High))));
+            else
+               Set_Lhs (Assume_And_Yield,
+                        Make_Assume_Expr (N,
+                          Make_Constant_Expr (Source_Location => Source_Loc,
+                                             I_Type          => Make_Bool_Type,
+                                              Range_Check     => False,
+                                              Value           => "true")));
+            end if;
+
             Set_Rhs (Assume_And_Yield, Sym_Nondet);
             Set_Source_Location (Assume_And_Yield, Sloc (N));
             return Make_Let_Expr
@@ -3414,10 +3462,10 @@ package body Tree_Walk is
          return Ret;
       end if;
       Set_Lower_Bound (I     => Ret,
-                       Value => Store_Bound (Bound_Type (Intval (
+                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
                          Low_Bound (N)))));
       Set_Upper_Bound (I     => Ret,
-                       Value => Store_Bound (Bound_Type (Intval (
+                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
                          High_Bound (N)))));
       Set_Width (I     => Ret,
                  Value => Positive (UI_To_Int (Esize (E))));

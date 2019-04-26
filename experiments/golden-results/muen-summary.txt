@@ -150,8 +150,8 @@ Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
-Error message: high bound range expression not literal
-Nkind: N_Range
+Error message: unsupported upper range kind
+Nkind: N_Op_Divide
 --
 Occurs: 1 times
 Calling function: Do_Expression

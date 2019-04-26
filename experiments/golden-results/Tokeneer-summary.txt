@@ -40,8 +40,8 @@ Nkind: N_Expanded_Name
 --
 Occurs: 28 times
 Calling function: Do_Base_Range_Constraint
-Error message: high bound range expression not literal
-Nkind: N_Range
+Error message: unsupported upper range kind
+Nkind: N_Identifier
 --
 Occurs: 15 times
 Calling function: Do_Base_Range_Constraint
@@ -74,6 +74,11 @@ Error message: Unknown expression kind
 Nkind: N_Object_Declaration
 --
 Occurs: 2 times
+Calling function: Do_Itype_Integer_Subtype
+Error message: Non-literal bound unsupported
+Nkind: N_Defining_Identifier
+--
+Occurs: 2 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
@@ -82,11 +87,6 @@ Occurs: 2 times
 Calling function: Process_Declaration
 Error message: Private extension declaration unsupported
 Nkind: N_Private_Extension_Declaration
---
-Occurs: 1 times
-Calling function: Do_Itype_Integer_Subtype
-Error message: Non-literal bound unsupported
-Nkind: N_Defining_Identifier
 --
 Occurs: 159 times
 Redacted compiler error message:

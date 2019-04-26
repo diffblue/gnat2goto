@@ -139,9 +139,9 @@ package body Gnat2goto_Itypes is
       end if;
       return
         Make_Bounded_Signedbv_Type (
-                               Lower_Bound => Store_Bound (Bound_Type (Intval (
+                       Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
                                       Low_Bound (Scalar_Range (N))))),
-                               Upper_Bound => Store_Bound (Bound_Type (Intval (
+                       Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
                                       High_Bound (Scalar_Range (N))))),
                                Width       => Positive (UI_To_Int (Esize (N))),
                                I_Subtype   => Ireps.Empty);
@@ -153,9 +153,9 @@ package body Gnat2goto_Itypes is
 
    function Do_Itype_Integer_Type (N : Entity_Id) return Irep is
      (Make_Bounded_Signedbv_Type (
-                               Lower_Bound => Store_Bound (Bound_Type (Intval (
+                       Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
                                       Low_Bound (Scalar_Range (N))))),
-                               Upper_Bound => Store_Bound (Bound_Type (Intval (
+                       Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
                                       High_Bound (Scalar_Range (N))))),
                                Width       => Positive (UI_To_Int (Esize (N))),
                                I_Subtype   => Ireps.Empty));
