@@ -16,9 +16,16 @@ package body Range_Check is
 
    function Store_Nat_Bound (Number : Bound_Type_Nat) return Integer
    is
-      Length : constant Integer := Integer (Integer_Bounds_Table.Length);
+      Length : constant Integer := Integer (All_Bounds_Table.Length);
+      Where : Nat_Bounds_Map.Cursor;
+      Success_Insert : Boolean;
    begin
-      Integer_Bounds_Table.Append (Number);
+      All_Bounds_Table.Append (Nat_Bound);
+      Nat_Bounds_Table.Insert (Key      => Length,
+                               New_Item => Number,
+                               Position => Where,
+                               Inserted => Success_Insert);
+      pragma Assert (Success_Insert);
       return Length;
    end Store_Nat_Bound;
 
@@ -28,11 +35,42 @@ package body Range_Check is
 
    function Store_Real_Bound (Number : Bound_Type_Real) return Integer
    is
-      Length : constant Integer := Integer (Integer_Bounds_Real_Table.Length);
+      Length : constant Integer := Integer (All_Bounds_Table.Length);
+      Where : Real_Bounds_Map.Cursor;
+      Success_Insert : Boolean;
    begin
-      Integer_Bounds_Real_Table.Append (Number);
+      All_Bounds_Table.Append (Real_Bound);
+      Real_Bounds_Table.Insert (Key      => Length,
+                                New_Item => Number,
+                                Position => Where,
+                                Inserted => Success_Insert);
+      pragma Assert (Success_Insert);
       return Length;
    end Store_Real_Bound;
+
+   ----------------------
+   -- Store_Symbol_Bound --
+   ----------------------
+
+   function Store_Symbol_Bound (Number : Bound_Type_Symbol) return Integer
+   is
+      Length : constant Integer := Integer (All_Bounds_Table.Length);
+      Where : Symbol_Bounds_Map.Cursor;
+      Success_Insert : Boolean;
+   begin
+      All_Bounds_Table.Append (Symb_Bound);
+      Expr_Bounds_Table.Insert (Key      => Length,
+                                New_Item => Number,
+                                Position => Where,
+                                Inserted => Success_Insert);
+      pragma Assert (Success_Insert);
+      return Length;
+   end Store_Symbol_Bound;
+
+   function Get_Bound_Type (Bound_Index : Integer) return Bound_Type is
+   begin
+      return All_Bounds_Table.Element (Bound_Index);
+   end Get_Bound_Type;
 
    ----------------------------
    -- Make_Range_Assert_Expr --
@@ -220,7 +258,7 @@ package body Range_Check is
                                return String
    is
       Bit_Width : constant Pos := Pos (Get_Width (Actual_Type));
-      Bound : constant Uint := Uint (Integer_Bounds_Table.Element (Index));
+      Bound : constant Uint := Uint (Nat_Bounds_Table.Element (Index));
    begin
       return Convert_Uint_To_Hex (
                  Value     => Bound,
@@ -236,13 +274,19 @@ package body Range_Check is
    is
       Bit_Width : constant Float_Format := To_Float_Format (Actual_Type);
       Bound : constant Ureal :=
-        Ureal (Integer_Bounds_Real_Table.Element (Index));
+        Ureal (Real_Bounds_Table.Element (Index));
    begin
       case Bit_Width is
          when IEEE_32_Bit => return Convert_Ureal_To_Hex_32bits_IEEE (Bound);
          when IEEE_64_Bit => return Convert_Ureal_To_Hex_64bits_IEEE (Bound);
       end case;
    end Load_Real_Bound_In_Hex;
+
+   function Load_Symbol_Bound (Index : Integer) return Irep
+   is
+   begin
+      return Irep (Expr_Bounds_Table.Element (Index));
+   end Load_Symbol_Bound;
 
    ----------------------
    -- Make_Assert_Call --
