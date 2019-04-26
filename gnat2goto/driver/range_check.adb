@@ -10,17 +10,17 @@ with Tree_Walk;             use Tree_Walk;
 
 package body Range_Check is
 
-   -----------------
-   -- Store_Bound --
-   -----------------
+   ---------------------
+   -- Store_Nat_Bound --
+   ---------------------
 
-   function Store_Bound (Number : Bound_Type) return Integer
+   function Store_Nat_Bound (Number : Bound_Type_Nat) return Integer
    is
       Length : constant Integer := Integer (Integer_Bounds_Table.Length);
    begin
       Integer_Bounds_Table.Append (Number);
       return Length;
-   end Store_Bound;
+   end Store_Nat_Bound;
 
    ----------------------
    -- Store_Real_Bound --
@@ -216,7 +216,7 @@ package body Range_Check is
    -- Load_Bound_In_Hex --
    -----------------------
 
-   function Load_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
+   function Load_Nat_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
                                return String
    is
       Bit_Width : constant Pos := Pos (Get_Width (Actual_Type));
@@ -225,7 +225,7 @@ package body Range_Check is
       return Convert_Uint_To_Hex (
                  Value     => Bound,
                  Bit_Width => Bit_Width);
-   end Load_Bound_In_Hex;
+   end Load_Nat_Bound_In_Hex;
 
    ----------------------------
    -- Load_Real_Bound_In_Hex --

@@ -8,7 +8,6 @@ with Ireps;                     use Ireps;
 
 package Range_Check is
 
-   type Bound_Type is new Uint;
    type Bound_Type_Real is new Ureal;
 
    package Integer_Bounds_Vector is new
@@ -17,8 +16,9 @@ package Range_Check is
    package Integer_Bounds_Real_Vector is new
      Ada.Containers.Vectors (Index_Type   => Natural,
                              Element_Type => Bound_Type_Real);
+   type Bound_Type_Nat is new Uint;
 
-   function Store_Bound (Number : Bound_Type) return Integer;
+   function Store_Nat_Bound (Number : Bound_Type_Nat) return Integer;
    function Store_Real_Bound (Number : Bound_Type_Real) return Integer;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
@@ -32,7 +32,7 @@ private
    Integer_Bounds_Table : Integer_Bounds_Vector.Vector;
    Integer_Bounds_Real_Table : Integer_Bounds_Real_Vector.Vector;
 
-   function Load_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
+   function Load_Nat_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
                                return String
      with Pre => (Kind (Actual_Type) = I_Bounded_Signedbv_Type
                   and then
