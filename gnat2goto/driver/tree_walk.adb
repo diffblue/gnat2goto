@@ -54,6 +54,9 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Case_Expression,
         Post => Kind (Do_Case_Expression'Result) = I_Let_Expr;
 
+   function Do_Qualified_Expression (N : Node_Id) return Irep
+   with Pre => Nkind (N) = N_Qualified_Expression;
+
    function Do_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Integer_Literal,
         Post => Kind (Do_Constant'Result) = I_Constant_Expr;
@@ -1334,9 +1337,7 @@ package body Tree_Walk is
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
          when N_And_Then => return Do_And_Then (N);
-         when N_Qualified_Expression =>
-            return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                               "Qualified");
+         when N_Qualified_Expression => return Do_Qualified_Expression (N);
          when N_Quantified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Quantified");
@@ -1431,6 +1432,22 @@ package body Tree_Walk is
       Set_Type            (SEE_Fun_Call, Make_Void_Type);
       return SEE_Fun_Call;
    end Make_Assume_Expr;
+
+   -----------------------------
+   -- Do_Qualified_Expression --
+   -----------------------------
+
+   function Do_Qualified_Expression (N : Node_Id) return Irep is
+      Value : constant Irep := Do_Expression (Expression (N));
+      Type_Of_Val : constant Irep :=
+         Follow_Symbol_Type (
+          Do_Type_Reference (Etype (N)),
+          Global_Symbol_Table);
+      Typecast_Expr : constant Irep :=
+        Make_Op_Typecast (Value, Sloc (N), Type_Of_Val);
+   begin
+      return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+   end Do_Qualified_Expression;
 
    -----------------------------
    -- Do_Nondet_Function_Call --
