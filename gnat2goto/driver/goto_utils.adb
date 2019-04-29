@@ -442,4 +442,35 @@ package body GOTO_Utils is
       return False;
    end Has_GNAT2goto_Annotation;
 
+   function Integer_Constant_To_Expr
+     (Value : Uint;
+      Expr_Type : Irep;
+      Source_Location : Source_Ptr)
+   return Irep is
+      Value_Hex : constant String := Convert_Uint_To_Hex
+        (Value => Value,
+         Bit_Width => Pos (Get_Width (Expr_Type)));
+   begin
+      return Make_Constant_Expr
+        (Source_Location => Source_Location,
+         I_Type => Expr_Type,
+         Value => Value_Hex);
+   end Integer_Constant_To_Expr;
+
+   function Make_Simple_Side_Effect_Expr_Function_Call
+     (Arguments : Irep_Array;
+      Function_Expr : Irep;
+      Source_Location : Source_Ptr) return Irep is
+      Argument_List : constant Irep := Make_Argument_List;
+   begin
+      for Argument of Arguments loop
+         Append_Argument (Argument_List, Argument);
+      end loop;
+      return Make_Side_Effect_Expr_Function_Call
+        (Arguments => Argument_List,
+         I_Function => Function_Expr,
+         I_Type => Get_Return_Type
+           (Get_Type (Function_Expr)),
+         Source_Location => Source_Location);
+   end Make_Simple_Side_Effect_Expr_Function_Call;
 end GOTO_Utils;

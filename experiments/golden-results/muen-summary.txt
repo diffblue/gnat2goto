@@ -164,8 +164,8 @@ Error message: function entity not defining identifier
 Nkind: N_Function_Call
 --
 Occurs: 1 times
-Calling function: Do_Operator_Simple
-Error message: Unsupported operand
+Calling function: Do_Op_Expon
+Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
 --
 Occurs: 1 times

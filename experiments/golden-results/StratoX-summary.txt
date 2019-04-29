@@ -144,11 +144,6 @@ Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
 Occurs: 3 times
-Calling function: Do_Operator_Simple
-Error message: Unsupported operand
-Nkind: N_Op_Expon
---
-Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Procedure_Instantiation
