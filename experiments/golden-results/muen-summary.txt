@@ -1,9 +1,9 @@
-Occurs: 1508 times
+Occurs: 1488 times
 Calling function: Process_Declaration
 Error message: Pragmas in declaration
 Nkind: N_Pragma
 --
-Occurs: 852 times
+Occurs: 838 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
@@ -18,17 +18,17 @@ Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 105 times
+Occurs: 102 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 97 times
+Occurs: 94 times
 Calling function: Process_Declaration
 Error message: Private type declaration unsupported
 Nkind: N_Private_Type_Declaration
 --
-Occurs: 32 times
+Occurs: 30 times
 Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
@@ -38,22 +38,12 @@ Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Record_Representation_Clause
 --
-Occurs: 14 times
-Calling function: Do_Expression
-Error message: Qualified
-Nkind: N_Qualified_Expression
---
-Occurs: 13 times
+Occurs: 12 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 13 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
---
-Occurs: 13 times
+Occurs: 12 times
 Calling function: Process_Declaration
 Error message: Private extension declaration unsupported
 Nkind: N_Private_Extension_Declaration
@@ -62,6 +52,11 @@ Occurs: 10 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
+--
+Occurs: 10 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
 --
 Occurs: 9 times
 Calling function: Do_Function_Call
@@ -93,11 +88,6 @@ Calling function: Do_Constant
 Error message: Constant Type not in symbol table
 Nkind: N_Integer_Literal
 --
-Occurs: 6 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Procedure_Instantiation
---
 Occurs: 4 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
@@ -109,24 +99,34 @@ Error message: Package body declaration
 Nkind: N_Package_Body
 --
 Occurs: 3 times
-Calling function: Do_Address_Of
-Error message: Kind not in class type
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: More than one named operand
 Nkind: N_Aggregate
 --
 Occurs: 3 times
-Calling function: Do_Identifier
-Error message: Etype not a type
-Nkind: N_Identifier
---
-Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
+--
+Occurs: 2 times
+Calling function: Do_Address_Of
+Error message: Kind not in class type
+Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+Calling function: Do_Aggregate_Literal
+Error message: Unhandled aggregate kind
+Nkind: N_Aggregate
+--
+Occurs: 2 times
+Calling function: Do_Identifier
+Error message: Etype not a type
+Nkind: N_Identifier
 --
 Occurs: 2 times
 Calling function: Do_Procedure_Call_Statement
