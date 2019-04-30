@@ -8,11 +8,6 @@ Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 240 times
-Calling function: Process_Declaration
-Error message: Number declaration
-Nkind: N_Number_Declaration
---
 Occurs: 112 times
 Calling function: Process_Declaration
 Error message: Exception declaration
@@ -23,9 +18,9 @@ Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 94 times
-Calling function: Process_Declaration
-Error message: Private type declaration unsupported
+Occurs: 65 times
+Calling function: Do_Private_Type_Declaration
+Error message: Abstract type declaration unsupported
 Nkind: N_Private_Type_Declaration
 --
 Occurs: 30 times
@@ -45,8 +40,13 @@ Nkind: N_Derived_Type_Definition
 --
 Occurs: 12 times
 Calling function: Process_Declaration
-Error message: Private extension declaration unsupported
+Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
+--
+Occurs: 11 times
+Calling function: Do_Constant
+Error message: Constant Type not in symbol table
+Nkind: N_Integer_Literal
 --
 Occurs: 10 times
 Calling function: Do_Type_Definition
@@ -82,11 +82,6 @@ Occurs: 6 times
 Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
---
-Occurs: 6 times
-Calling function: Do_Constant
-Error message: Constant Type not in symbol table
-Nkind: N_Integer_Literal
 --
 Occurs: 4 times
 Calling function: Do_Expression
