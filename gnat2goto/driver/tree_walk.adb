@@ -146,7 +146,7 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Object_Declaration
                  and then Kind (Block) = I_Code_Block;
 
-   procedure Do_Object_Declaration_Full_Declaration (N : Node_Id; Block : Irep)
+   procedure Do_Object_Declaration_Full (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Object_Declaration
                  and then Kind (Block) = I_Code_Block;
 
@@ -1823,38 +1823,22 @@ package body Tree_Walk is
       --  all incomplete_type_declarations should have a full view.
       Full_View_Entity : constant Entity_Id := Full_View (Entity);
    begin
-      if Is_Incomplete_Type (Entity) then
-         --   If the incomplete_type_declaration is completed by a
-         --   private_type_declaration, the private_type_declaration
-         --   has to be processed to obtain the full view of the type.
-         if not Is_Private_Type (Full_View_Entity) then
-            if Nkind (Declaration_Node (Full_View_Entity)) =
-              N_Full_Type_Declaration
-            then
-               --  The full_type_declaration corresponding to the
-               --  incomplete_type_declaration is Full_View_Entity
-               --  register the full view in the symbol_table.
-               Register_Type_Declaration
-                 (Declaration_Node (Full_View_Entity), Full_View_Entity);
-            else
-               Report_Unhandled_Node_Empty
-                 (Declaration_Node (Full_View_Entity),
-                  "Do_Incomplete_Type_Declaration",
-                  "Full view of incomplete_type_declaration " &
-                    "Does not yield a full_type_declaration node");
-            end if;
-         else
-            Do_Private_Type_Declaration
-              (Declaration_Node (Full_View_Entity));
-         end if;
-
+      pragma Assert (Is_Incomplete_Type (Entity));
+      --   If the incomplete_type_declaration is completed by a
+      --   private_type_declaration, the private_type_declaration
+      --   has to be processed to obtain the full view of the type.
+      if not Is_Private_Type (Full_View_Entity) then
+         pragma Assert (Nkind (Declaration_Node (Full_View_Entity)) =
+                          N_Full_Type_Declaration);
+         --  The full_type_declaration corresponding to the
+         --  incomplete_type_declaration is Full_View_Entity
+         --  register the full view in the symbol_table.
+         Register_Type_Declaration
+           (Declaration_Node (Full_View_Entity), Full_View_Entity);
       else
-         Report_Unhandled_Node_Empty
-           (N,
-            "Do_Incomplete_Type_Declaration",
-            "The node is not a incomplete type");
+         Do_Private_Type_Declaration
+           (Declaration_Node (Full_View_Entity));
       end if;
-
    end Do_Incomplete_Type_Declaration;
 
    -----------------------------------------
@@ -2568,7 +2552,7 @@ package body Tree_Walk is
       if not Constant_Present (N) then
          --  Not any sort of constant.
          --  Process non-constant object_declaration.
-         Do_Object_Declaration_Full_Declaration (N, Block);
+         Do_Object_Declaration_Full (N, Block);
       elsif --  Check that this isn't a completion of a deferred constant.
          not Global_Symbol_Table.Contains (Obj_Id)
       then
@@ -2615,12 +2599,12 @@ package body Tree_Walk is
                --  processed again when the completion is encountered in
                --  the tree.
                Register_Constant_In_Symbol_Table (N);
-               Do_Object_Declaration_Full_Declaration
+               Do_Object_Declaration_Full
                  (Declaration_Node (Full_View_Entity), Block);
             else
                --  The constant declaration is not deferred or has the
                --  pragma Import applied and its value is defined externally.
-               Do_Object_Declaration_Full_Declaration (N, Block);
+               Do_Object_Declaration_Full (N, Block);
             end if;
          end;
       end if;
@@ -2631,7 +2615,7 @@ package body Tree_Walk is
    -- Do_Object_Declaration_Full_Declaration --
    --------------------------------------------
 
-   procedure Do_Object_Declaration_Full_Declaration
+   procedure Do_Object_Declaration_Full
      (N : Node_Id; Block : Irep) is
       Defined : constant Entity_Id := Defining_Identifier (N);
       Id   : constant Irep := Do_Defining_Identifier (Defined);
@@ -2917,7 +2901,7 @@ package body Tree_Walk is
                                              Rhs => Init_Expr,
                                              Source_Location => Sloc (N)));
       end if;
-   end Do_Object_Declaration_Full_Declaration;
+   end Do_Object_Declaration_Full;
 
    -------------------------
    --     Do_Op_Not       --
@@ -4893,12 +4877,7 @@ package body Tree_Walk is
         Do_Type_Definition (Type_Definition (N),
                             Discriminant_Specifications (N));
    begin
-      if Kind (New_Type) not in Class_Type then
-         Report_Unhandled_Node_Empty (N, "Register_Type_Declaration",
-                                      "identifier not in class type");
-         return;
-      end if;
-
+      pragma Assert (Kind (New_Type) in Class_Type);
       Do_Type_Declaration (New_Type, E);
 
       --  Declare the implicit initial subtype too
