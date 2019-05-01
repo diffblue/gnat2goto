@@ -370,6 +370,11 @@ package body Driver is
       Program_Symbol : constant Symbol :=
         Do_Compilation_Unit (GNAT_Root, Unit_Is_Subprogram);
 
+      --  Only add CPROVER_Start if the unit is subprogram and the user did not
+      --  suppress it (by cmdl option).
+      Add_Start : constant Boolean :=
+        Unit_Is_Subprogram and not Suppress_Cprover_Start;
+
       Sym_Tab_File : File_Type;
       Base_Name  : constant String :=
         File_Name_Without_Suffix
@@ -538,6 +543,9 @@ package body Driver is
          elsif Switch (First .. Last) = Dump_Statement_AST_On_Error_Option
          then
             Dump_Statement_AST_On_Error := True;
+            return True;
+         elsif Switch (First .. Last) = "-no-cprover-start" then
+            Suppress_Cprover_Start := True;
             return True;
          end if;
       end if;
