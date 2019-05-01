@@ -991,7 +991,7 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id; Add_Start : out Boolean)
+   function Do_Compilation_Unit (N : Node_Id; Unit_Is_Subprogram : out Boolean)
      return Symbol
    is
       U           : constant Node_Id := Unit (N);
@@ -1018,7 +1018,7 @@ package body Tree_Walk is
 
                --  and update the symbol table entry for this subprogram.
                Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
-               Add_Start := True;
+               Unit_Is_Subprogram := True;
             end;
 
          when N_Package_Body =>
@@ -1026,7 +1026,7 @@ package body Tree_Walk is
                Dummy : constant Irep := Do_Subprogram_Or_Block (U);
                pragma Unreferenced (Dummy);
             begin
-               Add_Start := False;
+               Unit_Is_Subprogram := False;
             end;
 
          when others =>

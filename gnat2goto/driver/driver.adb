@@ -366,9 +366,9 @@ package body Driver is
       Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
 
-      Add_Start : Boolean;
-      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root,
-                                                               Add_Start);
+      Unit_Is_Subprogram : Boolean;
+      Program_Symbol : constant Symbol :=
+        Do_Compilation_Unit (GNAT_Root, Unit_Is_Subprogram);
 
       Sym_Tab_File : File_Type;
       Base_Name  : constant String :=
