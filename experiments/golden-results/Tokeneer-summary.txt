@@ -1,8 +1,3 @@
-Occurs: 347 times
-Calling function: Process_Declaration
-Error message: Pragmas in declaration
-Nkind: N_Pragma
---
 Occurs: 152 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
@@ -13,10 +8,25 @@ Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
+Occurs: 55 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 05
+Nkind: N_Pragma
+--
 Occurs: 38 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
+--
+Occurs: 33 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
+Occurs: 31 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
 --
 Occurs: 18 times
 Calling function: Process_Declaration
@@ -27,6 +37,11 @@ Occurs: 11 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
+--
+Occurs: 11 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 2012
+Nkind: N_Pragma
 --
 Occurs: 9 times
 Calling function: Do_Private_Type_Declaration

@@ -1,12 +1,12 @@
-Occurs: 424 times
-Calling function: Process_Declaration
-Error message: Pragmas in declaration
-Nkind: N_Pragma
---
 Occurs: 136 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 36 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Volatile
+Nkind: N_Pragma
 --
 Occurs: 3 times
 Calling function: Do_Itype_Definition
@@ -18,6 +18,11 @@ Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
 --
+Occurs: 2 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Implementation defined
+Nkind: N_Pragma
+--
 Occurs: 1 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: More than one named operand
@@ -27,6 +32,11 @@ Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Machine Attribute
+Nkind: N_Pragma
 --
 Occurs: 5 times
 Redacted compiler error message:
