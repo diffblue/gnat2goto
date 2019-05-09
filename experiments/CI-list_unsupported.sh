@@ -26,10 +26,13 @@ test_all()
 		https://git.codelabs.ch/muen.git 41263af9482b85799537d4cad3d79427f153d7d3
 		https://github.com/martin-cs/SPARK-tetris.git c7dce756f9ec4166afe3033a094f65bb81254fc3
 	REPOS
+
+	if [ "$(uname)" = "Linux" ]; then
 		# VCT currently gives different compiler errors on OSX and Linux due to differences
-		# in the implementation of the GNAT system.ads file. Leaving out this project until
-		# such times as we can handle that file.
-		# https://github.com/pauljaxon/vct.git 18439b3337eb36e896fa89507c102d919692fcec
+		# in the implementation of the GNAT system.ads file. We therefore only run this project
+		# on Linux until such times as we can handle that file.
+		test_repo 'https://github.com/pauljaxon/vct.git' '18439b3337eb36e896fa89507c102d919692fcec' || ci_failed=1
+	fi
 
 	if [ "$ci_failed" -gt 0 ]; then
 		echo_bold_red "FAILED CI-list_unsupported.sh: Golden results out of date for the following projects:"
