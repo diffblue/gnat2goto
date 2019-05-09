@@ -28,11 +28,6 @@ Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause
 --
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Machine Attribute
-Nkind: N_Pragma
---
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
