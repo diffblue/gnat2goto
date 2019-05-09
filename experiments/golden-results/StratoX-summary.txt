@@ -1,17 +1,22 @@
-Occurs: 2445 times
-Calling function: Process_Declaration
-Error message: Pragmas in declaration
-Nkind: N_Pragma
---
 Occurs: 1272 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 213 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Postcondition
+Nkind: N_Pragma
+--
 Occurs: 168 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
+--
+Occurs: 114 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Implementation defined
+Nkind: N_Pragma
 --
 Occurs: 107 times
 Calling function: Process_Declaration
@@ -43,6 +48,21 @@ Calling function: Process_Declaration
 Error message: Package declaration
 Nkind: N_Package_Declaration
 --
+Occurs: 35 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: No strict aliasing
+Nkind: N_Pragma
+--
+Occurs: 28 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
+--
+Occurs: 25 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Precondition
+Nkind: N_Pragma
+--
 Occurs: 20 times
 Calling function: Process_Declaration
 Error message: Exception declaration
@@ -73,6 +93,11 @@ Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
 --
+Occurs: 12 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Global
+Nkind: N_Pragma
+--
 Occurs: 11 times
 Calling function: Do_Expression
 Error message: In
@@ -93,6 +118,16 @@ Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Package_Instantiation
 --
+Occurs: 9 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: No return
+Nkind: N_Pragma
+--
+Occurs: 9 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
 Occurs: 7 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
@@ -103,10 +138,20 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
+Occurs: 7 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
+--
 Occurs: 6 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause
+--
+Occurs: 6 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Unreferenced
+Nkind: N_Pragma
 --
 Occurs: 5 times
 Calling function: Do_Operator_General
@@ -123,6 +168,11 @@ Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
 --
+Occurs: 5 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 05
+Nkind: N_Pragma
+--
 Occurs: 4 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
@@ -137,6 +187,11 @@ Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Procedure_Instantiation
+--
+Occurs: 3 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Elaborate Body
+Nkind: N_Pragma
 --
 Occurs: 3 times
 Calling function: Process_Statement
@@ -168,6 +223,21 @@ Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
+Occurs: 2 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Obsolescent
+Nkind: N_Pragma
+--
+Occurs: 2 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Volatile
+Nkind: N_Pragma
+--
+Occurs: 2 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Warnings
+Nkind: N_Pragma
+--
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
 Error message: unsupported lower range kind
@@ -185,13 +255,23 @@ Nkind: N_Compilation_Unit
 --
 Occurs: 1 times
 Calling function: Do_Pragma
-Error message: Unknown pragma name
+Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Subprogram body stub declaration
 Nkind: N_Subprogram_Body_Stub
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Async readers
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Effective writes
+Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Statement
