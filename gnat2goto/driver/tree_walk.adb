@@ -4761,6 +4761,28 @@ package body Tree_Walk is
    end Process_Declaration;
 
    procedure Process_Pragma_Declaration (N : Node_Id) is
+      procedure Handle_Pragma_Volatile (N : Node_Id);
+
+      procedure Handle_Pragma_Volatile (N : Node_Id) is
+         Argument_Associations : constant List_Id :=
+           Pragma_Argument_Associations (N);
+         First_Argument_Expression : constant Node_Id :=
+           Expression (First (Argument_Associations));
+         Expression_Id : constant Symbol_Id :=
+           Intern (Unique_Name (Entity (First_Argument_Expression)));
+
+         procedure Set_Volatile (Key : Symbol_Id; Element : in out Symbol);
+         procedure Set_Volatile (Key : Symbol_Id; Element : in out Symbol) is
+         begin
+            pragma Assert (Unintern (Key) = Unintern (Expression_Id));
+            Element.IsVolatile := True;
+         end Set_Volatile;
+      begin
+         pragma Assert (Global_Symbol_Table.Contains (Expression_Id));
+         Global_Symbol_Table.Update_Element (
+                          Position => Global_Symbol_Table.Find (Expression_Id),
+                          Process  => Set_Volatile'Access);
+      end Handle_Pragma_Volatile;
    begin
       case Pragma_Name (N) is
          when Name_Assert |
@@ -4819,8 +4841,7 @@ package body Tree_Walk is
             --  they may be modified by the environment. Effectively, they need
             --  to be modelled as non-deterministic input in every state. It
             --  changes the semantics wrt to thread interleavings.
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Volatile");
+            Handle_Pragma_Volatile (N);
          when Name_Attach_Handler =>
             --  The expression in the Attach_Handler pragma as evaluated at
             --  object creation time specifies an interrupt. As part of the
