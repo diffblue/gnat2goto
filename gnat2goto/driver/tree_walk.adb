@@ -4683,6 +4683,9 @@ package body Tree_Walk is
 
    procedure Process_Pragma_Declaration (N : Node_Id) is
       procedure Handle_Pragma_Volatile (N : Node_Id);
+      procedure Handle_Pragma_Machine_Attribute (N : Node_Id)
+        with Pre => Nkind (N) in N_Pragma
+        and then Pragma_Name (N) = Name_Machine_Attribute;
 
       procedure Handle_Pragma_Volatile (N : Node_Id) is
          Argument_Associations : constant List_Id :=
@@ -4704,6 +4707,38 @@ package body Tree_Walk is
                           Position => Global_Symbol_Table.Find (Expression_Id),
                           Process  => Set_Volatile'Access);
       end Handle_Pragma_Volatile;
+
+      procedure Handle_Pragma_Machine_Attribute (N : Node_Id) is
+         Argument_Associations : constant List_Id :=
+           Pragma_Argument_Associations (N);
+
+         --  first is the identifier to be given the attribute
+         First_Argument : constant Node_Id := First (Argument_Associations);
+
+         --  second is the attribute as string
+         Second_Argument : constant Node_Id := Next (First_Argument);
+         Attr_String_Id : constant String_Id :=
+           Strval (Expression (Second_Argument));
+         Attr_Length : constant Integer :=
+           Integer (String_Length (Attr_String_Id));
+      begin
+         String_To_Name_Buffer (Attr_String_Id);
+         declare
+            Attr_String : String
+              renames Name_Buffer (1 .. Attr_Length);
+         begin
+            if Attr_String = "signal" then
+            --  CBMC would not acknowledge this one anyway -> Ignored
+               null;
+            else
+               Report_Unhandled_Node_Empty
+                 (N, "Process_Pragma_Declaration",
+                  "Unsupported pragma: Machine Attribute "
+                  & Attr_String);
+            end if;
+         end;
+      end Handle_Pragma_Machine_Attribute;
+
    begin
       case Pragma_Name (N) is
          when Name_Assert |
@@ -4872,8 +4907,7 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                  "Unsupported pragma: Implementation defined");
          when Name_Machine_Attribute =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                      "Unsupported pragma: Machine Attribute");
+            Handle_Pragma_Machine_Attribute (N);
          when Name_Check =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Check");
