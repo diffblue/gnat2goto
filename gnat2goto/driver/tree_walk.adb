@@ -1137,6 +1137,7 @@ package body Tree_Walk is
    function Do_Defining_Identifier (E : Entity_Id) return Irep is
       Sym          : constant Irep := New_Irep (I_Symbol_Expr);
       Result_Type  : constant Irep := Do_Type_Reference (Etype (E));
+      Sym_Id       : constant Symbol_Id := Intern (Unique_Name (E));
 
       Is_Out_Param : constant Boolean :=
         Ekind (E) in E_In_Out_Parameter | E_Out_Parameter;
@@ -1150,6 +1151,20 @@ package body Tree_Walk is
       Set_Source_Location (Sym, Sloc (E));
       Set_Identifier      (Sym, Unique_Name (E));
       Set_Type            (Sym, Symbol_Type);
+
+      if not Global_Symbol_Table.Contains (Sym_Id) then
+         declare
+            Variable_Symbol : Symbol;
+         begin
+            Variable_Symbol.Name       := Sym_Id;
+            Variable_Symbol.BaseName   := Sym_Id;
+            Variable_Symbol.PrettyName := Intern (Get_Name_String (Chars (E)));
+            Variable_Symbol.SymType    := Symbol_Type;
+            Variable_Symbol.Mode       := Intern ("C");
+            Variable_Symbol.Value      := Make_Nil (Sloc (E));
+            Global_Symbol_Table.Insert (Sym_Id, Variable_Symbol);
+         end;
+      end if;
 
       if Is_Out_Param then
          return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
