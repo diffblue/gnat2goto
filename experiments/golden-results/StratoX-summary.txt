@@ -215,11 +215,6 @@ Nkind: N_Pragma
 --
 Occurs: 2 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Volatile
-Nkind: N_Pragma
---
-Occurs: 2 times
-Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Warnings
 Nkind: N_Pragma
 --
