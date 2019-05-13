@@ -3,11 +3,6 @@ Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 61 times
-Calling function: Process_Declaration
-Error message: Pragmas in declaration
-Nkind: N_Pragma
---
 Occurs: 32 times
 Calling function: Do_Base_Range_Constraint
 Error message: unsupported upper range kind
@@ -33,6 +28,11 @@ Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
 Nkind: N_Private_Type_Declaration
 --
+Occurs: 8 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
+--
 Occurs: 7 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: More than one named operand
@@ -42,6 +42,11 @@ Occurs: 7 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 3 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Do_Aggregate_Literal
