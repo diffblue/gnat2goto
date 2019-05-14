@@ -88,7 +88,8 @@ package Tree_Walk is
      Kind (New_Type_In) in Class_Type;
 
    function Do_Subtype_Indication (N : Node_Id) return Irep
-     with Pre  => Nkind (N) in N_Subtype_Indication | N_Identifier,
+     with Pre  => Nkind (N) in N_Subtype_Indication | N_Identifier
+     | N_Expanded_Name,
      Post => Kind (Do_Subtype_Indication'Result) in Class_Type;
 
    function Make_Struct_Component (Name : String; Ty : Irep) return Irep;
