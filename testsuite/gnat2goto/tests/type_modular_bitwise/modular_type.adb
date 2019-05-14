@@ -6,7 +6,7 @@ procedure Modular_Type is
   begin
      pragma Assert ((Y and X) = 0);
      pragma Assert ((Z or X) = 5);
-     pragma Assert ((Y xor (Y - 1)) = 9);
+     pragma Assert ((Y xor (Y - 1)) = 5);
      pragma Assert ((not X) = 4);
 end Assert_Val;
 begin
