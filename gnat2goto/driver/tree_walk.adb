@@ -4264,6 +4264,14 @@ package body Tree_Walk is
          declare
             Entity_Parent : constant Entity_Id := Parent (E);
          begin
+            if not Present (Entity_Parent) then
+               if Ekind (E) = E_Anonymous_Access_Type then
+                  --  ignore
+                  return Make_Symbol_Type (Identifier => Unique_Name (E));
+               end if;
+               Report_Unhandled_Node_Empty (E, "Do_Type_Reference",
+                                            "Unknown type without parent");
+            end if;
 
             case Nkind (Entity_Parent) is
             when N_Private_Type_Declaration =>
