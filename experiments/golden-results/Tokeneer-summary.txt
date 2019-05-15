@@ -79,6 +79,16 @@ Error message: Unknown attribute
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
+Calling function: Do_Type_Reference
+Error message: Unknown type without parent
+Nkind: N_Defining_Identifier
+--
+Occurs: 3 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
+Occurs: 3 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Declaration

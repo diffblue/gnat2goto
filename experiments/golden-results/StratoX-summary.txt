@@ -3,10 +3,20 @@ Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 682 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
 Occurs: 213 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
+--
+Occurs: 192 times
+Calling function: Do_Private_Type_Declaration
+Error message: Abstract type declaration unsupported
+Nkind: N_Private_Type_Declaration
 --
 Occurs: 168 times
 Calling function: Process_Declaration
@@ -23,7 +33,7 @@ Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
 --
-Occurs: 99 times
+Occurs: 101 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
@@ -83,15 +93,25 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Null_Statement
 --
-Occurs: 13 times
+Occurs: 14 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
+--
+Occurs: 12 times
 Calling function: Do_Constant
 Error message: Constant Type not in symbol table
 Nkind: N_Integer_Literal
 --
-Occurs: 13 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
+Occurs: 12 times
+Calling function: Make_Array_First_Expr
+Error message: Base type not array type
+Nkind: N_Defining_Identifier
+--
+Occurs: 12 times
+Calling function: Make_Array_Index_Op
+Error message: Base type not array type
+Nkind: N_Defining_Identifier
 --
 Occurs: 12 times
 Calling function: Process_Pragma_Declaration
@@ -102,16 +122,6 @@ Occurs: 11 times
 Calling function: Do_Expression
 Error message: In
 Nkind: N_In
---
-Occurs: 11 times
-Calling function: Make_Array_First_Expr
-Error message: Base type not array type
-Nkind: N_Defining_Identifier
---
-Occurs: 11 times
-Calling function: Make_Array_Index_Op
-Error message: Base type not array type
-Nkind: N_Defining_Identifier
 --
 Occurs: 9 times
 Calling function: Process_Declaration
@@ -142,6 +152,11 @@ Occurs: 7 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Preelaborable Initialization
 Nkind: N_Pragma
+--
+Occurs: 6 times
+Calling function: Do_Type_Reference
+Error message: Unknown type without parent
+Nkind: N_Defining_Identifier
 --
 Occurs: 6 times
 Calling function: Process_Declaration
@@ -184,6 +199,11 @@ Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
 Occurs: 3 times
+Calling function: Do_Itype_Integer_Subtype
+Error message: Non-literal bound unsupported
+Nkind: N_Defining_Identifier
+--
+Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Procedure_Instantiation
@@ -209,6 +229,11 @@ Error message: range expression not bitvector type
 Nkind: N_Range
 --
 Occurs: 2 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Op_Add
+--
+Occurs: 2 times
 Calling function: Do_Constant
 Error message: Constant Type not in Class_Bitvector_Type
 Nkind: N_Integer_Literal
@@ -217,11 +242,6 @@ Occurs: 2 times
 Calling function: Do_Function_Call
 Error message: function entity not defining identifier
 Nkind: N_Function_Call
---
-Occurs: 2 times
-Calling function: Do_Itype_Integer_Subtype
-Error message: Non-literal bound unsupported
-Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
 Calling function: Process_Pragma_Declaration
@@ -237,6 +257,11 @@ Occurs: 2 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Warnings
 Nkind: N_Pragma
+--
+Occurs: 2 times
+Calling function: Process_Statement
+Error message: Extended return statement
+Nkind: N_Extended_Return_Statement
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
@@ -272,11 +297,6 @@ Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Effective writes
 Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Statement
-Error message: Extended return statement
-Nkind: N_Extended_Return_Statement
 --
 Occurs: 1 times
 Calling function: Process_Statement
