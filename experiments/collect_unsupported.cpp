@@ -128,7 +128,6 @@ int main(int argc, char** argv)
    multiset<Feature> unsupported_features;
    using Instance = pair<Feature, size_t>;
    vector<Instance> instances;
-   vector<string> params;
 
    string line;
    getline(input_file, line);
@@ -138,6 +137,7 @@ int main(int argc, char** argv)
       ++count;
       if (count % 1000 == 0) cerr << ".";
       if (line.find("----------At:") == 0) {
+         vector<string> params;
          params.push_back(line);
          assert(getline(input_file, line));
          params.push_back(line);
