@@ -351,12 +351,6 @@ package body Arrays is
               Number_Str_Raw (2 .. Number_Str_Raw'Last);
             First_Name : constant String := "first" & Number_Str;
             Last_Name : constant String := "last" & Number_Str;
-            Dimension_Type : constant Irep :=
-              Do_Type_Reference (Etype (Dimension_Iter));
-            First_Comp : constant Irep :=
-              Make_Struct_Component (First_Name, Dimension_Type);
-            Last_Comp : constant Irep :=
-              Make_Struct_Component (Last_Name, Dimension_Type);
          begin
 
             --  Declare the dimension index type if required:
@@ -371,8 +365,17 @@ package body Arrays is
                   null;
             end case;
 
-            Append_Component (Ret_Components, First_Comp);
-            Append_Component (Ret_Components, Last_Comp);
+            declare
+               Dimension_Type : constant Irep :=
+                 Do_Type_Reference (Etype (Dimension_Iter));
+               First_Comp : constant Irep :=
+                 Make_Struct_Component (First_Name, Dimension_Type);
+               Last_Comp : constant Irep :=
+                 Make_Struct_Component (Last_Name, Dimension_Type);
+            begin
+               Append_Component (Ret_Components, First_Comp);
+               Append_Component (Ret_Components, Last_Comp);
+            end;
 
          end;
          Dimension_Number := Dimension_Number + 1;
