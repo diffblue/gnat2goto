@@ -1592,8 +1592,8 @@ package body Tree_Walk is
                Set_Lhs (Assume_And_Yield,
                         Make_Assume_Expr (N,
                           Make_Range_Expression (Sym_Nondet,
-                            Get_Bound (Followed_Type, Bound_Low),
-                            Get_Bound (Followed_Type, Bound_High))));
+                            Get_Bound (N, Followed_Type, Bound_Low),
+                            Get_Bound (N, Followed_Type, Bound_High))));
             else
                Set_Lhs (Assume_And_Yield,
                         Make_Assume_Expr (N,

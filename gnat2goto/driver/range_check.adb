@@ -72,7 +72,37 @@ package body Range_Check is
       return All_Bounds_Table.Element (Bound_Index);
    end Get_Bound_Type;
 
-   function Get_Bound (Bound_Type : Irep; Pos : Bound_Low_Or_High) return Irep
+   function Get_Bound (N : Node_Id; Bound_Type : Irep; Pos : Bound_Low_Or_High)
+                             return Irep
+   is
+   begin
+      case Kind (Bound_Type) is
+         when I_Bounded_Signedbv_Type
+            | I_Bounded_Floatbv_Type =>
+            return Get_Bound_Of_Bounded_Type (Bound_Type, Pos);
+         when I_Unsignedbv_Type =>
+            declare
+               Type_Width : constant Integer := Get_Width (Bound_Type);
+               Bound_Value : constant Uint :=
+                 (if Pos = Bound_Low
+                  then Uint_0
+                  else UI_From_Int (2 ** Type_Width - 1));
+            begin
+               return Make_Constant_Expr (Source_Location => No_Location,
+                                          I_Type          => Bound_Type,
+                                          Range_Check     => False,
+                                          Value =>
+                                            Convert_Uint_To_Hex (Bound_Value,
+                                              Types.Pos (Type_Width)));
+            end;
+         when others =>
+               return Report_Unhandled_Node_Irep (N, "Get_Bound",
+                                                  "Unsupported range type");
+      end case;
+   end Get_Bound;
+
+   function Get_Bound_Of_Bounded_Type (Bound_Type : Irep;
+                                       Pos : Bound_Low_Or_High) return Irep
    is
       Bound_Index : constant Integer := (if Pos = Bound_Low
                                          then Get_Lower_Bound (Bound_Type)
@@ -93,7 +123,7 @@ package body Range_Check is
          when Symb_Bound =>
             return Load_Symbol_Bound (Bound_Index);
       end case;
-   end Get_Bound;
+   end Get_Bound_Of_Bounded_Type;
 
    ----------------------------
    -- Make_Range_Assert_Expr --
@@ -185,9 +215,9 @@ package body Range_Check is
       end Build_Assert_Function;
 
       Lower_Bound : constant Irep :=
-        Get_Bound (Followed_Bound_Type, Bound_Low);
+        Get_Bound (N, Followed_Bound_Type, Bound_Low);
       Upper_Bound : constant Irep :=
-        Get_Bound (Followed_Bound_Type, Bound_High);
+        Get_Bound (N, Followed_Bound_Type, Bound_High);
    begin
       Append_Argument (Call_Args, Value);
       Append_Argument (Call_Args, Lower_Bound);
@@ -230,7 +260,8 @@ package body Range_Check is
       pragma Assert (Kind (Bound_Type) in
                        I_Bounded_Unsignedbv_Type
                        | I_Bounded_Signedbv_Type
-                       | I_Bounded_Floatbv_Type);
+                       | I_Bounded_Floatbv_Type
+                       | I_Unsignedbv_Type);
       --  The compared expressions (value and bound) have to be of the
       --  same type
       if Get_Width (Bound_Type) > Get_Width (Value_Expr_Type)
