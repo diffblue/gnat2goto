@@ -4258,7 +4258,21 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Type_Reference (E : Entity_Id) return Irep is
-      (Make_Symbol_Type (Identifier => Unique_Name (E)));
+   begin
+      declare
+         Sym_Id : constant Symbol_Id := Intern (Unique_Name (E));
+      begin
+         if not Global_Symbol_Table.Contains (Sym_Id) and Is_Itype (E) then
+            Declare_Itype (E);
+         end if;
+         if not Global_Symbol_Table.Contains (Sym_Id) then
+            Report_Unhandled_Node_Empty (E, "Do_Type_Reference",
+                                    "Unsupported declaration of unknown type");
+         end if;
+      end;
+
+      return Make_Symbol_Type (Identifier => Unique_Name (E));
+   end Do_Type_Reference;
 
    -------------------------
    -- Do_Withed_Unit_Spec --
