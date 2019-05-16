@@ -3,6 +3,11 @@ Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 314 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
 Occurs: 112 times
 Calling function: Process_Declaration
 Error message: Exception declaration
@@ -107,6 +112,11 @@ Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
+--
+Occurs: 5 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind
+Nkind: N_Defining_Identifier
 --
 Occurs: 5 times
 Calling function: Process_Pragma_Declaration

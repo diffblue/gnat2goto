@@ -49,6 +49,11 @@ Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
 --
 Occurs: 6 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
+Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma

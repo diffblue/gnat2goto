@@ -13,6 +13,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
 --
+Occurs: 43 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
 Occurs: 38 times
 Calling function: Do_Expression
 Error message: Unknown expression kind

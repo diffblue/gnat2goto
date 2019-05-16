@@ -1,3 +1,8 @@
+Occurs: 1359 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
 Occurs: 1272 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration

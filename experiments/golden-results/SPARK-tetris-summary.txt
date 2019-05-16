@@ -3,6 +3,11 @@ Calling function: Process_Declaration
 Error message: Package declaration
 Nkind: N_Package_Declaration
 --
+Occurs: 11 times
+Calling function: Do_Type_Reference
+Error message: Unsupported declaration of unknown type
+Nkind: N_Defining_Identifier
+--
 Occurs: 10 times
 Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
