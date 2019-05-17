@@ -1475,14 +1475,27 @@ package body Tree_Walk is
 
    function Do_Qualified_Expression (N : Node_Id) return Irep is
       Value : constant Irep := Do_Expression (Expression (N));
+      Entity_Type : constant Node_Id := Etype (N);
       Type_Of_Val : constant Irep :=
-         Follow_Symbol_Type (
-          Do_Type_Reference (Etype (N)),
-          Global_Symbol_Table);
+        Follow_Symbol_Type (Do_Type_Reference (Entity_Type),
+                            Global_Symbol_Table);
       Typecast_Expr : constant Irep :=
-        Make_Op_Typecast (Value, Sloc (N), Type_Of_Val);
+        Typecast_If_Necessary (Value, Type_Of_Val);
    begin
-      return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      --  Todo qualified array expressions - at the moment they will not
+      --  be checked.
+      --  Only perform a range check if the qualification is for a numeric
+      --  enumeration or array subtype
+      if Is_Numeric_Type (Entity_Type)
+        or else Is_Enumeration_Type (Entity_Type)
+      then
+         return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      else
+         Report_Unhandled_Node_Empty (N, "Do_Qualified_Expression",
+                              "Unsupported range check for non-numeric types");
+         return Typecast_Expr;
+      end if;
+
    end Do_Qualified_Expression;
 
    -----------------------------
