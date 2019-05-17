@@ -1000,6 +1000,8 @@ package body Tree_Walk is
      return Symbol
    is
       U           : constant Node_Id := Unit (N);
+      Unit_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Unique_Defining_Entity (U)));
       Unit_Symbol : Symbol;
    begin
       --  Insert all all specifications of all withed units including the
@@ -1008,29 +1010,26 @@ package body Tree_Walk is
 
       case Nkind (U) is
          when N_Subprogram_Body =>
-            declare
-               Unit_Name : constant Symbol_Id :=
-                 Intern (Unique_Name (Unique_Defining_Entity (U)));
-            begin
-               --  The specification of the subprogram body has already
-               --  been inserted into the symbol table by the call to
-               --  Do_Withed_Unit_Specs.
-               pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
-               Unit_Symbol := Global_Symbol_Table (Unit_Name);
+            --  The specification of the subprogram body has already
+            --  been inserted into the symbol table by the call to
+            --  Do_Withed_Unit_Specs.
+            pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
+            Unit_Symbol := Global_Symbol_Table (Unit_Name);
 
-               --  Now compile the body of the subprogram
-               Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
+            --  Now compile the body of the subprogram
+            Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
 
-               --  and update the symbol table entry for this subprogram.
-               Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
-               Unit_Is_Subprogram := True;
-            end;
+            --  and update the symbol table entry for this subprogram.
+            Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+            Unit_Is_Subprogram := True;
 
          when N_Package_Body =>
             declare
                Dummy : constant Irep := Do_Subprogram_Or_Block (U);
                pragma Unreferenced (Dummy);
             begin
+               pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
+               Unit_Symbol := Global_Symbol_Table (Unit_Name);
                Unit_Is_Subprogram := False;
             end;
 
@@ -3575,7 +3574,35 @@ package body Tree_Walk is
 
    procedure Do_Package_Specification (N : Node_Id) is
       Package_Decs : constant Irep := New_Irep (I_Code_Block);
+      Package_Name : Symbol_Id;
+      Package_Symbol : Symbol;
+      Def_Unit_Name : Node_Id;
+      Entity_Node : Node_Id;
+
    begin
+      Def_Unit_Name := Defining_Unit_Name (N);
+
+      --  Defining_Unit_Name will return a N_Defining_Identifier
+      --  for non-child package but a N_Package_Specification when it is a
+      --  child package.
+      --  To obtain the Entity N_Defining_Identifier is required.
+      --  The actual parameter for Unique_Name must be an Entity node.
+      if Nkind (Def_Unit_Name) = N_Defining_Identifier then
+         Entity_Node := Def_Unit_Name;
+      else
+         Entity_Node := Defining_Identifier (Def_Unit_Name);
+      end if;
+
+      Package_Name := Intern (Unique_Name (Entity_Node));
+      Package_Symbol.Name       := Package_Name;
+      Package_Symbol.BaseName   := Package_Name;
+      Package_Symbol.PrettyName := Package_Name;
+      Package_Symbol.SymType    := New_Irep (I_Void_Type);
+      Package_Symbol.Mode       := Intern ("C");
+      Package_Symbol.Value      := Make_Nil (Sloc (N));
+
+      Global_Symbol_Table.Insert (Package_Name, Package_Symbol);
+
       Set_Source_Location (Package_Decs, Sloc (N));
       if Present (Visible_Declarations (N)) then
          Process_Declarations (Visible_Declarations (N), Package_Decs);
@@ -4373,8 +4400,9 @@ package body Tree_Walk is
             when N_Package_Body =>
                null;
             when others =>
-               Put_Line (Standard_Error,
-                         "This type of library_unit is not yet handled");
+               Report_Unhandled_Node_Empty
+                 (N, "Do_Withed_Unit_Spec",
+                  "This type of library_unit is not yet handled");
          end case;
 
       end if;
