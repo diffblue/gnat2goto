@@ -23,11 +23,6 @@ Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
-Occurs: 20 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Preelaborable Initialization
-Nkind: N_Pragma
---
 Occurs: 13 times
 Calling function: Process_Declaration
 Error message: Package declaration
