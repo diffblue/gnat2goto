@@ -329,6 +329,11 @@ Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
 Occurs: 4 times
+Calling function: Do_Qualified_Expression
+Error message: Unsupported range check for non-numeric types
+Nkind: N_Qualified_Expression
+--
+Occurs: 4 times
 Calling function: Do_Selected_Component
 Error message: Parent not full type declaration
 Nkind: N_Selected_Component

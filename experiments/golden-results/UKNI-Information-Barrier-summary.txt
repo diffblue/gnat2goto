@@ -1,22 +1,47 @@
-Occurs: 136 times
+Occurs: 138 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 36 times
+Occurs: 97 times
+Calling function: Do_Qualified_Expression
+Error message: Unsupported range check for non-numeric types
+Nkind: N_Qualified_Expression
+--
+Occurs: 37 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Volatile
 Nkind: N_Pragma
 --
-Occurs: 3 times
+Occurs: 7 times
+Calling function: Process_Declaration
+Error message: Subprogram body stub declaration
+Nkind: N_Subprogram_Body_Stub
+--
+Occurs: 6 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 5 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind
 Nkind: N_Defining_Identifier
 --
-Occurs: 2 times
+Occurs: 5 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
+--
+Occurs: 4 times
 Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
+--
+Occurs: 2 times
+Calling function: Do_While_Statement
+Error message: Wrong Nkind spec
+Nkind: N_Loop_Statement
 --
 Occurs: 2 times
 Calling function: Process_Pragma_Declaration

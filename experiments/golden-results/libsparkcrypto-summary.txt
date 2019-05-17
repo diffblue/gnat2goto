@@ -1,4 +1,4 @@
-Occurs: 475 times
+Occurs: 961 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
@@ -8,17 +8,17 @@ Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 205 times
+Occurs: 229 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma
 Nkind: N_Pragma
 --
-Occurs: 110 times
+Occurs: 126 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
-Occurs: 77 times
+Occurs: 85 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
@@ -83,6 +83,11 @@ Calling function: Do_Aggregate_Literal_Array
 Error message: Wrong kind of other choice
 Nkind: N_Aggregate
 --
+Occurs: 4 times
+Calling function: Do_Qualified_Expression
+Error message: Unsupported range check for non-numeric types
+Nkind: N_Qualified_Expression
+--
 Occurs: 3 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
@@ -92,6 +97,11 @@ Occurs: 3 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Declaration
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Warnings
+Nkind: N_Pragma
 --
 Occurs: 32 times
 Redacted compiler error message:

@@ -1,147 +1,157 @@
-Occurs: 157 times
+Occurs: 185 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 116 times
+Occurs: 176 times
 Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 99 times
+Occurs: 152 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
-Occurs: 75 times
+Occurs: 119 times
+Calling function: Do_Qualified_Expression
+Error message: Unsupported range check for non-numeric types
+Nkind: N_Qualified_Expression
+--
+Occurs: 84 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
 --
-Occurs: 65 times
+Occurs: 78 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Null
 --
-Occurs: 53 times
+Occurs: 76 times
 Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
 --
-Occurs: 41 times
+Occurs: 52 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Preelaborable Initialization
 Nkind: N_Pragma
 --
-Occurs: 38 times
+Occurs: 42 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
-Occurs: 30 times
+Occurs: 38 times
+Calling function: Process_Declaration
+Error message: Abstract subprogram declaration
+Nkind: N_Abstract_Subprogram_Declaration
+--
+Occurs: 36 times
 Calling function: Do_Constant
 Error message: Constant Type not in symbol table
 Nkind: N_Integer_Literal
 --
-Occurs: 30 times
+Occurs: 36 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: No return
 Nkind: N_Pragma
+--
+Occurs: 32 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Identifier
+--
+Occurs: 28 times
+Calling function: Do_Aggregate_Literal
+Error message: Unhandled aggregate kind
+Nkind: N_Aggregate
 --
 Occurs: 27 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
 --
+Occurs: 26 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Object_Declaration
+--
+Occurs: 24 times
+Calling function: Do_Base_Range_Constraint
+Error message: range expression not bitvector type
+Nkind: N_Range
+--
 Occurs: 23 times
-Calling function: Process_Declaration
-Error message: Abstract subprogram declaration
-Nkind: N_Abstract_Subprogram_Declaration
+Calling function: Do_Private_Type_Declaration
+Error message: Abstract type declaration unsupported
+Nkind: N_Private_Type_Declaration
 --
-Occurs: 15 times
-Calling function: Do_Type_Definition
-Error message: Access type unsupported
-Nkind: N_Access_To_Object_Definition
---
-Occurs: 14 times
+Occurs: 20 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
 --
-Occurs: 13 times
-Calling function: Do_Aggregate_Literal
-Error message: Unhandled aggregate kind
-Nkind: N_Aggregate
+Occurs: 18 times
+Calling function: Do_Type_Definition
+Error message: Access type unsupported
+Nkind: N_Access_To_Object_Definition
 --
-Occurs: 11 times
+Occurs: 12 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
 --
-Occurs: 11 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Ada 2012
-Nkind: N_Pragma
---
-Occurs: 10 times
+Occurs: 12 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma
 Nkind: N_Pragma
 --
+Occurs: 12 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 2012
+Nkind: N_Pragma
+--
 Occurs: 9 times
-Calling function: Do_Private_Type_Declaration
-Error message: Abstract type declaration unsupported
-Nkind: N_Private_Type_Declaration
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
+--
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
 --
 Occurs: 9 times
 Calling function: Process_Declaration
 Error message: Representation clause declaration
 Nkind: N_Enumeration_Representation_Clause
 --
-Occurs: 8 times
-Calling function: Do_Base_Range_Constraint
-Error message: range expression not bitvector type
-Nkind: N_Range
---
-Occurs: 8 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported upper range kind
-Nkind: N_Identifier
---
-Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
---
-Occurs: 8 times
+Occurs: 9 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 7 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Object_Declaration
+Occurs: 6 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: More than one named operand
+Nkind: N_Aggregate
 --
-Occurs: 5 times
+Occurs: 6 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
 --
-Occurs: 5 times
+Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Atomic
 Nkind: N_Pragma
 --
-Occurs: 4 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: More than one named operand
-Nkind: N_Aggregate
+Occurs: 5 times
+Calling function: Do_While_Statement
+Error message: Wrong Nkind spec
+Nkind: N_Loop_Statement
 --
 Occurs: 3 times
 Calling function: Do_Itype_Integer_Subtype
@@ -149,14 +159,14 @@ Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
-Calling function: Do_While_Statement
-Error message: Wrong Nkind spec
-Nkind: N_Loop_Statement
---
-Occurs: 2 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Freeze_Entity
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Unchecked_Type_Conversion
 --
 Occurs: 159 times
 Redacted compiler error message:
