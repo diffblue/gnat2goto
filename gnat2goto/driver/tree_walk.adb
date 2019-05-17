@@ -743,7 +743,9 @@ package body Tree_Walk is
 
       Result_Type : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
    begin
-      if not (Kind (Resolved_Underlying) in Class_Bitvector_Type) then
+      if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
+              Kind (Resolved_Underlying) = I_C_Enum_Type)
+      then
          return Report_Unhandled_Node_Type (Range_Expr,
                                             "Do_Base_Range_Constraint",
                                         "range expression not bitvector type");
@@ -754,6 +756,9 @@ package body Tree_Walk is
               Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound)));
          when N_Attribute_Reference => Lower_Bound_Value :=
               Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Lower_Bound));
+         when N_Identifier =>
+            Lower_Bound_Value :=
+               Store_Symbol_Bound (Bound_Type_Symbol (Lower_Bound));
          when others =>
             Report_Unhandled_Node_Empty (Lower_Bound,
                                          "Do_Base_Range_Constraint",
@@ -765,13 +770,21 @@ package body Tree_Walk is
               Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound)));
          when N_Attribute_Reference => Upper_Bound_Value :=
               Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
+         when N_Identifier =>
+            Upper_Bound_Value :=
+               Store_Symbol_Bound (Bound_Type_Symbol (Upper_Bound));
          when others =>
             Report_Unhandled_Node_Empty (Upper_Bound,
                                          "Do_Base_Range_Constraint",
                                          "unsupported upper range kind");
       end case;
 
-      Set_Width (Result_Type, Get_Width (Resolved_Underlying));
+      if Kind (Resolved_Underlying) = I_C_Enum_Type then
+         Set_Width (Result_Type,
+          Get_Width (Get_Subtype (Resolved_Underlying)));
+      else
+         Set_Width (Result_Type, Get_Width (Resolved_Underlying));
+      end if;
       Set_Lower_Bound (Result_Type, Lower_Bound_Value);
       Set_Upper_Bound (Result_Type, Upper_Bound_Value);
       return Result_Type;
@@ -792,6 +805,28 @@ package body Tree_Walk is
 
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id);
 
+      function Handle_Enum_Symbol_Members (Mem : Irep) return Irep;
+      function Handle_Enum_Symbol_Members (Mem : Irep) return Irep is
+         Followed_Type_Symbol : constant Irep :=
+            Follow_Symbol_Type (Get_Type (Mem), Global_Symbol_Table);
+      begin
+         if Kind (Followed_Type_Symbol) = I_C_Enum_Type then
+            declare
+               Val : constant Irep := Global_Symbol_Table
+                 (Intern
+                    (Get_Identifier
+                     (Mem)))
+                 .Value;
+            begin
+               return
+                 (if Kind (Val) = I_Op_Typecast
+                  then Get_Op0 (Val) else Val);
+            end;
+         else
+            return Mem;
+         end if;
+      end Handle_Enum_Symbol_Members;
+
       ----------------------
       -- Handle_Parameter --
       ----------------------
@@ -799,16 +834,17 @@ package body Tree_Walk is
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Is_Out        : constant Boolean := Out_Present (Parent (Formal));
          Actual_Irep   : Irep;
-
+         Expression    : constant Irep := Do_Expression (Actual);
       begin
          if Is_Out and then
-           not (Kind (Get_Type (Do_Expression (Actual))) in Class_Type)
+           not (Kind (Get_Type (Expression)) in Class_Type)
          then
             Report_Unhandled_Node_Empty (Actual, "Handle_Parameter",
                                          "Kind of actual not in class type");
             return;
          end if;
-         Actual_Irep := Wrap_Argument (Do_Expression (Actual), Is_Out);
+         Actual_Irep := Wrap_Argument (
+          Handle_Enum_Symbol_Members (Expression), Is_Out);
          Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
@@ -2882,6 +2918,8 @@ package body Tree_Walk is
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
 
+      Is_In_Symtab : constant Boolean :=
+        Global_Symbol_Table.Contains (Intern (Get_Identifier (Id)));
    begin
       Set_Source_Location (Decl, (Sloc (N)));
       Set_Symbol (Decl, Id);
@@ -2907,6 +2945,12 @@ package body Tree_Walk is
                                              Rhs => Init_Expr,
                                              Source_Location => Sloc (N)));
       end if;
+
+      if not Is_In_Symtab then
+         Register_Identifier_In_Symbol_Table
+            (Id, Init_Expr, Global_Symbol_Table);
+      end if;
+
    end Do_Object_Declaration_Full;
 
    -------------------------
