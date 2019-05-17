@@ -58,7 +58,9 @@ package body Arrays is
          Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
          High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
          Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
-         Index_Type : constant Irep := Do_Type_Reference (Index_Type_Node);
+         Index_Type : constant Irep := Follow_Symbol_Type
+           (Do_Type_Reference (Index_Type_Node),
+            Global_Symbol_Table);
          Len_Expr : constant Irep :=
            Build_Array_Size (First      => Low_Expr,
                              Last       => High_Expr,
@@ -166,12 +168,10 @@ package body Arrays is
             begin
                if With_Mode then
                   declare
-                     Pos_Str : constant String := Integer'Image (Pos_Number);
-                     Pos_Constant : constant Irep :=
-                       Make_Constant_Expr (Value =>
-                                             Pos_Str (2 .. Pos_Str'Last),
-                                           I_Type => Make_Integer_Type,
-                                           Source_Location => Sloc (N));
+                     Pos_Constant : constant Irep := Integer_Constant_To_Expr
+                       (Value => UI_From_Int (Int (Pos_Number)),
+                        Expr_Type => Index_Type,
+                        Source_Location => No_Location);
                      New_With : constant Irep :=
                        Make_With_Expr (Old => Array_Expr,
                                        Where => Pos_Constant,
