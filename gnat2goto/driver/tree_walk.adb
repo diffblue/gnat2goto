@@ -4145,31 +4145,34 @@ package body Tree_Walk is
       Underlying : Irep;
       Constr : Node_Id;
    begin
-      if Nkind (N) = N_Subtype_Indication then
-         Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
-         Constr := Constraint (N);
-         if Present (Constr) then
-            case Nkind (Constr) is
-            when N_Range_Constraint =>
-               return Do_Range_Constraint (Constr, Underlying);
-            when N_Index_Or_Discriminant_Constraint =>
-               return Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
+      case Nkind (N) is
+         when N_Subtype_Indication =>
+            Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
+            Constr := Constraint (N);
+            if Present (Constr) then
+               case Nkind (Constr) is
+               when N_Range_Constraint =>
+                  return Do_Range_Constraint (Constr, Underlying);
+               when N_Index_Or_Discriminant_Constraint =>
+                  return
+                    Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
                when others =>
-                  return Report_Unhandled_Node_Irep (N,
-                                                     "Do_Subtype_Indication",
-                                                    "Unknown expression kind");
-            end case;
-         else
+                  return
+                    Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
+                                                "Unknown expression kind");
+               end case;
+            else
+               return Underlying;
+            end if;
+         when N_Identifier |
+              N_Expanded_Name =>
+            --  subtype indications w/o constraint are given only as identifier
+            Underlying := Do_Type_Reference (Etype (N));
             return Underlying;
-         end if;
-      elsif Nkind (N) = N_Identifier then
-         --  subtype indications w/o constraint are given only as identifier
-         Underlying := Do_Type_Reference (Etype (N));
-         return Underlying;
-      else
-         return Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
-                                            "Unknown expression kind");
-      end if;
+         when others =>
+            return Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
+                                               "Unknown expression kind");
+      end case;
    end Do_Subtype_Indication;
 
    ------------------------
