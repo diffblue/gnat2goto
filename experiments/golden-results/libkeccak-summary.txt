@@ -88,11 +88,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
-Occurs: 16 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Preelaborable Initialization
-Nkind: N_Pragma
---
 Occurs: 12 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
@@ -172,11 +167,6 @@ Occurs: 2 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
---
-Occurs: 2 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Warnings
-Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Do_Aggregate_Literal_Array

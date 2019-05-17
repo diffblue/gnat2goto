@@ -238,11 +238,6 @@ Calling function: Make_Array_Index_Op
 Error message: Base type not array type
 Nkind: N_Defining_Identifier
 --
-Occurs: 16 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Preelaborable Initialization
-Nkind: N_Pragma
---
 Occurs: 15 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
@@ -297,11 +292,6 @@ Occurs: 6 times
 Calling function: Process_Statement
 Error message: Entry call statement
 Nkind: N_Entry_Call_Statement
---
-Occurs: 5 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Warnings
-Nkind: N_Pragma
 --
 Occurs: 4 times
 Calling function: Do_Address_Of

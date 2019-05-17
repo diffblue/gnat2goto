@@ -28,11 +28,6 @@ Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
 --
-Occurs: 41 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Preelaborable Initialization
-Nkind: N_Pragma
---
 Occurs: 38 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
