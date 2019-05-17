@@ -29,6 +29,13 @@ def filter_timing(results):
 
     return re.sub(skip, r'', results)
 
+def filter_gnat2goto_errout(errout_text):
+    lines = errout_text.splitlines()
+    result = ""
+    for line in lines:
+        if not line.startswith("Warning"):
+            result += line
+    return result
 
 def process(debug, file, cbmcargs):
     """Process Ada file with gnat2goto and cbmc"""
@@ -54,7 +61,7 @@ def process(debug, file, cbmcargs):
     if stdout_text != '':
         print "Standard_Output from gnat2goto " + unit + ":"
         print stdout_text
-    if errout_text != '':
+    if filter_gnat2goto_errout(errout_text) != '':
         print "Standard_Error from gnat2goto " + unit + ":"
         print errout_text
     if g2go_results.status != 0:
