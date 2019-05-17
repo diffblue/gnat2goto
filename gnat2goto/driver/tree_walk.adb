@@ -1,4 +1,3 @@
-with Uname;                 use Uname;
 with Namet;                 use Namet;
 with Nlists;                use Nlists;
 with Sem;
@@ -1028,6 +1027,9 @@ package body Tree_Walk is
                Dummy : constant Irep := Do_Subprogram_Or_Block (U);
                pragma Unreferenced (Dummy);
             begin
+            --  The specification of the package body has already
+            --  been inserted into the symbol table by the call to
+            --  Do_Withed_Unit_Specs.
                pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
                Unit_Symbol := Global_Symbol_Table (Unit_Name);
                Unit_Is_Subprogram := False;
@@ -4365,12 +4367,9 @@ package body Tree_Walk is
    -------------------------
 
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
-      Unit_Name : constant String := Get_Name_String (Get_Unit_Name (N));
    begin
-      if Defining_Entity (N) = Stand.Standard_Standard or else
-        Unit_Name = "system%s"
-      then
-         --  At the moment Standard or System are not processed: TODO
+      if Defining_Entity (N) = Stand.Standard_Standard then
+         --  At the moment Standard is not processed: TODO
          null;
       else
          --  Handle all other withed library unit declarations
