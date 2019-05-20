@@ -4860,9 +4860,6 @@ package body Tree_Walk is
             --  know that code manipulates the linking.
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                "Known but unsupported pragma: Linker Options");
-         when Name_Implementation_Defined =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                 "Unsupported pragma: Implementation defined");
          when Name_Machine_Attribute =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                       "Unsupported pragma: Machine Attribute");
@@ -4971,8 +4968,11 @@ package body Tree_Walk is
             --  Ignored for now
               Name_No_Elaboration_Code_All |
             --  Only affects elaboration and linking so can be ignored for now
-              Name_Universal_Aliasing =>
+              Name_Universal_Aliasing |
             --  Optimisation control, should be ignored
+           Name_Implementation_Defined =>
+            --  Only informs the compiler that entities are implementation
+            --  defined. -> Ignored
             null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
