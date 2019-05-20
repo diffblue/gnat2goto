@@ -28,7 +28,7 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
 --
-Occurs: 432 times
+Occurs: 430 times
 Calling function: Process_Declaration
 Error message: Package declaration
 Nkind: N_Package_Declaration
@@ -38,27 +38,27 @@ Calling function: Do_Record_Component
 Error message: Wrong component nkind
 Nkind: N_Pragma
 --
-Occurs: 405 times
+Occurs: 403 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Function_Instantiation
---
-Occurs: 400 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
 --
 Occurs: 398 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
+Occurs: 397 times
+Calling function: Do_Function_Call
+Error message: func name not in symbol table
+Nkind: N_Function_Call
+--
 Occurs: 348 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
-Occurs: 342 times
+Occurs: 340 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
@@ -68,7 +68,7 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Volatile
 Nkind: N_Pragma
 --
-Occurs: 284 times
+Occurs: 283 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
@@ -103,7 +103,7 @@ Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
 --
-Occurs: 142 times
+Occurs: 133 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
@@ -118,12 +118,12 @@ Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
 --
-Occurs: 98 times
+Occurs: 90 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: More than one named operand
 Nkind: N_Aggregate
 --
-Occurs: 96 times
+Occurs: 86 times
 Calling function: Do_Expression
 Error message: In
 Nkind: N_In

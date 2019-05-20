@@ -184,11 +184,6 @@ Error message: Unknown expression kind
 Nkind: N_Object_Declaration
 --
 Occurs: 3 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: More than one named operand
-Nkind: N_Aggregate
---
-Occurs: 3 times
 Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
@@ -206,6 +201,11 @@ Nkind: N_Procedure_Instantiation
 Occurs: 2 times
 Calling function: Do_Aggregate_Literal
 Error message: Unhandled aggregate kind
+Nkind: N_Aggregate
+--
+Occurs: 2 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: More than one named operand
 Nkind: N_Aggregate
 --
 Occurs: 2 times

@@ -23,11 +23,6 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
-Occurs: 11 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: More than one named operand
-Nkind: N_Aggregate
---
 Occurs: 9 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
@@ -122,6 +117,11 @@ Occurs: 1 times
 Redacted compiler error message:
 non-visible declaration
 Raw compiler error message:
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:115|
+| Error detected at system.ads:156:5                                       |
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+

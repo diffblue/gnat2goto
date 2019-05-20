@@ -138,11 +138,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Atomic
 Nkind: N_Pragma
 --
-Occurs: 4 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: More than one named operand
-Nkind: N_Aggregate
---
 Occurs: 3 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
