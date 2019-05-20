@@ -13,11 +13,6 @@ Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 67 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Implementation defined
-Nkind: N_Pragma
---
 Occurs: 65 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported

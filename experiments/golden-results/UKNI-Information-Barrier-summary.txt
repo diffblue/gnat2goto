@@ -23,11 +23,6 @@ Calling function: Do_Base_Range_Constraint
 Error message: range expression not bitvector type
 Nkind: N_Range
 --
-Occurs: 2 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Implementation defined
-Nkind: N_Pragma
---
 Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
