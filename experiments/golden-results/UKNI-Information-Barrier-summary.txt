@@ -24,11 +24,6 @@ Error message: Unsupported pragma: Implementation defined
 Nkind: N_Pragma
 --
 Occurs: 1 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: More than one named operand
-Nkind: N_Aggregate
---
-Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause

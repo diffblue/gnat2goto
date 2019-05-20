@@ -145,6 +145,33 @@ package body Driver is
    procedure Initialize_CProver_Internal_Variables (Start_Body : Irep) is
       Int_32_T : constant Irep := Make_Signedint_Type (32);
 
+      procedure Declare_Missing_Global (Symbol_Expr : Irep)
+        with Pre => Kind (Symbol_Expr) = I_Symbol_Expr;
+
+      procedure Declare_Missing_Global (Symbol_Expr : Irep) is
+         Id : constant Symbol_Id := Intern (Get_Identifier (Symbol_Expr));
+         Has_Symbol : constant Boolean := Global_Symbol_Table.Contains (Id);
+      begin
+         if not Has_Symbol then
+            declare
+               New_Sym : constant Symbol :=
+                 (SymType => Get_Type (Symbol_Expr),
+                  Value => Make_Nil (Get_Source_Location (Symbol_Expr)),
+                  Mode => Intern ("C"),
+                  Name => Id,
+                  BaseName => Id,
+                  PrettyName => Id,
+                  IsStaticLifetime => True,
+                  IsLValue => True,
+                  others => <>);
+            begin
+               Global_Symbol_Table.Insert
+                 (Key => Id,
+                  New_Item => New_Sym);
+            end;
+         end if;
+      end Declare_Missing_Global;
+
       procedure Initialize_CProver_Rounding_Mode;
       procedure Initialize_CProver_Rounding_Mode is
          Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
@@ -163,6 +190,75 @@ package body Driver is
       begin
          Append_Op (Start_Body, Initialization_Statement);
       end Initialize_CProver_Rounding_Mode;
+
+      procedure Initialize_CProver_Dead_Object;
+      procedure Initialize_CProver_Dead_Object is
+         Dead_Object_Type : constant Irep := Make_Pointer_Type
+           (I_Subtype => Make_Void_Type,
+            Width => Pointer_Type_Width);
+         Dead_Object_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Dead_Object_Type,
+            Identifier => "__CPROVER_dead_object",
+            Source_Location => No_Location);
+         Dead_Object_Val : constant Irep := Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Dead_Object_Type,
+            Source_Location => No_Location);
+      begin
+         Declare_Missing_Global (Dead_Object_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+             (Lhs => Dead_Object_Sym,
+              Rhs => Dead_Object_Val,
+              Source_Location => No_Location));
+      end Initialize_CProver_Dead_Object;
+
+      procedure Initialize_CProver_Deallocated;
+      procedure Initialize_CProver_Deallocated is
+         Deallocated_Type : constant Irep := Make_Pointer_Type
+           (I_Subtype => Make_Void_Type,
+            Width => Pointer_Type_Width);
+         Deallocated_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Deallocated_Type,
+            Identifier => "__CPROVER_deallocated",
+            Source_Location => No_Location);
+         Deallocated_Val : constant Irep := Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Deallocated_Type,
+            Source_Location => No_Location);
+      begin
+         Declare_Missing_Global (Deallocated_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Deallocated_Sym,
+               Rhs => Deallocated_Val,
+               Source_Location => No_Location));
+      end Initialize_CProver_Deallocated;
+
+      procedure Initialize_CProver_Malloc_Object;
+      procedure Initialize_CProver_Malloc_Object is
+         Malloc_Object_Type : constant Irep := Make_Pointer_Type
+           (I_Subtype => Make_Void_Type,
+            Width => Pointer_Type_Width);
+         Malloc_Object_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Malloc_Object_Type,
+            Identifier => "__CPROVER_malloc_object",
+            Source_Location => No_Location);
+         Malloc_Object_Val : constant Irep := Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Malloc_Object_Type,
+            Source_Location => No_Location);
+      begin
+         Declare_Missing_Global (Malloc_Object_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Malloc_Object_Sym,
+               Rhs => Malloc_Object_Val,
+               Source_Location => No_Location));
+      end Initialize_CProver_Malloc_Object;
 
       procedure Initialize_Enum_Values;
       procedure Initialize_Enum_Values is
@@ -249,6 +345,9 @@ package body Driver is
 
    begin
       Initialize_CProver_Rounding_Mode;
+      Initialize_CProver_Dead_Object;
+      Initialize_CProver_Deallocated;
+      Initialize_CProver_Malloc_Object;
       Initialize_Enum_Values;
       Initialize_Boolean_Values;
    end Initialize_CProver_Internal_Variables;
