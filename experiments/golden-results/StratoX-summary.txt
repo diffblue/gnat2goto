@@ -13,11 +13,6 @@ Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
 --
-Occurs: 122 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Implementation defined
-Nkind: N_Pragma
---
 Occurs: 99 times
 Calling function: Process_Declaration
 Error message: Generic declaration
