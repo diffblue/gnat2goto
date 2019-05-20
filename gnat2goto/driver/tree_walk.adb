@@ -4534,6 +4534,32 @@ package body Tree_Walk is
    --------------------------
 
    procedure Process_Declaration (N : Node_Id; Block : Irep) is
+      procedure Handle_Representation_Clause (N : Node_Id);
+      procedure Handle_Representation_Clause (N : Node_Id) is
+         Attr_Id : constant String := Get_Name_String (Chars (N));
+         Target_Name : constant Irep := Do_Identifier (Name (N));
+         Entity_Esize : constant Integer :=
+           Integer (UI_To_Int (Esize (Entity (N))));
+         Target_Type_Irep : constant Irep :=
+           Follow_Symbol_Type (Get_Type (Target_Name), Global_Symbol_Table);
+      begin
+         if Kind (Target_Type_Irep) in Class_Type then
+            if Attr_Id = "size" then
+
+               --  Just check that the front-end already applied this size
+               --  clause, i .e. that the size of type-irep we already had
+               --  equals the entity type this clause is applied to (and the
+               --  size specified in this clause).
+               pragma Assert (Entity_Esize = Get_Width (Target_Type_Irep)
+                              and Entity_Esize =
+                                Integer (UI_To_Int (Intval (Expression (N)))));
+               return;
+            end if;
+         end if;
+         Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                              "Representation clause unsupported: " & Attr_Id);
+      end Handle_Representation_Clause;
+
    begin
       --  Deal with the declaration
 
@@ -4590,8 +4616,7 @@ package body Tree_Walk is
             --  basic_declarative_items  --
 
          when N_Representation_Clause =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Representation clause declaration");
+            Handle_Representation_Clause (N);
 
          when N_Use_Package_Clause =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
@@ -5121,6 +5146,8 @@ package body Tree_Walk is
       --  can't be smaller than 1 bit
       Mod_Max_Binary_Logarithm : Integer := 1;
       Power_Of_Two : Uint := Uint_2;
+      Ada_Type_Size : constant Integer :=
+        Integer (UI_To_Int (Esize (Defining_Identifier (Parent (N)))));
    begin
       while Power_Of_Two < Mod_Max loop
          Mod_Max_Binary_Logarithm := Mod_Max_Binary_Logarithm + 1;
@@ -5128,15 +5155,16 @@ package body Tree_Walk is
       end loop;
       --  If the max value is 2^w (for w > 0) then we can just
       --  use an unsignedbv of width w
-      if Mod_Max = Power_Of_Two then
+      if Mod_Max = Power_Of_Two and Ada_Type_Size = Mod_Max_Binary_Logarithm
+      then
          return Make_Unsignedbv_Type (Width => Mod_Max_Binary_Logarithm);
       end if;
 
       return Make_Ada_Mod_Type
         (I_Subtype => Make_Nil_Type,
-         Width => Mod_Max_Binary_Logarithm,
+         Width => Ada_Type_Size,
          Ada_Mod_Max => Convert_Uint_To_Hex
-           (Mod_Max, Pos (Mod_Max_Binary_Logarithm)));
+           (Mod_Max, Pos (Ada_Type_Size)));
    end Do_Modular_Type_Definition;
 
    ---------------------------------------

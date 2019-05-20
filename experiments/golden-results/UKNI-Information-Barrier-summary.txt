@@ -1,12 +1,17 @@
-Occurs: 136 times
+Occurs: 40 times
 Calling function: Process_Declaration
-Error message: Representation clause declaration
+Error message: Representation clause unsupported: address
 Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 36 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Volatile
 Nkind: N_Pragma
+--
+Occurs: 8 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: component_size
+Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 3 times
 Calling function: Do_Itype_Definition
@@ -102,3 +107,8 @@ Occurs: 1 times
 Redacted compiler error message:
 unmatched actual "REDACTED" in call
 Raw compiler error message:
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:29|
+| Error detected at main.adb:46:11                                         |
