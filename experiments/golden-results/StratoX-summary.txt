@@ -8,7 +8,7 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
 --
-Occurs: 157 times
+Occurs: 155 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
@@ -74,14 +74,14 @@ Error message: Unknown declaration kind
 Nkind: N_Null_Statement
 --
 Occurs: 13 times
-Calling function: Do_Constant
-Error message: Constant Type not in symbol table
-Nkind: N_Integer_Literal
---
-Occurs: 13 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Function_Instantiation
+--
+Occurs: 12 times
+Calling function: Do_Constant
+Error message: Constant Type not in symbol table
+Nkind: N_Integer_Literal
 --
 Occurs: 11 times
 Calling function: Do_Expression
@@ -104,19 +104,9 @@ Error message: Unsupported pragma: Global
 Nkind: N_Pragma
 --
 Occurs: 9 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
---
-Occurs: 9 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Elaborate Body
 Nkind: N_Pragma
---
-Occurs: 8 times
-Calling function: Do_Base_Range_Constraint
-Error message: range expression not bitvector type
-Nkind: N_Range
 --
 Occurs: 8 times
 Calling function: Process_Declaration
@@ -202,6 +192,11 @@ Occurs: 4 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
+--
+Occurs: 3 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
 --
 Occurs: 3 times
 Calling function: Process_Statement

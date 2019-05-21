@@ -3,11 +3,6 @@ Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 32 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported upper range kind
-Nkind: N_Identifier
---
 Occurs: 18 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
@@ -126,6 +121,16 @@ Raw compiler error message:
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:115|
+| Error detected at system.ads:156:5                                       |
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:29|
+| Error detected at system.ads:156:5                                       |
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:29|
 | Error detected at system.ads:156:5                                       |
 --
 Occurs: 1 times
