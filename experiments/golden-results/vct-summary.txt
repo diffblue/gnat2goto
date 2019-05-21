@@ -1,47 +1,82 @@
+Occurs: 73 times
+Calling function: Process_Declaration
+Error message: Exception declaration
+Nkind: N_Exception_Declaration
+--
 Occurs: 32 times
 Calling function: Do_Base_Range_Constraint
-Error message: high bound range expression not literal
-Nkind: N_Range
+Error message: unsupported upper range kind
+Nkind: N_Identifier
 --
-Occurs: 32 times
-Calling function: Do_Full_Type_Declaration
-Error message: Identifier not in class type. Type definition failed.
-Nkind: N_Full_Type_Declaration
---
-Occurs: 28 times
-Calling function: Process_Declaration
-Error message: Private type declaration unsupported
-Nkind: N_Private_Type_Declaration
---
-Occurs: 27 times
+Occurs: 18 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
 --
-Occurs: 24 times
-Calling function: Do_Expression
-Error message: Qualified
-Nkind: N_Qualified_Expression
+Occurs: 18 times
+Calling function: Process_Declaration
+Error message: Abstract subprogram declaration
+Nkind: N_Abstract_Subprogram_Declaration
 --
-Occurs: 9 times
+Occurs: 14 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
-Occurs: 3 times
-Calling function: Do_Expression
-Error message: Unknown attribute
-Nkind: N_Attribute_Reference
+Occurs: 9 times
+Calling function: Do_Private_Type_Declaration
+Error message: Abstract type declaration unsupported
+Nkind: N_Private_Type_Declaration
 --
-Occurs: 2 times
-Calling function: Do_While_Statement
-Error message: Wrong Nkind spec
-Nkind: N_Loop_Statement
+Occurs: 9 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
+--
+Occurs: 3 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: alignment
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 3 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Do_Aggregate_Literal
+Error message: Unhandled aggregate kind
+Nkind: N_Aggregate
 --
 Occurs: 1 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Package_Instantiation
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Package body declaration
+Nkind: N_Package_Body
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: component_size
+Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 7 times
 Redacted compiler error message:
@@ -88,7 +123,12 @@ Redacted compiler error message:
 non-visible declaration
 Raw compiler error message:
 --
-Occurs: 2 times
+Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:91|
-| Error detected at system.ads:174:5                                       |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:115|
+| Error detected at system.ads:156:5                                       |
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:29|
+| Error detected at system.ads:156:5                                       |

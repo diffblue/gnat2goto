@@ -1,17 +1,27 @@
-Occurs: 31 times
-Calling function: Process_Declaration
-Error message: Pragmas in declaration
-Nkind: N_Pragma
---
 Occurs: 5 times
-Calling function: Process_Declaration
-Error message: Representation clause declaration
-Nkind: N_Attribute_Definition_Clause
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 05
+Nkind: N_Pragma
 --
 Occurs: 4 times
 Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: alignment
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 3 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
+Occurs: 2 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -27,6 +37,16 @@ Occurs: 1 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: component_size
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 2012
+Nkind: N_Pragma
 --
 Occurs: 41 times
 Redacted compiler error message:

@@ -128,25 +128,34 @@ int main(int argc, char** argv)
    multiset<Feature> unsupported_features;
    using Instance = pair<Feature, size_t>;
    vector<Instance> instances;
-   vector<string> params;
 
    string line;
    getline(input_file, line);
+   unsigned long count=0;
+   cerr << "Scanning " << argv[1] << "...";
    while (true) {
+      ++count;
+      if (count % 1000 == 0) cerr << ".";
       if (line.find("----------At:") == 0) {
+         vector<string> params;
          params.push_back(line);
          assert(getline(input_file, line));
          params.push_back(line);
          assert(getline(input_file, line));
          params.push_back(line);
          while (getline(input_file, line) && !line.empty() && line[0] == ' ')
+         {
+            ++count;
+            if (count % 1000 == 0) cerr << ".";
             params.push_back(line);
+         }
          unsupported_features.emplace(params);
          continue;
       }
       if (!getline(input_file, line))
          break;
    }
+   cerr << endl;
 
    iterate_multiset(unsupported_features, [&] (auto& k) {
          instances.push_back({k, unsupported_features.count(k)});

@@ -1,14 +1,4 @@
-Occurs: 710 times
-Calling function: Process_Declaration
-Error message: Representation clause declaration
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 697 times
-Calling function: Process_Declaration
-Error message: Pragmas in declaration
-Nkind: N_Pragma
---
-Occurs: 56 times
+Occurs: 48 times
 Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
@@ -18,30 +8,50 @@ Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
+Occurs: 18 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: alignment
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 18 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
+Occurs: 15 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
+--
 Occurs: 9 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Null
 --
-Occurs: 9 times
+Occurs: 8 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
 Nkind: N_Private_Type_Declaration
---
-Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Abstract subprogram declaration
-Nkind: N_Abstract_Subprogram_Declaration
 --
 Occurs: 6 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
 --
-Occurs: 2 times
-Calling function: Do_Expression
-Error message: Unknown attribute
-Nkind: N_Attribute_Reference
+Occurs: 6 times
+Calling function: Process_Declaration
+Error message: Abstract subprogram declaration
+Nkind: N_Abstract_Subprogram_Declaration
+--
+Occurs: 6 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: component_size
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 6 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Ada 05
+Nkind: N_Pragma
 --
 Occurs: 3 times
 Redacted compiler error message:
