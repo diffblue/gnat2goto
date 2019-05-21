@@ -4268,12 +4268,35 @@ package body Tree_Walk is
    -------------------------
 
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
-      Unit_Name : constant String := Get_Name_String (Get_Unit_Name (N));
+      function Get_Base_Unit_Name (N : Node_Id) return Unit_Name_Type;
+      --  Gets the name of the unit at the root of a child unit heirarchy.
+      --  If the unit has not children it is the root
+
+      function Get_Base_Unit_Name (N : Node_Id) return Unit_Name_Type is
+         Base_Unit_Name : Unit_Name_Type := Get_Unit_Name (N);
+         Parent_Unit_Name : Unit_Name_Type :=
+           Get_Parent_Spec_Name (Base_Unit_Name);
+      begin
+         while Name_Id (Parent_Unit_Name) /=  No_Name loop
+            Base_Unit_Name := Parent_Unit_Name;
+            Parent_Unit_Name := Get_Parent_Spec_Name (Parent_Unit_Name);
+         end loop;
+         return Base_Unit_Name;
+      end Get_Base_Unit_Name;
+
+         --  The name of the unit which is the basis of child unit heirarchy
+         --  is needed so that package standard and system and any of their
+         --  child units can be excluded from processing as they are handled
+         --  differently or unsupported in ASVAT
+         Base_Unit_Name_String : constant String :=
+           Get_Name_String (Get_Base_Unit_Name (N));
+
    begin
-      if Defining_Entity (N) = Stand.Standard_Standard or else
-        Unit_Name = "system%s"
+      if Base_Unit_Name_String = "standard%s" or else
+        Base_Unit_Name_String = "system%s"
       then
-         --  At the moment Standard or System are not processed: TODO
+         --  At the moment Standard or System and their childlren
+         --  are not processed by AVSAT: TODO
          null;
       else
          --  Handle all other withed library unit declarations
@@ -4308,7 +4331,6 @@ package body Tree_Walk is
          end case;
 
       end if;
-
    end Do_Withed_Unit_Spec;
 
    -------------------------
