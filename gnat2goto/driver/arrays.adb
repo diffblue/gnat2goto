@@ -105,13 +105,13 @@ package body Arrays is
                                              Esize (Element_Type_Ent),
                                            Source_Loc        => Source_Loc);
          Malloc_Call_Expr : constant Irep :=
-           Typecast_If_Necessary (Expr     => Raw_Malloc_Call,
-                                  New_Type =>
-                                    Make_Pointer_Type (Element_Type));
+           Typecast_If_Necessary (Raw_Malloc_Call,
+                                  Make_Pointer_Type (Element_Type),
+                                  Global_Symbol_Table);
          Literal_Address : constant Irep :=
-           Typecast_If_Necessary (Expr     => Make_Address_Of (Literal_Temp),
-                                  New_Type =>
-                                    Make_Pointer_Type (Element_Type));
+           Typecast_If_Necessary (Make_Address_Of (Literal_Temp),
+                                  Make_Pointer_Type (Element_Type),
+                                  Global_Symbol_Table);
          Memcpy_Call_Expr : constant Irep :=
            Make_Memcpy_Function_Call_Expr (Destination       => Data_Mem_Expr,
                                          Source            => Literal_Address,
@@ -302,8 +302,8 @@ package body Arrays is
       Append_Struct_Member (Ret, Lbound);
       Append_Struct_Member (Ret, Hbound);
       Append_Struct_Member (Ret,
-                            Typecast_If_Necessary (Expr     => Alloc,
-                                                   New_Type => Comp_P_Type));
+                            Typecast_If_Necessary (Alloc, Comp_P_Type,
+                              Global_Symbol_Table));
       return Ret;
    end Make_Array_Default_Initialiser;
 
@@ -496,8 +496,8 @@ package body Arrays is
                                            Element_Type_Size => EType_Size,
                                            Source_Loc        => Source_Loc);
          Dest_Temp_Alloc : constant Irep :=
-           Typecast_If_Necessary (Expr     => Dest_Temp_Pre_Alloc,
-                                  New_Type => PElement_Type);
+           Typecast_If_Necessary (Dest_Temp_Pre_Alloc, PElement_Type,
+                                  Global_Symbol_Table);
          Dest_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (PElement_Type, "dest_temp");
 
@@ -509,7 +509,8 @@ package body Arrays is
               Build_Array_Size (Source_I_Symbol, Index_Type);
             Size_Increment : constant Irep :=
               Make_Op_Add (Rhs             =>
-                           Typecast_If_Necessary (Slice_Size, CProver_Size_T),
+                             Typecast_If_Necessary (Slice_Size, CProver_Size_T,
+                               Global_Symbol_Table),
                            Lhs             => Sum_Size_Var,
                            Source_Location => Source_Loc,
                            Overflow_Check  => False,
@@ -586,7 +587,8 @@ package body Arrays is
                                       Source_Location => Source_Loc));
          Append_Op (Result_Block,
                     Make_Code_Assign (Rhs             =>
-                                  Typecast_If_Necessary (Zero, CProver_Size_T),
+                                        Typecast_If_Necessary (Zero,
+                                          CProver_Size_T, Global_Symbol_Table),
                                   Lhs             => Sum_Size_Var,
                                   Source_Location => Source_Loc));
          for I in Slices'Range loop

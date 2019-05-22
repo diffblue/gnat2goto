@@ -698,8 +698,8 @@ package body Tree_Walk is
                           Bounds_Type => Get_Type (LHS));
             begin
                Set_Rhs (R,
-                        Typecast_If_Necessary (Expr     => Range_Expr,
-                                        New_Type => Get_Type (LHS)));
+                        Typecast_If_Necessary (Range_Expr, Get_Type (LHS),
+                          Global_Symbol_Table));
             end;
          else
             Set_Rhs (R, RHS);
@@ -3464,9 +3464,9 @@ package body Tree_Walk is
         Make_Signedbv_Type (Get_Width (Followed_Ret_Type) * 2);
 
       Lhs_Cast : constant Irep :=
-        Typecast_If_Necessary (LHS, Large_Enough_Type);
+        Typecast_If_Necessary (LHS, Large_Enough_Type, Global_Symbol_Table);
       Rhs_Cast : constant Irep :=
-        Typecast_If_Necessary (RHS, Large_Enough_Type);
+        Typecast_If_Necessary (RHS, Large_Enough_Type, Global_Symbol_Table);
       Full_Result : constant Irep := New_Irep (Op_Kind);
 
       Mod_Max_String : constant String :=
@@ -3493,7 +3493,7 @@ package body Tree_Walk is
       Set_Source_Location (Mod_Ret, Source_Loc);
 
       --  And return the result casted to the origin type
-      return Typecast_If_Necessary (Mod_Ret, Ret_Type);
+      return Typecast_If_Necessary (Mod_Ret, Ret_Type, Global_Symbol_Table);
    end Do_Operator_Mod;
 
    --  Modular minus gets special treatment, effectively x - y =>

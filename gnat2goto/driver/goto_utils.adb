@@ -4,6 +4,7 @@ with Aspects; use Aspects;
 with Binary_To_Hex;         use Binary_To_Hex;
 
 with Ada.Text_IO;           use Ada.Text_IO;
+with Follow; use Follow;
 
 package body GOTO_Utils is
 
@@ -238,10 +239,15 @@ package body GOTO_Utils is
                           I_Type          => CProver_Size_T);
    end Compute_Memory_Op_Size;
 
-   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep) return Irep
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
+                                   A_Symbol_Table : Symbol_Table) return Irep
    is
+      Followed_Old_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Expr), A_Symbol_Table);
+      Followed_New_Type : constant Irep :=
+        Follow_Symbol_Type (New_Type, A_Symbol_Table);
    begin
-      if Get_Type (Expr) = New_Type then
+      if Followed_Old_Type = Followed_New_Type then
          return Expr;
       else
          return Make_Op_Typecast (Op0             => Expr,
