@@ -55,12 +55,12 @@ package body Arrays is
          Pos_Iter : Node_Id := First (Expressions (N));
          Source_Loc : constant Source_Ptr := Sloc (N);
          Bounds : constant Node_Id := Aggregate_Bounds (N);
-         Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
-         High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
-         Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
-         Index_Type : constant Irep := Follow_Symbol_Type
-           (Do_Type_Reference (Index_Type_Node),
-            Global_Symbol_Table);
+         Low_Expr : constant Irep :=
+           Typecast_If_Necessary (Do_Expression (Low_Bound (Bounds)),
+                                  CProver_Size_T, Global_Symbol_Table);
+         High_Expr : constant Irep :=
+           Typecast_If_Necessary (Do_Expression (High_Bound (Bounds)),
+                                  CProver_Size_T, Global_Symbol_Table);
          Len_Expr : constant Irep :=
            Build_Array_Size (First      => Low_Expr,
                              Last       => High_Expr);
@@ -275,9 +275,12 @@ package body Arrays is
 
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep is
       Idx : constant Node_Id := First_Index (E);
-      Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
-      Hbound : constant Irep := Do_Expression (High_Bound (Idx));
-      Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
+      Lbound : constant Irep :=
+        Typecast_If_Necessary (Do_Expression (Low_Bound (Idx)),
+                               CProver_Size_T, Global_Symbol_Table);
+      Hbound : constant Irep :=
+        Typecast_If_Necessary (Do_Expression (High_Bound (Idx)),
+                               CProver_Size_T, Global_Symbol_Table);
       Source_Loc : constant Source_Ptr := Sloc (E);
       Len : constant Irep :=
         Build_Array_Size (First      => Lbound,
@@ -348,25 +351,11 @@ package body Arrays is
               Number_Str_Raw (2 .. Number_Str_Raw'Last);
             First_Name : constant String := "first" & Number_Str;
             Last_Name : constant String := "last" & Number_Str;
-            Dimension_Type : constant Irep :=
-              Do_Type_Reference (Etype (Dimension_Iter));
             First_Comp : constant Irep :=
-              Make_Struct_Component (First_Name, Dimension_Type);
+              Make_Struct_Component (First_Name, CProver_Size_T);
             Last_Comp : constant Irep :=
-              Make_Struct_Component (Last_Name, Dimension_Type);
+              Make_Struct_Component (Last_Name, CProver_Size_T);
          begin
-
-            --  Declare the dimension index type if required:
-            case Nkind (Dimension_Iter) is
-               when N_Subtype_Indication =>
-                  Do_Type_Declaration (Do_Subtype_Indication (Dimension_Iter),
-                                       Etype (Dimension_Iter));
-               when N_Range =>
-                  Do_Type_Declaration (Do_Array_Range (Dimension_Iter),
-                                       Etype (Dimension_Iter));
-               when others =>
-                  null;
-            end case;
 
             Append_Component (Ret_Components, First_Comp);
             Append_Component (Ret_Components, Last_Comp);
@@ -426,8 +415,6 @@ package body Arrays is
       Elem_Type_Ent : constant Entity_Id :=
         Get_Array_Component_Type (LHS_Node);
       Element_Type : constant Irep := Do_Type_Reference (Elem_Type_Ent);
-      Index_Type : constant Irep :=
-        Do_Type_Reference (Get_Array_Index_Type (LHS_Node));
       Function_Name : constant String := "concat_assign";
 
       Destination : constant Irep :=
@@ -472,7 +459,7 @@ package body Arrays is
                              I_Type           => PElement_Type,
                              Component_Name   => "data");
          Current_Offset : constant Irep :=
-           Fresh_Var_Symbol_Expr (Index_Type, "offset_step");
+           Fresh_Var_Symbol_Expr (CProver_Size_T, "offset_step");
 
          Void_Ptr_Type : constant Irep :=
            Make_Pointer_Type (I_Subtype => Make_Void_Type,
@@ -528,7 +515,7 @@ package body Arrays is
             Slice_Size : constant Irep :=
               Build_Array_Size (Source_I_Symbol);
             Slice_Size_Var : constant Irep :=
-              Fresh_Var_Symbol_Expr (Index_Type, "slice_size");
+              Fresh_Var_Symbol_Expr (CProver_Size_T, "slice_size");
             Offset_Dest : constant Irep :=
               Make_Op_Add (Rhs             => Current_Offset,
                            Lhs             => Dest_Temp,
@@ -553,7 +540,7 @@ package body Arrays is
               Make_Op_Add (Rhs             => Slice_Size_Var,
                            Lhs             => Current_Offset,
                            Source_Location => Source_Loc,
-                           I_Type          => Index_Type);
+                           I_Type          => CProver_Size_T);
          begin
             Append_Op (Result_Block,
                        Make_Code_Assign (Rhs             => Slice_Size,
@@ -704,22 +691,6 @@ package body Arrays is
       return Component_Type (Ty);
    end Get_Array_Component_Type;
 
-   --------------------------
-   -- Get_Array_Index_Type --
-   --------------------------
-
-   function Get_Array_Index_Type (N : Node_Id) return Entity_Id is
-      Ret : Entity_Id := Etype (First_Index (Etype (N)));
-   begin
-      --  Many array index types are itypes with ranges private to
-      --  this particular context. Use the underlying, unconstrained
-      --  numeric type instead.
-      while Ekind (Ret) = E_Signed_Integer_Subtype loop
-         Ret := Etype (Ret);
-      end loop;
-      return Ret;
-   end Get_Array_Index_Type;
-
    ---------------------------
    -- Make_Array_First_Expr --
    ---------------------------
@@ -727,7 +698,6 @@ package body Arrays is
    function Make_Array_First_Expr
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep
    is
-      Idx_Type : Node_Id;
       First : constant Irep := New_Irep (I_Member_Expr);
    begin
       -- Dummy initialisation --
@@ -738,10 +708,10 @@ package body Arrays is
                                       "Base type not array type");
          return First;
       end if;
-      Idx_Type := Etype (First_Index (Base_Type));
+      Set_Component_Number (First, 0);
       Set_Component_Name (First, "first1");
       Set_Compound (First, Base_Irep);
-      Set_Type (First, Do_Type_Reference (Idx_Type));
+      Set_Type (First, CProver_Size_T);
       return First;
    end Make_Array_First_Expr;
 
@@ -829,17 +799,20 @@ package body Arrays is
          Idx_Type : constant Entity_Id :=
            Etype (First_Index (Etype (N)));
          New_First_Expr : constant Irep :=
-           Do_Expression (Low_Bound (Scalar_Range (Idx_Type)));
-         First_Type : constant Irep := Get_Type (New_First_Expr);
+           Typecast_If_Necessary (Do_Expression (Low_Bound (Scalar_Range
+                                  (Idx_Type))), CProver_Size_T,
+                                  Global_Symbol_Table);
          Old_First_Expr : constant Irep :=
            Make_Member_Expr (Compound         => Base,
                              Source_Location  => Source_Loc,
                              Component_Number => 0,
-                             I_Type           => First_Type,
+                             I_Type           => CProver_Size_T,
                              Component_Name   => "first1");
 
          New_Last_Expr : constant Irep :=
-           Do_Expression (High_Bound (Scalar_Range (Idx_Type)));
+           Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
+                                  (Idx_Type))), CProver_Size_T,
+                                  Global_Symbol_Table);
          Element_Type : constant Entity_Id := Get_Array_Component_Type (N);
 
          Result_Block : constant Irep := New_Irep (I_Code_Block);
@@ -851,7 +824,7 @@ package body Arrays is
                         Lhs             => New_First_Expr,
                         Source_Location => Source_Loc,
                         Overflow_Check  => False,
-                        I_Type          => First_Type);
+                        I_Type          => CProver_Size_T);
          Pointer_Type : constant Irep :=
            Make_Pointer_Type (I_Subtype => Do_Type_Reference (Element_Type),
                               Width     => Pointer_Type_Width);
@@ -912,7 +885,8 @@ package body Arrays is
       (Make_Array_Index_Op
          (Do_Expression (Prefix (N)),
           Etype (Prefix (N)),
-          Do_Expression (First (Expressions (N)))));
+          Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
+                                 CProver_Size_T, Global_Symbol_Table)));
 
    function Get_First_Index_Component (Array_Struct : Irep;
                                        A_Symbol_Table : Symbol_Table)
@@ -967,8 +941,7 @@ package body Arrays is
       return Make_Member_Expr (Compound         => Array_Struct,
                                Source_Location  => Source_Loc,
                                Component_Number => 0,
-                               I_Type           =>
-                                 Get_Type (First_Index_Component),
+                               I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (First_Index_Component));
    end Get_First_Index;
@@ -984,8 +957,7 @@ package body Arrays is
       return Make_Member_Expr (Compound         => Array_Struct,
                                Source_Location  => Source_Loc,
                                Component_Number => 1,
-                               I_Type           =>
-                                 Get_Type (Last_Index_Component),
+                               I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (Last_Index_Component));
    end Get_Last_Index;
