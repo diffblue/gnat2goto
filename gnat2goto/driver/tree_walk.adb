@@ -1310,7 +1310,6 @@ package body Tree_Walk is
       --  Using index constant
       One : constant Irep :=
            Build_Index_Constant (Value      => 1,
-                                 Index_Type => Result_Type,
                                  Source_Loc => Source_Loc);
    begin
       return Make_Op_Sub (Rhs             => One,
@@ -1328,7 +1327,6 @@ package body Tree_Walk is
       Source_Loc : constant Source_Ptr := Sloc (N);
       One : constant Irep :=
            Build_Index_Constant (Value      => 1,
-                                 Index_Type => Result_Type,
                                  Source_Loc => Source_Loc);
    begin
       return Make_Op_Add (Rhs             => One,
