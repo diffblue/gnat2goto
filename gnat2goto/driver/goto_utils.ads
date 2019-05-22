@@ -91,10 +91,10 @@ package GOTO_Utils is
                   and then Kind (Idx_Type) in Class_Type),
      Post => Kind (Build_Array_Size'Result) = I_Op_Add;
 
-   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep) return Irep
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
+                                   A_Symbol_Table : Symbol_Table) return Irep
      with Pre => (Kind (Expr) in Class_Expr
-                  and then Kind (New_Type) in Class_Type),
-     Post => Get_Type (Typecast_If_Necessary'Result) = New_Type;
+                  and then Kind (New_Type) in Class_Type);
 
    function Offset_Array_Data (Base : Irep; Offset : Irep; Pointer_Type : Irep;
                                Source_Loc : Source_Ptr) return Irep

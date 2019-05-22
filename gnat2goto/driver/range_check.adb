@@ -236,8 +236,7 @@ package body Range_Check is
          --  If the value checked for being in the range is of smaller
          --  type then we need to cast it to the type of the bounds
          Adjusted_Value_Expr :=
-           Typecast_If_Necessary (Expr     => Value_Expr,
-                                  New_Type => Bound_Type);
+           Typecast_If_Necessary (Value_Expr, Bound_Type, Global_Symbol_Table);
          Adjusted_Lower_Bound := Lower_Bound;
          Adjusted_Upper_Bound := Upper_Bound;
       else
@@ -245,11 +244,11 @@ package body Range_Check is
          --  to the type of the value being checked
          Adjusted_Value_Expr := Value_Expr;
          Adjusted_Lower_Bound :=
-           Typecast_If_Necessary (Expr     => Lower_Bound,
-                                  New_Type => Value_Expr_Type);
+           Typecast_If_Necessary (Lower_Bound, Value_Expr_Type,
+                                  Global_Symbol_Table);
          Adjusted_Upper_Bound :=
-           Typecast_If_Necessary (Expr     => Upper_Bound,
-                                  New_Type => Value_Expr_Type);
+           Typecast_If_Necessary (Upper_Bound, Value_Expr_Type,
+                                  Global_Symbol_Table);
       end if;
       Set_Lhs (Op_Geq, Adjusted_Value_Expr);
       Set_Rhs (Op_Geq, Adjusted_Lower_Bound);
