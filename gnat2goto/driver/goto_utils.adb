@@ -230,10 +230,9 @@ package body GOTO_Utils is
                        Convert_Uint_To_Hex (Value     => Element_Type_Size / 8,
                                             Bit_Width => 64));
    begin
+      pragma Assert (Get_Type (Num_Elem) = CProver_Size_T);
       return Make_Op_Mul (Rhs             => Member_Size,
-                          Lhs             =>
-                            Typecast_If_Necessary (Expr      => Num_Elem,
-                                            New_Type => CProver_Size_T),
+                          Lhs             => Num_Elem,
                           Source_Location => Source_Loc,
                           Overflow_Check  => False,
                           I_Type          => CProver_Size_T);
