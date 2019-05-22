@@ -14,6 +14,7 @@ package GOTO_Utils is
    --  Utility routines for high-level GOTO AST construction
 
    Pointer_Type_Width : constant Positive := 64;
+   Size_T_Width : constant Int := 64;
    --  ??? this should be queried at runtime from GNAT
 
    Synthetic_Variable_Counter : Positive := 1;
@@ -78,17 +79,16 @@ package GOTO_Utils is
                   and then Kind (Func_Params) = I_Parameter_List
                   and then Kind (FBody) in Class_Code);
 
-   function Build_Array_Size (Array_Comp : Irep; Idx_Type : Irep)
-                              return Irep
-     with Pre => (Kind (Array_Comp) in Class_Expr
-                  and then Kind (Idx_Type) in Class_Type),
+   function Build_Array_Size (Array_Comp : Irep) return Irep
+     with Pre => Kind (Array_Comp) in Class_Expr,
      Post => Kind (Build_Array_Size'Result) = I_Op_Add;
 
-   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+   function Build_Array_Size (First : Irep; Last : Irep)
                               return Irep
      with Pre => (Kind (First) in Class_Expr
+                  and then Get_Type (First) = CProver_Size_T
                   and then Kind (Last) in Class_Expr
-                  and then Kind (Idx_Type) in Class_Type),
+                  and then Get_Type (Last) = CProver_Size_T),
      Post => Kind (Build_Array_Size'Result) = I_Op_Add;
 
    function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
@@ -110,11 +110,8 @@ package GOTO_Utils is
 
    function Float_Mantissa_Size (Float_Type : Irep) return Integer;
 
-   function Build_Index_Constant (Value : Int; Index_Type : Irep;
-                                  Source_Loc : Source_Ptr) return Irep
-     with Pre => (Kind (Index_Type) in Class_Bitvector_Type
-                  or else Kind (Index_Type) = I_Symbol_Type),
-     Post => Get_Type (Build_Index_Constant'Result) = Index_Type;
+   function Build_Index_Constant (Value : Int;
+                                  Source_Loc : Source_Ptr) return Irep;
 
    function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
 

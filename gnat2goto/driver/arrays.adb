@@ -63,8 +63,7 @@ package body Arrays is
             Global_Symbol_Table);
          Len_Expr : constant Irep :=
            Build_Array_Size (First      => Low_Expr,
-                             Last       => High_Expr,
-                             Idx_Type => Index_Type);
+                             Last       => High_Expr);
          Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
          Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
          Bare_Array_Type : constant Irep :=
@@ -168,10 +167,9 @@ package body Arrays is
             begin
                if With_Mode then
                   declare
-                     Pos_Constant : constant Irep := Integer_Constant_To_Expr
-                       (Value => UI_From_Int (Int (Pos_Number)),
-                        Expr_Type => Index_Type,
-                        Source_Location => No_Location);
+                     Pos_Constant : constant Irep :=
+                       Build_Index_Constant (Value      => Int (Pos_Number),
+                                             Source_Loc => No_Location);
                      New_With : constant Irep :=
                        Make_With_Expr (Old => Array_Expr,
                                        Where => Pos_Constant,
@@ -283,8 +281,7 @@ package body Arrays is
       Source_Loc : constant Source_Ptr := Sloc (E);
       Len : constant Irep :=
         Build_Array_Size (First      => Lbound,
-                          Last       => Hbound,
-                          Idx_Type => Do_Type_Reference (Idx_Type));
+                          Last       => Hbound);
       Component_Type : constant Irep :=
         Do_Type_Reference (Get_Array_Component_Type (E));
       Alloc : constant Irep :=
@@ -484,7 +481,6 @@ package body Arrays is
            Fresh_Var_Symbol_Expr (Void_Ptr_Type, "memcpy_lhs");
          Zero : constant Irep :=
            Build_Index_Constant (Value      => 0,
-                                 Index_Type => Index_Type,
                                  Source_Loc => Source_Loc);
          EType_Size : constant Uint := Esize (Elem_Type_Ent);
 
@@ -506,7 +502,7 @@ package body Arrays is
          procedure Build_Sum_Size (Ith_Slice : Irep) is
             Source_I_Symbol : constant Irep := Param_Symbol (Ith_Slice);
             Slice_Size : constant Irep :=
-              Build_Array_Size (Source_I_Symbol, Index_Type);
+              Build_Array_Size (Source_I_Symbol);
             Size_Increment : constant Irep :=
               Make_Op_Add (Rhs             =>
                              Typecast_If_Necessary (Slice_Size, CProver_Size_T,
@@ -530,7 +526,7 @@ package body Arrays is
          is
             Source_I_Symbol : constant Irep := Param_Symbol (Ith_Slice);
             Slice_Size : constant Irep :=
-              Build_Array_Size (Source_I_Symbol, Index_Type);
+              Build_Array_Size (Source_I_Symbol);
             Slice_Size_Var : constant Irep :=
               Fresh_Var_Symbol_Expr (Index_Type, "slice_size");
             Offset_Dest : constant Irep :=
@@ -664,10 +660,8 @@ package body Arrays is
    function Do_Array_Length (N : Node_Id) return Irep
    is
       Array_Struct : constant Irep := Do_Expression (Prefix (N));
-      Index_Type : constant Entity_Id := Get_Array_Index_Type (Prefix (N));
    begin
-      return Build_Array_Size (Array_Comp => Array_Struct,
-                               Idx_Type => Do_Type_Reference (Index_Type));
+      return Build_Array_Size (Array_Struct);
    end Do_Array_Length;
 
    function Do_Array_First (N : Node_Id) return Irep
