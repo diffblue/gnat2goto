@@ -1493,6 +1493,15 @@ package body Tree_Walk is
             return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
          end;
       else
+         if Is_Array_Type (Etype (N)) then
+            Report_Unhandled_Node_Empty (N,
+                                         "Do_Qualified_Expression",
+                                         "No array bounds check performed");
+         elsif Has_Discriminants (Etype (N)) then
+            Report_Unhandled_Node_Empty (N,
+                                         "Do_Qualified_Expression",
+                                         "No discriminant checks performed");
+         end if;
          return Do_Expression (Expression (N));
       end if;
 
