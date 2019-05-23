@@ -75,7 +75,6 @@ package body Arrays is
            Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
                                   "temp_lhs");
          Result_Block : constant Irep := New_Irep (I_Code_Block);
-         With_Mode : Boolean;
          Pos_Number : Natural := 0;
 
          --  NB: Component number seem to be ignored by CBMC
@@ -228,24 +227,28 @@ package body Arrays is
          while Present (Pos_Iter) loop
             declare
                Expr : constant Irep := Do_Expression (Pos_Iter);
+               Pos_Constant : constant Irep :=
+                 Build_Index_Constant (Value      => Int (Pos_Number),
+                                       Source_Loc => Source_Loc);
+               Array_As_Pointer : constant Irep :=
+                 Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                        Global_Symbol_Table);
+               Lhs_Ptr : constant Irep :=
+                 Make_Op_Add (Rhs             => Pos_Constant,
+                              Lhs             => Array_As_Pointer,
+                              Source_Location => Source_Loc,
+                              Overflow_Check  => False,
+                              I_Type          => PElement_Type);
+               Lhs_Irep : constant Irep :=
+                 Make_Dereference_Expr (Object          => Lhs_Ptr,
+                                        Source_Location => Source_Loc,
+                                        I_Type          => Element_Type);
             begin
-               if With_Mode then
-                  declare
-                     Pos_Constant : constant Irep :=
-                       Build_Index_Constant (Value      => Int (Pos_Number),
-                                             Source_Loc => No_Location);
-                     New_With : constant Irep :=
-                       Make_With_Expr (Old => Array_Expr,
-                                       Where => Pos_Constant,
-                                       New_Value => Expr,
-                                       I_Type => Bare_Array_Type,
-                                       Source_Location => Sloc (N));
-                  begin
-                     Array_Expr := New_With;
-                  end;
-               else
-                  Append_Operand (Array_Expr, Expr);
-               end if;
+               Append_Op (Result_Block,
+                          Make_Code_Assign (Rhs             => Expr,
+                                            Lhs             => Lhs_Irep,
+                                            Source_Location => Source_Loc,
+                                            I_Type          => Element_Type));
             end;
             Next (Pos_Iter);
             Pos_Number := Pos_Number + 1;
@@ -255,10 +258,6 @@ package body Arrays is
          Append_Struct_Member (Array_Temp_Struct, High_Expr);
          Append_Struct_Member (Array_Temp_Struct, Malloc_Call_Expr);
 
-         Append_Declare_And_Init (Symbol     => Literal_Temp,
-                                  Value      => Array_Expr,
-                                  Block      => Result_Block,
-                                  Source_Loc => Source_Loc);
          --  As long as symex is field-insensitive we need to initialise the
          --  array structure with the information about allocated size.
          --  I.e. Create a temporary struct and assign it in one swoop to
