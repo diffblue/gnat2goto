@@ -258,6 +258,58 @@ package body Arrays is
          Append_Struct_Member (Array_Temp_Struct, High_Expr);
          Append_Struct_Member (Array_Temp_Struct, Malloc_Call_Expr);
 
+         if Present (Component_Associations (N)) and then
+           List_Length (Component_Associations (N)) /= 1
+         then
+            declare
+               Components : constant List_Id := Component_Associations (N);
+               Component_Node : Node_Id := First (Components);
+            begin
+               if List_Length (Choices (Component_Node)) /= 1 then
+                  return Report_Unhandled_Node_Irep (N,
+                                     "Do_Aggregate_Literal_Array",
+                                     "More than one choice in component node");
+               end if;
+               while Present (Component_Node) loop
+                  declare
+                     Expr : constant Irep :=
+                       Do_Expression (Expression (Component_Node));
+                     Choice_Id : constant Irep :=
+                       Do_Expression (First (Choices (Component_Node)));
+                     Component_Index : constant Irep :=
+                       Typecast_If_Necessary (Choice_Id, CProver_Size_T,
+                                              Global_Symbol_Table);
+                     Zero_Based_Index : constant Irep :=
+                       Make_Op_Sub (Rhs             => Low_Expr,
+                                    Lhs             => Component_Index,
+                                    Source_Location => Source_Loc,
+                                    Overflow_Check  => False,
+                                    I_Type          => CProver_Size_T);
+                     Array_As_Pointer : constant Irep :=
+                       Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                              Global_Symbol_Table);
+                     Lhs_Ptr : constant Irep :=
+                       Make_Op_Add (Rhs             => Zero_Based_Index,
+                                    Lhs             => Array_As_Pointer,
+                                    Source_Location => Source_Loc,
+                                    Overflow_Check  => False,
+                                    I_Type          => PElement_Type);
+                     Lhs_Irep : constant Irep :=
+                       Make_Dereference_Expr (Object          => Lhs_Ptr,
+                                              Source_Location => Source_Loc,
+                                              I_Type          => Element_Type);
+                  begin
+                     Append_Op (Result_Block,
+                          Make_Code_Assign (Rhs             => Expr,
+                                            Lhs             => Lhs_Irep,
+                                            Source_Location => Source_Loc,
+                                            I_Type          => Element_Type));
+                  end;
+                  Component_Node := Next (Component_Node);
+               end loop;
+            end;
+         end if;
+
          --  As long as symex is field-insensitive we need to initialise the
          --  array structure with the information about allocated size.
          --  I.e. Create a temporary struct and assign it in one swoop to
