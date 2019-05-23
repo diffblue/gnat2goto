@@ -1477,6 +1477,7 @@ package body Tree_Walk is
          end if;
       end if;
 
+      pragma Assert (Global_Symbol_Table.Contains (Intern (Unique_Name (E))));
    end Do_Full_Type_Declaration;
 
    ----------------------
@@ -1516,7 +1517,14 @@ package body Tree_Walk is
       Typecast_Expr : constant Irep :=
         Make_Op_Typecast (Value, Sloc (N), Type_Of_Val);
    begin
-      return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      --  TODO: Range expressions for non-bounded types are outside
+      --        the scope of this PR
+      if Kind (Type_Of_Val) in I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+      then
+         return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      else
+         return Typecast_Expr;
+      end if;
    end Do_Qualified_Expression;
 
    -----------------------------
@@ -3430,7 +3438,8 @@ package body Tree_Walk is
          return Ret;
       end if;
       Set_Lhs (Ret, LHS);
-      Set_Rhs (Ret, RHS);
+      Set_Rhs (Ret, Typecast_If_Necessary (RHS, Get_Type (LHS),
+               Global_Symbol_Table));
       Set_Type (Ret, Ret_Type);
 
       if Do_Overflow_Check (N) then
