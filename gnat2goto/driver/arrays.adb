@@ -66,17 +66,14 @@ package body Arrays is
                              Last       => High_Expr);
          Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
          Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
-         Bare_Array_Type : constant Irep :=
-           Make_Array_Type (I_Subtype => Element_Type,
-                            Size => Len_Expr);
          Literal_Temp : constant Irep :=
-           Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
+           Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
+                                  "array_literal");
          Array_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
          Lhs_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
                                   "temp_lhs");
-         Array_Expr : Irep;
          Result_Block : constant Irep := New_Irep (I_Code_Block);
          With_Mode : Boolean;
          Pos_Number : Natural := 0;
@@ -108,7 +105,7 @@ package body Arrays is
                                   Make_Pointer_Type (Element_Type),
                                   Global_Symbol_Table);
          Literal_Address : constant Irep :=
-           Typecast_If_Necessary (Make_Address_Of (Literal_Temp),
+           Typecast_If_Necessary (Literal_Temp,
                                   Make_Pointer_Type (Element_Type),
                                   Global_Symbol_Table);
          Memcpy_Call_Expr : constant Irep :=
@@ -117,49 +114,116 @@ package body Arrays is
                                          Num_Elem          => Len_Expr,
                                          Element_Type_Size =>
                                            Esize (Element_Type_Ent),
-                                         Source_Loc        => Source_Loc);
-      begin
-         --  Handle an "others" splat expression if present:
-         if Present (Component_Associations (N)) then
-            --  Produce something like array_of(others_expr)
-            --                         with 1 => 100, 2 => 200, ...
-            --  We expect only one named operand (others => ...):
-            if List_Length (Component_Associations (N)) /= 1 then
-               return Report_Unhandled_Node_Irep (N,
-                                               "Do_Aggregate_Literal_Array",
-                                               "More than one named operand");
+                                           Source_Loc        => Source_Loc);
+
+         PElement_Type : constant Irep := Make_Pointer_Type (Element_Type);
+
+         procedure Initialize_Array;
+         procedure Initialize_Array is
+            Raw_Malloc_Call : constant Irep :=
+              Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
+                                              Element_Type_Size =>
+                                                Esize (Element_Type_Ent),
+                                              Source_Loc        => Source_Loc);
+            Malloc_Call_Expr : constant Irep :=
+              Typecast_If_Necessary (Raw_Malloc_Call,
+                                     Make_Pointer_Type (Element_Type),
+                                     Global_Symbol_Table);
+            Others_Expression : Irep;
+
+            Loop_Iter_Var : constant Irep :=
+              Fresh_Var_Symbol_Expr (CProver_Size_T, "i");
+            Loop_Cond : constant Irep :=
+              Make_Op_Gt (Rhs             => Loop_Iter_Var,
+                          Lhs             => Len_Expr,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Make_Bool_Type);
+            Size_T_Zero : constant Irep :=
+              Build_Index_Constant (Value      => 0,
+                                    Source_Loc => Source_Loc);
+            Size_T_One : constant Irep :=
+              Build_Index_Constant (Value      => 1,
+                                    Source_Loc => Source_Loc);
+            Increment_I : constant Irep :=
+              Make_Op_Add (Rhs             => Size_T_One,
+                           Lhs             => Loop_Iter_Var,
+                           Source_Location => Source_Loc,
+                           Overflow_Check  => False,
+                           I_Type          => CProver_Size_T);
+            Loop_Iter : constant Irep :=
+              Make_Code_Assign (Rhs             => Increment_I,
+                                Lhs             => Loop_Iter_Var,
+                                Source_Location => Source_Loc,
+                                I_Type          => Make_Nil_Type);
+            Loop_Body : constant Irep :=
+              Make_Code_Block (Source_Location => Source_Loc,
+                               I_Type          => Make_Nil_Type);
+
+            Array_As_Pointer : constant Irep :=
+              Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                     Global_Symbol_Table);
+            Lhs_Ptr : constant Irep :=
+              Make_Op_Add (Rhs             => Loop_Iter_Var,
+                           Lhs             => Array_As_Pointer,
+                           Source_Location => Source_Loc,
+                           Overflow_Check  => False,
+                           I_Type          => PElement_Type);
+            Lhs_Irep : constant Irep :=
+              Make_Dereference_Expr (Object          => Lhs_Ptr,
+                                     Source_Location => Source_Loc,
+                                     I_Type          => Element_Type);
+         begin
+            Append_Declare_And_Init (Symbol     => Literal_Temp,
+                                     Value      => Malloc_Call_Expr,
+                                     Block      => Result_Block,
+                                     Source_Loc => Source_Loc);
+
+            --  Handle an "others" splat expression if present:
+            if Present (Component_Associations (N)) then
+               declare
+                  Maybe_Others_Node : constant Node_Id :=
+                    Last (Component_Associations (N));
+                  Maybe_Others_Choices : constant List_Id :=
+                    Choices (Maybe_Others_Node);
+               begin
+                  pragma Assert (List_Length (Maybe_Others_Choices) = 1);
+
+                  --  this association does not end with others -> bail
+                  if Nkind (First (Maybe_Others_Choices)) /= N_Others_Choice
+                  then
+                     return;
+                  end if;
+
+                  Others_Expression :=
+                    Do_Expression (Expression (Maybe_Others_Node));
+               end;
+            else
+               return;
             end if;
 
-            declare
-               Others_Node : constant Node_Id :=
-                 First (Component_Associations (N));
-               Others_Choices : constant List_Id := Choices (Others_Node);
-               Expr : constant Irep :=
-                 Do_Expression (Expression (Others_Node));
-            begin
-               if List_Length (Others_Choices) /= 1 then
-                  return Report_Unhandled_Node_Irep (N,
-                                                 "Do_Aggregate_Literal_Array",
-                                                 "More than one other choice");
-               end if;
-               if Nkind (First (Others_Choices)) /= N_Others_Choice then
-                  return Report_Unhandled_Node_Irep (N,
-                                                 "Do_Aggregate_Literal_Array",
-                                                 "Wrong kind of other choice");
-               end if;
-               Array_Expr :=
-                 Make_Op_Array_Of (I_Type => Bare_Array_Type,
-                                   Op0 => Expr,
-                                   Source_Location => Sloc (N));
-            end;
-            With_Mode := True;
-         else
-            Array_Expr := Make_Array_Expr (I_Type => Bare_Array_Type,
-                                           Source_Location => Sloc (N));
-            With_Mode := False;
-         end if;
+            --  iterate over elements and assing others-value to them
+            Append_Op (Loop_Body,
+                       Make_Code_Assign (Rhs             => Others_Expression,
+                                         Lhs             => Lhs_Irep,
+                                         Source_Location => Source_Loc,
+                                         I_Type          => Make_Nil_Type));
+            Append_Op (Loop_Body, Loop_Iter);
 
-         Set_Type (Array_Expr, Bare_Array_Type);
+            Append_Op (Result_Block,
+                       Make_Code_Assign (Rhs             => Size_T_Zero,
+                                         Lhs             => Loop_Iter_Var,
+                                         Source_Location => Source_Loc,
+                                         I_Type          => Make_Nil_Type));
+            Append_Op (Result_Block,
+                       Make_Code_While (Loop_Body       => Loop_Body,
+                                        Cond            => Loop_Cond,
+                                        Source_Location => Source_Loc,
+                                        I_Type          => Make_Nil_Type));
+         end Initialize_Array;
+
+      begin
+         Initialize_Array;
 
          while Present (Pos_Iter) loop
             declare
