@@ -473,4 +473,21 @@ package body GOTO_Utils is
            (Get_Type (Function_Expr)),
          Source_Location => Source_Location);
    end Make_Simple_Side_Effect_Expr_Function_Call;
+
+   procedure Register_Identifier_In_Symbol_Table
+      (N : Irep; Val : Irep; Symtab : in out Symbol_Table) is
+      Identifier_Name : constant Symbol_Id :=
+         Intern (Get_Identifier (N));
+      Identifier_Symbol : Symbol;
+   begin
+      Identifier_Symbol.Name       := Identifier_Name;
+      Identifier_Symbol.BaseName   := Identifier_Name;
+      Identifier_Symbol.PrettyName := Identifier_Name;
+      Identifier_Symbol.SymType    := Get_Type (N);
+      Identifier_Symbol.IsLValue   := True;
+      Identifier_Symbol.IsStaticLifetime := True;
+      Identifier_Symbol.Mode       := Intern ("C");
+      Identifier_Symbol.Value      := Val;
+      Symtab.Insert (Identifier_Name, Identifier_Symbol);
+   end Register_Identifier_In_Symbol_Table;
 end GOTO_Utils;

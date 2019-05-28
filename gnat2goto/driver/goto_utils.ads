@@ -138,4 +138,8 @@ package GOTO_Utils is
       Function_Expr : Irep;
       Source_Location : Source_Ptr) return Irep;
 
+   procedure Register_Identifier_In_Symbol_Table
+      (N : Irep; Val : Irep; Symtab : in out Symbol_Table)
+      with Pre => Kind (N) = I_Symbol_Expr;
+
 end GOTO_Utils;
