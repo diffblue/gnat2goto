@@ -1,0 +1,6 @@
+Standard_Error from gnat2goto use_import:
+Warning: Multi-language analysis unsupported.
+Warning: Multi-language analysis unsupported.
+
+[overflow.1] file use_import.adb line 16 arithmetic overflow on signed unary minus in -use_import__i: SUCCESS
+VERIFICATION SUCCESSFUL
