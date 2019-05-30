@@ -4901,8 +4901,40 @@ package body Tree_Walk is
             --  be called from Ada, or a foreign-language variable to be
             --  accessed from Ada. This would (probably) require gnat2goto to
             --  understand the foreign code, which we do not at the moment.
-            Put_Line (Standard_Error,
-                      "Warning: Multi-language analysis unsupported.");
+            --  However, if the calling convention is specified as "Intrinsic"
+            --  then the subprogram is built into the compiler and gnat2goto
+            --  can safely ignore the pragma.
+            declare
+               --  If the pragma is specified with positional parameter
+               --  association, then the calling convetion is the first
+               --  parameter. Check to see if it is Intrinsic.
+               Next_Ass : Node_Id := First (Pragma_Argument_Associations (N));
+               Is_Intrinsic : Boolean := Present (Next_Ass) and then
+                 Nkind (Expression (Next_Ass)) = N_Identifier and then
+                 Get_Name_String (Chars (Expression (Next_Ass))) = "intrinsic";
+            begin
+               --  If the first parameter is not Intrinsic, check named
+               --  parameters for calling convention
+               while not Is_Intrinsic and Present (Next_Ass) loop
+                  if Chars (Next_Ass) /= No_Name and then
+                    Get_Name_String (Chars (Next_Ass)) = "convention"
+                  then
+                     --  The named parameter is Convention, check to see if it
+                     --  is Intrinsic
+                     Is_Intrinsic :=
+                       Get_Name_String (Chars (Expression (Next_Ass))) =
+                       "intrinsic";
+                  end if;
+                     --  Get the next parameter association
+                  Next_Ass := Next (Next_Ass);
+               end loop;
+
+               if not Is_Intrinsic then
+                  Put_Line (Standard_Error,
+                            "Warning: Multi-language analysis unsupported.");
+               end if;
+            end;
+
          when Name_Elaborate =>
             --  Specifies that the body of the named library unit is elaborated
             --  before the current library_item. We will support packages.
