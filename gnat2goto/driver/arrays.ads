@@ -83,7 +83,7 @@ private
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep;
 
    function Make_Array_Index_Op
-     (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
+     (Base_Irep : Irep; Idx_Irep : Irep) return Irep;
 
    function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
                               return Irep

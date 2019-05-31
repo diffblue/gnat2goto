@@ -816,9 +816,9 @@ package body Arrays is
    -------------------------
 
    function Make_Array_Index_Op
-     (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep
+     (Base_Irep : Irep; Idx_Irep : Irep) return Irep
    is
-      Source_Loc : constant Source_Ptr := Sloc (Base_Type);
+      Source_Loc : constant Source_Ptr := Get_Source_Location (Base_Irep);
       First_Irep : constant Irep :=
         Get_First_Index (Base_Irep);
       Zero_Based_Index : constant Irep :=
@@ -828,36 +828,18 @@ package body Arrays is
                      Overflow_Check  => False,
                      I_Type          => Get_Type (Idx_Irep),
                      Range_Check     => False);
-      Result_Type : Irep;
-      Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
+
+      Data_Irep : constant Irep :=
+        Get_Data_Member (Base_Irep, Global_Symbol_Table);
+      Data_Type : constant Irep := Get_Type (Data_Irep);
       Indexed_Data : constant Irep :=
         Offset_Array_Data (Base         => Base_Irep,
-                           Offset       => Zero_Based_Index,
-                           Pointer_Type => Pointer_Type,
-                           Source_Loc   => Source_Loc);
-      Deref : Irep := New_Irep (I_Dereference_Expr);
+                           Offset       => Zero_Based_Index);
+      Element_Type : constant Irep := Get_Subtype (Data_Type);
    begin
-      if not Is_Array_Type (Base_Type) then
-         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
-                                      "Base type not array type");
-         return Deref;
-      end if;
-      Result_Type := Do_Type_Reference (Component_Type (Base_Type));
-      if not (Kind (Zero_Based_Index) in Class_Expr) or else
-        not (Kind (Get_Type (Idx_Irep)) in Class_Type)
-      then
-         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
-                                      "Kinds not in classes");
-         return Deref;
-      end if;
-      Set_Subtype (I     => Pointer_Type,
-                   Value => Result_Type);
-      Set_Width (I     => Pointer_Type,
-                 Value => Pointer_Type_Width);
-      Deref := Make_Dereference_Expr (Object          => Indexed_Data,
-                                      Source_Location => Source_Loc,
-                                      I_Type          => Result_Type);
-      return Deref;
+      return Make_Dereference_Expr (Object          => Indexed_Data,
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Element_Type);
    end Make_Array_Index_Op;
 
    --------------
@@ -909,8 +891,6 @@ package body Arrays is
            Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
                                   (Idx_Type))), CProver_Size_T,
                                   Global_Symbol_Table);
-         Element_Type : constant Entity_Id := Get_Array_Component_Type (N);
-
          Result_Block : constant Irep := New_Irep (I_Code_Block);
          Array_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
@@ -921,14 +901,9 @@ package body Arrays is
                         Source_Location => Source_Loc,
                         Overflow_Check  => False,
                         I_Type          => CProver_Size_T);
-         Pointer_Type : constant Irep :=
-           Make_Pointer_Type (I_Subtype => Do_Type_Reference (Element_Type),
-                              Width     => Pointer_Type_Width);
          New_Data : constant Irep :=
            Offset_Array_Data (Base         => Base,
-                              Offset       => Offset,
-                              Pointer_Type => Pointer_Type,
-                              Source_Loc   => Source_Loc);
+                              Offset       => Offset);
          Result : constant Irep :=
            Make_Struct_Expr (Source_Location => Source_Loc,
                              I_Type          => Result_Type);
@@ -980,7 +955,6 @@ package body Arrays is
    function Do_Indexed_Component (N : Node_Id) return Irep is
       (Make_Array_Index_Op
          (Do_Expression (Prefix (N)),
-          Etype (Prefix (N)),
           Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
                                  CProver_Size_T, Global_Symbol_Table)));
 

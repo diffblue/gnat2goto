@@ -679,6 +679,19 @@ package body Tree_Walk is
    is
    begin
       if Ekind (Etype (Name (N))) in Array_Kind then
+         declare
+            Lhs_Type : constant Entity_Id := Etype (Name (N));
+            --  Since the type of the LHS may be implicit, e.g.
+            --  A(1..3):=(1,2,3), where A has 10 elements,
+            --  it may be the case that we have not seen the type before.
+            --  Hence we should check and declare if unknown.
+         begin
+            if not Global_Symbol_Table.Contains (Intern
+                                                 (Unique_Name (Lhs_Type)))
+            then
+               Declare_Itype (Lhs_Type);
+            end if;
+         end;
          return Do_Array_Assignment (N);
       end if;
 
@@ -4312,7 +4325,9 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Type_Reference (E : Entity_Id) return Irep is
-      (Make_Symbol_Type (Identifier => Unique_Name (E)));
+   begin
+      return Make_Symbol_Type (Identifier => Unique_Name (E));
+   end Do_Type_Reference;
 
    -------------------------
    -- Do_Withed_Unit_Spec --
