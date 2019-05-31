@@ -6,8 +6,7 @@ package Const_Decs is
    SC1 : constant Integer := Static_Const + 1;
    
    Read_Only_Var : constant Integer := SC1 + Var;
-   
-   procedure Inc (P : in out Integer);
-   
-end Const_Decs;
 
+   procedure Add_46 (P : in out Integer);
+
+end Const_Decs;
