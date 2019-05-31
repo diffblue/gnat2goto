@@ -82,15 +82,8 @@ package body Arrays is
          --  0: first index
          --  1: last index
          --  2: data pointer
-         --  Using the component numbers may be dropped in the future or it
-         --  may be enforced.
-         Data_Mem_Expr : constant Irep :=
-           Make_Member_Expr (Compound         => Array_Temp,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 2,
-                             I_Type           =>
-                               Make_Pointer_Type (Element_Type),
-                             Component_Name   => "data");
+         Data_Mem_Expr : constant Irep := Get_Data_Member (Array_Temp,
+                                                          Global_Symbol_Table);
          Array_Temp_Struct : constant Irep :=
            Make_Struct_Expr (Source_Location => Source_Loc,
                              I_Type          => Result_Type);
@@ -567,12 +560,8 @@ package body Arrays is
          PElement_Type : constant Irep :=
            Make_Pointer_Type (Element_Type, Pointer_Type_Width);
 
-         Dest_Data : constant Irep :=
-           Make_Member_Expr (Compound         => Dest_Symbol,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 2,
-                             I_Type           => PElement_Type,
-                             Component_Name   => "data");
+         Dest_Data : constant Irep := Get_Data_Member (Dest_Symbol,
+                                                       Global_Symbol_Table);
          Current_Offset : constant Irep :=
            Fresh_Var_Symbol_Expr (CProver_Size_T, "offset_step");
 
@@ -637,12 +626,8 @@ package body Arrays is
                            Source_Location => Source_Loc,
                            Overflow_Check  => False,
                            I_Type          => PElement_Type);
-            Left_Data : constant Irep :=
-              Make_Member_Expr (Compound         => Source_I_Symbol,
-                                Source_Location  => Source_Loc,
-                                Component_Number => 2,
-                                I_Type           => PElement_Type,
-                                Component_Name   => "data");
+            Left_Data : constant Irep := Get_Data_Member (Source_I_Symbol,
+                                                          Global_Symbol_Table);
 
             Memcpy_Fin : constant Irep :=
               Make_Memcpy_Function_Call_Expr (
@@ -769,17 +754,13 @@ package body Arrays is
    function Do_Array_First (N : Node_Id) return Irep
    is
    begin
-      return Get_First_Index (Array_Struct   => Do_Expression (Prefix (N)),
-                              Source_Loc     => Sloc (N),
-                              A_Symbol_Table => Global_Symbol_Table);
+      return Get_First_Index (Do_Expression (Prefix (N)));
    end Do_Array_First;
 
    function Do_Array_Last (N : Node_Id) return Irep
    is
    begin
-      return Get_Last_Index (Array_Struct   => Do_Expression (Prefix (N)),
-                              Source_Loc     => Sloc (N),
-                              A_Symbol_Table => Global_Symbol_Table);
+      return Get_Last_Index (Do_Expression (Prefix (N)));
    end Do_Array_Last;
 
    --  This handled the oddball anonymous range nodes that can occur
@@ -835,11 +816,11 @@ package body Arrays is
    -------------------------
 
    function Make_Array_Index_Op
-     (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep
+     (Base_Irep : Irep; Idx_Irep : Irep) return Irep
    is
-      Source_Loc : constant Source_Ptr := Sloc (Base_Type);
+      Source_Loc : constant Source_Ptr := Get_Source_Location (Base_Irep);
       First_Irep : constant Irep :=
-        Make_Array_First_Expr (Base_Type, Base_Irep);
+        Get_First_Index (Base_Irep);
       Zero_Based_Index : constant Irep :=
         Make_Op_Sub (Rhs             => First_Irep,
                      Lhs             => Idx_Irep,
@@ -847,36 +828,18 @@ package body Arrays is
                      Overflow_Check  => False,
                      I_Type          => Get_Type (Idx_Irep),
                      Range_Check     => False);
-      Result_Type : Irep;
-      Pointer_Type : constant Irep := New_Irep (I_Pointer_Type);
+
+      Data_Irep : constant Irep :=
+        Get_Data_Member (Base_Irep, Global_Symbol_Table);
+      Data_Type : constant Irep := Get_Type (Data_Irep);
       Indexed_Data : constant Irep :=
         Offset_Array_Data (Base         => Base_Irep,
-                           Offset       => Zero_Based_Index,
-                           Pointer_Type => Pointer_Type,
-                           Source_Loc   => Source_Loc);
-      Deref : Irep := New_Irep (I_Dereference_Expr);
+                           Offset       => Zero_Based_Index);
+      Element_Type : constant Irep := Get_Subtype (Data_Type);
    begin
-      if not Is_Array_Type (Base_Type) then
-         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
-                                      "Base type not array type");
-         return Deref;
-      end if;
-      Result_Type := Do_Type_Reference (Component_Type (Base_Type));
-      if not (Kind (Zero_Based_Index) in Class_Expr) or else
-        not (Kind (Get_Type (Idx_Irep)) in Class_Type)
-      then
-         Report_Unhandled_Node_Empty (Base_Type, "Make_Array_Index_Op",
-                                      "Kinds not in classes");
-         return Deref;
-      end if;
-      Set_Subtype (I     => Pointer_Type,
-                   Value => Result_Type);
-      Set_Width (I     => Pointer_Type,
-                 Value => Pointer_Type_Width);
-      Deref := Make_Dereference_Expr (Object          => Indexed_Data,
-                                      Source_Location => Source_Loc,
-                                      I_Type          => Result_Type);
-      return Deref;
+      return Make_Dereference_Expr (Object          => Indexed_Data,
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Element_Type);
    end Make_Array_Index_Op;
 
    --------------
@@ -928,8 +891,6 @@ package body Arrays is
            Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
                                   (Idx_Type))), CProver_Size_T,
                                   Global_Symbol_Table);
-         Element_Type : constant Entity_Id := Get_Array_Component_Type (N);
-
          Result_Block : constant Irep := New_Irep (I_Code_Block);
          Array_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
@@ -940,14 +901,9 @@ package body Arrays is
                         Source_Location => Source_Loc,
                         Overflow_Check  => False,
                         I_Type          => CProver_Size_T);
-         Pointer_Type : constant Irep :=
-           Make_Pointer_Type (I_Subtype => Do_Type_Reference (Element_Type),
-                              Width     => Pointer_Type_Width);
          New_Data : constant Irep :=
            Offset_Array_Data (Base         => Base,
-                              Offset       => Offset,
-                              Pointer_Type => Pointer_Type,
-                              Source_Loc   => Source_Loc);
+                              Offset       => Offset);
          Result : constant Irep :=
            Make_Struct_Expr (Source_Location => Source_Loc,
                              I_Type          => Result_Type);
@@ -999,28 +955,24 @@ package body Arrays is
    function Do_Indexed_Component (N : Node_Id) return Irep is
       (Make_Array_Index_Op
          (Do_Expression (Prefix (N)),
-          Etype (Prefix (N)),
           Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
                                  CProver_Size_T, Global_Symbol_Table)));
 
-   function Get_First_Index_Component (Array_Struct : Irep;
-                                       A_Symbol_Table : Symbol_Table)
+   function Get_First_Index_Component (Array_Struct : Irep)
                                        return Irep
    is
       Array_Struct_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+        Follow_Symbol_Type (Get_Type (Array_Struct), Global_Symbol_Table);
       Struct_Component : constant Irep_List :=
         Get_Component (Get_Components (Array_Struct_Type));
    begin
       return List_Element (Struct_Component, List_First (Struct_Component));
    end Get_First_Index_Component;
 
-   function Get_Last_Index_Component (Array_Struct : Irep;
-                                      A_Symbol_Table : Symbol_Table)
-                                      return Irep
+   function Get_Last_Index_Component (Array_Struct : Irep) return Irep
    is
       Array_Struct_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+        Follow_Symbol_Type (Get_Type (Array_Struct), Global_Symbol_Table);
       Struct_Component : constant Irep_List :=
         Get_Component (Get_Components (Array_Struct_Type));
       Last_Cursor :  constant List_Cursor :=
@@ -1030,8 +982,7 @@ package body Arrays is
    end Get_Last_Index_Component;
 
    function Get_Data_Component (Array_Struct : Irep;
-                                A_Symbol_Table : Symbol_Table)
-                                return Irep
+                                A_Symbol_Table : Symbol_Table) return Irep
    is
       Array_Struct_Type : constant Irep :=
         Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
@@ -1045,36 +996,78 @@ package body Arrays is
       return List_Element (Struct_Component, Last_Cursor);
    end Get_Data_Component;
 
-   function Get_First_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
-                             A_Symbol_Table : Symbol_Table)
-                             return Irep
+   function Get_First_Index (Array_Struct : Irep) return Irep
    is
       First_Index_Component : constant Irep :=
-        Get_First_Index_Component (Array_Struct   => Array_Struct,
-                                   A_Symbol_Table => A_Symbol_Table);
+        Get_First_Index_Component (Array_Struct);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => Source_Loc,
+                               Source_Location  => No_Location,
                                Component_Number => 0,
                                I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (First_Index_Component));
    end Get_First_Index;
 
-   function Get_Last_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
-                             A_Symbol_Table : Symbol_Table)
-                             return Irep
+   function Get_Last_Index (Array_Struct : Irep) return Irep
    is
       Last_Index_Component : constant Irep :=
-        Get_Last_Index_Component (Array_Struct   => Array_Struct,
-                                   A_Symbol_Table => A_Symbol_Table);
+        Get_Last_Index_Component (Array_Struct);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => Source_Loc,
+                               Source_Location  => No_Location,
                                Component_Number => 1,
                                I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (Last_Index_Component));
    end Get_Last_Index;
 
+   function Get_Data_Member (Array_Struct : Irep;
+                             A_Symbol_Table : Symbol_Table)
+                             return Irep
+   is
+      Data_Member : constant Irep :=
+        Get_Data_Component (Array_Struct, A_Symbol_Table);
+   begin
+      return Make_Member_Expr (Compound         => Array_Struct,
+                               Source_Location  => No_Location,
+                               Component_Number => 2,
+                               I_Type           =>
+                                 Get_Type (Data_Member),
+                               Component_Name   =>
+                                 Get_Name (Data_Member));
+   end Get_Data_Member;
+
+   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+                              return Irep
+   is
+      Source_Loc : constant Source_Ptr := Get_Source_Location (First);
+      Diff : constant Irep :=
+        Make_Op_Sub (Rhs             => First,
+                     Lhs             => Last,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Idx_Type);
+      One : constant Irep :=
+        Build_Index_Constant (Value      => 1,
+                              Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Add (Rhs             => One,
+                          Lhs             => Diff,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Idx_Type);
+   end Build_Array_Size;
+
+   function Offset_Array_Data (Base : Irep; Offset : Irep) return Irep
+   is
+      Data_Member : constant Irep :=
+        Get_Data_Member (Base, Global_Symbol_Table);
+   begin
+      return Make_Op_Add (Rhs             => Offset,
+                          Lhs             => Data_Member,
+                          Source_Location => Get_Source_Location (Base),
+                          Overflow_Check  => False,
+                          I_Type          => Get_Type (Data_Member));
+   end Offset_Array_Data;
 end Arrays;

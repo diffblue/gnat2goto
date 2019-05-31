@@ -179,24 +179,19 @@ Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
 --
 Occurs: 4 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
---
-Occurs: 4 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
 Occurs: 3 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 3 times
 Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
---
-Occurs: 2 times
-Calling function: Do_Function_Call
-Error message: function entity not defining identifier
-Nkind: N_Function_Call
 --
 Occurs: 2 times
 Calling function: Process_Pragma_Declaration
@@ -214,6 +209,11 @@ Error message: Constant Type not in Class_Bitvector_Type
 Nkind: N_Integer_Literal
 --
 Occurs: 1 times
+Calling function: Do_Function_Call
+Error message: function entity not defining identifier
+Nkind: N_Function_Call
+--
+Occurs: 1 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
@@ -222,16 +222,6 @@ Occurs: 1 times
 Calling function: Do_Pragma
 Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Make_Array_First_Expr
-Error message: Base type not array type
-Nkind: N_Defining_Identifier
---
-Occurs: 1 times
-Calling function: Make_Array_Index_Op
-Error message: Base type not array type
-Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
 Calling function: Process_Declaration
