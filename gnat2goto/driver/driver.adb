@@ -366,9 +366,14 @@ package body Driver is
       Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
       Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
 
-      Add_Start : Boolean;
-      Program_Symbol : constant Symbol := Do_Compilation_Unit (GNAT_Root,
-                                                               Add_Start);
+      Unit_Is_Subprogram : Boolean;
+      Program_Symbol : constant Symbol :=
+        Do_Compilation_Unit (GNAT_Root, Unit_Is_Subprogram);
+
+      --  Only add CPROVER_Start if the unit is subprogram and the user did not
+      --  suppress it (by cmdl option).
+      Add_Start : constant Boolean :=
+        Unit_Is_Subprogram and not Suppress_Cprover_Start;
 
       Sym_Tab_File : File_Type;
       Base_Name  : constant String :=
@@ -404,20 +409,6 @@ package body Driver is
       end;
 
       if not Add_Start then
-         --  If the compilation unit is not a subprogram body then there is
-         --  no function/procedure to call
-         --  CBMC does not like that so we add cprover_start with empty body
-         Start_Symbol.Name       := Start_Name;
-         Start_Symbol.PrettyName := Start_Name;
-         Start_Symbol.BaseName   := Start_Name;
-
-         Set_Return_Type (Start_Type, Void_Type);
-
-         Start_Symbol.SymType := Start_Type;
-         Start_Symbol.Value   := Start_Body;
-         Start_Symbol.Mode    := Intern ("C");
-
-         Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          Sanitise_Type_Declarations (Global_Symbol_Table,
                                      Sanitised_Symbol_Table);
          Put_Line (Sym_Tab_File,
@@ -552,6 +543,9 @@ package body Driver is
          elsif Switch (First .. Last) = Dump_Statement_AST_On_Error_Option
          then
             Dump_Statement_AST_On_Error := True;
+            return True;
+         elsif Switch (First .. Last) = "-no-cprover-start" then
+            Suppress_Cprover_Start := True;
             return True;
          end if;
       end if;

@@ -24,6 +24,7 @@
 with Types; use Types;
 
 package Driver is
+   Suppress_Cprover_Start : Boolean := False;
 
    procedure GNAT_To_Goto (GNAT_Root : Node_Id);
    procedure Translate_Compilation_Unit (GNAT_Root : Node_Id);
