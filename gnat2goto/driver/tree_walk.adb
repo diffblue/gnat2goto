@@ -698,8 +698,8 @@ package body Tree_Walk is
                           Bounds_Type => Get_Type (LHS));
             begin
                Set_Rhs (R,
-                        Typecast_If_Necessary (Expr     => Range_Expr,
-                                        New_Type => Get_Type (LHS)));
+                        Typecast_If_Necessary (Range_Expr, Get_Type (LHS),
+                          Global_Symbol_Table));
             end;
          else
             Set_Rhs (R, RHS);
@@ -1310,7 +1310,6 @@ package body Tree_Walk is
       --  Using index constant
       One : constant Irep :=
            Build_Index_Constant (Value      => 1,
-                                 Index_Type => Result_Type,
                                  Source_Loc => Source_Loc);
    begin
       return Make_Op_Sub (Rhs             => One,
@@ -1328,7 +1327,6 @@ package body Tree_Walk is
       Source_Loc : constant Source_Ptr := Sloc (N);
       One : constant Irep :=
            Build_Index_Constant (Value      => 1,
-                                 Index_Type => Result_Type,
                                  Source_Loc => Source_Loc);
    begin
       return Make_Op_Add (Rhs             => One,
@@ -1479,6 +1477,7 @@ package body Tree_Walk is
          end if;
       end if;
 
+      pragma Assert (Global_Symbol_Table.Contains (Intern (Unique_Name (E))));
    end Do_Full_Type_Declaration;
 
    ----------------------
@@ -1518,7 +1517,14 @@ package body Tree_Walk is
       Typecast_Expr : constant Irep :=
         Make_Op_Typecast (Value, Sloc (N), Type_Of_Val);
    begin
-      return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      --  TODO: Range expressions for non-bounded types are outside
+      --        the scope of this PR
+      if Kind (Type_Of_Val) in I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+      then
+         return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      else
+         return Typecast_Expr;
+      end if;
    end Do_Qualified_Expression;
 
    -----------------------------
@@ -3432,7 +3438,8 @@ package body Tree_Walk is
          return Ret;
       end if;
       Set_Lhs (Ret, LHS);
-      Set_Rhs (Ret, RHS);
+      Set_Rhs (Ret, Typecast_If_Necessary (RHS, Get_Type (LHS),
+               Global_Symbol_Table));
       Set_Type (Ret, Ret_Type);
 
       if Do_Overflow_Check (N) then
@@ -3464,9 +3471,9 @@ package body Tree_Walk is
         Make_Signedbv_Type (Get_Width (Followed_Ret_Type) * 2);
 
       Lhs_Cast : constant Irep :=
-        Typecast_If_Necessary (LHS, Large_Enough_Type);
+        Typecast_If_Necessary (LHS, Large_Enough_Type, Global_Symbol_Table);
       Rhs_Cast : constant Irep :=
-        Typecast_If_Necessary (RHS, Large_Enough_Type);
+        Typecast_If_Necessary (RHS, Large_Enough_Type, Global_Symbol_Table);
       Full_Result : constant Irep := New_Irep (Op_Kind);
 
       Mod_Max_String : constant String :=
@@ -3493,7 +3500,7 @@ package body Tree_Walk is
       Set_Source_Location (Mod_Ret, Source_Loc);
 
       --  And return the result casted to the origin type
-      return Typecast_If_Necessary (Mod_Ret, Ret_Type);
+      return Typecast_If_Necessary (Mod_Ret, Ret_Type, Global_Symbol_Table);
    end Do_Operator_Mod;
 
    --  Modular minus gets special treatment, effectively x - y =>

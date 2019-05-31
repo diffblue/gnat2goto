@@ -1,4 +1,4 @@
-Occurs: 132 times
+Occurs: 135 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: alignment
 Nkind: N_Attribute_Definition_Clause
@@ -8,27 +8,27 @@ Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 102 times
+Occurs: 104 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 65 times
+Occurs: 64 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
 Nkind: N_Private_Type_Declaration
 --
-Occurs: 45 times
+Occurs: 46 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: component_size
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 30 times
+Occurs: 28 times
 Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
-Occurs: 29 times
+Occurs: 27 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Preelaborable Initialization
 Nkind: N_Pragma
@@ -38,10 +38,10 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
 --
-Occurs: 12 times
-Calling function: Do_Derived_Type_Definition
-Error message: record extension unsupported
-Nkind: N_Derived_Type_Definition
+Occurs: 13 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
 --
 Occurs: 12 times
 Calling function: Process_Declaration
@@ -68,17 +68,12 @@ Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
 --
-Occurs: 10 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
---
-Occurs: 8 times
+Occurs: 9 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
-Occurs: 8 times
+Occurs: 9 times
 Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
@@ -93,6 +88,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
 --
+Occurs: 8 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Precondition
+Nkind: N_Pragma
+--
 Occurs: 7 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
@@ -104,8 +104,23 @@ Error message: Generic instantiation declaration
 Nkind: N_Function_Instantiation
 --
 Occurs: 6 times
+Calling function: Do_Address_Of
+Error message: Kind not in class type
+Nkind: N_Attribute_Reference
+--
+Occurs: 6 times
+Calling function: Do_Identifier
+Error message: Etype not a type
+Nkind: N_Identifier
+--
+Occurs: 6 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
+--
+Occurs: 5 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Precondition
+Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
 Occurs: 4 times
@@ -114,34 +129,24 @@ Error message: Package body declaration
 Nkind: N_Package_Body
 --
 Occurs: 3 times
+Calling function: Do_Aggregate_Literal
+Error message: Unhandled aggregate kind
+Nkind: N_Aggregate
+--
+Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 3 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Procedure_Instantiation
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 2 times
-Calling function: Do_Address_Of
-Error message: Kind not in class type
-Nkind: N_Attribute_Reference
---
-Occurs: 2 times
-Calling function: Do_Aggregate_Literal
-Error message: Unhandled aggregate kind
-Nkind: N_Aggregate
---
-Occurs: 2 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: More than one named operand
-Nkind: N_Aggregate
---
-Occurs: 2 times
-Calling function: Do_Identifier
-Error message: Etype not a type
-Nkind: N_Identifier
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Range
 --
 Occurs: 2 times
 Calling function: Do_Type_Definition
@@ -159,14 +164,14 @@ Error message: Unsupported pragma: Ada 2012
 Nkind: N_Pragma
 --
 Occurs: 2 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Object_Renaming_Declaration
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
 --
 Occurs: 1 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported upper range kind
-Nkind: N_Op_Divide
+Calling function: Do_Expression
+Error message: In
+Nkind: N_In
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -187,11 +192,6 @@ Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration

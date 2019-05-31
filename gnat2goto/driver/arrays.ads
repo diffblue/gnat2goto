@@ -79,8 +79,6 @@ package Arrays is
        Post => Kind (Get_Last_Index'Result) = I_Member_Expr;
 
 private
-   function Get_Array_Index_Type (N : Node_Id) return Entity_Id
-     with Post => Ekind (Get_Array_Index_Type'Result) = E_Signed_Integer_Type;
 
    function Do_RHS_Array_Assign (N : Node_Id) return Irep_Array
      with Pre => Nkind (N) in N_Op_Concat | N_Slice | N_Function_Call;

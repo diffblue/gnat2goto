@@ -55,31 +55,26 @@ package body Arrays is
          Pos_Iter : Node_Id := First (Expressions (N));
          Source_Loc : constant Source_Ptr := Sloc (N);
          Bounds : constant Node_Id := Aggregate_Bounds (N);
-         Low_Expr : constant Irep := Do_Expression (Low_Bound (Bounds));
-         High_Expr : constant Irep := Do_Expression (High_Bound (Bounds));
-         Index_Type_Node : constant Entity_Id := Etype (Etype (Bounds));
-         Index_Type : constant Irep := Follow_Symbol_Type
-           (Do_Type_Reference (Index_Type_Node),
-            Global_Symbol_Table);
+         Low_Expr : constant Irep :=
+           Typecast_If_Necessary (Do_Expression (Low_Bound (Bounds)),
+                                  CProver_Size_T, Global_Symbol_Table);
+         High_Expr : constant Irep :=
+           Typecast_If_Necessary (Do_Expression (High_Bound (Bounds)),
+                                  CProver_Size_T, Global_Symbol_Table);
          Len_Expr : constant Irep :=
            Build_Array_Size (First      => Low_Expr,
-                             Last       => High_Expr,
-                             Idx_Type => Index_Type);
+                             Last       => High_Expr);
          Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
          Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
-         Bare_Array_Type : constant Irep :=
-           Make_Array_Type (I_Subtype => Element_Type,
-                            Size => Len_Expr);
          Literal_Temp : constant Irep :=
-           Fresh_Var_Symbol_Expr (Bare_Array_Type, "array_literal");
+           Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
+                                  "array_literal");
          Array_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
          Lhs_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
                                   "temp_lhs");
-         Array_Expr : Irep;
          Result_Block : constant Irep := New_Irep (I_Code_Block);
-         With_Mode : Boolean;
          Pos_Number : Natural := 0;
 
          --  NB: Component number seem to be ignored by CBMC
@@ -105,85 +100,155 @@ package body Arrays is
                                              Esize (Element_Type_Ent),
                                            Source_Loc        => Source_Loc);
          Malloc_Call_Expr : constant Irep :=
-           Typecast_If_Necessary (Expr     => Raw_Malloc_Call,
-                                  New_Type =>
-                                    Make_Pointer_Type (Element_Type));
+           Typecast_If_Necessary (Raw_Malloc_Call,
+                                  Make_Pointer_Type (Element_Type),
+                                  Global_Symbol_Table);
          Literal_Address : constant Irep :=
-           Typecast_If_Necessary (Expr     => Make_Address_Of (Literal_Temp),
-                                  New_Type =>
-                                    Make_Pointer_Type (Element_Type));
+           Typecast_If_Necessary (Literal_Temp,
+                                  Make_Pointer_Type (Element_Type),
+                                  Global_Symbol_Table);
          Memcpy_Call_Expr : constant Irep :=
            Make_Memcpy_Function_Call_Expr (Destination       => Data_Mem_Expr,
                                          Source            => Literal_Address,
                                          Num_Elem          => Len_Expr,
                                          Element_Type_Size =>
                                            Esize (Element_Type_Ent),
-                                         Source_Loc        => Source_Loc);
-      begin
-         --  Handle an "others" splat expression if present:
-         if Present (Component_Associations (N)) then
-            --  Produce something like array_of(others_expr)
-            --                         with 1 => 100, 2 => 200, ...
-            --  We expect only one named operand (others => ...):
-            if List_Length (Component_Associations (N)) /= 1 then
-               return Report_Unhandled_Node_Irep (N,
-                                               "Do_Aggregate_Literal_Array",
-                                               "More than one named operand");
+                                           Source_Loc        => Source_Loc);
+
+         PElement_Type : constant Irep := Make_Pointer_Type (Element_Type);
+
+         procedure Initialize_Array;
+         procedure Initialize_Array is
+            Raw_Malloc_Call : constant Irep :=
+              Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
+                                              Element_Type_Size =>
+                                                Esize (Element_Type_Ent),
+                                              Source_Loc        => Source_Loc);
+            Malloc_Call_Expr : constant Irep :=
+              Typecast_If_Necessary (Raw_Malloc_Call,
+                                     Make_Pointer_Type (Element_Type),
+                                     Global_Symbol_Table);
+            Others_Expression : Irep;
+
+            Loop_Iter_Var : constant Irep :=
+              Fresh_Var_Symbol_Expr (CProver_Size_T, "i");
+            Loop_Cond : constant Irep :=
+              Make_Op_Gt (Rhs             => Loop_Iter_Var,
+                          Lhs             => Len_Expr,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Make_Bool_Type);
+            Size_T_Zero : constant Irep :=
+              Build_Index_Constant (Value      => 0,
+                                    Source_Loc => Source_Loc);
+            Size_T_One : constant Irep :=
+              Build_Index_Constant (Value      => 1,
+                                    Source_Loc => Source_Loc);
+            Increment_I : constant Irep :=
+              Make_Op_Add (Rhs             => Size_T_One,
+                           Lhs             => Loop_Iter_Var,
+                           Source_Location => Source_Loc,
+                           Overflow_Check  => False,
+                           I_Type          => CProver_Size_T);
+            Loop_Iter : constant Irep :=
+              Make_Code_Assign (Rhs             => Increment_I,
+                                Lhs             => Loop_Iter_Var,
+                                Source_Location => Source_Loc,
+                                I_Type          => Make_Nil_Type);
+            Loop_Body : constant Irep :=
+              Make_Code_Block (Source_Location => Source_Loc,
+                               I_Type          => Make_Nil_Type);
+
+            Array_As_Pointer : constant Irep :=
+              Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                     Global_Symbol_Table);
+            Lhs_Ptr : constant Irep :=
+              Make_Op_Add (Rhs             => Loop_Iter_Var,
+                           Lhs             => Array_As_Pointer,
+                           Source_Location => Source_Loc,
+                           Overflow_Check  => False,
+                           I_Type          => PElement_Type);
+            Lhs_Irep : constant Irep :=
+              Make_Dereference_Expr (Object          => Lhs_Ptr,
+                                     Source_Location => Source_Loc,
+                                     I_Type          => Element_Type);
+         begin
+            Append_Declare_And_Init (Symbol     => Literal_Temp,
+                                     Value      => Malloc_Call_Expr,
+                                     Block      => Result_Block,
+                                     Source_Loc => Source_Loc);
+
+            --  Handle an "others" splat expression if present:
+            if Present (Component_Associations (N)) then
+               declare
+                  Maybe_Others_Node : constant Node_Id :=
+                    Last (Component_Associations (N));
+                  Maybe_Others_Choices : constant List_Id :=
+                    Choices (Maybe_Others_Node);
+               begin
+                  pragma Assert (List_Length (Maybe_Others_Choices) = 1);
+
+                  --  this association does not end with others -> bail
+                  if Nkind (First (Maybe_Others_Choices)) /= N_Others_Choice
+                  then
+                     return;
+                  end if;
+
+                  Others_Expression :=
+                    Do_Expression (Expression (Maybe_Others_Node));
+               end;
+            else
+               return;
             end if;
 
-            declare
-               Others_Node : constant Node_Id :=
-                 First (Component_Associations (N));
-               Others_Choices : constant List_Id := Choices (Others_Node);
-               Expr : constant Irep :=
-                 Do_Expression (Expression (Others_Node));
-            begin
-               if List_Length (Others_Choices) /= 1 then
-                  return Report_Unhandled_Node_Irep (N,
-                                                 "Do_Aggregate_Literal_Array",
-                                                 "More than one other choice");
-               end if;
-               if Nkind (First (Others_Choices)) /= N_Others_Choice then
-                  return Report_Unhandled_Node_Irep (N,
-                                                 "Do_Aggregate_Literal_Array",
-                                                 "Wrong kind of other choice");
-               end if;
-               Array_Expr :=
-                 Make_Op_Array_Of (I_Type => Bare_Array_Type,
-                                   Op0 => Expr,
-                                   Source_Location => Sloc (N));
-            end;
-            With_Mode := True;
-         else
-            Array_Expr := Make_Array_Expr (I_Type => Bare_Array_Type,
-                                           Source_Location => Sloc (N));
-            With_Mode := False;
-         end if;
+            --  iterate over elements and assing others-value to them
+            Append_Op (Loop_Body,
+                       Make_Code_Assign (Rhs             => Others_Expression,
+                                         Lhs             => Lhs_Irep,
+                                         Source_Location => Source_Loc,
+                                         I_Type          => Make_Nil_Type));
+            Append_Op (Loop_Body, Loop_Iter);
 
-         Set_Type (Array_Expr, Bare_Array_Type);
+            Append_Op (Result_Block,
+                       Make_Code_Assign (Rhs             => Size_T_Zero,
+                                         Lhs             => Loop_Iter_Var,
+                                         Source_Location => Source_Loc,
+                                         I_Type          => Make_Nil_Type));
+            Append_Op (Result_Block,
+                       Make_Code_While (Loop_Body       => Loop_Body,
+                                        Cond            => Loop_Cond,
+                                        Source_Location => Source_Loc,
+                                        I_Type          => Make_Nil_Type));
+         end Initialize_Array;
+
+      begin
+         Initialize_Array;
 
          while Present (Pos_Iter) loop
             declare
                Expr : constant Irep := Do_Expression (Pos_Iter);
+               Pos_Constant : constant Irep :=
+                 Build_Index_Constant (Value      => Int (Pos_Number),
+                                       Source_Loc => Source_Loc);
+               Array_As_Pointer : constant Irep :=
+                 Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                        Global_Symbol_Table);
+               Lhs_Ptr : constant Irep :=
+                 Make_Op_Add (Rhs             => Pos_Constant,
+                              Lhs             => Array_As_Pointer,
+                              Source_Location => Source_Loc,
+                              Overflow_Check  => False,
+                              I_Type          => PElement_Type);
+               Lhs_Irep : constant Irep :=
+                 Make_Dereference_Expr (Object          => Lhs_Ptr,
+                                        Source_Location => Source_Loc,
+                                        I_Type          => Element_Type);
             begin
-               if With_Mode then
-                  declare
-                     Pos_Constant : constant Irep := Integer_Constant_To_Expr
-                       (Value => UI_From_Int (Int (Pos_Number)),
-                        Expr_Type => Index_Type,
-                        Source_Location => No_Location);
-                     New_With : constant Irep :=
-                       Make_With_Expr (Old => Array_Expr,
-                                       Where => Pos_Constant,
-                                       New_Value => Expr,
-                                       I_Type => Bare_Array_Type,
-                                       Source_Location => Sloc (N));
-                  begin
-                     Array_Expr := New_With;
-                  end;
-               else
-                  Append_Operand (Array_Expr, Expr);
-               end if;
+               Append_Op (Result_Block,
+                          Make_Code_Assign (Rhs             => Expr,
+                                            Lhs             => Lhs_Irep,
+                                            Source_Location => Source_Loc,
+                                            I_Type          => Element_Type));
             end;
             Next (Pos_Iter);
             Pos_Number := Pos_Number + 1;
@@ -193,10 +258,58 @@ package body Arrays is
          Append_Struct_Member (Array_Temp_Struct, High_Expr);
          Append_Struct_Member (Array_Temp_Struct, Malloc_Call_Expr);
 
-         Append_Declare_And_Init (Symbol     => Literal_Temp,
-                                  Value      => Array_Expr,
-                                  Block      => Result_Block,
-                                  Source_Loc => Source_Loc);
+         if Present (Component_Associations (N)) and then
+           List_Length (Component_Associations (N)) /= 1
+         then
+            declare
+               Components : constant List_Id := Component_Associations (N);
+               Component_Node : Node_Id := First (Components);
+            begin
+               if List_Length (Choices (Component_Node)) /= 1 then
+                  return Report_Unhandled_Node_Irep (N,
+                                     "Do_Aggregate_Literal_Array",
+                                     "More than one choice in component node");
+               end if;
+               while Present (Component_Node) loop
+                  declare
+                     Expr : constant Irep :=
+                       Do_Expression (Expression (Component_Node));
+                     Choice_Id : constant Irep :=
+                       Do_Expression (First (Choices (Component_Node)));
+                     Component_Index : constant Irep :=
+                       Typecast_If_Necessary (Choice_Id, CProver_Size_T,
+                                              Global_Symbol_Table);
+                     Zero_Based_Index : constant Irep :=
+                       Make_Op_Sub (Rhs             => Low_Expr,
+                                    Lhs             => Component_Index,
+                                    Source_Location => Source_Loc,
+                                    Overflow_Check  => False,
+                                    I_Type          => CProver_Size_T);
+                     Array_As_Pointer : constant Irep :=
+                       Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                              Global_Symbol_Table);
+                     Lhs_Ptr : constant Irep :=
+                       Make_Op_Add (Rhs             => Zero_Based_Index,
+                                    Lhs             => Array_As_Pointer,
+                                    Source_Location => Source_Loc,
+                                    Overflow_Check  => False,
+                                    I_Type          => PElement_Type);
+                     Lhs_Irep : constant Irep :=
+                       Make_Dereference_Expr (Object          => Lhs_Ptr,
+                                              Source_Location => Source_Loc,
+                                              I_Type          => Element_Type);
+                  begin
+                     Append_Op (Result_Block,
+                          Make_Code_Assign (Rhs             => Expr,
+                                            Lhs             => Lhs_Irep,
+                                            Source_Location => Source_Loc,
+                                            I_Type          => Element_Type));
+                  end;
+                  Component_Node := Next (Component_Node);
+               end loop;
+            end;
+         end if;
+
          --  As long as symex is field-insensitive we need to initialise the
          --  array structure with the information about allocated size.
          --  I.e. Create a temporary struct and assign it in one swoop to
@@ -277,14 +390,16 @@ package body Arrays is
 
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep is
       Idx : constant Node_Id := First_Index (E);
-      Lbound : constant Irep := Do_Expression (Low_Bound (Idx));
-      Hbound : constant Irep := Do_Expression (High_Bound (Idx));
-      Idx_Type : constant Entity_Id := Get_Array_Index_Type (E);
+      Lbound : constant Irep :=
+        Typecast_If_Necessary (Do_Expression (Low_Bound (Idx)),
+                               CProver_Size_T, Global_Symbol_Table);
+      Hbound : constant Irep :=
+        Typecast_If_Necessary (Do_Expression (High_Bound (Idx)),
+                               CProver_Size_T, Global_Symbol_Table);
       Source_Loc : constant Source_Ptr := Sloc (E);
       Len : constant Irep :=
         Build_Array_Size (First      => Lbound,
-                          Last       => Hbound,
-                          Idx_Type => Do_Type_Reference (Idx_Type));
+                          Last       => Hbound);
       Component_Type : constant Irep :=
         Do_Type_Reference (Get_Array_Component_Type (E));
       Alloc : constant Irep :=
@@ -302,8 +417,8 @@ package body Arrays is
       Append_Struct_Member (Ret, Lbound);
       Append_Struct_Member (Ret, Hbound);
       Append_Struct_Member (Ret,
-                            Typecast_If_Necessary (Expr     => Alloc,
-                                                   New_Type => Comp_P_Type));
+                            Typecast_If_Necessary (Alloc, Comp_P_Type,
+                              Global_Symbol_Table));
       return Ret;
    end Make_Array_Default_Initialiser;
 
@@ -351,25 +466,11 @@ package body Arrays is
               Number_Str_Raw (2 .. Number_Str_Raw'Last);
             First_Name : constant String := "first" & Number_Str;
             Last_Name : constant String := "last" & Number_Str;
-            Dimension_Type : constant Irep :=
-              Do_Type_Reference (Etype (Dimension_Iter));
             First_Comp : constant Irep :=
-              Make_Struct_Component (First_Name, Dimension_Type);
+              Make_Struct_Component (First_Name, CProver_Size_T);
             Last_Comp : constant Irep :=
-              Make_Struct_Component (Last_Name, Dimension_Type);
+              Make_Struct_Component (Last_Name, CProver_Size_T);
          begin
-
-            --  Declare the dimension index type if required:
-            case Nkind (Dimension_Iter) is
-               when N_Subtype_Indication =>
-                  Do_Type_Declaration (Do_Subtype_Indication (Dimension_Iter),
-                                       Etype (Dimension_Iter));
-               when N_Range =>
-                  Do_Type_Declaration (Do_Array_Range (Dimension_Iter),
-                                       Etype (Dimension_Iter));
-               when others =>
-                  null;
-            end case;
 
             Append_Component (Ret_Components, First_Comp);
             Append_Component (Ret_Components, Last_Comp);
@@ -429,8 +530,6 @@ package body Arrays is
       Elem_Type_Ent : constant Entity_Id :=
         Get_Array_Component_Type (LHS_Node);
       Element_Type : constant Irep := Do_Type_Reference (Elem_Type_Ent);
-      Index_Type : constant Irep :=
-        Do_Type_Reference (Get_Array_Index_Type (LHS_Node));
       Function_Name : constant String := "concat_assign";
 
       Destination : constant Irep :=
@@ -475,7 +574,7 @@ package body Arrays is
                              I_Type           => PElement_Type,
                              Component_Name   => "data");
          Current_Offset : constant Irep :=
-           Fresh_Var_Symbol_Expr (Index_Type, "offset_step");
+           Fresh_Var_Symbol_Expr (CProver_Size_T, "offset_step");
 
          Void_Ptr_Type : constant Irep :=
            Make_Pointer_Type (I_Subtype => Make_Void_Type,
@@ -484,7 +583,6 @@ package body Arrays is
            Fresh_Var_Symbol_Expr (Void_Ptr_Type, "memcpy_lhs");
          Zero : constant Irep :=
            Build_Index_Constant (Value      => 0,
-                                 Index_Type => Index_Type,
                                  Source_Loc => Source_Loc);
          EType_Size : constant Uint := Esize (Elem_Type_Ent);
 
@@ -496,8 +594,8 @@ package body Arrays is
                                            Element_Type_Size => EType_Size,
                                            Source_Loc        => Source_Loc);
          Dest_Temp_Alloc : constant Irep :=
-           Typecast_If_Necessary (Expr     => Dest_Temp_Pre_Alloc,
-                                  New_Type => PElement_Type);
+           Typecast_If_Necessary (Dest_Temp_Pre_Alloc, PElement_Type,
+                                  Global_Symbol_Table);
          Dest_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (PElement_Type, "dest_temp");
 
@@ -506,10 +604,11 @@ package body Arrays is
          procedure Build_Sum_Size (Ith_Slice : Irep) is
             Source_I_Symbol : constant Irep := Param_Symbol (Ith_Slice);
             Slice_Size : constant Irep :=
-              Build_Array_Size (Source_I_Symbol, Index_Type);
+              Build_Array_Size (Source_I_Symbol);
             Size_Increment : constant Irep :=
               Make_Op_Add (Rhs             =>
-                           Typecast_If_Necessary (Slice_Size, CProver_Size_T),
+                             Typecast_If_Necessary (Slice_Size, CProver_Size_T,
+                               Global_Symbol_Table),
                            Lhs             => Sum_Size_Var,
                            Source_Location => Source_Loc,
                            Overflow_Check  => False,
@@ -529,9 +628,9 @@ package body Arrays is
          is
             Source_I_Symbol : constant Irep := Param_Symbol (Ith_Slice);
             Slice_Size : constant Irep :=
-              Build_Array_Size (Source_I_Symbol, Index_Type);
+              Build_Array_Size (Source_I_Symbol);
             Slice_Size_Var : constant Irep :=
-              Fresh_Var_Symbol_Expr (Index_Type, "slice_size");
+              Fresh_Var_Symbol_Expr (CProver_Size_T, "slice_size");
             Offset_Dest : constant Irep :=
               Make_Op_Add (Rhs             => Current_Offset,
                            Lhs             => Dest_Temp,
@@ -556,7 +655,7 @@ package body Arrays is
               Make_Op_Add (Rhs             => Slice_Size_Var,
                            Lhs             => Current_Offset,
                            Source_Location => Source_Loc,
-                           I_Type          => Index_Type);
+                           I_Type          => CProver_Size_T);
          begin
             Append_Op (Result_Block,
                        Make_Code_Assign (Rhs             => Slice_Size,
@@ -586,7 +685,8 @@ package body Arrays is
                                       Source_Location => Source_Loc));
          Append_Op (Result_Block,
                     Make_Code_Assign (Rhs             =>
-                                  Typecast_If_Necessary (Zero, CProver_Size_T),
+                                        Typecast_If_Necessary (Zero,
+                                          CProver_Size_T, Global_Symbol_Table),
                                   Lhs             => Sum_Size_Var,
                                   Source_Location => Source_Loc));
          for I in Slices'Range loop
@@ -662,10 +762,8 @@ package body Arrays is
    function Do_Array_Length (N : Node_Id) return Irep
    is
       Array_Struct : constant Irep := Do_Expression (Prefix (N));
-      Index_Type : constant Entity_Id := Get_Array_Index_Type (Prefix (N));
    begin
-      return Build_Array_Size (Array_Comp => Array_Struct,
-                               Idx_Type => Do_Type_Reference (Index_Type));
+      return Build_Array_Size (Array_Struct);
    end Do_Array_Length;
 
    function Do_Array_First (N : Node_Id) return Irep
@@ -708,22 +806,6 @@ package body Arrays is
       return Component_Type (Ty);
    end Get_Array_Component_Type;
 
-   --------------------------
-   -- Get_Array_Index_Type --
-   --------------------------
-
-   function Get_Array_Index_Type (N : Node_Id) return Entity_Id is
-      Ret : Entity_Id := Etype (First_Index (Etype (N)));
-   begin
-      --  Many array index types are itypes with ranges private to
-      --  this particular context. Use the underlying, unconstrained
-      --  numeric type instead.
-      while Ekind (Ret) = E_Signed_Integer_Subtype loop
-         Ret := Etype (Ret);
-      end loop;
-      return Ret;
-   end Get_Array_Index_Type;
-
    ---------------------------
    -- Make_Array_First_Expr --
    ---------------------------
@@ -731,7 +813,6 @@ package body Arrays is
    function Make_Array_First_Expr
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep
    is
-      Idx_Type : Node_Id;
       First : constant Irep := New_Irep (I_Member_Expr);
    begin
       -- Dummy initialisation --
@@ -742,10 +823,10 @@ package body Arrays is
                                       "Base type not array type");
          return First;
       end if;
-      Idx_Type := Etype (First_Index (Base_Type));
+      Set_Component_Number (First, 0);
       Set_Component_Name (First, "first1");
       Set_Compound (First, Base_Irep);
-      Set_Type (First, Do_Type_Reference (Idx_Type));
+      Set_Type (First, CProver_Size_T);
       return First;
    end Make_Array_First_Expr;
 
@@ -833,17 +914,20 @@ package body Arrays is
          Idx_Type : constant Entity_Id :=
            Etype (First_Index (Etype (N)));
          New_First_Expr : constant Irep :=
-           Do_Expression (Low_Bound (Scalar_Range (Idx_Type)));
-         First_Type : constant Irep := Get_Type (New_First_Expr);
+           Typecast_If_Necessary (Do_Expression (Low_Bound (Scalar_Range
+                                  (Idx_Type))), CProver_Size_T,
+                                  Global_Symbol_Table);
          Old_First_Expr : constant Irep :=
            Make_Member_Expr (Compound         => Base,
                              Source_Location  => Source_Loc,
                              Component_Number => 0,
-                             I_Type           => First_Type,
+                             I_Type           => CProver_Size_T,
                              Component_Name   => "first1");
 
          New_Last_Expr : constant Irep :=
-           Do_Expression (High_Bound (Scalar_Range (Idx_Type)));
+           Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
+                                  (Idx_Type))), CProver_Size_T,
+                                  Global_Symbol_Table);
          Element_Type : constant Entity_Id := Get_Array_Component_Type (N);
 
          Result_Block : constant Irep := New_Irep (I_Code_Block);
@@ -855,7 +939,7 @@ package body Arrays is
                         Lhs             => New_First_Expr,
                         Source_Location => Source_Loc,
                         Overflow_Check  => False,
-                        I_Type          => First_Type);
+                        I_Type          => CProver_Size_T);
          Pointer_Type : constant Irep :=
            Make_Pointer_Type (I_Subtype => Do_Type_Reference (Element_Type),
                               Width     => Pointer_Type_Width);
@@ -916,7 +1000,8 @@ package body Arrays is
       (Make_Array_Index_Op
          (Do_Expression (Prefix (N)),
           Etype (Prefix (N)),
-          Do_Expression (First (Expressions (N)))));
+          Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
+                                 CProver_Size_T, Global_Symbol_Table)));
 
    function Get_First_Index_Component (Array_Struct : Irep;
                                        A_Symbol_Table : Symbol_Table)
@@ -971,8 +1056,7 @@ package body Arrays is
       return Make_Member_Expr (Compound         => Array_Struct,
                                Source_Location  => Source_Loc,
                                Component_Number => 0,
-                               I_Type           =>
-                                 Get_Type (First_Index_Component),
+                               I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (First_Index_Component));
    end Get_First_Index;
@@ -988,8 +1072,7 @@ package body Arrays is
       return Make_Member_Expr (Compound         => Array_Struct,
                                Source_Location  => Source_Loc,
                                Component_Number => 1,
-                               I_Type           =>
-                                 Get_Type (Last_Index_Component),
+                               I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (Last_Index_Component));
    end Get_Last_Index;
