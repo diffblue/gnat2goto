@@ -46,34 +46,24 @@ package Arrays is
    function Do_Indexed_Component (N : Node_Id) return Irep
      with Pre  => Nkind (N) = N_Indexed_Component;
 
-   function Get_First_Index_Component (Array_Struct : Irep;
-                                       A_Symbol_Table : Symbol_Table)
-                                       return Irep;
-
-   function Get_Last_Index_Component (Array_Struct : Irep;
-                                      A_Symbol_Table : Symbol_Table)
-                                      return Irep;
-
-     with Pre => (Kind (Array_Struct) in Class_Expr
-                  and then Kind (Get_Type (Array_Struct)) in
-                    I_Symbol_Type | I_Struct_Type),
-
-   function Get_First_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
-                             A_Symbol_Table : Symbol_Table)
-                             return Irep
+   function Get_First_Index (Array_Struct : Irep) return Irep
      with Pre => (Kind (Array_Struct) in Class_Expr
                   and then Kind (Get_Type (Array_Struct)) in
                     I_Symbol_Type | I_Struct_Type),
      Post => Kind (Get_First_Index'Result) = I_Member_Expr;
 
-   function Get_Last_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
+   function Get_Last_Index (Array_Struct : Irep) return Irep
+     with Pre => (Kind (Array_Struct) in Class_Expr
+                  and then Kind (Get_Type (Array_Struct)) in
+                    I_Symbol_Type | I_Struct_Type),
+     Post => Kind (Get_Last_Index'Result) = I_Member_Expr;
+
    function Get_Data_Member (Array_Struct : Irep;
                              A_Symbol_Table : Symbol_Table)
                              return Irep
      with Pre => (Kind (Array_Struct) in Class_Expr
                   and then Kind (Get_Type (Array_Struct)) in
                     I_Symbol_Type | I_Struct_Type),
-       Post => Kind (Get_Last_Index'Result) = I_Member_Expr;
        Post => Kind (Get_Data_Member'Result) = I_Member_Expr;
 
 private
@@ -89,6 +79,11 @@ private
 
    function Make_Array_Index_Op
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
+
+   function Get_First_Index_Component (Array_Struct : Irep)
+                                       return Irep;
+
+   function Get_Last_Index_Component (Array_Struct : Irep) return Irep;
 
    function Get_Data_Component (Array_Struct : Irep;
                                 A_Symbol_Table : Symbol_Table) return Irep

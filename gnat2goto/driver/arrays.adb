@@ -754,17 +754,13 @@ package body Arrays is
    function Do_Array_First (N : Node_Id) return Irep
    is
    begin
-      return Get_First_Index (Array_Struct   => Do_Expression (Prefix (N)),
-                              Source_Loc     => Sloc (N),
-                              A_Symbol_Table => Global_Symbol_Table);
+      return Get_First_Index (Do_Expression (Prefix (N)));
    end Do_Array_First;
 
    function Do_Array_Last (N : Node_Id) return Irep
    is
    begin
-      return Get_Last_Index (Array_Struct   => Do_Expression (Prefix (N)),
-                              Source_Loc     => Sloc (N),
-                              A_Symbol_Table => Global_Symbol_Table);
+      return Get_Last_Index (Do_Expression (Prefix (N)));
    end Do_Array_Last;
 
    --  This handled the oddball anonymous range nodes that can occur
@@ -824,7 +820,7 @@ package body Arrays is
    is
       Source_Loc : constant Source_Ptr := Sloc (Base_Type);
       First_Irep : constant Irep :=
-        Make_Array_First_Expr (Base_Type, Base_Irep);
+        Get_First_Index (Base_Irep);
       Zero_Based_Index : constant Irep :=
         Make_Op_Sub (Rhs             => First_Irep,
                      Lhs             => Idx_Irep,
@@ -988,24 +984,21 @@ package body Arrays is
           Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
                                  CProver_Size_T, Global_Symbol_Table)));
 
-   function Get_First_Index_Component (Array_Struct : Irep;
-                                       A_Symbol_Table : Symbol_Table)
+   function Get_First_Index_Component (Array_Struct : Irep)
                                        return Irep
    is
       Array_Struct_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+        Follow_Symbol_Type (Get_Type (Array_Struct), Global_Symbol_Table);
       Struct_Component : constant Irep_List :=
         Get_Component (Get_Components (Array_Struct_Type));
    begin
       return List_Element (Struct_Component, List_First (Struct_Component));
    end Get_First_Index_Component;
 
-   function Get_Last_Index_Component (Array_Struct : Irep;
-                                      A_Symbol_Table : Symbol_Table)
-                                      return Irep
+   function Get_Last_Index_Component (Array_Struct : Irep) return Irep
    is
       Array_Struct_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+        Follow_Symbol_Type (Get_Type (Array_Struct), Global_Symbol_Table);
       Struct_Component : constant Irep_List :=
         Get_Component (Get_Components (Array_Struct_Type));
       Last_Cursor :  constant List_Cursor :=
@@ -1029,32 +1022,26 @@ package body Arrays is
       return List_Element (Struct_Component, Last_Cursor);
    end Get_Data_Component;
 
-   function Get_First_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
-                             A_Symbol_Table : Symbol_Table)
-                             return Irep
+   function Get_First_Index (Array_Struct : Irep) return Irep
    is
       First_Index_Component : constant Irep :=
-        Get_First_Index_Component (Array_Struct   => Array_Struct,
-                                   A_Symbol_Table => A_Symbol_Table);
+        Get_First_Index_Component (Array_Struct);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => Source_Loc,
+                               Source_Location  => No_Location,
                                Component_Number => 0,
                                I_Type           => CProver_Size_T,
                                Component_Name   =>
                                  Get_Name (First_Index_Component));
    end Get_First_Index;
 
-   function Get_Last_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
-                             A_Symbol_Table : Symbol_Table)
-                             return Irep
+   function Get_Last_Index (Array_Struct : Irep) return Irep
    is
       Last_Index_Component : constant Irep :=
-        Get_Last_Index_Component (Array_Struct   => Array_Struct,
-                                   A_Symbol_Table => A_Symbol_Table);
+        Get_Last_Index_Component (Array_Struct);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => Source_Loc,
+                               Source_Location  => No_Location,
                                Component_Number => 1,
                                I_Type           => CProver_Size_T,
                                Component_Name   =>
