@@ -325,23 +325,6 @@ package body GOTO_Utils is
                                Last       => Last);
    end Build_Array_Size;
 
-   function Offset_Array_Data (Base : Irep; Offset : Irep; Pointer_Type : Irep;
-                               Source_Loc : Source_Ptr) return Irep
-   is
-      Old_Data : constant Irep :=
-        Make_Member_Expr (Compound         => Base,
-                          Source_Location  => Source_Loc,
-                          Component_Number => 2,
-                          I_Type           => Pointer_Type,
-                          Component_Name   => "data");
-   begin
-      return Make_Op_Add (Rhs             => Offset,
-                          Lhs             => Old_Data,
-                          Source_Location => Source_Loc,
-                          Overflow_Check  => False,
-                          I_Type          => Pointer_Type);
-   end Offset_Array_Data;
-
    function To_Float_Format (Float_Type : Irep) return Float_Format
    is
       Float_Width : constant Integer := Get_Width (Float_Type);

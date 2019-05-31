@@ -96,13 +96,6 @@ package GOTO_Utils is
      with Pre => (Kind (Expr) in Class_Expr
                   and then Kind (New_Type) in Class_Type);
 
-   function Offset_Array_Data (Base : Irep; Offset : Irep; Pointer_Type : Irep;
-                               Source_Loc : Source_Ptr) return Irep
-     with Pre => (Kind (Base) in Class_Expr
-                  and then Kind (Offset) in Class_Expr
-                  and then Kind (Pointer_Type) = I_Pointer_Type),
-     Post => Get_Type (Offset_Array_Data'Result) = Pointer_Type;
-
    type Float_Format is (IEEE_32_Bit, IEEE_64_Bit);
 
    function To_Float_Format (Float_Type : Irep) return Float_Format

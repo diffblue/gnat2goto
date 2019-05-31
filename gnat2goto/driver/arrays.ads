@@ -66,6 +66,11 @@ package Arrays is
                     I_Symbol_Type | I_Struct_Type),
        Post => Kind (Get_Data_Member'Result) = I_Member_Expr;
 
+   function Offset_Array_Data (Base : Irep; Offset : Irep) return Irep
+     with Pre => (Kind (Base) in Class_Expr
+                  and then Kind (Offset) in Class_Expr),
+     Post => Kind (Offset_Array_Data'Result) in Class_Expr;
+
 private
 
    function Do_RHS_Array_Assign (N : Node_Id) return Irep_Array
@@ -79,6 +84,13 @@ private
 
    function Make_Array_Index_Op
      (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
+
+   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+                              return Irep
+     with Pre => (Kind (First) in Class_Expr
+                  and Kind (Last) in Class_Expr
+                  and Kind (Idx_Type) in Class_Type),
+     Post => Kind (Build_Array_Size'Result) = I_Op_Add;
 
    function Get_First_Index_Component (Array_Struct : Irep)
                                        return Irep;

@@ -1064,4 +1064,36 @@ package body Arrays is
                                  Get_Name (Data_Member));
    end Get_Data_Member;
 
+   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+                              return Irep
+   is
+      Source_Loc : constant Source_Ptr := Get_Source_Location (First);
+      Diff : constant Irep :=
+        Make_Op_Sub (Rhs             => First,
+                     Lhs             => Last,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Idx_Type);
+      One : constant Irep :=
+        Build_Index_Constant (Value      => 1,
+                              Source_Loc => Source_Loc);
+   begin
+      return Make_Op_Add (Rhs             => One,
+                          Lhs             => Diff,
+                          Source_Location => Source_Loc,
+                          Overflow_Check  => False,
+                          I_Type          => Idx_Type);
+   end Build_Array_Size;
+
+   function Offset_Array_Data (Base : Irep; Offset : Irep) return Irep
+   is
+      Data_Member : constant Irep :=
+        Get_Data_Member (Base, Global_Symbol_Table);
+   begin
+      return Make_Op_Add (Rhs             => Offset,
+                          Lhs             => Data_Member,
+                          Source_Location => Get_Source_Location (Base),
+                          Overflow_Check  => False,
+                          I_Type          => Get_Type (Data_Member));
+   end Offset_Array_Data;
 end Arrays;
