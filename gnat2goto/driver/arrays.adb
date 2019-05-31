@@ -82,15 +82,8 @@ package body Arrays is
          --  0: first index
          --  1: last index
          --  2: data pointer
-         --  Using the component numbers may be dropped in the future or it
-         --  may be enforced.
-         Data_Mem_Expr : constant Irep :=
-           Make_Member_Expr (Compound         => Array_Temp,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 2,
-                             I_Type           =>
-                               Make_Pointer_Type (Element_Type),
-                             Component_Name   => "data");
+         Data_Mem_Expr : constant Irep := Get_Data_Member (Array_Temp,
+                                                          Global_Symbol_Table);
          Array_Temp_Struct : constant Irep :=
            Make_Struct_Expr (Source_Location => Source_Loc,
                              I_Type          => Result_Type);
@@ -567,12 +560,8 @@ package body Arrays is
          PElement_Type : constant Irep :=
            Make_Pointer_Type (Element_Type, Pointer_Type_Width);
 
-         Dest_Data : constant Irep :=
-           Make_Member_Expr (Compound         => Dest_Symbol,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 2,
-                             I_Type           => PElement_Type,
-                             Component_Name   => "data");
+         Dest_Data : constant Irep := Get_Data_Member (Dest_Symbol,
+                                                       Global_Symbol_Table);
          Current_Offset : constant Irep :=
            Fresh_Var_Symbol_Expr (CProver_Size_T, "offset_step");
 
@@ -637,12 +626,8 @@ package body Arrays is
                            Source_Location => Source_Loc,
                            Overflow_Check  => False,
                            I_Type          => PElement_Type);
-            Left_Data : constant Irep :=
-              Make_Member_Expr (Compound         => Source_I_Symbol,
-                                Source_Location  => Source_Loc,
-                                Component_Number => 2,
-                                I_Type           => PElement_Type,
-                                Component_Name   => "data");
+            Left_Data : constant Irep := Get_Data_Member (Source_I_Symbol,
+                                                          Global_Symbol_Table);
 
             Memcpy_Fin : constant Irep :=
               Make_Memcpy_Function_Call_Expr (
@@ -1030,8 +1015,7 @@ package body Arrays is
    end Get_Last_Index_Component;
 
    function Get_Data_Component (Array_Struct : Irep;
-                                A_Symbol_Table : Symbol_Table)
-                                return Irep
+                                A_Symbol_Table : Symbol_Table) return Irep
    is
       Array_Struct_Type : constant Irep :=
         Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
@@ -1076,5 +1060,21 @@ package body Arrays is
                                Component_Name   =>
                                  Get_Name (Last_Index_Component));
    end Get_Last_Index;
+
+   function Get_Data_Member (Array_Struct : Irep;
+                             A_Symbol_Table : Symbol_Table)
+                             return Irep
+   is
+      Data_Member : constant Irep :=
+        Get_Data_Component (Array_Struct, A_Symbol_Table);
+   begin
+      return Make_Member_Expr (Compound         => Array_Struct,
+                               Source_Location  => No_Location,
+                               Component_Number => 2,
+                               I_Type           =>
+                                 Get_Type (Data_Member),
+                               Component_Name   =>
+                                 Get_Name (Data_Member));
+   end Get_Data_Member;
 
 end Arrays;
