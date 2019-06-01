@@ -1,0 +1,3 @@
+[2] file p-inc.asu line 6 assertion: SUCCESS
+[1] file p.adb line 14 assertion: FAILURE
+VERIFICATION FAILED
