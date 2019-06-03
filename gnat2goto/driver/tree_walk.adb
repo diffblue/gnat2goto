@@ -1275,7 +1275,6 @@ package body Tree_Walk is
               UI_Image (Enumeration_Rep (Member));
             Val_Name : constant String := Unique_Name (Member);
             Base_Name : constant String := Get_Name_String (Chars (Member));
-            Member_Symbol : Symbol;
             Member_Symbol_Init : constant Irep := New_Irep (I_Constant_Expr);
             Typecast_Expr : constant Irep := New_Irep (I_Op_Typecast);
             Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
@@ -1284,13 +1283,6 @@ package body Tree_Walk is
             Set_Identifier (Element, Val_Name);
             Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
-            Member_Symbol.Name := Intern (Val_Name);
-            Member_Symbol.PrettyName := Intern (Base_Name);
-            Member_Symbol.BaseName := Intern (Base_Name);
-            Member_Symbol.Mode := Intern ("C");
-            Member_Symbol.IsStaticLifetime := True;
-            Member_Symbol.IsStateVar := True;
-            Member_Symbol.SymType := Enum_Type_Symbol;
             Set_Type (Member_Symbol_Init,
                       Make_Int_Type (Integer (Member_Size)));
             Set_Value (Member_Symbol_Init,
@@ -1298,8 +1290,11 @@ package body Tree_Walk is
                                                Member_Size));
             Set_Op0 (Typecast_Expr, Member_Symbol_Init);
             Set_Type (Typecast_Expr, Enum_Type_Symbol);
-            Member_Symbol.Value := Typecast_Expr;
-            Global_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
+            New_Enum_Member_Symbol_Entry (Member_Name    => Intern (Val_Name),
+                                     Base_Name      => Intern (Base_Name),
+                                     Enum_Type      => Enum_Type_Symbol,
+                                     Value_Expr     => Typecast_Expr,
+                                     A_Symbol_Table => Global_Symbol_Table);
          end;
          Next (Member);
          exit when not Present (Member);

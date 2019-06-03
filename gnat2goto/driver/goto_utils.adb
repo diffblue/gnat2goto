@@ -121,6 +121,23 @@ package body GOTO_Utils is
       return Ret;
    end Symbol_Expr;
 
+   procedure New_Enum_Member_Symbol_Entry (
+      Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
+      Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table) is
+      Member_Symbol : Symbol;
+   begin
+      Member_Symbol.Name             := Member_Name;
+      Member_Symbol.PrettyName       := Base_Name;
+      Member_Symbol.BaseName         := Base_Name;
+      Member_Symbol.Mode             := Intern ("C");
+      Member_Symbol.IsStaticLifetime := True;
+      Member_Symbol.IsStateVar       := True;
+      Member_Symbol.SymType          := Enum_Type;
+      Member_Symbol.Value            := Value_Expr;
+
+      A_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
+   end New_Enum_Member_Symbol_Entry;
+
    --------------------------------
    -- New_Parameter_Symbol_Entry --
    --------------------------------

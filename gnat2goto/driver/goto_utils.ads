@@ -41,6 +41,10 @@ package GOTO_Utils is
    function Symbol_Expr (Sym : Symbol) return Irep
    with Post => Kind (Symbol_Expr'Result) = I_Symbol_Expr;
 
+   procedure New_Enum_Member_Symbol_Entry (
+      Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
+      Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table);
+
    procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
                                          BaseName :              String;
                                          Symbol_Type :           Irep;
