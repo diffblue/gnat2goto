@@ -4487,6 +4487,7 @@ package body Tree_Walk is
          --  Create the check function on demand:
          declare
             Fn_Symbol : Symbol;
+            Fn_Name : constant String := "__ada_runtime_check";
             Assertion : constant Irep := New_Irep (I_Code_Assert);
             Formal_Params : constant Irep := New_Irep (I_Parameter_List);
             Formal_Param : constant Irep := New_Irep (I_Code_Parameter);
@@ -4504,15 +4505,14 @@ package body Tree_Walk is
             Set_Return_Type (Fn_Type, Void_Type);
             Set_Assertion (Assertion, Formal_Expr);
 
-            Fn_Symbol.Name := Intern ("__ada_runtime_check");
-            Fn_Symbol.PrettyName := Fn_Symbol.Name;
-            Fn_Symbol.BaseName := Fn_Symbol.Name;
-            Fn_Symbol.Value := Assertion;
-            Fn_Symbol.SymType := Fn_Type;
-            Global_Symbol_Table.Insert (Fn_Symbol.Name, Fn_Symbol);
+            Fn_Symbol :=
+              New_Function_Symbol_Entry (Name          => Fn_Name,
+                                         Symbol_Type   => Fn_Type,
+                                         Value         => Assertion,
+                                        A_Symbol_Table => Global_Symbol_Table);
 
             Check_Function_Symbol := New_Irep (I_Symbol_Expr);
-            Set_Identifier (Check_Function_Symbol, Unintern (Fn_Symbol.Name));
+            Set_Identifier (Check_Function_Symbol, Fn_Name);
             Set_Type (Check_Function_Symbol, Fn_Symbol.SymType);
          end;
       end if;
