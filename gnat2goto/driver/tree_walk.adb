@@ -5280,18 +5280,10 @@ package body Tree_Walk is
         Do_Subprogram_Specification (N);
       Subprog_Name : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Unit_Name (N)));
-
-      Subprog_Symbol : Symbol;
-
    begin
-      Subprog_Symbol.Name       := Subprog_Name;
-      Subprog_Symbol.BaseName   := Subprog_Name;
-      Subprog_Symbol.PrettyName := Subprog_Name;
-      Subprog_Symbol.SymType    := Subprog_Type;
-      Subprog_Symbol.Mode       := Intern ("C");
-      Subprog_Symbol.Value      := Make_Nil (Sloc (N));
-
-      Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
+      New_Subprogram_Symbol_Entry (Subprog_Name   => Subprog_Name,
+                                   Subprog_Type   => Subprog_Type,
+                                   A_Symbol_Table => Global_Symbol_Table);
    end Register_Subprogram_Specification;
 
    -------------------------------
