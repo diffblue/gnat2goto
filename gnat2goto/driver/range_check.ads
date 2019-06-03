@@ -21,7 +21,8 @@ package Range_Check is
 
    function Get_Bound (Bound_Type : Irep; Pos : Bound_Low_Or_High) return Irep
      with Pre => Kind (Bound_Type) in
-     I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type,
+     I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
+     | I_Bounded_Floatbv_Type,
      Post => Kind (Get_Bound'Result) in Class_Expr;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;

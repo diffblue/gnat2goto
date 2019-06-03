@@ -228,7 +228,9 @@ package body Range_Check is
         (Value_Expr);
    begin
       pragma Assert (Kind (Bound_Type) in
-                       I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type);
+                       I_Bounded_Unsignedbv_Type
+                       | I_Bounded_Signedbv_Type
+                       | I_Bounded_Floatbv_Type);
       --  The compared expressions (value and bound) have to be of the
       --  same type
       if Get_Width (Bound_Type) > Get_Width (Value_Expr_Type)
