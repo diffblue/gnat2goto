@@ -2628,25 +2628,6 @@ package body Tree_Walk is
             --  declaration has the pragma Import applied.
             Full_View_Entity : constant Entity_Id := Full_View (Entity);
 
-            procedure Register_Constant_In_Symbol_Table (N : Node_Id);
-            --  Adds a dummy entry to the symbol table to register that a
-            --  constant has already been processed.
-
-            procedure Register_Constant_In_Symbol_Table (N : Node_Id) is
-               Constant_Name : constant Symbol_Id :=
-                 Intern (Unique_Name (Defining_Identifier (N)));
-               Constant_Symbol : Symbol;
-            begin
-               Constant_Symbol.Name := Constant_Name;
-               Constant_Symbol.BaseName   := Constant_Name;
-               Constant_Symbol.PrettyName := Constant_Name;
-               Constant_Symbol.SymType    := Make_Nil (Sloc (N));
-               Constant_Symbol.Mode       := Intern ("C");
-               Constant_Symbol.Value      := Make_Nil (Sloc (N));
-               Global_Symbol_Table.Insert (Constant_Name, Constant_Symbol);
-
-            end Register_Constant_In_Symbol_Table;
-
          begin
             if not Has_Init_Expression (N) and then
               Present (Full_View_Entity)
@@ -2659,7 +2640,12 @@ package body Tree_Walk is
                --  register it in the symbol table so that it is not
                --  processed again when the completion is encountered in
                --  the tree.
-               Register_Constant_In_Symbol_Table (N);
+               New_Valueless_Object_Symbol_Entry (Intern (Unique_Name
+                                          (Defining_Identifier (N))),
+                                          Global_Symbol_Table);
+               --  Adds a dummy entry to the symbol table to register that a
+               --  constant has already been processed.
+
                Do_Object_Declaration_Full
                  (Declaration_Node (Full_View_Entity), Block);
             else
@@ -2670,6 +2656,7 @@ package body Tree_Walk is
          end;
       end if;
 
+      pragma Assert (Global_Symbol_Table.Contains (Obj_Id));
    end Do_Object_Declaration;
 
    --------------------------------------------

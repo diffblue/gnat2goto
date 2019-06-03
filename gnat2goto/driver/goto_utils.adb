@@ -121,6 +121,21 @@ package body GOTO_Utils is
       return Ret;
    end Symbol_Expr;
 
+   procedure New_Valueless_Object_Symbol_Entry (Constant_Name : Symbol_Id;
+                                        A_Symbol_Table : in out Symbol_Table)
+   is
+      Object_Symbol : Symbol;
+   begin
+      Object_Symbol.Name       := Constant_Name;
+      Object_Symbol.BaseName   := Constant_Name;
+      Object_Symbol.PrettyName := Constant_Name;
+      Object_Symbol.SymType    := Make_Nil (No_Location);
+      Object_Symbol.Mode       := Intern ("C");
+      Object_Symbol.Value      := Make_Nil (No_Location);
+
+      A_Symbol_Table.Insert (Constant_Name, Object_Symbol);
+   end New_Valueless_Object_Symbol_Entry;
+
    procedure New_Enum_Member_Symbol_Entry (
       Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
       Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table) is
