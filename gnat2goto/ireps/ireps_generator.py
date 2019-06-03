@@ -2055,6 +2055,16 @@ class IrepsGenerator(object):
         with indent(b):
             write(b, "return Make_Floatbv_Type (Get_Subtype (I), Get_Width (I), Get_F (I));")
         write(b, "end if;")
+        write(b, "")
+        write(b, "if Kind (I) = I_Bounded_Unsignedbv_Type then")
+        with indent(b):
+            write(b, "return Make_Unsignedbv_Type (Get_Subtype (I), Get_Width (I));")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "if Kind (I) = I_Bounded_Mod_Type then")
+        with indent(b):
+            write(b, "return Make_Unsignedbv_Type (Get_Subtype (I), Get_Width (I));")
+        write(b, "end if;")
         write(b, "if Kind (I) = I_Ada_Mod_Type then")
         with indent(b):
             write(b, "return Make_Unsignedbv_Type (Make_Nil_Type, Get_Width (I));")
