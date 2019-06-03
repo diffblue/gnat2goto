@@ -754,7 +754,10 @@ package body Tree_Walk is
       Lower_Bound_Value : Integer;
       Upper_Bound_Value : Integer;
 
-      Result_Type : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+      Result_Type : constant Irep :=
+        New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type
+                    then I_Bounded_Unsignedbv_Type
+                    else I_Bounded_Signedbv_Type);
    begin
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
@@ -771,7 +774,8 @@ package body Tree_Walk is
               Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Lower_Bound));
          when N_Identifier =>
             Lower_Bound_Value :=
-               Store_Symbol_Bound (Bound_Type_Symbol (Lower_Bound));
+              Store_Symbol_Bound (Bound_Type_Symbol (
+                                   Do_Identifier (Lower_Bound)));
          when others =>
             Report_Unhandled_Node_Empty (Lower_Bound,
                                          "Do_Base_Range_Constraint",
@@ -785,7 +789,8 @@ package body Tree_Walk is
               Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
          when N_Identifier =>
             Upper_Bound_Value :=
-               Store_Symbol_Bound (Bound_Type_Symbol (Upper_Bound));
+              Store_Symbol_Bound (Bound_Type_Symbol (
+                                   Do_Identifier (Upper_Bound)));
          when others =>
             Report_Unhandled_Node_Empty (Upper_Bound,
                                          "Do_Base_Range_Constraint",
@@ -2961,7 +2966,8 @@ package body Tree_Walk is
 
       if Init_Expr /= Ireps.Empty then
          Append_Op (Block, Make_Code_Assign (Lhs => Id,
-                                             Rhs => Init_Expr,
+                Rhs => Typecast_If_Necessary (Init_Expr, Get_Type (Id),
+                                              Global_Symbol_Table),
                                              Source_Location => Sloc (N)));
       end if;
 
