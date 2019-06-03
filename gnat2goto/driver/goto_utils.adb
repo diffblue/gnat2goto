@@ -121,6 +121,24 @@ package body GOTO_Utils is
       return Ret;
    end Symbol_Expr;
 
+   procedure New_Object_Symbol_Entry (Object_Name : Symbol_Id;
+                                      Object_Type : Irep;
+                                      Object_Init_Value : Irep;
+                                      A_Symbol_Table : in out Symbol_Table)
+   is
+      Object_Symbol : Symbol;
+   begin
+      Object_Symbol.Name       := Object_Name;
+      Object_Symbol.BaseName   := Object_Name;
+      Object_Symbol.PrettyName := Object_Name;
+      Object_Symbol.SymType    := Object_Type;
+      Object_Symbol.Mode       := Intern ("C");
+      Object_Symbol.Value      := Object_Init_Value;
+      Object_Symbol.IsLValue   := True;
+
+      A_Symbol_Table.Insert (Object_Name, Object_Symbol);
+   end New_Object_Symbol_Entry;
+
    procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
                                           Subprog_Type : Irep;
                                           A_Symbol_Table : in out Symbol_Table)

@@ -2670,6 +2670,9 @@ package body Tree_Walk is
       Decl : constant Irep := New_Irep (I_Code_Decl);
       Init_Expr : Irep := Ireps.Empty;
 
+      Obj_Id : constant Symbol_Id := Intern (Unique_Name (Defined));
+      Obj_Type : constant Irep := Get_Type (Id);
+
       function Has_Defaulted_Components (E : Entity_Id) return Boolean;
       function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
       function Disc_Expr (N : Node_Id) return Node_Id;
@@ -2923,9 +2926,6 @@ package body Tree_Walk is
       end Make_Default_Initialiser;
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
-
-      Is_In_Symtab : constant Boolean :=
-        Global_Symbol_Table.Contains (Intern (Get_Identifier (Id)));
    begin
       Set_Source_Location (Decl, (Sloc (N)));
       Set_Symbol (Decl, Id);
@@ -2946,6 +2946,14 @@ package body Tree_Walk is
          end;
       end if;
 
+      if not Global_Symbol_Table.Contains (Obj_Id)
+      then
+         New_Object_Symbol_Entry (Object_Name       => Obj_Id,
+                                  Object_Type       => Obj_Type,
+                                  Object_Init_Value => Init_Expr,
+                                  A_Symbol_Table    => Global_Symbol_Table);
+      end if;
+
       if Init_Expr /= Ireps.Empty then
          Append_Op (Block, Make_Code_Assign (Lhs => Id,
                 Rhs => Typecast_If_Necessary (Init_Expr, Get_Type (Id),
@@ -2953,7 +2961,7 @@ package body Tree_Walk is
                                              Source_Location => Sloc (N)));
       end if;
 
-      if not Is_In_Symtab then
+      if not Global_Symbol_Table.Contains (Intern (Get_Identifier (Id))) then
          Register_Identifier_In_Symbol_Table
             (Id, Init_Expr, Global_Symbol_Table);
       end if;
