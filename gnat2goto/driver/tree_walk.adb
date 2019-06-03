@@ -4137,7 +4137,6 @@ package body Tree_Walk is
                 Unique_Name (Defining_Identifier (Param_Iter));
 
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
-            Param_Symbol : Symbol;
          begin
             if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
                Report_Unhandled_Node_Empty (N, "Do_Subprogram_Specification",
@@ -4156,15 +4155,10 @@ package body Tree_Walk is
             Set_Base_Name       (Param_Irep, Param_Name);
             Append_Parameter (Param_List, Param_Irep);
             --  Add the param to the symtab as well:
-            Param_Symbol.Name          := Intern (Param_Name);
-            Param_Symbol.PrettyName    := Param_Symbol.Name;
-            Param_Symbol.BaseName      := Param_Symbol.Name;
-            Param_Symbol.SymType       := Param_Type;
-            Param_Symbol.IsThreadLocal := True;
-            Param_Symbol.IsFileLocal   := True;
-            Param_Symbol.IsLValue      := True;
-            Param_Symbol.IsParameter   := True;
-            Global_Symbol_Table.Insert (Param_Symbol.Name, Param_Symbol);
+            New_Parameter_Symbol_Entry (Name_Id        => Intern (Param_Name),
+                                        BaseName       => Param_Name,
+                                        Symbol_Type    => Param_Type,
+                                        A_Symbol_Table => Global_Symbol_Table);
             Next (Param_Iter);
          end;
       end loop;
