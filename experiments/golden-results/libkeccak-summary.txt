@@ -39,11 +39,6 @@ Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
 Occurs: 6 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: component_size
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
