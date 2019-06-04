@@ -4,7 +4,3 @@
 [4] file op_and.adb line 13 assertion: FAILURE
 [5] file op_and.adb line 15 assertion: FAILURE
 VERIFICATION FAILED
-[1] file op_and_example.adb line 11 assertion: SUCCESS
-[2] file op_and_example.adb line 15 assertion: SUCCESS
-[3] file op_and_example.adb line 16 assertion: FAILURE
-VERIFICATION FAILED

@@ -1,8 +1,9 @@
 package Incomplete_Dec_Priv is
    type Incomplete_Dec;
-   
+
    procedure P (X : in out Incomplete_Dec);
-   
+   procedure Q (X : in out Integer);
+
    type Incomplete_Dec is private;
 private
    type Incomplete_Dec is record

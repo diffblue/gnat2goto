@@ -1,5 +1,7 @@
 with One;
-procedure Two (X : in out Integer) is
+procedure Two is
+   X : Integer := 1;
 begin
    One (X);
+   pragma Assert (X=2);
 end Two;

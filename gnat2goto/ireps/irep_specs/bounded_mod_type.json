@@ -1,0 +1,9 @@
+{
+   "parent": "bitvector_type",
+   "id": "bounded_mod_type",
+   "namedSub": {
+      "lower_bound": {"type": "integer"},
+      "upper_bound": {"type": "integer"},
+      "ada_mod_max": {"type": "string"}
+   }
+}

@@ -46,41 +46,32 @@ package Arrays is
    function Do_Indexed_Component (N : Node_Id) return Irep
      with Pre  => Nkind (N) = N_Indexed_Component;
 
-   function Get_First_Index_Component (Array_Struct : Irep;
-                                       A_Symbol_Table : Symbol_Table)
-                                       return Irep;
-
-   function Get_Last_Index_Component (Array_Struct : Irep;
-                                      A_Symbol_Table : Symbol_Table)
-                                      return Irep;
-
-   function Get_Data_Component (Array_Struct : Irep;
-                                A_Symbol_Table : Symbol_Table)
-                                return Irep
-     with Pre => (Kind (Array_Struct) in Class_Expr
-                  and then Kind (Get_Type (Array_Struct)) in
-                    I_Symbol_Type | I_Struct_Type),
-     Post => Kind (Get_Type (Get_Data_Component'Result)) = I_Pointer_Type;
-
-   function Get_First_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
-                             A_Symbol_Table : Symbol_Table)
-                             return Irep
+   function Get_First_Index (Array_Struct : Irep) return Irep
      with Pre => (Kind (Array_Struct) in Class_Expr
                   and then Kind (Get_Type (Array_Struct)) in
                     I_Symbol_Type | I_Struct_Type),
      Post => Kind (Get_First_Index'Result) = I_Member_Expr;
 
-   function Get_Last_Index (Array_Struct : Irep; Source_Loc : Source_Ptr;
+   function Get_Last_Index (Array_Struct : Irep) return Irep
+     with Pre => (Kind (Array_Struct) in Class_Expr
+                  and then Kind (Get_Type (Array_Struct)) in
+                    I_Symbol_Type | I_Struct_Type),
+     Post => Kind (Get_Last_Index'Result) = I_Member_Expr;
+
+   function Get_Data_Member (Array_Struct : Irep;
                              A_Symbol_Table : Symbol_Table)
                              return Irep
      with Pre => (Kind (Array_Struct) in Class_Expr
                   and then Kind (Get_Type (Array_Struct)) in
                     I_Symbol_Type | I_Struct_Type),
-       Post => Kind (Get_Last_Index'Result) = I_Member_Expr;
+       Post => Kind (Get_Data_Member'Result) = I_Member_Expr;
+
+   function Offset_Array_Data (Base : Irep; Offset : Irep) return Irep
+     with Pre => (Kind (Base) in Class_Expr
+                  and then Kind (Offset) in Class_Expr),
+     Post => Kind (Offset_Array_Data'Result) in Class_Expr;
 
 private
-   function Get_Array_Index_Type (N : Node_Id) return Entity_Id
-     with Post => Ekind (Get_Array_Index_Type'Result) = E_Signed_Integer_Type;
 
    function Do_RHS_Array_Assign (N : Node_Id) return Irep_Array
      with Pre => Nkind (N) in N_Op_Concat | N_Slice | N_Function_Call;
@@ -92,6 +83,25 @@ private
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep;
 
    function Make_Array_Index_Op
-     (Base_Irep : Irep; Base_Type : Node_Id; Idx_Irep : Irep) return Irep;
+     (Base_Irep : Irep; Idx_Irep : Irep) return Irep;
+
+   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+                              return Irep
+     with Pre => (Kind (First) in Class_Expr
+                  and Kind (Last) in Class_Expr
+                  and Kind (Idx_Type) in Class_Type),
+     Post => Kind (Build_Array_Size'Result) = I_Op_Add;
+
+   function Get_First_Index_Component (Array_Struct : Irep)
+                                       return Irep;
+
+   function Get_Last_Index_Component (Array_Struct : Irep) return Irep;
+
+   function Get_Data_Component (Array_Struct : Irep;
+                                A_Symbol_Table : Symbol_Table) return Irep
+     with Pre => (Kind (Array_Struct) in Class_Expr
+                  and then Kind (Get_Type (Array_Struct)) in
+                    I_Symbol_Type | I_Struct_Type),
+     Post => Kind (Get_Type (Get_Data_Component'Result)) = I_Pointer_Type;
 
 end Arrays;

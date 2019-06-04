@@ -14,6 +14,7 @@ package GOTO_Utils is
    --  Utility routines for high-level GOTO AST construction
 
    Pointer_Type_Width : constant Positive := 64;
+   Size_T_Width : constant Int := 64;
    --  ??? this should be queried at runtime from GNAT
 
    Synthetic_Variable_Counter : Positive := 1;
@@ -39,6 +40,31 @@ package GOTO_Utils is
 
    function Symbol_Expr (Sym : Symbol) return Irep
    with Post => Kind (Symbol_Expr'Result) = I_Symbol_Expr;
+
+   procedure New_Object_Symbol_Entry (Object_Name : Symbol_Id;
+                                      Object_Type : Irep;
+                                      Object_Init_Value : Irep;
+                                      A_Symbol_Table : in out Symbol_Table)
+     with Pre => Kind (Object_Type) in Class_Type
+     and (Object_Init_Value = Ireps.Empty
+          or else Kind (Object_Init_Value) in Class_Expr);
+
+   procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
+                                          Subprog_Type : Irep;
+                                          A_Symbol_Table : in out Symbol_Table)
+   with Pre => Kind (Subprog_Type) = I_Code_Type;
+   --  Insert the subprogram specification into the symbol table
+
+   procedure New_Type_Symbol_Entry (Type_Name : Symbol_Id; Type_Of_Type : Irep;
+                                    A_Symbol_Table : in out Symbol_Table)
+     with Pre => Kind (Type_Of_Type) in Class_Type;
+
+   procedure New_Valueless_Object_Symbol_Entry (Constant_Name : Symbol_Id;
+                                        A_Symbol_Table : in out Symbol_Table);
+
+   procedure New_Enum_Member_Symbol_Entry (
+      Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
+      Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table);
 
    procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
                                          BaseName :              String;
@@ -78,30 +104,22 @@ package GOTO_Utils is
                   and then Kind (Func_Params) = I_Parameter_List
                   and then Kind (FBody) in Class_Code);
 
-   function Build_Array_Size (Array_Comp : Irep; Idx_Type : Irep)
-                              return Irep
-     with Pre => (Kind (Array_Comp) in Class_Expr
-                  and then Kind (Idx_Type) in Class_Type),
+   function Build_Array_Size (Array_Comp : Irep) return Irep
+     with Pre => Kind (Array_Comp) in Class_Expr,
      Post => Kind (Build_Array_Size'Result) = I_Op_Add;
 
-   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
+   function Build_Array_Size (First : Irep; Last : Irep)
                               return Irep
      with Pre => (Kind (First) in Class_Expr
+                  and then Get_Type (First) = CProver_Size_T
                   and then Kind (Last) in Class_Expr
-                  and then Kind (Idx_Type) in Class_Type),
+                  and then Get_Type (Last) = CProver_Size_T),
      Post => Kind (Build_Array_Size'Result) = I_Op_Add;
 
-   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep) return Irep
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
+                                   A_Symbol_Table : Symbol_Table) return Irep
      with Pre => (Kind (Expr) in Class_Expr
-                  and then Kind (New_Type) in Class_Type),
-     Post => Get_Type (Typecast_If_Necessary'Result) = New_Type;
-
-   function Offset_Array_Data (Base : Irep; Offset : Irep; Pointer_Type : Irep;
-                               Source_Loc : Source_Ptr) return Irep
-     with Pre => (Kind (Base) in Class_Expr
-                  and then Kind (Offset) in Class_Expr
-                  and then Kind (Pointer_Type) = I_Pointer_Type),
-     Post => Get_Type (Offset_Array_Data'Result) = Pointer_Type;
+                  and then Kind (New_Type) in Class_Type);
 
    type Float_Format is (IEEE_32_Bit, IEEE_64_Bit);
 
@@ -110,11 +128,8 @@ package GOTO_Utils is
 
    function Float_Mantissa_Size (Float_Type : Irep) return Integer;
 
-   function Build_Index_Constant (Value : Int; Index_Type : Irep;
-                                  Source_Loc : Source_Ptr) return Irep
-     with Pre => (Kind (Index_Type) in Class_Bitvector_Type
-                  or else Kind (Index_Type) = I_Symbol_Type),
-     Post => Get_Type (Build_Index_Constant'Result) = Index_Type;
+   function Build_Index_Constant (Value : Int;
+                                  Source_Loc : Source_Ptr) return Irep;
 
    function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
 
@@ -137,5 +152,9 @@ package GOTO_Utils is
      (Arguments : Irep_Array;
       Function_Expr : Irep;
       Source_Location : Source_Ptr) return Irep;
+
+   procedure Register_Identifier_In_Symbol_Table
+      (N : Irep; Val : Irep; Symtab : in out Symbol_Table)
+      with Pre => Kind (N) = I_Symbol_Expr;
 
 end GOTO_Utils;

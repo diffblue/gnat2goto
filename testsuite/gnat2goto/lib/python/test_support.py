@@ -29,21 +29,18 @@ def filter_timing(results):
 
     return re.sub(skip, r'', results)
 
-
-def process(debug, file, cbmcargs):
+def process_gnat2goto(debug, file, is_main):
     """Process Ada file with gnat2goto and cbmc"""
     unit = os.path.splitext(file)[0]
     jsout    = unit + ".json_symtab"
-    symtab   = unit + ".symtab"
-    gotoprog = unit + ".goto_functions"
-    out      = unit + ".out"
     errout   = unit + ".error"
     stdoutp  = unit + "stdoutp"
-    cbmcerr  = unit + "cbmc_error"
+    gnat2gotoargs = []
+    if not is_main: gnat2gotoargs.append("--no-cprover-start")
 
-    cmd = ["gnat2goto", file]
+    cmd = ["gnat2goto", file] + gnat2gotoargs
 
-    g2go_results = Run(["gnat2goto", file], output=stdoutp, error=errout)
+    g2go_results = Run(cmd, output=stdoutp, error=errout)
 
     stdout_file = open (stdoutp)
     errout_file = open (errout)
@@ -60,12 +57,22 @@ def process(debug, file, cbmcargs):
     if g2go_results.status != 0:
         print "ERROR code ", g2go_results.status, " returned by gnat2goto when translating " + unit
         print "CBMC not run"
-        return ""
+        return False
 
-    # only run the following if gnat2goto succeeded
-    # Run(["cbmc", jsout, "--show-symbol-table"], output=symtab)
-    # Run(["cbmc", jsout, "--show-goto-functions"], output=gotoprog)
-    cmdline = ["cbmc", jsout]
+    return True
+
+# only run the following if gnat2goto succeeded
+def process_cbmc(debug, files, cbmcargs):
+    """Process Ada file with gnat2goto and cbmc"""
+    jsout = []
+    for file in files:
+        unit          = os.path.splitext(file)[0]
+        file_jsout    = unit + ".json_symtab"
+        jsout.append(file_jsout)
+
+    cbmcerr = TEST_NAME + "cbmc_error"
+
+    cmdline = ["cbmc"] + jsout
     if cbmcargs: cmdline += cbmcargs.split(" ")
     results = Run(cmdline, error=cbmcerr)
 
@@ -80,7 +87,6 @@ def process(debug, file, cbmcargs):
 
     return filter_timing(results.out)
 
-
 def cbmc_match(line):
     return ('FAILURE' in line or
            'SUCCESS' in line or
@@ -91,16 +97,21 @@ def filter_cbmc_output(cbmc_output):
     lines = cbmc_output.split("\n")
     return "\n".join(filter(cbmc_match, lines))
 
-def prove(cbmcargs="", debug=False):
+def prove(cbmcargs="", main="", debug=False):
     """Call gnat2goto (and cbmc) on all *.adb files from the current directory
 
     PARAMETERS
-      none: yet
+      cbmcargs: arguments to be passed to CBMC
+      main: name of the file containing the entry point
+      debug: flag indicating if debug output should be printed out
     """
     for file in ada_body_files():
-        out = process(debug, file, cbmcargs)
-        if debug:
-            print('<<< DEBUG ' + file + ' >>>')
-            print(out)
-            print('<<< END DEBUG ' + file + ' >>>')
-        print(filter_cbmc_output(out))
+        gnat2goto_success = process_gnat2goto(debug, file, main == "" or file == main)
+        if not gnat2goto_success:
+            return ""
+    out = process_cbmc(debug, ada_body_files(), cbmcargs)
+    if debug:
+        print('<<< DEBUG ' + file + ' >>>')
+        print(out)
+        print('<<< END DEBUG ' + file + ' >>>')
+    print(filter_cbmc_output(out))
