@@ -30,4 +30,7 @@ private
    function Do_Itype_Record_Subtype (N : Entity_Id) return Irep
      with Pre => Is_Itype (N) and then Ekind (N) = E_Record_Subtype;
 
+   function Do_Modular_Integer_Subtype (N : Entity_Id) return Irep
+     with Pre => Is_Itype (N) and then Ekind (N) = E_Modular_Integer_Subtype;
+
 end Gnat2goto_Itypes;

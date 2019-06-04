@@ -1,32 +1,52 @@
-Occurs: 40 times
+Occurs: 42 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: address
 Nkind: N_Attribute_Definition_Clause
---
-Occurs: 36 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Volatile
-Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: component_size
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 3 times
-Calling function: Do_Itype_Definition
-Error message: Unknown Ekind
-Nkind: N_Defining_Identifier
+Occurs: 7 times
+Calling function: Process_Declaration
+Error message: Subprogram body stub declaration
+Nkind: N_Subprogram_Body_Stub
+--
+Occurs: 6 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 5 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
+--
+Occurs: 2 times
+Calling function: Do_While_Statement
+Error message: Wrong Nkind spec
+Nkind: N_Loop_Statement
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported lower range kind
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Operator_General
+Error message: Mod of unsupported type
+Nkind: N_Op_Not
 --
 Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Machine Attribute
-Nkind: N_Pragma
 --
 Occurs: 5 times
 Redacted compiler error message:
@@ -97,8 +117,3 @@ Occurs: 1 times
 Redacted compiler error message:
 unmatched actual "REDACTED" in call
 Raw compiler error message:
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:29|
-| Error detected at main.adb:46:11                                         |

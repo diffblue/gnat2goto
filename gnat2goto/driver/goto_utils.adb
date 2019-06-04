@@ -4,6 +4,7 @@ with Aspects; use Aspects;
 with Binary_To_Hex;         use Binary_To_Hex;
 
 with Ada.Text_IO;           use Ada.Text_IO;
+with Follow; use Follow;
 
 package body GOTO_Utils is
 
@@ -120,6 +121,86 @@ package body GOTO_Utils is
       return Ret;
    end Symbol_Expr;
 
+   procedure New_Object_Symbol_Entry (Object_Name : Symbol_Id;
+                                      Object_Type : Irep;
+                                      Object_Init_Value : Irep;
+                                      A_Symbol_Table : in out Symbol_Table)
+   is
+      Object_Symbol : Symbol;
+   begin
+      Object_Symbol.Name       := Object_Name;
+      Object_Symbol.BaseName   := Object_Name;
+      Object_Symbol.PrettyName := Object_Name;
+      Object_Symbol.SymType    := Object_Type;
+      Object_Symbol.Mode       := Intern ("C");
+      Object_Symbol.Value      := Object_Init_Value;
+      Object_Symbol.IsLValue   := True;
+
+      A_Symbol_Table.Insert (Object_Name, Object_Symbol);
+   end New_Object_Symbol_Entry;
+
+   procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
+                                          Subprog_Type : Irep;
+                                          A_Symbol_Table : in out Symbol_Table)
+   is
+      Subprog_Symbol : Symbol;
+   begin
+      Subprog_Symbol.Name       := Subprog_Name;
+      Subprog_Symbol.BaseName   := Subprog_Name;
+      Subprog_Symbol.PrettyName := Subprog_Name;
+      Subprog_Symbol.SymType    := Subprog_Type;
+      Subprog_Symbol.Mode       := Intern ("C");
+      Subprog_Symbol.Value      := Make_Nil (No_Location);
+
+      A_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
+   end New_Subprogram_Symbol_Entry;
+
+   procedure New_Type_Symbol_Entry (Type_Name : Symbol_Id; Type_Of_Type : Irep;
+                                    A_Symbol_Table : in out Symbol_Table) is
+      Type_Symbol : Symbol;
+   begin
+      Type_Symbol.SymType    := Type_Of_Type;
+      Type_Symbol.IsType     := True;
+      Type_Symbol.Name       := Type_Name;
+      Type_Symbol.PrettyName := Type_Name;
+      Type_Symbol.BaseName   := Type_Name;
+      Type_Symbol.Mode       := Intern ("C");
+
+      A_Symbol_Table.Insert (Type_Name, Type_Symbol);
+   end New_Type_Symbol_Entry;
+
+   procedure New_Valueless_Object_Symbol_Entry (Constant_Name : Symbol_Id;
+                                        A_Symbol_Table : in out Symbol_Table)
+   is
+      Object_Symbol : Symbol;
+   begin
+      Object_Symbol.Name       := Constant_Name;
+      Object_Symbol.BaseName   := Constant_Name;
+      Object_Symbol.PrettyName := Constant_Name;
+      Object_Symbol.SymType    := Make_Nil (No_Location);
+      Object_Symbol.Mode       := Intern ("C");
+      Object_Symbol.Value      := Make_Nil (No_Location);
+
+      A_Symbol_Table.Insert (Constant_Name, Object_Symbol);
+   end New_Valueless_Object_Symbol_Entry;
+
+   procedure New_Enum_Member_Symbol_Entry (
+      Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
+      Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table) is
+      Member_Symbol : Symbol;
+   begin
+      Member_Symbol.Name             := Member_Name;
+      Member_Symbol.PrettyName       := Base_Name;
+      Member_Symbol.BaseName         := Base_Name;
+      Member_Symbol.Mode             := Intern ("C");
+      Member_Symbol.IsStaticLifetime := True;
+      Member_Symbol.IsStateVar       := True;
+      Member_Symbol.SymType          := Enum_Type;
+      Member_Symbol.Value            := Value_Expr;
+
+      A_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
+   end New_Enum_Member_Symbol_Entry;
+
    --------------------------------
    -- New_Parameter_Symbol_Entry --
    --------------------------------
@@ -229,19 +310,23 @@ package body GOTO_Utils is
                        Convert_Uint_To_Hex (Value     => Element_Type_Size / 8,
                                             Bit_Width => 64));
    begin
+      pragma Assert (Get_Type (Num_Elem) = CProver_Size_T);
       return Make_Op_Mul (Rhs             => Member_Size,
-                          Lhs             =>
-                            Typecast_If_Necessary (Expr      => Num_Elem,
-                                            New_Type => CProver_Size_T),
+                          Lhs             => Num_Elem,
                           Source_Location => Source_Loc,
                           Overflow_Check  => False,
                           I_Type          => CProver_Size_T);
    end Compute_Memory_Op_Size;
 
-   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep) return Irep
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
+                                   A_Symbol_Table : Symbol_Table) return Irep
    is
+      Followed_Old_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Expr), A_Symbol_Table);
+      Followed_New_Type : constant Irep :=
+        Follow_Symbol_Type (New_Type, A_Symbol_Table);
    begin
-      if Get_Type (Expr) = New_Type then
+      if Followed_Old_Type = Followed_New_Type then
          return Expr;
       else
          return Make_Op_Typecast (Op0             => Expr,
@@ -266,25 +351,20 @@ package body GOTO_Utils is
                                         A_Symbol_Table => A_Symbol_Table);
    end Build_Function;
 
-   function Build_Index_Constant (Value : Int; Index_Type : Irep;
-                                  Source_Loc : Source_Ptr) return Irep
+   function Build_Index_Constant (Value : Int; Source_Loc : Source_Ptr)
+                                  return Irep
    is
-      Type_Width : constant Int :=
-        (if not (Kind (Index_Type) in Class_Bitvector_Type)
-         then 32
-         else Int (Get_Width (Index_Type)));
       Value_Hex : constant String :=
         Convert_Uint_To_Hex (Value     => UI_From_Int (Value),
-                             Bit_Width => Type_Width);
+                             Bit_Width => Size_T_Width);
    begin
       return Make_Constant_Expr (Source_Location => Source_Loc,
-                                 I_Type          => Index_Type,
+                                 I_Type          => CProver_Size_T,
                                  Range_Check     => False,
                                  Value           => Value_Hex);
    end Build_Index_Constant;
 
-   function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
-                              return Irep
+   function Build_Array_Size (First : Irep; Last : Irep) return Irep
    is
       Source_Loc : constant Source_Ptr := Get_Source_Location (First);
       Diff : constant Irep :=
@@ -292,57 +372,38 @@ package body GOTO_Utils is
                      Lhs             => Last,
                      Source_Location => Source_Loc,
                      Overflow_Check  => False,
-                     I_Type          => Idx_Type);
+                     I_Type          => CProver_Size_T);
       One : constant Irep :=
         Build_Index_Constant (Value      => 1,
-                              Index_Type => Idx_Type,
                               Source_Loc => Source_Loc);
    begin
       return Make_Op_Add (Rhs             => One,
                           Lhs             => Diff,
                           Source_Location => Source_Loc,
                           Overflow_Check  => False,
-                          I_Type          => Idx_Type);
+                          I_Type          => CProver_Size_T);
    end Build_Array_Size;
 
-   function Build_Array_Size (Array_Comp : Irep; Idx_Type : Irep) return Irep
+   function Build_Array_Size (Array_Comp : Irep) return Irep
    is
       Source_Loc : constant Source_Ptr := Get_Source_Location (Array_Comp);
       First : constant Irep :=
         Make_Member_Expr (Compound         => Array_Comp,
                           Source_Location  => Source_Loc,
                           Component_Number => 0,
-                          I_Type           => Idx_Type,
+                          I_Type           => CProver_Size_T,
                           Component_Name   => "first1");
       Last : constant Irep :=
         Make_Member_Expr (Compound         => Array_Comp,
                           Source_Location  => Source_Loc,
                           Component_Number => 1,
-                          I_Type           => Idx_Type,
+                          I_Type           => CProver_Size_T,
                           Component_Name   => "last1");
 
    begin
       return Build_Array_Size (First      => First,
-                               Last       => Last,
-                               Idx_Type => Idx_Type);
+                               Last       => Last);
    end Build_Array_Size;
-
-   function Offset_Array_Data (Base : Irep; Offset : Irep; Pointer_Type : Irep;
-                               Source_Loc : Source_Ptr) return Irep
-   is
-      Old_Data : constant Irep :=
-        Make_Member_Expr (Compound         => Base,
-                          Source_Location  => Source_Loc,
-                          Component_Number => 2,
-                          I_Type           => Pointer_Type,
-                          Component_Name   => "data");
-   begin
-      return Make_Op_Add (Rhs             => Offset,
-                          Lhs             => Old_Data,
-                          Source_Location => Source_Loc,
-                          Overflow_Check  => False,
-                          I_Type          => Pointer_Type);
-   end Offset_Array_Data;
 
    function To_Float_Format (Float_Type : Irep) return Float_Format
    is

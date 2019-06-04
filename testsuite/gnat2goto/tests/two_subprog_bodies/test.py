@@ -1,3 +1,3 @@
 from test_support import *
 
-prove()
+prove(main="two.adb")

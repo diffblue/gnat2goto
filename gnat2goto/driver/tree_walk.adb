@@ -679,6 +679,19 @@ package body Tree_Walk is
    is
    begin
       if Ekind (Etype (Name (N))) in Array_Kind then
+         declare
+            Lhs_Type : constant Entity_Id := Etype (Name (N));
+            --  Since the type of the LHS may be implicit, e.g.
+            --  A(1..3):=(1,2,3), where A has 10 elements,
+            --  it may be the case that we have not seen the type before.
+            --  Hence we should check and declare if unknown.
+         begin
+            if not Global_Symbol_Table.Contains (Intern
+                                                 (Unique_Name (Lhs_Type)))
+            then
+               Declare_Itype (Lhs_Type);
+            end if;
+         end;
          return Do_Array_Assignment (N);
       end if;
 
@@ -698,8 +711,8 @@ package body Tree_Walk is
                           Bounds_Type => Get_Type (LHS));
             begin
                Set_Rhs (R,
-                        Typecast_If_Necessary (Expr     => Range_Expr,
-                                        New_Type => Get_Type (LHS)));
+                        Typecast_If_Necessary (Range_Expr, Get_Type (LHS),
+                          Global_Symbol_Table));
             end;
          else
             Set_Rhs (R, RHS);
@@ -741,7 +754,10 @@ package body Tree_Walk is
       Lower_Bound_Value : Integer;
       Upper_Bound_Value : Integer;
 
-      Result_Type : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
+      Result_Type : constant Irep :=
+        New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type
+                    then I_Bounded_Unsignedbv_Type
+                    else I_Bounded_Signedbv_Type);
    begin
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
@@ -758,7 +774,8 @@ package body Tree_Walk is
               Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Lower_Bound));
          when N_Identifier =>
             Lower_Bound_Value :=
-               Store_Symbol_Bound (Bound_Type_Symbol (Lower_Bound));
+              Store_Symbol_Bound (Bound_Type_Symbol (
+                                   Do_Identifier (Lower_Bound)));
          when others =>
             Report_Unhandled_Node_Empty (Lower_Bound,
                                          "Do_Base_Range_Constraint",
@@ -772,7 +789,8 @@ package body Tree_Walk is
               Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
          when N_Identifier =>
             Upper_Bound_Value :=
-               Store_Symbol_Bound (Bound_Type_Symbol (Upper_Bound));
+              Store_Symbol_Bound (Bound_Type_Symbol (
+                                   Do_Identifier (Upper_Bound)));
          when others =>
             Report_Unhandled_Node_Empty (Upper_Bound,
                                          "Do_Base_Range_Constraint",
@@ -978,7 +996,7 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id; Add_Start : out Boolean)
+   function Do_Compilation_Unit (N : Node_Id; Unit_Is_Subprogram : out Boolean)
      return Symbol
    is
       U           : constant Node_Id := Unit (N);
@@ -1005,7 +1023,7 @@ package body Tree_Walk is
 
                --  and update the symbol table entry for this subprogram.
                Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
-               Add_Start := True;
+               Unit_Is_Subprogram := True;
             end;
 
          when N_Package_Body =>
@@ -1013,7 +1031,7 @@ package body Tree_Walk is
                Dummy : constant Irep := Do_Subprogram_Or_Block (U);
                pragma Unreferenced (Dummy);
             begin
-               Add_Start := False;
+               Unit_Is_Subprogram := False;
             end;
 
          when others =>
@@ -1257,7 +1275,6 @@ package body Tree_Walk is
               UI_Image (Enumeration_Rep (Member));
             Val_Name : constant String := Unique_Name (Member);
             Base_Name : constant String := Get_Name_String (Chars (Member));
-            Member_Symbol : Symbol;
             Member_Symbol_Init : constant Irep := New_Irep (I_Constant_Expr);
             Typecast_Expr : constant Irep := New_Irep (I_Op_Typecast);
             Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
@@ -1266,13 +1283,6 @@ package body Tree_Walk is
             Set_Identifier (Element, Val_Name);
             Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
-            Member_Symbol.Name := Intern (Val_Name);
-            Member_Symbol.PrettyName := Intern (Base_Name);
-            Member_Symbol.BaseName := Intern (Base_Name);
-            Member_Symbol.Mode := Intern ("C");
-            Member_Symbol.IsStaticLifetime := True;
-            Member_Symbol.IsStateVar := True;
-            Member_Symbol.SymType := Enum_Type_Symbol;
             Set_Type (Member_Symbol_Init,
                       Make_Int_Type (Integer (Member_Size)));
             Set_Value (Member_Symbol_Init,
@@ -1280,8 +1290,11 @@ package body Tree_Walk is
                                                Member_Size));
             Set_Op0 (Typecast_Expr, Member_Symbol_Init);
             Set_Type (Typecast_Expr, Enum_Type_Symbol);
-            Member_Symbol.Value := Typecast_Expr;
-            Global_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
+            New_Enum_Member_Symbol_Entry (Member_Name    => Intern (Val_Name),
+                                     Base_Name      => Intern (Base_Name),
+                                     Enum_Type      => Enum_Type_Symbol,
+                                     Value_Expr     => Typecast_Expr,
+                                     A_Symbol_Table => Global_Symbol_Table);
          end;
          Next (Member);
          exit when not Present (Member);
@@ -1310,7 +1323,6 @@ package body Tree_Walk is
       --  Using index constant
       One : constant Irep :=
            Build_Index_Constant (Value      => 1,
-                                 Index_Type => Result_Type,
                                  Source_Loc => Source_Loc);
    begin
       return Make_Op_Sub (Rhs             => One,
@@ -1328,7 +1340,6 @@ package body Tree_Walk is
       Source_Loc : constant Source_Ptr := Sloc (N);
       One : constant Irep :=
            Build_Index_Constant (Value      => 1,
-                                 Index_Type => Result_Type,
                                  Source_Loc => Source_Loc);
    begin
       return Make_Op_Add (Rhs             => One,
@@ -1479,6 +1490,7 @@ package body Tree_Walk is
          end if;
       end if;
 
+      pragma Assert (Global_Symbol_Table.Contains (Intern (Unique_Name (E))));
    end Do_Full_Type_Declaration;
 
    ----------------------
@@ -1518,7 +1530,14 @@ package body Tree_Walk is
       Typecast_Expr : constant Irep :=
         Make_Op_Typecast (Value, Sloc (N), Type_Of_Val);
    begin
-      return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      --  TODO: Range expressions for non-bounded types are outside
+      --        the scope of this PR
+      if Kind (Type_Of_Val) in I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+      then
+         return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+      else
+         return Typecast_Expr;
+      end if;
    end Do_Qualified_Expression;
 
    -----------------------------
@@ -2609,25 +2628,6 @@ package body Tree_Walk is
             --  declaration has the pragma Import applied.
             Full_View_Entity : constant Entity_Id := Full_View (Entity);
 
-            procedure Register_Constant_In_Symbol_Table (N : Node_Id);
-            --  Adds a dummy entry to the symbol table to register that a
-            --  constant has already been processed.
-
-            procedure Register_Constant_In_Symbol_Table (N : Node_Id) is
-               Constant_Name : constant Symbol_Id :=
-                 Intern (Unique_Name (Defining_Identifier (N)));
-               Constant_Symbol : Symbol;
-            begin
-               Constant_Symbol.Name := Constant_Name;
-               Constant_Symbol.BaseName   := Constant_Name;
-               Constant_Symbol.PrettyName := Constant_Name;
-               Constant_Symbol.SymType    := Make_Nil (Sloc (N));
-               Constant_Symbol.Mode       := Intern ("C");
-               Constant_Symbol.Value      := Make_Nil (Sloc (N));
-               Global_Symbol_Table.Insert (Constant_Name, Constant_Symbol);
-
-            end Register_Constant_In_Symbol_Table;
-
          begin
             if not Has_Init_Expression (N) and then
               Present (Full_View_Entity)
@@ -2640,7 +2640,12 @@ package body Tree_Walk is
                --  register it in the symbol table so that it is not
                --  processed again when the completion is encountered in
                --  the tree.
-               Register_Constant_In_Symbol_Table (N);
+               New_Valueless_Object_Symbol_Entry (Intern (Unique_Name
+                                          (Defining_Identifier (N))),
+                                          Global_Symbol_Table);
+               --  Adds a dummy entry to the symbol table to register that a
+               --  constant has already been processed.
+
                Do_Object_Declaration_Full
                  (Declaration_Node (Full_View_Entity), Block);
             else
@@ -2651,6 +2656,7 @@ package body Tree_Walk is
          end;
       end if;
 
+      pragma Assert (Global_Symbol_Table.Contains (Obj_Id));
    end Do_Object_Declaration;
 
    --------------------------------------------
@@ -2663,6 +2669,9 @@ package body Tree_Walk is
       Id   : constant Irep := Do_Defining_Identifier (Defined);
       Decl : constant Irep := New_Irep (I_Code_Decl);
       Init_Expr : Irep := Ireps.Empty;
+
+      Obj_Id : constant Symbol_Id := Intern (Unique_Name (Defined));
+      Obj_Type : constant Irep := Get_Type (Id);
 
       function Has_Defaulted_Components (E : Entity_Id) return Boolean;
       function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
@@ -2917,9 +2926,6 @@ package body Tree_Walk is
       end Make_Default_Initialiser;
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
-
-      Is_In_Symtab : constant Boolean :=
-        Global_Symbol_Table.Contains (Intern (Get_Identifier (Id)));
    begin
       Set_Source_Location (Decl, (Sloc (N)));
       Set_Symbol (Decl, Id);
@@ -2940,13 +2946,22 @@ package body Tree_Walk is
          end;
       end if;
 
+      if not Global_Symbol_Table.Contains (Obj_Id)
+      then
+         New_Object_Symbol_Entry (Object_Name       => Obj_Id,
+                                  Object_Type       => Obj_Type,
+                                  Object_Init_Value => Init_Expr,
+                                  A_Symbol_Table    => Global_Symbol_Table);
+      end if;
+
       if Init_Expr /= Ireps.Empty then
          Append_Op (Block, Make_Code_Assign (Lhs => Id,
-                                             Rhs => Init_Expr,
+                Rhs => Typecast_If_Necessary (Init_Expr, Get_Type (Id),
+                                              Global_Symbol_Table),
                                              Source_Location => Sloc (N)));
       end if;
 
-      if not Is_In_Symtab then
+      if not Global_Symbol_Table.Contains (Intern (Get_Identifier (Id))) then
          Register_Identifier_In_Symbol_Table
             (Id, Init_Expr, Global_Symbol_Table);
       end if;
@@ -3432,7 +3447,8 @@ package body Tree_Walk is
          return Ret;
       end if;
       Set_Lhs (Ret, LHS);
-      Set_Rhs (Ret, RHS);
+      Set_Rhs (Ret, Typecast_If_Necessary (RHS, Get_Type (LHS),
+               Global_Symbol_Table));
       Set_Type (Ret, Ret_Type);
 
       if Do_Overflow_Check (N) then
@@ -3464,9 +3480,9 @@ package body Tree_Walk is
         Make_Signedbv_Type (Get_Width (Followed_Ret_Type) * 2);
 
       Lhs_Cast : constant Irep :=
-        Typecast_If_Necessary (LHS, Large_Enough_Type);
+        Typecast_If_Necessary (LHS, Large_Enough_Type, Global_Symbol_Table);
       Rhs_Cast : constant Irep :=
-        Typecast_If_Necessary (RHS, Large_Enough_Type);
+        Typecast_If_Necessary (RHS, Large_Enough_Type, Global_Symbol_Table);
       Full_Result : constant Irep := New_Irep (Op_Kind);
 
       Mod_Max_String : constant String :=
@@ -3493,7 +3509,7 @@ package body Tree_Walk is
       Set_Source_Location (Mod_Ret, Source_Loc);
 
       --  And return the result casted to the origin type
-      return Typecast_If_Necessary (Mod_Ret, Ret_Type);
+      return Typecast_If_Necessary (Mod_Ret, Ret_Type, Global_Symbol_Table);
    end Do_Operator_Mod;
 
    --  Modular minus gets special treatment, effectively x - y =>
@@ -4129,7 +4145,6 @@ package body Tree_Walk is
                 Unique_Name (Defining_Identifier (Param_Iter));
 
             Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
-            Param_Symbol : Symbol;
          begin
             if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
                Report_Unhandled_Node_Empty (N, "Do_Subprogram_Specification",
@@ -4148,15 +4163,10 @@ package body Tree_Walk is
             Set_Base_Name       (Param_Irep, Param_Name);
             Append_Parameter (Param_List, Param_Irep);
             --  Add the param to the symtab as well:
-            Param_Symbol.Name          := Intern (Param_Name);
-            Param_Symbol.PrettyName    := Param_Symbol.Name;
-            Param_Symbol.BaseName      := Param_Symbol.Name;
-            Param_Symbol.SymType       := Param_Type;
-            Param_Symbol.IsThreadLocal := True;
-            Param_Symbol.IsFileLocal   := True;
-            Param_Symbol.IsLValue      := True;
-            Param_Symbol.IsParameter   := True;
-            Global_Symbol_Table.Insert (Param_Symbol.Name, Param_Symbol);
+            New_Parameter_Symbol_Entry (Name_Id        => Intern (Param_Name),
+                                        BaseName       => Param_Name,
+                                        Symbol_Type    => Param_Type,
+                                        A_Symbol_Table => Global_Symbol_Table);
             Next (Param_Iter);
          end;
       end loop;
@@ -4305,7 +4315,9 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Type_Reference (E : Entity_Id) return Irep is
-      (Make_Symbol_Type (Identifier => Unique_Name (E)));
+   begin
+      return Make_Symbol_Type (Identifier => Unique_Name (E));
+   end Do_Type_Reference;
 
    -------------------------
    -- Do_Withed_Unit_Spec --
@@ -4396,17 +4408,12 @@ package body Tree_Walk is
       Number_Str : constant String :=
         Number_Str_Raw (2 .. Number_Str_Raw'Last);
       Fresh_Name : constant String := "__anonymous_type_" & Number_Str;
-      Type_Symbol : Symbol;
    begin
       Anonymous_Type_Counter := Anonymous_Type_Counter + 1;
 
-      Type_Symbol.SymType := Actual_Type;
-      Type_Symbol.IsType := True;
-      Type_Symbol.Name := Intern (Fresh_Name);
-      Type_Symbol.PrettyName := Intern (Fresh_Name);
-      Type_Symbol.BaseName := Intern (Fresh_Name);
-      Type_Symbol.Mode := Intern ("C");
-      Global_Symbol_Table.Insert (Intern (Fresh_Name), Type_Symbol);
+      New_Type_Symbol_Entry (Type_Name      => Intern (Fresh_Name),
+                             Type_Of_Type   => Actual_Type,
+                             A_Symbol_Table => Global_Symbol_Table);
 
       Set_Identifier (Ret, Fresh_Name);
 
@@ -4482,6 +4489,7 @@ package body Tree_Walk is
          --  Create the check function on demand:
          declare
             Fn_Symbol : Symbol;
+            Fn_Name : constant String := "__ada_runtime_check";
             Assertion : constant Irep := New_Irep (I_Code_Assert);
             Formal_Params : constant Irep := New_Irep (I_Parameter_List);
             Formal_Param : constant Irep := New_Irep (I_Code_Parameter);
@@ -4499,15 +4507,14 @@ package body Tree_Walk is
             Set_Return_Type (Fn_Type, Void_Type);
             Set_Assertion (Assertion, Formal_Expr);
 
-            Fn_Symbol.Name := Intern ("__ada_runtime_check");
-            Fn_Symbol.PrettyName := Fn_Symbol.Name;
-            Fn_Symbol.BaseName := Fn_Symbol.Name;
-            Fn_Symbol.Value := Assertion;
-            Fn_Symbol.SymType := Fn_Type;
-            Global_Symbol_Table.Insert (Fn_Symbol.Name, Fn_Symbol);
+            Fn_Symbol :=
+              New_Function_Symbol_Entry (Name          => Fn_Name,
+                                         Symbol_Type   => Fn_Type,
+                                         Value         => Assertion,
+                                        A_Symbol_Table => Global_Symbol_Table);
 
             Check_Function_Symbol := New_Irep (I_Symbol_Expr);
-            Set_Identifier (Check_Function_Symbol, Unintern (Fn_Symbol.Name));
+            Set_Identifier (Check_Function_Symbol, Fn_Name);
             Set_Type (Check_Function_Symbol, Fn_Symbol.SymType);
          end;
       end if;
@@ -4739,6 +4746,63 @@ package body Tree_Walk is
    end Process_Declaration;
 
    procedure Process_Pragma_Declaration (N : Node_Id) is
+      procedure Handle_Pragma_Volatile (N : Node_Id);
+      procedure Handle_Pragma_Machine_Attribute (N : Node_Id)
+        with Pre => Nkind (N) in N_Pragma
+        and then Pragma_Name (N) = Name_Machine_Attribute;
+
+      procedure Handle_Pragma_Volatile (N : Node_Id) is
+         Argument_Associations : constant List_Id :=
+           Pragma_Argument_Associations (N);
+         First_Argument_Expression : constant Node_Id :=
+           Expression (First (Argument_Associations));
+         Expression_Id : constant Symbol_Id :=
+           Intern (Unique_Name (Entity (First_Argument_Expression)));
+
+         procedure Set_Volatile (Key : Symbol_Id; Element : in out Symbol);
+         procedure Set_Volatile (Key : Symbol_Id; Element : in out Symbol) is
+         begin
+            pragma Assert (Unintern (Key) = Unintern (Expression_Id));
+            Element.IsVolatile := True;
+         end Set_Volatile;
+      begin
+         pragma Assert (Global_Symbol_Table.Contains (Expression_Id));
+         Global_Symbol_Table.Update_Element (
+                          Position => Global_Symbol_Table.Find (Expression_Id),
+                          Process  => Set_Volatile'Access);
+      end Handle_Pragma_Volatile;
+
+      procedure Handle_Pragma_Machine_Attribute (N : Node_Id) is
+         Argument_Associations : constant List_Id :=
+           Pragma_Argument_Associations (N);
+
+         --  first is the identifier to be given the attribute
+         First_Argument : constant Node_Id := First (Argument_Associations);
+
+         --  second is the attribute as string
+         Second_Argument : constant Node_Id := Next (First_Argument);
+         Attr_String_Id : constant String_Id :=
+           Strval (Expression (Second_Argument));
+         Attr_Length : constant Integer :=
+           Integer (String_Length (Attr_String_Id));
+      begin
+         String_To_Name_Buffer (Attr_String_Id);
+         declare
+            Attr_String : String
+              renames Name_Buffer (1 .. Attr_Length);
+         begin
+            if Attr_String = "signal" then
+            --  CBMC would not acknowledge this one anyway -> Ignored
+               null;
+            else
+               Report_Unhandled_Node_Empty
+                 (N, "Process_Pragma_Declaration",
+                  "Unsupported pragma: Machine Attribute "
+                  & Attr_String);
+            end if;
+         end;
+      end Handle_Pragma_Machine_Attribute;
+
    begin
       case Pragma_Name (N) is
          when Name_Assert |
@@ -4797,8 +4861,7 @@ package body Tree_Walk is
             --  they may be modified by the environment. Effectively, they need
             --  to be modelled as non-deterministic input in every state. It
             --  changes the semantics wrt to thread interleavings.
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Volatile");
+            Handle_Pragma_Volatile (N);
          when Name_Attach_Handler =>
             --  The expression in the Attach_Handler pragma as evaluated at
             --  object creation time specifies an interrupt. As part of the
@@ -4937,8 +5000,7 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                "Known but unsupported pragma: Linker Options");
          when Name_Machine_Attribute =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                      "Unsupported pragma: Machine Attribute");
+            Handle_Pragma_Machine_Attribute (N);
          when Name_Check =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Check");
@@ -5252,18 +5314,10 @@ package body Tree_Walk is
         Do_Subprogram_Specification (N);
       Subprog_Name : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Unit_Name (N)));
-
-      Subprog_Symbol : Symbol;
-
    begin
-      Subprog_Symbol.Name       := Subprog_Name;
-      Subprog_Symbol.BaseName   := Subprog_Name;
-      Subprog_Symbol.PrettyName := Subprog_Name;
-      Subprog_Symbol.SymType    := Subprog_Type;
-      Subprog_Symbol.Mode       := Intern ("C");
-      Subprog_Symbol.Value      := Make_Nil (Sloc (N));
-
-      Global_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
+      New_Subprogram_Symbol_Entry (Subprog_Name   => Subprog_Name,
+                                   Subprog_Type   => Subprog_Type,
+                                   A_Symbol_Table => Global_Symbol_Table);
    end Register_Subprogram_Specification;
 
    -------------------------------

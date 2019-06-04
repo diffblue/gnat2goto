@@ -6,6 +6,7 @@ with GOTO_Utils;            use GOTO_Utils;
 with Range_Check;           use Range_Check;
 with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
+with Follow;                use Follow;
 
 package body Gnat2goto_Itypes is
 
@@ -89,7 +90,8 @@ package body Gnat2goto_Itypes is
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
          when E_Floating_Point_Type => Create_Dummy_Irep,
          when E_Anonymous_Access_Type => Make_Pointer_Type
-        (Base => Do_Type_Reference (Designated_Type (Etype (N)))),
+                (Base => Do_Type_Reference (Designated_Type (Etype (N)))),
+         when E_Modular_Integer_Subtype => Do_Modular_Integer_Subtype (N),
          when others => Report_Unhandled_Node_Irep (N, "Do_Itype_Definition",
                                                     "Unknown Ekind"));
    end Do_Itype_Definition;
@@ -170,5 +172,59 @@ package body Gnat2goto_Itypes is
    begin
       return Do_Type_Reference (Etype (N));
    end Do_Itype_Record_Subtype;
+
+   function Do_Modular_Integer_Subtype (N : Entity_Id) return Irep is
+      Modular_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Followed_Mod_Type : constant Irep :=
+        Follow_Symbol_Type (Modular_Type, Global_Symbol_Table);
+
+      S_Range : constant Node_Id := Scalar_Range (N);
+      Lower_Bound : constant Node_Id := Low_Bound (S_Range);
+      Upper_Bound : constant Node_Id := High_Bound (S_Range);
+
+      Lower_Bound_Value : Integer;
+      Upper_Bound_Value : Integer;
+   begin
+      pragma Assert (Kind (Followed_Mod_Type) in I_Unsignedbv_Type
+                       | I_Ada_Mod_Type);
+
+      case Nkind (Lower_Bound) is
+         when N_Integer_Literal => Lower_Bound_Value :=
+              Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound)));
+         when N_Identifier => Lower_Bound_Value :=
+              Store_Symbol_Bound (Bound_Type_Symbol (Lower_Bound));
+         when others =>
+            Report_Unhandled_Node_Empty (Lower_Bound,
+                                         "Do_Base_Range_Constraint",
+                                         "unsupported lower range kind");
+      end case;
+
+      case Nkind (Upper_Bound) is
+         when N_Integer_Literal => Upper_Bound_Value :=
+              Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound)));
+         when N_Identifier => Upper_Bound_Value :=
+              Store_Symbol_Bound (Bound_Type_Symbol (Upper_Bound));
+         when others =>
+            Report_Unhandled_Node_Empty (Upper_Bound,
+                                         "Do_Base_Range_Constraint",
+                                         "unsupported upper range kind");
+      end case;
+
+      if Kind (Followed_Mod_Type) = I_Ada_Mod_Type then
+         return Make_Bounded_Mod_Type (I_Subtype   => Make_Nil_Type,
+                                       Width       =>
+                                         Get_Width (Followed_Mod_Type),
+                                       Lower_Bound => Lower_Bound_Value,
+                                       Ada_Mod_Max =>
+                                         Get_Ada_Mod_Max (Followed_Mod_Type),
+                                       Upper_Bound => Upper_Bound_Value);
+      else
+         return Make_Bounded_Unsignedbv_Type (I_Subtype   => Make_Nil_Type,
+                                              Width       =>
+                                                Get_Width (Followed_Mod_Type),
+                                              Lower_Bound => Lower_Bound_Value,
+                                             Upper_Bound => Upper_Bound_Value);
+      end if;
+   end Do_Modular_Integer_Subtype;
 
 end Gnat2goto_Itypes;

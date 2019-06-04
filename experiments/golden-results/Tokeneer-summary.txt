@@ -1,142 +1,52 @@
-Occurs: 116 times
+Occurs: 84 times
 Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 71 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Ada 05
-Nkind: N_Pragma
---
-Occurs: 58 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
---
-Occurs: 52 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Null
---
-Occurs: 39 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Preelaborable Initialization
-Nkind: N_Pragma
---
-Occurs: 37 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Suppress initialization
-Nkind: N_Pragma
---
-Occurs: 36 times
-Calling function: Do_Expression
-Error message: Unknown attribute
-Nkind: N_Attribute_Reference
---
-Occurs: 33 times
+Occurs: 21 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: alignment
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 24 times
-Calling function: Do_Constant
-Error message: Constant Type not in symbol table
-Nkind: N_Integer_Literal
---
-Occurs: 24 times
+Occurs: 21 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: No return
+Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
-Occurs: 22 times
+Occurs: 14 times
 Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
-Occurs: 12 times
+Occurs: 14 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Preelaborable Initialization
+Nkind: N_Pragma
+--
+Occurs: 10 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 9 times
 Calling function: Do_Aggregate_Literal
 Error message: Unhandled aggregate kind
 Nkind: N_Aggregate
 --
-Occurs: 12 times
-Calling function: Do_Type_Definition
-Error message: Access type unsupported
-Nkind: N_Access_To_Object_Definition
---
-Occurs: 11 times
-Calling function: Do_Type_Definition
-Error message: Unknown expression kind
-Nkind: N_Access_Function_Definition
---
-Occurs: 11 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: component_size
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 11 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Ada 2012
-Nkind: N_Pragma
---
-Occurs: 9 times
+Occurs: 7 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
 Nkind: N_Private_Type_Declaration
 --
-Occurs: 8 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma
-Nkind: N_Pragma
---
 Occurs: 7 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Object_Declaration
---
-Occurs: 5 times
-Calling function: Do_Operator_General
-Error message: Concat unsupported
-Nkind: N_Op_Concat
---
-Occurs: 4 times
-Calling function: Do_Type_Definition
-Error message: Unknown expression kind
-Nkind: N_Access_Procedure_Definition
---
-Occurs: 4 times
 Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 4 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
---
-Occurs: 4 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: storage_size
+Error message: Representation clause unsupported: component_size
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 4 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
-Occurs: 4 times
+Occurs: 7 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Atomic
+Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
---
-Occurs: 3 times
-Calling function: Do_Itype_Integer_Subtype
-Error message: Non-literal bound unsupported
-Nkind: N_Defining_Identifier
---
-Occurs: 2 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Freeze_Entity
 --
 Occurs: 159 times
 Redacted compiler error message:
