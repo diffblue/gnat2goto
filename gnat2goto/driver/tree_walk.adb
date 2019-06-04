@@ -1524,8 +1524,8 @@ package body Tree_Walk is
    function Do_Qualified_Expression (N : Node_Id) return Irep is
       Value : constant Irep := Do_Expression (Expression (N));
       Type_Of_Val : constant Irep :=
-	 Follow_Symbol_Type (
-	  Do_Type_Reference (Etype (N)),
+        Follow_Symbol_Type (
+         Do_Type_Reference (Etype (N)),
           Global_Symbol_Table);
       Typecast_Expr : constant Irep :=
         Make_Op_Typecast (Value, Sloc (N), Type_Of_Val);
@@ -4294,7 +4294,7 @@ package body Tree_Walk is
          when N_Enumeration_Type_Definition =>
             return Do_Enumeration_Definition (N);
          when N_Constrained_Array_Definition =>
-            return Do_CoDnstrained_Array_Definition (N);
+            return Do_Constrained_Array_Definition (N);
          when N_Unconstrained_Array_Definition =>
             return Do_Unconstrained_Array_Definition (N);
          when N_Modular_Type_Definition =>
