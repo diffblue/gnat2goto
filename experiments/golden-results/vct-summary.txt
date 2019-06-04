@@ -58,11 +58,6 @@ Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
 --
-Occurs: 2 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: component_size
-Nkind: N_Attribute_Definition_Clause
---
 Occurs: 1 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table

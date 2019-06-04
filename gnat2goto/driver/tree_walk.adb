@@ -4589,24 +4589,48 @@ package body Tree_Walk is
       procedure Handle_Representation_Clause (N : Node_Id) is
          Attr_Id : constant String := Get_Name_String (Chars (N));
          Target_Name : constant Irep := Do_Identifier (Name (N));
-         Entity_Esize : constant Integer :=
-           Integer (UI_To_Int (Esize (Entity (N))));
+         Entity_Esize : constant Uint := Esize (Entity (N));
          Target_Type_Irep : constant Irep :=
            Follow_Symbol_Type (Get_Type (Target_Name), Global_Symbol_Table);
+         Expression_Value : constant Uint := Intval (Expression (N));
       begin
-         if Kind (Target_Type_Irep) in Class_Type then
-            if Attr_Id = "size" then
+         pragma Assert (Kind (Target_Type_Irep) in Class_Type);
+         if Attr_Id = "size" then
 
-               --  Just check that the front-end already applied this size
-               --  clause, i .e. that the size of type-irep we already had
-               --  equals the entity type this clause is applied to (and the
-               --  size specified in this clause).
-               pragma Assert (Entity_Esize = Get_Width (Target_Type_Irep)
-                              and Entity_Esize =
-                                Integer (UI_To_Int (Intval (Expression (N)))));
+            --  Just check that the front-end already applied this size
+            --  clause, i .e. that the size of type-irep we already had
+            --  equals the entity type this clause is applied to (and the
+            --  size specified in this clause).
+            pragma Assert (Entity_Esize =
+                             UI_From_Int (Int (Get_Width (Target_Type_Irep)))
+                           and Entity_Esize = Expression_Value);
+            return;
+         elsif Attr_Id = "component_size" then
+            if not Is_Array_Type (Entity (N)) then
+               Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                              "Component size only supported for array types");
                return;
             end if;
+            declare
+               Array_Data : constant Irep :=
+                 Get_Data_Component_From_Type (Target_Type_Irep);
+               Target_Subtype : constant Irep :=
+                 Follow_Symbol_Type (Get_Subtype (Get_Type (Array_Data)),
+                                     Global_Symbol_Table);
+               Target_Subtype_Width : constant Uint :=
+                 UI_From_Int (Int (Get_Width (Target_Subtype)));
+            begin
+               if Component_Size (Entity (N)) /= Expression_Value or
+                 Target_Subtype_Width /= Expression_Value
+               then
+                  Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                      "Having component sizes be different from the size of " &
+                      "their underlying type is currently not supported");
+               end if;
+            end;
+            return;
          end if;
+
          Report_Unhandled_Node_Empty (N, "Process_Declaration",
                               "Representation clause unsupported: " & Attr_Id);
       end Handle_Representation_Clause;

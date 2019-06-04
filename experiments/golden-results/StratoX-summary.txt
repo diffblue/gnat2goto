@@ -43,11 +43,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
-Occurs: 22 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: component_size
-Nkind: N_Attribute_Definition_Clause
---
 Occurs: 21 times
 Calling function: Process_Declaration
 Error message: Package body declaration

@@ -24,11 +24,6 @@ Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
 Occurs: 1 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: component_size
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
