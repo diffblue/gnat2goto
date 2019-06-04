@@ -5008,9 +5008,6 @@ package body Tree_Walk is
          when Name_Unreferenced =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Unreferenced");
-         when Name_Preelaborable_Initialization =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                           "Unsupported pragma: Preelaborable Initialization");
          when Name_Ada_05 =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Ada 05");
@@ -5026,9 +5023,6 @@ package body Tree_Walk is
          when Name_Obsolescent =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Obsolescent");
-         when Name_Warnings =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Warnings");
          when Name_Initializes =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Initializes");
@@ -5100,9 +5094,13 @@ package body Tree_Walk is
             --  Only affects elaboration and linking so can be ignored for now
               Name_Universal_Aliasing |
             --  Optimisation control, should be ignored
-           Name_Implementation_Defined =>
+              Name_Implementation_Defined |
             --  Only informs the compiler that entities are implementation
             --  defined. -> Ignored
+              Name_Preelaborable_Initialization |
+            --  Same as the above preelaborations.
+              Name_Warnings =>
+            --  Ignoring pragma warnings means that all warnings are on.
             null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
