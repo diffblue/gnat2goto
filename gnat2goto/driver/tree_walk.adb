@@ -4906,7 +4906,7 @@ package body Tree_Walk is
             --  can safely ignore the pragma.
             declare
                --  If the pragma is specified with positional parameter
-               --  association, then the calling convetion is the first
+               --  association, then the calling convention is the first
                --  parameter. Check to see if it is Intrinsic.
                Next_Ass : Node_Id := First (Pragma_Argument_Associations (N));
                Is_Intrinsic : Boolean := Present (Next_Ass) and then
