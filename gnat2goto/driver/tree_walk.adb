@@ -4605,9 +4605,32 @@ package body Tree_Walk is
                              UI_From_Int (Int (Get_Width (Target_Type_Irep)))
                            and Entity_Esize = Expression_Value);
             return;
+         elsif Attr_Id = "component_size" then
+            if not Is_Array_Type (Entity (N)) then
+               Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                              "Component size only supported for array types");
                return;
             end if;
+            declare
+               Array_Data : constant Irep :=
+                 Get_Data_Component_From_Type (Target_Type_Irep);
+               Target_Subtype : constant Irep :=
+                 Follow_Symbol_Type (Get_Subtype (Get_Type (Array_Data)),
+                                     Global_Symbol_Table);
+               Target_Subtype_Width : constant Uint :=
+                 UI_From_Int (Int (Get_Width (Target_Subtype)));
+            begin
+               if Component_Size (Entity (N)) /= Expression_Value or
+                 Target_Subtype_Width /= Expression_Value
+               then
+                  Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                      "Having component sizes be different from the size of " &
+                      "their underlying type is currently not supported");
+               end if;
+            end;
+            return;
          end if;
+
          Report_Unhandled_Node_Empty (N, "Process_Declaration",
                               "Representation clause unsupported: " & Attr_Id);
       end Handle_Representation_Clause;
