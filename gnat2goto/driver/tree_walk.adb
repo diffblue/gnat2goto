@@ -4589,21 +4589,22 @@ package body Tree_Walk is
       procedure Handle_Representation_Clause (N : Node_Id) is
          Attr_Id : constant String := Get_Name_String (Chars (N));
          Target_Name : constant Irep := Do_Identifier (Name (N));
-         Entity_Esize : constant Integer :=
-           Integer (UI_To_Int (Esize (Entity (N))));
+         Entity_Esize : constant Uint := Esize (Entity (N));
          Target_Type_Irep : constant Irep :=
            Follow_Symbol_Type (Get_Type (Target_Name), Global_Symbol_Table);
+         Expression_Value : constant Uint := Intval (Expression (N));
       begin
-         if Kind (Target_Type_Irep) in Class_Type then
-            if Attr_Id = "size" then
+         pragma Assert (Kind (Target_Type_Irep) in Class_Type);
+         if Attr_Id = "size" then
 
-               --  Just check that the front-end already applied this size
-               --  clause, i .e. that the size of type-irep we already had
-               --  equals the entity type this clause is applied to (and the
-               --  size specified in this clause).
-               pragma Assert (Entity_Esize = Get_Width (Target_Type_Irep)
-                              and Entity_Esize =
-                                Integer (UI_To_Int (Intval (Expression (N)))));
+            --  Just check that the front-end already applied this size
+            --  clause, i .e. that the size of type-irep we already had
+            --  equals the entity type this clause is applied to (and the
+            --  size specified in this clause).
+            pragma Assert (Entity_Esize =
+                             UI_From_Int (Int (Get_Width (Target_Type_Irep)))
+                           and Entity_Esize = Expression_Value);
+            return;
                return;
             end if;
          end if;
