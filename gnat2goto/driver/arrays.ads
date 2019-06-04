@@ -46,6 +46,12 @@ package Arrays is
    function Do_Indexed_Component (N : Node_Id) return Irep
      with Pre  => Nkind (N) = N_Indexed_Component;
 
+   function Get_Data_Component_From_Type (Array_Struct_Type : Irep)
+                                          return Irep
+     with Pre => Kind (Array_Struct_Type) in I_Struct_Type,
+     Post => Kind (Get_Type (Get_Data_Component_From_Type'Result))
+       in I_Pointer_Type;
+
    function Get_First_Index (Array_Struct : Irep) return Irep
      with Pre => (Kind (Array_Struct) in Class_Expr
                   and then Kind (Get_Type (Array_Struct)) in

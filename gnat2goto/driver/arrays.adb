@@ -981,11 +981,9 @@ package body Arrays is
       return List_Element (Struct_Component, Last_Cursor);
    end Get_Last_Index_Component;
 
-   function Get_Data_Component (Array_Struct : Irep;
-                                A_Symbol_Table : Symbol_Table) return Irep
+   function Get_Data_Component_From_Type (Array_Struct_Type : Irep)
+                                          return Irep
    is
-      Array_Struct_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
       Struct_Component : constant Irep_List :=
         Get_Component (Get_Components (Array_Struct_Type));
       Last_Cursor :  constant List_Cursor :=
@@ -994,6 +992,16 @@ package body Arrays is
                      List_First (Struct_Component)));
    begin
       return List_Element (Struct_Component, Last_Cursor);
+   end Get_Data_Component_From_Type;
+
+   function Get_Data_Component (Array_Struct : Irep;
+                                A_Symbol_Table : Symbol_Table)
+                                return Irep
+   is
+      Array_Struct_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Array_Struct), A_Symbol_Table);
+   begin
+      return Get_Data_Component_From_Type (Array_Struct_Type);
    end Get_Data_Component;
 
    function Get_First_Index (Array_Struct : Irep) return Irep
