@@ -1191,6 +1191,7 @@ package body Tree_Walk is
    function Do_Defining_Identifier (E : Entity_Id) return Irep is
       Sym          : constant Irep := New_Irep (I_Symbol_Expr);
       Result_Type  : constant Irep := Do_Type_Reference (Etype (E));
+      Sym_Id       : constant Symbol_Id := Intern (Unique_Name (E));
 
       Is_Out_Param : constant Boolean :=
         Ekind (E) in E_In_Out_Parameter | E_Out_Parameter;
@@ -1204,6 +1205,13 @@ package body Tree_Walk is
       Set_Source_Location (Sym, Sloc (E));
       Set_Identifier      (Sym, Unique_Name (E));
       Set_Type            (Sym, Symbol_Type);
+
+      if not Global_Symbol_Table.Contains (Sym_Id) then
+         New_Object_Symbol_Entry (Object_Name       => Sym_Id,
+                                  Object_Type       => Symbol_Type,
+                                  Object_Init_Value => Make_Nil (Sloc (E)),
+                                  A_Symbol_Table    => Global_Symbol_Table);
+      end if;
 
       if Is_Out_Param then
          return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
@@ -2925,6 +2933,13 @@ package body Tree_Walk is
          end if;
       end Make_Default_Initialiser;
 
+      procedure Update_Value (Key : Symbol_Id; Element : in out Symbol);
+      procedure Update_Value (Key : Symbol_Id; Element : in out Symbol) is
+      begin
+         pragma Assert (Unintern (Key) = Unintern (Obj_Id));
+         Element.Value := Init_Expr;
+      end Update_Value;
+
       --  Begin processing for Do_Object_Declaration_Full_Declaration
    begin
       Set_Source_Location (Decl, (Sloc (N)));
@@ -2946,12 +2961,17 @@ package body Tree_Walk is
          end;
       end if;
 
+      pragma Assert (Get_Identifier (Id) = Unintern (Obj_Id));
       if not Global_Symbol_Table.Contains (Obj_Id)
       then
          New_Object_Symbol_Entry (Object_Name       => Obj_Id,
                                   Object_Type       => Obj_Type,
                                   Object_Init_Value => Init_Expr,
                                   A_Symbol_Table    => Global_Symbol_Table);
+      elsif Init_Expr /= Ireps.Empty then
+         Global_Symbol_Table.Update_Element
+           (Position => Global_Symbol_Table.Find (Obj_Id),
+            Process  => Update_Value'Access);
       end if;
 
       if Init_Expr /= Ireps.Empty then
@@ -2960,12 +2980,6 @@ package body Tree_Walk is
                                               Global_Symbol_Table),
                                              Source_Location => Sloc (N)));
       end if;
-
-      if not Global_Symbol_Table.Contains (Intern (Get_Identifier (Id))) then
-         Register_Identifier_In_Symbol_Table
-            (Id, Init_Expr, Global_Symbol_Table);
-      end if;
-
    end Do_Object_Declaration_Full;
 
    -------------------------
