@@ -78,15 +78,34 @@ package body Range_Check is
    begin
       case Kind (Bound_Type) is
          when I_Bounded_Signedbv_Type
+            | I_Bounded_Unsignedbv_Type
             | I_Bounded_Floatbv_Type =>
             return Get_Bound_Of_Bounded_Type (Bound_Type, Pos);
          when I_Unsignedbv_Type =>
+            --  this case is probably unnecessary:
+            --  1: how does one create non-bounded unsigned types anyway
+            --  2: CBMC has facilities to check unsigned overflow
             declare
                Type_Width : constant Integer := Get_Width (Bound_Type);
                Bound_Value : constant Uint :=
                  (if Pos = Bound_Low
                   then Uint_0
                   else UI_From_Int (2 ** Type_Width - 1));
+            begin
+               return Make_Constant_Expr (Source_Location => No_Location,
+                                          I_Type          => Bound_Type,
+                                          Range_Check     => False,
+                                          Value =>
+                                            Convert_Uint_To_Hex (Bound_Value,
+                                              Types.Pos (Type_Width)));
+            end;
+         when I_Signedbv_Type =>
+            declare
+               Type_Width : constant Integer := Get_Width (Bound_Type);
+               Bound_Value : constant Uint :=
+                 (if Pos = Bound_Low
+                  then UI_From_Int (-(2 ** (Type_Width - 1)))
+                  else UI_From_Int (2 ** (Type_Width - 1) - 1));
             begin
                return Make_Constant_Expr (Source_Location => No_Location,
                                           I_Type          => Bound_Type,
@@ -261,7 +280,8 @@ package body Range_Check is
                        I_Bounded_Unsignedbv_Type
                        | I_Bounded_Signedbv_Type
                        | I_Bounded_Floatbv_Type
-                       | I_Unsignedbv_Type);
+                       | I_Unsignedbv_Type
+                       | I_Signedbv_Type);
       --  The compared expressions (value and bound) have to be of the
       --  same type
       if Get_Width (Bound_Type) > Get_Width (Value_Expr_Type)
