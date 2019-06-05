@@ -1,0 +1,3 @@
+[assertion.1] Range Check: SUCCESS
+[1] file test.adb line 7 assertion: SUCCESS
+VERIFICATION SUCCESSFUL
