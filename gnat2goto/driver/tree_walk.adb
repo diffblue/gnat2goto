@@ -4634,18 +4634,16 @@ package body Tree_Walk is
          Entity_Esize : constant Uint := Esize (Entity (N));
          Target_Type_Irep : constant Irep :=
            Follow_Symbol_Type (Get_Type (Target_Name), Global_Symbol_Table);
-         Expression_Value : constant Uint := Intval (Expression (N));
       begin
          pragma Assert (Kind (Target_Type_Irep) in Class_Type);
          if Attr_Id = "size" then
-
             --  Just check that the front-end already applied this size
             --  clause, i .e. that the size of type-irep we already had
             --  equals the entity type this clause is applied to (and the
             --  size specified in this clause).
             pragma Assert (Entity_Esize =
                              UI_From_Int (Int (Get_Width (Target_Type_Irep)))
-                           and Entity_Esize = Expression_Value);
+                           and Entity_Esize = Intval (Expression (N)));
             return;
          elsif Attr_Id = "component_size" then
             if not Is_Array_Type (Entity (N)) then
@@ -4661,6 +4659,7 @@ package body Tree_Walk is
                                      Global_Symbol_Table);
                Target_Subtype_Width : constant Uint :=
                  UI_From_Int (Int (Get_Width (Target_Subtype)));
+               Expression_Value : constant Uint := Intval (Expression (N));
             begin
                if Component_Size (Entity (N)) /= Expression_Value or
                  Target_Subtype_Width /= Expression_Value
@@ -4671,10 +4670,77 @@ package body Tree_Walk is
                end if;
             end;
             return;
-         end if;
 
-         Report_Unhandled_Node_Empty (N, "Process_Declaration",
+         elsif Attr_Id = "address" then
+            --  Assuming this Ada code:
+            --------------------
+            --  Var : VarType;
+            --  for Var'Address use System'To_Address (hex_address);
+            --------------------
+            --
+            --  Produce this C code:
+            --------------------
+            --  VarType *Ptr_Var;
+            --  Ptr_Var = (VarType*)hex_address;
+            --------------------
+            pragma Assert (Global_Symbol_Table.Contains (Intern
+                           (Get_Identifier (Target_Name))));
+
+            declare
+               Source_Loc : constant Source_Ptr := Sloc (N);
+               function Get_Address_Expr return Irep;
+               function Get_Address_Expr return Irep is
+               begin
+                  if Nkind (Expression (N)) = N_Function_Call then
+                     declare
+                        Parameters : constant List_Id :=
+                          Parameter_Associations (Expression (N));
+                     begin
+                        pragma Assert (not Is_Empty_List (Parameters) and then
+                               Nkind (First (Parameters)) = N_Integer_Literal);
+                        return
+                          Integer_Constant_To_Expr
+                            (Value           => Intval (First (Parameters)),
+                             Expr_Type       => CProver_Size_T,
+                             Type_Width      => Size_T_Width,
+                             Source_Location => Source_Loc);
+                     end;
+                  else
+                     return Do_Expression (Expression (N));
+                  end if;
+               end Get_Address_Expr;
+
+               Address_Expr : constant Irep := Get_Address_Expr;
+               Address_Type : constant Irep :=
+                 Make_Pointer_Type (Target_Type_Irep);
+               Lhs_Expr : constant Irep :=
+                 Make_Symbol_Expr (Source_Location => Source_Loc,
+                                   I_Type          => Address_Type,
+                                   Range_Check     => False,
+                                   Identifier      =>
+                                     "Ptr_" & Get_Identifier (Target_Name));
+               Rhs_Expr : constant Irep :=
+                 Typecast_If_Necessary (Expr     => Address_Expr,
+                                        New_Type => Address_Type,
+                                        A_Symbol_Table => Global_Symbol_Table);
+            begin
+               New_Object_Symbol_Entry
+                 (Object_Name       =>
+                    Intern ("Ptr_" & Get_Identifier (Target_Name)),
+                  Object_Type       => Address_Type,
+                  Object_Init_Value => Rhs_Expr,
+                  A_Symbol_Table    => Global_Symbol_Table);
+               Append_Declare_And_Init (Symbol     => Lhs_Expr,
+                                        Value      => Rhs_Expr,
+                                        Block      => Block,
+                                        Source_Loc => Source_Loc);
+               Addressed_Variables.Append (
+                     new String'(Get_Identifier (Target_Name)));
+            end;
+         else
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
                               "Representation clause unsupported: " & Attr_Id);
+         end if;
       end Handle_Representation_Clause;
 
    begin

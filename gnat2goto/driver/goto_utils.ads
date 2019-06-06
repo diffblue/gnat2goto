@@ -4,6 +4,7 @@ with Atree;             use Atree;
 with Sinfo;             use Sinfo;
 with Symbol_Table_Info; use Symbol_Table_Info;
 with Uintp;                 use Uintp;
+with GNAT.Table;
 
 package GOTO_Utils is
 
@@ -18,6 +19,15 @@ package GOTO_Utils is
    --  ??? this should be queried at runtime from GNAT
 
    Synthetic_Variable_Counter : Positive := 1;
+
+   type String_Access is access String;
+
+   package Addressed_Variables is new
+     GNAT.Table (Table_Component_Type => String_Access,
+            Table_Index_Type     => Natural,
+            Table_Low_Bound      => 1,
+            Table_Initial        => 1,
+            Table_Increment      => 20);
 
    function Fresh_Var_Name (Infix : String) return String;
    function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep;
