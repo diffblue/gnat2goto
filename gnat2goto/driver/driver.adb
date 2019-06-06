@@ -705,10 +705,20 @@ package body Driver is
          begin
             Modified_Symbol.SymType :=
               Remove_Extra_Type_Information
-              (Follow_Irep (SymType, Follow_Symbol'Access));
+                (Follow_Irep (SymType, Follow_Symbol'Access));
+            for K in 1 .. Addressed_Variables.Last loop
+               Modified_Symbol.SymType := Wrap_Pointer
+                 (Modified_Symbol.SymType,
+                  Addressed_Variables.Table (K).all);
+            end loop;
             Modified_Symbol.Value :=
-              Remove_Extra_Type_Information
-              (Follow_Irep (Value, Follow_Symbol'Access));
+                 Remove_Extra_Type_Information
+                    (Follow_Irep (Value, Follow_Symbol'Access));
+            for K in 1 .. Addressed_Variables.Last loop
+               Modified_Symbol.Value := Wrap_Pointer
+                 (Modified_Symbol.Value,
+                  Addressed_Variables.Table (K).all);
+            end loop;
 
             New_Table.Insert
                  (Key      => Symbol_Maps.Key (Sym_Iter),

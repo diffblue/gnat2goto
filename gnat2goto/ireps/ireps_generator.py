@@ -368,6 +368,25 @@ class IrepsGenerator(object):
                 write(b, "Integer (Follow_Irep (Irep (%s), Follow_Symbol));" % tbl_field)
         return needs_null
 
+    def wrap_pointer_set_all_subs(self, b, sn, subs, i, needs_null):
+        needs_null = False
+        setter_name, is_list = subs[i]
+        layout_kind, layout_index, layout_typ =\
+            self.layout[sn][setter_name]
+        tbl_index = ada_component_name(layout_kind,
+                                       layout_index)
+        tbl_field = "N." + tbl_index
+        if is_list:
+            assert len(subs) == 1
+            write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+            with indent(b):
+                write(b, "Integer (Wrap_Pointer (Irep_List (%s), Name));" % tbl_field)
+        else:
+            write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+            with indent(b):
+                write(b, "Integer (Wrap_Pointer (Irep (%s), Name));" % tbl_field)
+        return needs_null
+
     def remove_extra_type_information_set_all_subs(self, b, sn, subs, i, needs_null):
         needs_null = False
         setter_name, is_list = subs[i]
@@ -441,6 +460,26 @@ class IrepsGenerator(object):
                     write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
                     with indent(b):
                         write(b, "Integer (Follow_Irep (Irep (%s), Follow_Symbol));" % tbl_field)
+                    needs_null = False
+        return needs_null
+
+    def wrap_pointer_set_all_namedsubs_and_comments(self, b, sn, setter_name, needs_null):
+        needs_null = True
+        for kind in self.named_setters[setter_name]:
+            assert kind in ("irep", "list", "trivial")
+            if sn in self.named_setters[setter_name][kind]:
+                is_comment, _, _ =\
+                    self.named_setters[setter_name][kind][sn]
+                layout_kind, layout_index, layout_typ =\
+                    self.layout[sn][setter_name]
+                tbl_index = ada_component_name(layout_kind,
+                                               layout_index)
+                tbl_field = "N." + tbl_index
+
+                if kind == "irep":
+                    write(b, "Irep_Table.Table (I).%s :=" % tbl_index)
+                    with indent(b):
+                        write(b, "Integer (Wrap_Pointer (Irep (%s), Name));" % tbl_field)
                     needs_null = False
         return needs_null
 
@@ -525,6 +564,28 @@ class IrepsGenerator(object):
                 # Set all namedSub and comments
                 for setter_name in self.named_setters:
                     needs_null = self.follow_irep_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
+
+                if needs_null:
+                    write(b, "null;")
+                write(b, "")
+
+    def wrap_pointer_single_schema_name(self, b, sn):
+        schema = self.schemata[sn]
+        with indent(b):
+            write(b, "when %s =>" % schema["ada_name"])
+            with indent(b):
+                # the ensuing case analysis may end up doing nothing for some irep kinds
+                # in Ada cases cannot be empty hence we insert null statement if necessary
+                needs_null = True
+
+                # Set all subs
+                subs = self.collect_subs(sn)
+                for i in xrange(len(subs)):
+                    needs_null = self.wrap_pointer_set_all_subs(b, sn, subs, i, needs_null)
+
+                # Set all namedSub and comments
+                for setter_name in self.named_setters:
+                    needs_null = self.wrap_pointer_set_all_namedsubs_and_comments(b, sn, setter_name, needs_null)
 
                 if needs_null:
                     write(b, "null;")
@@ -1813,6 +1874,10 @@ class IrepsGenerator(object):
         write(s, "--  Replace Symbol Types")
         write(s, "")
 
+        write(s, "function Wrap_Pointer (I : Irep; Name : String) return Irep;")
+        write(s, "--  Increase Pointer Depth")
+        write(s, "")
+
         write(s, "function Remove_Extra_Type_Information (I : Irep) return Irep;")
         write(s, "--  Remove Type Bounds")
         write(s, "")
@@ -1827,6 +1892,10 @@ class IrepsGenerator(object):
         with indent(b):
             write(b, "return Irep) return Irep_List;")
         write(b, "--  Replace Symbol Types")
+        write(b, "")
+
+        write(b, "function Wrap_Pointer (L : Irep_List; Name : String) return Irep_List;")
+        write(b, "--  Increase Pointer Depth")
         write(b, "")
 
         write(b, "function Remove_Extra_Type_Information (L : Irep_List) return Irep_List;")
@@ -1876,6 +1945,11 @@ class IrepsGenerator(object):
         write(b, "function Follow_Irep (L : Irep_List;")
         write(b, "Follow_Symbol : not null access function (Symbol_I : Irep)")
         write(b, "return Irep) return Irep_List")
+        write(b, "is separate;")
+        continuation(b)
+        write(b, "")
+
+        write(b, "function Wrap_Pointer (L : Irep_List; Name : String) return Irep_List")
         write(b, "is separate;")
         continuation(b)
         write(b, "")
@@ -2034,6 +2108,47 @@ class IrepsGenerator(object):
         write(b, "return I;")
         manual_outdent(b)
         write(b, "end Follow_Irep;")
+        write(b, "")
+
+        write_comment_block(b, "Wrap_Pointer")
+        write(b, "function Wrap_Pointer (I : Irep; Name : String) return Irep")
+        write(b, "is")
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "if I = 0 then")
+        with indent(b):
+            write(b, "return I;")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "if Kind (I) = I_Code_Decl then")
+        with indent(b):
+            write(b, "return I;")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "if Kind (I) = I_Symbol_Expr and then Get_Identifier (I) = Name")
+        write(b, "then")
+        with indent(b):
+            write(b, "return Make_Dereference_Expr (Make_Symbol_Expr (Get_Source_Location (I),")
+            with indent(b):
+                write(b, "Make_Pointer_Type (Get_Type (I), 64), False, \"Ptr_\" & Name),")
+                write(b, "Get_Source_Location (I), Get_Type (I));")
+        write(b, "end if;")
+        write(b, "")
+        write(b, "declare")
+        with indent(b):
+            write(b, "N : Irep_Node renames Irep_Table.Table (I);")
+        write(b, "begin")
+        manual_indent(b)
+        write(b, "case N.Kind is")
+
+        for sn in self.top_sorted_sn:
+            self.wrap_pointer_single_schema_name(b, sn)
+        write(b, "end case;")
+        manual_outdent(b)
+        write(b, "end;")
+        write(b, "return I;")
+        manual_outdent(b)
+        write(b, "end Wrap_Pointer;")
         write(b, "")
 
         write_comment_block(b, "Remove_Extra_Type_Information")
