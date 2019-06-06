@@ -260,6 +260,29 @@ package body Driver is
                Source_Location => No_Location));
       end Initialize_CProver_Malloc_Object;
 
+      procedure Initialize_CProver_Memory;
+      procedure Initialize_CProver_Memory is
+         Memory_Type : constant Irep := Make_Pointer_Type
+           (I_Subtype => Make_Void_Type,
+            Width => Pointer_Type_Width);
+         Memory_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Memory_Type,
+            Identifier => "__CPROVER_memory",
+            Source_Location => No_Location);
+         Memory_Val : constant Irep := Integer_Constant_To_BV_Expr
+           (Value => Uint_0,
+            Expr_Type => Memory_Type,
+            Source_Location => No_Location);
+      begin
+         Declare_Missing_Global (Memory_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+             (Lhs => Memory_Sym,
+              Rhs => Memory_Val,
+              Source_Location => No_Location));
+      end Initialize_CProver_Memory;
+
       procedure Initialize_Enum_Values;
       procedure Initialize_Enum_Values is
 
@@ -348,6 +371,7 @@ package body Driver is
       Initialize_CProver_Dead_Object;
       Initialize_CProver_Deallocated;
       Initialize_CProver_Malloc_Object;
+      Initialize_CProver_Memory;
       Initialize_Enum_Values;
       Initialize_Boolean_Values;
    end Initialize_CProver_Internal_Variables;
