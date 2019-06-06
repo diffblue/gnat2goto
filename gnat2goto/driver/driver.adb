@@ -200,7 +200,7 @@ package body Driver is
            (I_Type => Dead_Object_Type,
             Identifier => "__CPROVER_dead_object",
             Source_Location => No_Location);
-         Dead_Object_Val : constant Irep := Integer_Constant_To_Expr
+         Dead_Object_Val : constant Irep := Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Dead_Object_Type,
             Source_Location => No_Location);
@@ -223,7 +223,7 @@ package body Driver is
            (I_Type => Deallocated_Type,
             Identifier => "__CPROVER_deallocated",
             Source_Location => No_Location);
-         Deallocated_Val : constant Irep := Integer_Constant_To_Expr
+         Deallocated_Val : constant Irep := Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Deallocated_Type,
             Source_Location => No_Location);
@@ -246,7 +246,7 @@ package body Driver is
            (I_Type => Malloc_Object_Type,
             Identifier => "__CPROVER_malloc_object",
             Source_Location => No_Location);
-         Malloc_Object_Val : constant Irep := Integer_Constant_To_Expr
+         Malloc_Object_Val : constant Irep := Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Malloc_Object_Type,
             Source_Location => No_Location);

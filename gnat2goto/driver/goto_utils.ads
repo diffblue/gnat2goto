@@ -14,7 +14,7 @@ package GOTO_Utils is
    --  Utility routines for high-level GOTO AST construction
 
    Pointer_Type_Width : constant Positive := 64;
-   Size_T_Width : constant Int := 64;
+   Size_T_Width : constant Integer := 64;
    --  ??? this should be queried at runtime from GNAT
 
    Synthetic_Variable_Counter : Positive := 1;
@@ -129,7 +129,8 @@ package GOTO_Utils is
    function Float_Mantissa_Size (Float_Type : Irep) return Integer;
 
    function Build_Index_Constant (Value : Int;
-                                  Source_Loc : Source_Ptr) return Irep;
+                                  Source_Loc : Source_Ptr) return Irep
+     with Post => Kind (Build_Index_Constant'Result) = I_Constant_Expr;
 
    function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
 
@@ -140,13 +141,22 @@ package GOTO_Utils is
    --  checks whether an entity has a certain GNAT2goto annotation.
    --  This can be either an aspect, or a pragma.
 
-   function Integer_Constant_To_Expr
+   function Integer_Constant_To_BV_Expr
      (Value : Uint;
       Expr_Type : Irep;
       Source_Location : Source_Ptr)
    return Irep
    with Pre => Kind (Expr_Type) in Class_Bitvector_Type,
-        Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
+     Post => Kind (Integer_Constant_To_BV_Expr'Result) = I_Constant_Expr;
+
+   function Integer_Constant_To_Expr
+     (Value : Uint;
+      Expr_Type : Irep;
+      Type_Width : Integer;
+      Source_Location : Source_Ptr)
+      return Irep
+     with Pre => Kind (Expr_Type) in Class_Type,
+     Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
 
    function Make_Simple_Side_Effect_Expr_Function_Call
      (Arguments : Irep_Array;

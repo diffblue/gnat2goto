@@ -354,14 +354,9 @@ package body GOTO_Utils is
    function Build_Index_Constant (Value : Int; Source_Loc : Source_Ptr)
                                   return Irep
    is
-      Value_Hex : constant String :=
-        Convert_Uint_To_Hex (Value     => UI_From_Int (Value),
-                             Bit_Width => Size_T_Width);
    begin
-      return Make_Constant_Expr (Source_Location => Source_Loc,
-                                 I_Type          => CProver_Size_T,
-                                 Range_Check     => False,
-                                 Value           => Value_Hex);
+      return Integer_Constant_To_Expr (UI_From_Int (Value), CProver_Size_T,
+                                       Size_T_Width, Source_Loc);
    end Build_Index_Constant;
 
    function Build_Array_Size (First : Irep; Last : Irep) return Irep
@@ -503,14 +498,25 @@ package body GOTO_Utils is
       return False;
    end Has_GNAT2goto_Annotation;
 
+   function Integer_Constant_To_BV_Expr
+     (Value : Uint;
+      Expr_Type : Irep;
+      Source_Location : Source_Ptr)
+      return Irep is
+   begin
+      return Integer_Constant_To_Expr (Value, Expr_Type, Get_Width (Expr_Type),
+                                       Source_Location);
+   end Integer_Constant_To_BV_Expr;
+
    function Integer_Constant_To_Expr
      (Value : Uint;
       Expr_Type : Irep;
+      Type_Width : Integer;
       Source_Location : Source_Ptr)
    return Irep is
       Value_Hex : constant String := Convert_Uint_To_Hex
         (Value => Value,
-         Bit_Width => Pos (Get_Width (Expr_Type)));
+         Bit_Width => Pos (Type_Width));
    begin
       return Make_Constant_Expr
         (Source_Location => Source_Location,

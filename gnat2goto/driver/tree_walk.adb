@@ -3203,14 +3203,14 @@ package body Tree_Walk is
       Expon_Divisible_By_Two : constant Irep := Make_Op_Eq
         (Lhs => Make_Op_Mod
            (Lhs => Exponent_Sym,
-            Rhs => Integer_Constant_To_Expr
+            Rhs => Integer_Constant_To_BV_Expr
               (Value => Uint_2,
                Expr_Type => Exponent_Type,
                Source_Location => Source_Location),
             Source_Location => Source_Location,
             Div_By_Zero_Check => False,
             I_Type => Exponent_Type),
-         Rhs => Integer_Constant_To_Expr
+         Rhs => Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Exponent_Type,
             Source_Location => Source_Location),
@@ -3218,7 +3218,7 @@ package body Tree_Walk is
          Source_Location => Source_Location);
       Expon_Greater_Zero : constant Irep := Make_Op_Gt
         (Lhs => Exponent_Sym,
-         Rhs => Integer_Constant_To_Expr
+         Rhs => Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Exponent_Type,
             Source_Location => Source_Location),
@@ -3226,7 +3226,7 @@ package body Tree_Walk is
          I_Type => Make_Bool_Type);
       Set_Expon_Result_To_One : constant Irep := Make_Code_Assign
         (Lhs => Expon_Result,
-         Rhs => Integer_Constant_To_Expr
+         Rhs => Integer_Constant_To_BV_Expr
            (Value => Uint_1,
             Expr_Type => Mod_Type,
             Source_Location => Source_Location),
@@ -3243,7 +3243,7 @@ package body Tree_Walk is
         (Lhs => Exponent_Sym,
          Rhs => Make_Op_Div
            (Lhs => Exponent_Sym,
-            Rhs => Integer_Constant_To_Expr
+            Rhs => Integer_Constant_To_BV_Expr
               (Value => Uint_2,
                Expr_Type => Exponent_Type,
                Source_Location => Source_Location),
@@ -3263,7 +3263,7 @@ package body Tree_Walk is
         (Lhs => Exponent_Sym,
          Rhs => Make_Op_Sub
            (Lhs => Exponent_Sym,
-            Rhs => Integer_Constant_To_Expr
+            Rhs => Integer_Constant_To_BV_Expr
               (Value => Uint_1,
                Expr_Type => Exponent_Type,
                Source_Location => Source_Location),
