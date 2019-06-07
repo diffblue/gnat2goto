@@ -384,6 +384,12 @@ package body Tree_Walk is
                  and then List_Length (Expressions (N)) = 1),
           Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
 
+   function Do_Attribute_Address (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Address),
+     Post => Kind (Do_Attribute_Address'Result) in Class_Expr;
+
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
                                             Element_Type_Size : Uint;
                                             Source_Loc : Source_Ptr)
@@ -1358,6 +1364,12 @@ package body Tree_Walk is
                           I_Type          => Result_Type);
    end Do_Attribute_Succ_Discrete;
 
+   function Do_Attribute_Address (N : Node_Id) return Irep is
+      Arg_Expr : constant Irep := Do_Expression (Prefix (N));
+   begin
+      return Make_Address_Of (Arg_Expr);
+   end Do_Attribute_Address;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1399,6 +1411,8 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
+               when Attribute_Address =>
+                  return Do_Attribute_Address (N);
                when others           =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Unknown attribute");
