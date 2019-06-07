@@ -4,6 +4,7 @@ with Atree;             use Atree;
 with Sinfo;             use Sinfo;
 with Symbol_Table_Info; use Symbol_Table_Info;
 with Uintp;                 use Uintp;
+with GNAT.Table;
 
 package GOTO_Utils is
 
@@ -14,10 +15,21 @@ package GOTO_Utils is
    --  Utility routines for high-level GOTO AST construction
 
    Pointer_Type_Width : constant Positive := 64;
-   Size_T_Width : constant Int := 64;
+   Size_T_Width : constant Integer := 64;
    --  ??? this should be queried at runtime from GNAT
 
    Synthetic_Variable_Counter : Positive := 1;
+
+   type String_Access is access String;
+
+   function Is_Prefix (Prefix : String; Base_String : String) return Boolean;
+
+   package Addressed_Variables is new
+     GNAT.Table (Table_Component_Type => String_Access,
+            Table_Index_Type     => Natural,
+            Table_Low_Bound      => 1,
+            Table_Initial        => 1,
+            Table_Increment      => 20);
 
    function Fresh_Var_Name (Infix : String) return String;
    function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep;
@@ -51,8 +63,10 @@ package GOTO_Utils is
 
    procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
                                           Subprog_Type : Irep;
+                                          Subprog_Body : Irep;
                                           A_Symbol_Table : in out Symbol_Table)
-   with Pre => Kind (Subprog_Type) = I_Code_Type;
+     with Pre => Kind (Subprog_Type) = I_Code_Type
+     and Kind (Subprog_Body) in I_Nil | I_Code_Block;
    --  Insert the subprogram specification into the symbol table
 
    procedure New_Type_Symbol_Entry (Type_Name : Symbol_Id; Type_Of_Type : Irep;
@@ -104,6 +118,10 @@ package GOTO_Utils is
                   and then Kind (Func_Params) = I_Parameter_List
                   and then Kind (FBody) in Class_Code);
 
+   function Build_Identity_Body (Parameters : Irep) return Irep
+     with Pre => Kind (Parameters) = I_Parameter_List,
+     Post => Kind (Build_Identity_Body'Result) = I_Code_Block;
+
    function Build_Array_Size (Array_Comp : Irep) return Irep
      with Pre => Kind (Array_Comp) in Class_Expr,
      Post => Kind (Build_Array_Size'Result) = I_Op_Add;
@@ -129,7 +147,8 @@ package GOTO_Utils is
    function Float_Mantissa_Size (Float_Type : Irep) return Integer;
 
    function Build_Index_Constant (Value : Int;
-                                  Source_Loc : Source_Ptr) return Irep;
+                                  Source_Loc : Source_Ptr) return Irep
+     with Post => Kind (Build_Index_Constant'Result) = I_Constant_Expr;
 
    function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
 
@@ -140,13 +159,22 @@ package GOTO_Utils is
    --  checks whether an entity has a certain GNAT2goto annotation.
    --  This can be either an aspect, or a pragma.
 
-   function Integer_Constant_To_Expr
+   function Integer_Constant_To_BV_Expr
      (Value : Uint;
       Expr_Type : Irep;
       Source_Location : Source_Ptr)
    return Irep
    with Pre => Kind (Expr_Type) in Class_Bitvector_Type,
-        Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
+     Post => Kind (Integer_Constant_To_BV_Expr'Result) = I_Constant_Expr;
+
+   function Integer_Constant_To_Expr
+     (Value : Uint;
+      Expr_Type : Irep;
+      Type_Width : Integer;
+      Source_Location : Source_Ptr)
+      return Irep
+     with Pre => Kind (Expr_Type) in Class_Type,
+     Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
 
    function Make_Simple_Side_Effect_Expr_Function_Call
      (Arguments : Irep_Array;

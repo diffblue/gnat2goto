@@ -30,6 +30,18 @@ package body GOTO_Utils is
       return R;
    end Make_Address_Of;
 
+   function Is_Prefix (Prefix : String; Base_String : String) return Boolean
+   is
+   begin
+      if Prefix'Length < Base_String'Length and then
+        Prefix = Base_String (Base_String'First .. Prefix'Length)
+      then
+         return True;
+      else
+         return False;
+      end if;
+   end Is_Prefix;
+
    -------------------
    -- Make_Int_Type --
    -------------------
@@ -141,6 +153,7 @@ package body GOTO_Utils is
 
    procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
                                           Subprog_Type : Irep;
+                                          Subprog_Body : Irep;
                                           A_Symbol_Table : in out Symbol_Table)
    is
       Subprog_Symbol : Symbol;
@@ -150,7 +163,7 @@ package body GOTO_Utils is
       Subprog_Symbol.PrettyName := Subprog_Name;
       Subprog_Symbol.SymType    := Subprog_Type;
       Subprog_Symbol.Mode       := Intern ("C");
-      Subprog_Symbol.Value      := Make_Nil (No_Location);
+      Subprog_Symbol.Value      := Subprog_Body;
 
       A_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
    end New_Subprogram_Symbol_Entry;
@@ -351,17 +364,29 @@ package body GOTO_Utils is
                                         A_Symbol_Table => A_Symbol_Table);
    end Build_Function;
 
+   function Build_Identity_Body (Parameters : Irep) return Irep
+   is
+      Parameter_List : constant Irep_List := Get_Parameter (Parameters);
+      First_Cursor : constant List_Cursor := List_First (Parameter_List);
+      Body_Block : constant Irep :=
+        Make_Code_Block (Source_Location => No_Location,
+                         I_Type          => Make_Nil_Type);
+   begin
+      pragma Assert (List_Has_Element (Parameter_List, First_Cursor));
+      Append_Op (Body_Block,
+                 Make_Code_Return (Return_Value    =>
+                    Param_Symbol (List_Element (Parameter_List, First_Cursor)),
+                                   Source_Location => No_Location,
+                                   I_Type          => Make_Nil_Type));
+      return Body_Block;
+   end Build_Identity_Body;
+
    function Build_Index_Constant (Value : Int; Source_Loc : Source_Ptr)
                                   return Irep
    is
-      Value_Hex : constant String :=
-        Convert_Uint_To_Hex (Value     => UI_From_Int (Value),
-                             Bit_Width => Size_T_Width);
    begin
-      return Make_Constant_Expr (Source_Location => Source_Loc,
-                                 I_Type          => CProver_Size_T,
-                                 Range_Check     => False,
-                                 Value           => Value_Hex);
+      return Integer_Constant_To_Expr (UI_From_Int (Value), CProver_Size_T,
+                                       Size_T_Width, Source_Loc);
    end Build_Index_Constant;
 
    function Build_Array_Size (First : Irep; Last : Irep) return Irep
@@ -503,14 +528,25 @@ package body GOTO_Utils is
       return False;
    end Has_GNAT2goto_Annotation;
 
+   function Integer_Constant_To_BV_Expr
+     (Value : Uint;
+      Expr_Type : Irep;
+      Source_Location : Source_Ptr)
+      return Irep is
+   begin
+      return Integer_Constant_To_Expr (Value, Expr_Type, Get_Width (Expr_Type),
+                                       Source_Location);
+   end Integer_Constant_To_BV_Expr;
+
    function Integer_Constant_To_Expr
      (Value : Uint;
       Expr_Type : Irep;
+      Type_Width : Integer;
       Source_Location : Source_Ptr)
    return Irep is
       Value_Hex : constant String := Convert_Uint_To_Hex
         (Value => Value,
-         Bit_Width => Pos (Get_Width (Expr_Type)));
+         Bit_Width => Pos (Type_Width));
    begin
       return Make_Constant_Expr
         (Source_Location => Source_Location,

@@ -23,7 +23,7 @@ Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 42 times
+Occurs: 39 times
 Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference

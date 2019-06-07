@@ -384,6 +384,12 @@ package body Tree_Walk is
                  and then List_Length (Expressions (N)) = 1),
           Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
 
+   function Do_Attribute_Address (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Address),
+     Post => Kind (Do_Attribute_Address'Result) in Class_Expr;
+
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
                                             Element_Type_Size : Uint;
                                             Source_Loc : Source_Ptr)
@@ -1358,6 +1364,12 @@ package body Tree_Walk is
                           I_Type          => Result_Type);
    end Do_Attribute_Succ_Discrete;
 
+   function Do_Attribute_Address (N : Node_Id) return Irep is
+      Arg_Expr : constant Irep := Do_Expression (Prefix (N));
+   begin
+      return Make_Address_Of (Arg_Expr);
+   end Do_Attribute_Address;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1399,6 +1411,8 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
+               when Attribute_Address =>
+                  return Do_Attribute_Address (N);
                when others           =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Unknown attribute");
@@ -3203,14 +3217,14 @@ package body Tree_Walk is
       Expon_Divisible_By_Two : constant Irep := Make_Op_Eq
         (Lhs => Make_Op_Mod
            (Lhs => Exponent_Sym,
-            Rhs => Integer_Constant_To_Expr
+            Rhs => Integer_Constant_To_BV_Expr
               (Value => Uint_2,
                Expr_Type => Exponent_Type,
                Source_Location => Source_Location),
             Source_Location => Source_Location,
             Div_By_Zero_Check => False,
             I_Type => Exponent_Type),
-         Rhs => Integer_Constant_To_Expr
+         Rhs => Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Exponent_Type,
             Source_Location => Source_Location),
@@ -3218,7 +3232,7 @@ package body Tree_Walk is
          Source_Location => Source_Location);
       Expon_Greater_Zero : constant Irep := Make_Op_Gt
         (Lhs => Exponent_Sym,
-         Rhs => Integer_Constant_To_Expr
+         Rhs => Integer_Constant_To_BV_Expr
            (Value => Uint_0,
             Expr_Type => Exponent_Type,
             Source_Location => Source_Location),
@@ -3226,7 +3240,7 @@ package body Tree_Walk is
          I_Type => Make_Bool_Type);
       Set_Expon_Result_To_One : constant Irep := Make_Code_Assign
         (Lhs => Expon_Result,
-         Rhs => Integer_Constant_To_Expr
+         Rhs => Integer_Constant_To_BV_Expr
            (Value => Uint_1,
             Expr_Type => Mod_Type,
             Source_Location => Source_Location),
@@ -3243,7 +3257,7 @@ package body Tree_Walk is
         (Lhs => Exponent_Sym,
          Rhs => Make_Op_Div
            (Lhs => Exponent_Sym,
-            Rhs => Integer_Constant_To_Expr
+            Rhs => Integer_Constant_To_BV_Expr
               (Value => Uint_2,
                Expr_Type => Exponent_Type,
                Source_Location => Source_Location),
@@ -3263,7 +3277,7 @@ package body Tree_Walk is
         (Lhs => Exponent_Sym,
          Rhs => Make_Op_Sub
            (Lhs => Exponent_Sym,
-            Rhs => Integer_Constant_To_Expr
+            Rhs => Integer_Constant_To_BV_Expr
               (Value => Uint_1,
                Expr_Type => Exponent_Type,
                Source_Location => Source_Location),
@@ -4634,18 +4648,16 @@ package body Tree_Walk is
          Entity_Esize : constant Uint := Esize (Entity (N));
          Target_Type_Irep : constant Irep :=
            Follow_Symbol_Type (Get_Type (Target_Name), Global_Symbol_Table);
-         Expression_Value : constant Uint := Intval (Expression (N));
       begin
          pragma Assert (Kind (Target_Type_Irep) in Class_Type);
          if Attr_Id = "size" then
-
             --  Just check that the front-end already applied this size
             --  clause, i .e. that the size of type-irep we already had
             --  equals the entity type this clause is applied to (and the
             --  size specified in this clause).
             pragma Assert (Entity_Esize =
                              UI_From_Int (Int (Get_Width (Target_Type_Irep)))
-                           and Entity_Esize = Expression_Value);
+                           and Entity_Esize = Intval (Expression (N)));
             return;
          elsif Attr_Id = "component_size" then
             if not Is_Array_Type (Entity (N)) then
@@ -4661,6 +4673,7 @@ package body Tree_Walk is
                                      Global_Symbol_Table);
                Target_Subtype_Width : constant Uint :=
                  UI_From_Int (Int (Get_Width (Target_Subtype)));
+               Expression_Value : constant Uint := Intval (Expression (N));
             begin
                if Component_Size (Entity (N)) /= Expression_Value or
                  Target_Subtype_Width /= Expression_Value
@@ -4671,10 +4684,77 @@ package body Tree_Walk is
                end if;
             end;
             return;
-         end if;
 
-         Report_Unhandled_Node_Empty (N, "Process_Declaration",
+         elsif Attr_Id = "address" then
+            --  Assuming this Ada code:
+            --------------------
+            --  Var : VarType;
+            --  for Var'Address use System'To_Address (hex_address);
+            --------------------
+            --
+            --  Produce this C code:
+            --------------------
+            --  VarType *Ptr_Var;
+            --  Ptr_Var = (VarType*)hex_address;
+            --------------------
+            pragma Assert (Global_Symbol_Table.Contains (Intern
+                           (Get_Identifier (Target_Name))));
+
+            declare
+               Source_Loc : constant Source_Ptr := Sloc (N);
+               function Get_Address_Expr return Irep;
+               function Get_Address_Expr return Irep is
+               begin
+                  if Nkind (Expression (N)) = N_Function_Call then
+                     declare
+                        Parameters : constant List_Id :=
+                          Parameter_Associations (Expression (N));
+                     begin
+                        pragma Assert (not Is_Empty_List (Parameters) and then
+                               Nkind (First (Parameters)) = N_Integer_Literal);
+                        return
+                          Integer_Constant_To_Expr
+                            (Value           => Intval (First (Parameters)),
+                             Expr_Type       => CProver_Size_T,
+                             Type_Width      => Size_T_Width,
+                             Source_Location => Source_Loc);
+                     end;
+                  else
+                     return Do_Expression (Expression (N));
+                  end if;
+               end Get_Address_Expr;
+
+               Address_Expr : constant Irep := Get_Address_Expr;
+               Address_Type : constant Irep :=
+                 Make_Pointer_Type (Target_Type_Irep);
+               Decorated_Name : constant String :=
+                 Decorate_Addressed_Variables (Get_Identifier (Target_Name));
+               Lhs_Expr : constant Irep :=
+                 Make_Symbol_Expr (Source_Location => Source_Loc,
+                                   I_Type          => Address_Type,
+                                   Range_Check     => False,
+                                   Identifier      => Decorated_Name);
+               Rhs_Expr : constant Irep :=
+                 Typecast_If_Necessary (Expr     => Address_Expr,
+                                        New_Type => Address_Type,
+                                        A_Symbol_Table => Global_Symbol_Table);
+            begin
+               New_Object_Symbol_Entry
+                 (Object_Name       => Intern (Decorated_Name),
+                  Object_Type       => Address_Type,
+                  Object_Init_Value => Rhs_Expr,
+                  A_Symbol_Table    => Global_Symbol_Table);
+               Append_Declare_And_Init (Symbol     => Lhs_Expr,
+                                        Value      => Rhs_Expr,
+                                        Block      => Block,
+                                        Source_Loc => Source_Loc);
+               Addressed_Variables.Append (
+                     new String'(Get_Identifier (Target_Name)));
+            end;
+         else
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
                               "Representation clause unsupported: " & Attr_Id);
+         end if;
       end Handle_Representation_Clause;
 
    begin
@@ -5378,9 +5458,17 @@ package body Tree_Walk is
         Do_Subprogram_Specification (N);
       Subprog_Name : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Unit_Name (N)));
+      Default_Body : Irep := Make_Nil (Sloc (N));
    begin
+      if List_Length (Parameter_Specifications (N)) = 1 and
+        not (Kind (Get_Return_Type (Subprog_Type)) = I_Void_Type) and
+        Is_Prefix ("system", Unique_Name (Defining_Unit_Name (N)))
+      then
+         Default_Body := Build_Identity_Body (Get_Parameters (Subprog_Type));
+      end if;
       New_Subprogram_Symbol_Entry (Subprog_Name   => Subprog_Name,
                                    Subprog_Type   => Subprog_Type,
+                                   Subprog_Body   => Default_Body,
                                    A_Symbol_Table => Global_Symbol_Table);
    end Register_Subprogram_Specification;
 
