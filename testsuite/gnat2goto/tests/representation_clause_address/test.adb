@@ -1,4 +1,4 @@
-with System;
+with System; use System;
 
 procedure Test is
    -- A 32 bit hardware register
@@ -8,4 +8,5 @@ procedure Test is
 begin
    Device_Input_Value := 5;
    pragma Assert (Device_Input_Value + 1 = 6);
+   pragma Assert (Device_Input_Value'Address = System'To_Address (16#8000_05C4#));
 end Test;
