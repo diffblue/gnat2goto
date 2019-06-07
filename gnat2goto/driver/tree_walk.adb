@@ -4713,20 +4713,20 @@ package body Tree_Walk is
                Address_Expr : constant Irep := Get_Address_Expr;
                Address_Type : constant Irep :=
                  Make_Pointer_Type (Target_Type_Irep);
+               Decorated_Name : constant String :=
+                 Decorate_Addressed_Variables (Get_Identifier (Target_Name));
                Lhs_Expr : constant Irep :=
                  Make_Symbol_Expr (Source_Location => Source_Loc,
                                    I_Type          => Address_Type,
                                    Range_Check     => False,
-                                   Identifier      =>
-                                     "Ptr_" & Get_Identifier (Target_Name));
+                                   Identifier      => Decorated_Name);
                Rhs_Expr : constant Irep :=
                  Typecast_If_Necessary (Expr     => Address_Expr,
                                         New_Type => Address_Type,
                                         A_Symbol_Table => Global_Symbol_Table);
             begin
                New_Object_Symbol_Entry
-                 (Object_Name       =>
-                    Intern ("Ptr_" & Get_Identifier (Target_Name)),
+                 (Object_Name       => Intern (Decorated_Name),
                   Object_Type       => Address_Type,
                   Object_Init_Value => Rhs_Expr,
                   A_Symbol_Table    => Global_Symbol_Table);

@@ -1878,6 +1878,10 @@ class IrepsGenerator(object):
         write(s, "--  Increase Pointer Depth")
         write(s, "")
 
+        write(s, "function Decorate_Addressed_Variables (Name : String) return String;")
+        write(s, "--  Create Decorated Name")
+        write(s, "")
+
         write(s, "function Remove_Extra_Type_Information (I : Irep) return Irep;")
         write(s, "--  Remove Type Bounds")
         write(s, "")
@@ -2130,7 +2134,8 @@ class IrepsGenerator(object):
         with indent(b):
             write(b, "return Make_Dereference_Expr (Make_Symbol_Expr (Get_Source_Location (I),")
             with indent(b):
-                write(b, "Make_Pointer_Type (Get_Type (I), 64), False, \"Ptr_\" & Name),")
+                write(b, "Make_Pointer_Type (Get_Type (I), 64), False,")
+                write(b, "Decorate_Addressed_Variables (Name)),")
                 write(b, "Get_Source_Location (I), Get_Type (I));")
         write(b, "end if;")
         write(b, "")
@@ -2149,6 +2154,15 @@ class IrepsGenerator(object):
         write(b, "return I;")
         manual_outdent(b)
         write(b, "end Wrap_Pointer;")
+        write(b, "")
+
+        write_comment_block(b, "Decorate_Addressed_Variables")
+        write(b, "function Decorate_Addressed_Variables (Name : String) return String")
+        write(b, "is")
+        write(b, "begin")
+        with indent(b):
+            write(b, "return Name & \"$Ptr\";")
+        write(b, "end Decorate_Addressed_Variables;")
         write(b, "")
 
         write_comment_block(b, "Remove_Extra_Type_Information")
