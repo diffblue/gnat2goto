@@ -30,6 +30,18 @@ package body GOTO_Utils is
       return R;
    end Make_Address_Of;
 
+   function Is_Prefix (Prefix : String; Base_String : String) return Boolean
+   is
+   begin
+      if Prefix'Length < Base_String'Length and then
+        Prefix = Base_String (Base_String'First .. Prefix'Length)
+      then
+         return True;
+      else
+         return False;
+      end if;
+   end Is_Prefix;
+
    -------------------
    -- Make_Int_Type --
    -------------------

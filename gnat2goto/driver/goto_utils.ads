@@ -22,6 +22,8 @@ package GOTO_Utils is
 
    type String_Access is access String;
 
+   function Is_Prefix (Prefix : String; Base_String : String) return Boolean;
+
    package Addressed_Variables is new
      GNAT.Table (Table_Component_Type => String_Access,
             Table_Index_Type     => Natural,
