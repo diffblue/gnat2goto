@@ -49,6 +49,11 @@ Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 9 times
+Calling function: Do_Function_Call
+Error message: func name not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 9 times
 Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Package_Declaration
@@ -77,11 +82,6 @@ Occurs: 7 times
 Calling function: Do_Constant
 Error message: Constant Type not in symbol table
 Nkind: N_Integer_Literal
---
-Occurs: 7 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
 --
 Occurs: 7 times
 Calling function: Do_Itype_Integer_Subtype

@@ -8,7 +8,7 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
 --
-Occurs: 102 times
+Occurs: 104 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
