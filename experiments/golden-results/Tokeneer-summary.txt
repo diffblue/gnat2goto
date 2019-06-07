@@ -1057,3 +1057,8 @@ Occurs: 1 times
 Redacted compiler error message:
 range must be preceded by subtype mark
 Raw compiler error message:
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
+| Error detected at system.ads:156:5                                       |
