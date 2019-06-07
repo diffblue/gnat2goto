@@ -1,3 +1,8 @@
+Occurs: 2 times
+Calling function: Do_Withed_Unit_Spec
+Error message: This type of library_unit is not yet handled
+Nkind: N_Generic_Subprogram_Declaration
+--
 Occurs: 32 times
 Redacted compiler error message:
 file "REDACTED" not found
