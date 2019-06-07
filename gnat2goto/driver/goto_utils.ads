@@ -63,8 +63,10 @@ package GOTO_Utils is
 
    procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
                                           Subprog_Type : Irep;
+                                          Subprog_Body : Irep;
                                           A_Symbol_Table : in out Symbol_Table)
-   with Pre => Kind (Subprog_Type) = I_Code_Type;
+     with Pre => Kind (Subprog_Type) = I_Code_Type
+     and Kind (Subprog_Body) in I_Nil | I_Code_Block;
    --  Insert the subprogram specification into the symbol table
 
    procedure New_Type_Symbol_Entry (Type_Name : Symbol_Id; Type_Of_Type : Irep;
@@ -115,6 +117,10 @@ package GOTO_Utils is
      with Pre => (Kind (RType) in Class_Type
                   and then Kind (Func_Params) = I_Parameter_List
                   and then Kind (FBody) in Class_Code);
+
+   function Build_Identity_Body (Parameters : Irep) return Irep
+     with Pre => Kind (Parameters) = I_Parameter_List,
+     Post => Kind (Build_Identity_Body'Result) = I_Code_Block;
 
    function Build_Array_Size (Array_Comp : Irep) return Irep
      with Pre => Kind (Array_Comp) in Class_Expr,

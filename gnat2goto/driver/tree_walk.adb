@@ -5458,9 +5458,17 @@ package body Tree_Walk is
         Do_Subprogram_Specification (N);
       Subprog_Name : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Unit_Name (N)));
+      Default_Body : Irep := Make_Nil (Sloc (N));
    begin
+      if List_Length (Parameter_Specifications (N)) = 1 and
+        not (Kind (Get_Return_Type (Subprog_Type)) = I_Void_Type) and
+        Is_Prefix ("system", Unique_Name (Defining_Unit_Name (N)))
+      then
+         Default_Body := Build_Identity_Body (Get_Parameters (Subprog_Type));
+      end if;
       New_Subprogram_Symbol_Entry (Subprog_Name   => Subprog_Name,
                                    Subprog_Type   => Subprog_Type,
+                                   Subprog_Body   => Default_Body,
                                    A_Symbol_Table => Global_Symbol_Table);
    end Register_Subprogram_Specification;
 
