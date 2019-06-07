@@ -4369,7 +4369,8 @@ package body Tree_Walk is
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
    begin
       if Defining_Entity (N) = Stand.Standard_Standard then
-         --  At the moment Standard is not processed: TODO
+         --  TODO: github issue #252
+         --  At the moment Standard is not processed
          null;
       else
          --  Handle all other withed library unit declarations
