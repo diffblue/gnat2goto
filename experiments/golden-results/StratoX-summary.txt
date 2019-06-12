@@ -8,7 +8,7 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
 --
-Occurs: 104 times
+Occurs: 105 times
 Calling function: Do_Function_Call
 Error message: func name not in symbol table
 Nkind: N_Function_Call
@@ -23,7 +23,7 @@ Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 42 times
+Occurs: 43 times
 Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
@@ -93,6 +93,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
 --
+Occurs: 10 times
+Calling function: Process_Statement
+Error message: Raise statement
+Nkind: N_Raise_Statement
+--
 Occurs: 9 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
@@ -102,11 +107,6 @@ Occurs: 9 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Elaborate Body
 Nkind: N_Pragma
---
-Occurs: 9 times
-Calling function: Process_Statement
-Error message: Raise statement
-Nkind: N_Raise_Statement
 --
 Occurs: 8 times
 Calling function: Process_Declaration
@@ -193,6 +193,11 @@ Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
 --
+Occurs: 2 times
+Calling function: Do_Function_Call
+Error message: function entity not defining identifier
+Nkind: N_Function_Call
+--
 Occurs: 1 times
 Calling function: Do_Compilation_Unit
 Error message: Unknown tree node
@@ -202,11 +207,6 @@ Occurs: 1 times
 Calling function: Do_Constant
 Error message: Constant Type not in Class_Bitvector_Type
 Nkind: N_Integer_Literal
---
-Occurs: 1 times
-Calling function: Do_Function_Call
-Error message: function entity not defining identifier
-Nkind: N_Function_Call
 --
 Occurs: 1 times
 Calling function: Do_Itype_Integer_Subtype

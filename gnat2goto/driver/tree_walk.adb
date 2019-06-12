@@ -1541,12 +1541,17 @@ package body Tree_Walk is
    begin
       --  TODO: Range expressions for non-bounded types are outside
       --        the scope of this PR
-      if Kind (Type_Of_Val) in I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
-      then
-         return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
-      else
-         return Typecast_Expr;
-      end if;
+      case Kind (Type_Of_Val) is
+         when I_Bounded_Signedbv_Type
+            | I_Bounded_Floatbv_Type
+            | I_Bounded_Unsignedbv_Type
+            | I_Unsignedbv_Type
+            | I_Signedbv_Type
+            | I_Bounded_Mod_Type =>
+            return Make_Range_Assert_Expr (N, Typecast_Expr, Type_Of_Val);
+         when others =>
+            return Typecast_Expr;
+      end case;
    end Do_Qualified_Expression;
 
    -----------------------------
@@ -1592,8 +1597,8 @@ package body Tree_Walk is
                Set_Lhs (Assume_And_Yield,
                         Make_Assume_Expr (N,
                           Make_Range_Expression (Sym_Nondet,
-                            Get_Bound (Followed_Type, Bound_Low),
-                            Get_Bound (Followed_Type, Bound_High))));
+                            Get_Bound (N, Followed_Type, Bound_Low),
+                            Get_Bound (N, Followed_Type, Bound_High))));
             else
                Set_Lhs (Assume_And_Yield,
                         Make_Assume_Expr (N,
