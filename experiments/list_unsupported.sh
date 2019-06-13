@@ -1,5 +1,16 @@
 #!/bin/sh
 
+# Usage info
+usage()
+{
+   echo "Usage:\n\nlist_unsupported.sh path_to_ada_source_folder\n"
+   echo "Run GNAT2Goto on an Ada repository.\n"
+   echo "The output is an ordered list of currently unsupported features"
+   echo "with the number of times they occur in the input repository.\n"
+   echo "The script builds a parsing program using collect_unsupported.cpp and expects"
+   echo "this file to be in the same folder.\n"
+}
+
 # First check some environment prerequisites
 echo >&2 "Checking environment..."
 
@@ -10,21 +21,6 @@ if ! command -v gnat2goto > /dev/null; then
   echo >&2 "Suggested adding gnat2goto to your PATH with the following command:"
   echo >&2 "  export PATH=\"${gnat2goto_bin}:\${PATH}\""
   exit 1
-fi
-
-if [ "$#" -ne 1 ]; then
-   echo >&2 "Provide folder name to start"
-   exit 2
-fi
-
-if [ "$1" = '--help' ]; then
-   echo "Run GNAT2Goto on an Ada repository.\n"
-   echo "The output is an ordered list of currently unsupported features"
-   echo "with the number of times they occur in the input repository.\n"
-   echo "The script builds a parsing program using collect_unsupported.cpp and expects"
-   echo "this file to be in the same folder.\n"
-   echo "Usage:\n\nlist_unsupported.sh path_to_ada_source_folder"
-   exit 3
 fi
 
 # gnat on the path?
@@ -93,6 +89,20 @@ fi
 export PATH="${saved_path}"
 
 echo >&2 "...environment is OK."
+
+
+# Command line processing....
+
+if [ "$1" = '--help' ]; then
+   usage
+   exit
+fi
+
+if [ "$#" -ne 1 ]; then
+   usage >&2
+   echo >&2 "Only a single folder name may be specified"
+   exit 2
+fi
 
 # Finally start work
 
