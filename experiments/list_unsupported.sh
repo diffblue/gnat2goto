@@ -27,21 +27,6 @@ if [ "$1" = '--help' ]; then
    exit 3
 fi
 
-echo >&2 "Project to build: $1"
-path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
-include_path=""
-file_name=$(basename "$1")
-
-for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
-   count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
-   if [ $count != 0 ]
-   then
-      include_path="${include_path} -I ${foldername}"
-   fi
-done
-
-echo "$1: Unsupported features\n" > "$file_name".txt
-
 # gnat on the path?
 if ! command -v gnat > /dev/null; then
    echo >&2 "Gnat not on PATH!"
@@ -110,6 +95,21 @@ export PATH="${saved_path}"
 echo >&2 "...environment is OK."
 
 # Finally start work
+
+echo >&2 "Project to build: $1"
+path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
+include_path=""
+file_name=$(basename "$1")
+
+for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
+   count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
+   if [ $count != 0 ]
+   then
+      include_path="${include_path} -I ${foldername}"
+   fi
+done
+
+echo "$1: Unsupported features\n" > "$file_name".txt
 
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
 for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
