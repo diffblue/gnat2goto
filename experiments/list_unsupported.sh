@@ -27,7 +27,6 @@ fi
 echo >&2 "Project to build: $1"
 path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 include_path=""
-DIR=`dirname "$0"`
 file_name=$(basename "$1")
 
 for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
@@ -88,7 +87,22 @@ else
       exit 9
    fi
 fi
+
+# Can we build the support tool?
+# Problem: GNAT 2016 helpfully installs a g++ binary alongside gnat... except
+# it's way out of date so invoking g++ via PATH looking will pickup that gnat g++
+# compiler, rather than the default system compiler... Instead we need to
+# temporarily drop the GNAT tools off the path while we build the tool.
+saved_path="$PATH"
+export PATH=$(echo ${PATH} | tr ':' '\n' | grep -v "${ADA_HOME}" | paste -s -d : - )
+experiment_dir=`dirname "$0"`
+gplusplus=`command -v g++`
+if ! ${gplusplus} --std=c++14 "${experiment_dir}/collect_unsupported.cpp" -o CollectUnsupported ; then
+   echo >&2 "Failed to compile support tool 'CollectUnsupported' using ${gplusplus}"
+   echo >&2 "You need a version of g++ on the PATH that supports C++14"
+   exit 8
 fi
+export PATH="${saved_path}"
 
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
 for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
@@ -153,7 +167,6 @@ sed '/^\[/ d' < "$file_name".txt | \
    > "$file_name"_redacted.txt
 
 # Collate and summarise unsupported features
-g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 LC_ALL=posix ./CollectUnsupported "$file_name".txt
 
 # Collate and summarize compile errors from builds that did not generate
