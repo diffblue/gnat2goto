@@ -1487,9 +1487,11 @@ package body Tree_Walk is
       --  (via `Register_Type_Declaration') when its
       --  private or incomplete_type_declaration was processed.
       --  If it has no private declaration or the Incomplete_View is not
-      --  present then the full_type_declaration has to be registered
+      --  present or it is a derived_type_definition
+      --  then the full_type_declaration has to be registered
       if not (Has_Private_Declaration (E)
               or else Present (Incomplete_View (N)))
+        or else Nkind (Type_Definition (N)) = N_Derived_Type_Definition
       then
          Do_Type_Declaration (New_Type, E);
 
