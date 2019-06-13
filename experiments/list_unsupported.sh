@@ -1,28 +1,114 @@
 #!/bin/sh
-if ! command -v gnat2goto > /dev/null; then
-  echo >&2 "gnat2goto not on PATH!"
-  exit 1
-fi
 
-if [ "$#" -ne 1 ]; then
-   echo >&2 "Provide folder name to start"
-   exit 2
-fi
-
-if [ "$1" = '--help' ]; then
+# Usage info
+usage()
+{
+   echo "Usage:\n\nlist_unsupported.sh path_to_ada_source_folder\n"
    echo "Run GNAT2Goto on an Ada repository.\n"
    echo "The output is an ordered list of currently unsupported features"
    echo "with the number of times they occur in the input repository.\n"
    echo "The script builds a parsing program using collect_unsupported.cpp and expects"
    echo "this file to be in the same folder.\n"
-   echo "Usage:\n\nlist_unsupported.sh path_to_ada_source_folder"
-   exit 3
+}
+
+# First check some environment prerequisites
+echo >&2 "Checking environment..."
+
+# gnat2goto on the path?
+if ! command -v gnat2goto > /dev/null; then
+  echo >&2 "gnat2goto not on PATH!"
+  gnat2goto_bin=$(cd "$(dirname ${0})/../gnat2goto/install/bin" 2>/dev/null && pwd)
+  echo >&2 "Suggested adding gnat2goto to your PATH with the following command:"
+  echo >&2 "  export PATH=\"${gnat2goto_bin}:\${PATH}\""
+  exit 1
 fi
+
+# gnat on the path?
+if ! command -v gnat > /dev/null; then
+   echo >&2 "Gnat not on PATH!"
+   # Take a wild guess at where gnat might be installed...
+   gnat_location="/opt/gnat/bin"
+   if [ -x "${gnat_location}/gnat" ] ; then
+      # Check if that's gnat 2016...
+      if gnat --version | grep -q 'GNAT GPL 2016' ; then
+         echo >&2 "Suggested adding gnat to your PATH with the following command:"
+         echo >&2 "  export PATH=\"${gnat_location}:\${PATH}\""
+      fi
+   fi
+   exit 4
+fi
+
+# Right version of gnat?
+if ! (gnat --version | grep -q 'GNAT GPL 2016') ; then
+   echo >&2 "The wrong version of gnat is on the PATH. gnat2goto requires GNAT GPL 2016."
+   exit 5
+fi
+
+# Sane ADA_INCLUDE_PATH and GPR_PROJECT_PATH?
+GNAT2GOTO=`command -v gnat2goto`
+ADA_HOME=`command -v gnat`
+ADA_HOME=$(cd "$(dirname ${ADA_HOME})/.." 2>/dev/null && pwd)
+PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
+DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
+ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
+DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude:${ADA_HOME}/include"
+export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
+
+if [ -n "$GPR_PROJECT_PATH" -a ! -d "$GPR_PROJECT_PATH" ]; then
+   echo >&2 "GPR project path environment variable has been set to:"
+   echo >&2 "    \"${GPR_PROJECT_PATH}\""
+   echo >&2 "but that path is not a directory."
+   echo >&2 "Please set the environment variable GPR_PROJECT_PATH to the"
+   echo >&2 "location of the gnat libraries"
+   exit 6
+else
+   # GPR_PROJECT_PATH not previously specified, use a default
+   export GPR_PROJECT_PATH="${ADA_HOME}/lib/gnat"
+   if [ ! -d "$GPR_PROJECT_PATH" ]; then
+      echo >&2 "Could not find gnat library directory at ${GPR_PROJECT_PATH}"
+      echo >&2 "Please set the environment variable GPR_PROJECT_PATH to the"
+      echo >&2 "location of the gnat libraries"
+      exit 9
+   fi
+fi
+
+# Can we build the support tool?
+# Problem: GNAT 2016 helpfully installs a g++ binary alongside gnat... except
+# it's way out of date so invoking g++ via PATH looking will pickup that gnat g++
+# compiler, rather than the default system compiler... Instead we need to
+# temporarily drop the GNAT tools off the path while we build the tool.
+saved_path="$PATH"
+export PATH=$(echo ${PATH} | tr ':' '\n' | grep -v "${ADA_HOME}" | paste -s -d : - )
+experiment_dir=`dirname "$0"`
+gplusplus=`command -v g++`
+if ! ${gplusplus} --std=c++14 "${experiment_dir}/collect_unsupported.cpp" -o CollectUnsupported ; then
+   echo >&2 "Failed to compile support tool 'CollectUnsupported' using ${gplusplus}"
+   echo >&2 "You need a version of g++ on the PATH that supports C++14"
+   exit 8
+fi
+export PATH="${saved_path}"
+
+echo >&2 "...environment is OK."
+
+
+# Command line processing....
+
+if [ "$1" = '--help' ]; then
+   usage
+   exit
+fi
+
+if [ "$#" -ne 1 ]; then
+   usage >&2
+   echo >&2 "Only a single folder name may be specified"
+   exit 2
+fi
+
+# Finally start work
 
 echo >&2 "Project to build: $1"
 path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 include_path=""
-DIR=`dirname "$0"`
 file_name=$(basename "$1")
 
 for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
@@ -34,26 +120,6 @@ for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
 done
 
 echo "$1: Unsupported features\n" > "$file_name".txt
-
-if ! command -v gnat > /dev/null; then
-   echo >&2 "Gnat not on PATH!"
-   exit 4
-fi
-
-GNAT2GOTO=`command -v gnat2goto`
-ADA_HOME=`command -v gnat`
-ADA_HOME="$(dirname "$ADA_HOME")/.."
-PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
-DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
-ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
-DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude:${ADA_HOME}/include"
-export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
-
-export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
-if [ ! -d "$GPR_PROJECT_PATH" ]; then
-   echo >&2 "GPR project path does not exists!"
-   exit 6
-fi
 
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
 for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
@@ -118,7 +184,6 @@ sed '/^\[/ d' < "$file_name".txt | \
    > "$file_name"_redacted.txt
 
 # Collate and summarise unsupported features
-g++ --std=c++14 "$DIR"/collect_unsupported.cpp -o CollectUnsupported
 LC_ALL=posix ./CollectUnsupported "$file_name".txt
 
 # Collate and summarize compile errors from builds that did not generate
