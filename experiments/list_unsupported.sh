@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# First check some environment prerequisites
+echo >&2 "Checking environment..."
+
 # gnat2goto on the path?
 if ! command -v gnat2goto > /dev/null; then
   echo >&2 "gnat2goto not on PATH!"
@@ -103,6 +106,10 @@ if ! ${gplusplus} --std=c++14 "${experiment_dir}/collect_unsupported.cpp" -o Col
    exit 8
 fi
 export PATH="${saved_path}"
+
+echo >&2 "...environment is OK."
+
+# Finally start work
 
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
 for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
