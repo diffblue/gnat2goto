@@ -61,19 +61,33 @@ if ! (gnat --version | grep -q 'GNAT GPL 2016') ; then
    exit 5
 fi
 
+# Sane ADA_INCLUDE_PATH and GPR_PROJECT_PATH?
 GNAT2GOTO=`command -v gnat2goto`
 ADA_HOME=`command -v gnat`
-ADA_HOME="$(dirname "$ADA_HOME")/.."
+ADA_HOME=$(cd "$(dirname ${ADA_HOME})/.." 2>/dev/null && pwd)
 PLATFORM=`${ADA_HOME}/bin/gcc -dumpmachine`
 DEF_ADA_INCLUDE_PATH="${ADA_HOME}/lib/gcc/${PLATFORM}"
 ADA_GCC_VERSION=`${ADA_HOME}/bin/gcc -dumpversion`
 DEF_ADA_INCLUDE_PATH="${DEF_ADA_INCLUDE_PATH}/${ADA_GCC_VERSION}/rts-native/adainclude:${ADA_HOME}/include"
 export ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH:-$DEF_ADA_INCLUDE_PATH}"
 
-export GPR_PROJECT_PATH="${GPR_PROJECT_PATH:-/opt/gnat/lib/gnat}"
-if [ ! -d "$GPR_PROJECT_PATH" ]; then
-   echo >&2 "GPR project path does not exists!"
+if [ -n "$GPR_PROJECT_PATH" -a ! -d "$GPR_PROJECT_PATH" ]; then
+   echo >&2 "GPR project path environment variable has been set to:"
+   echo >&2 "    \"${GPR_PROJECT_PATH}\""
+   echo >&2 "but that path is not a directory."
+   echo >&2 "Please set the environment variable GPR_PROJECT_PATH to the"
+   echo >&2 "location of the gnat libraries"
    exit 6
+else
+   # GPR_PROJECT_PATH not previously specified, use a default
+   export GPR_PROJECT_PATH="${ADA_HOME}/lib/gnat"
+   if [ ! -d "$GPR_PROJECT_PATH" ]; then
+      echo >&2 "Could not find gnat library directory at ${GPR_PROJECT_PATH}"
+      echo >&2 "Please set the environment variable GPR_PROJECT_PATH to the"
+      echo >&2 "location of the gnat libraries"
+      exit 9
+   fi
+fi
 fi
 
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
