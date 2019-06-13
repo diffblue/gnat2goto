@@ -40,9 +40,25 @@ done
 
 echo "$1: Unsupported features\n" > "$file_name".txt
 
+# gnat on the path?
 if ! command -v gnat > /dev/null; then
    echo >&2 "Gnat not on PATH!"
+   # Take a wild guess at where gnat might be installed...
+   gnat_location="/opt/gnat/bin"
+   if [ -x "${gnat_location}/gnat" ] ; then
+      # Check if that's gnat 2016...
+      if gnat --version | grep -q 'GNAT GPL 2016' ; then
+         echo >&2 "Suggested adding gnat to your PATH with the following command:"
+         echo >&2 "  export PATH=\"${gnat_location}:\${PATH}\""
+      fi
+   fi
    exit 4
+fi
+
+# Right version of gnat?
+if ! (gnat --version | grep -q 'GNAT GPL 2016') ; then
+   echo >&2 "The wrong version of gnat is on the PATH. gnat2goto requires GNAT GPL 2016."
+   exit 5
 fi
 
 GNAT2GOTO=`command -v gnat2goto`
