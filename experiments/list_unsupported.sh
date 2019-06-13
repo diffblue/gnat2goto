@@ -1,6 +1,11 @@
 #!/bin/sh
+
+# gnat2goto on the path?
 if ! command -v gnat2goto > /dev/null; then
   echo >&2 "gnat2goto not on PATH!"
+  gnat2goto_bin=$(cd "$(dirname ${0})/../gnat2goto/install/bin" 2>/dev/null && pwd)
+  echo >&2 "Suggested adding gnat2goto to your PATH with the following command:"
+  echo >&2 "  export PATH=\"${gnat2goto_bin}:\${PATH}\""
   exit 1
 fi
 
