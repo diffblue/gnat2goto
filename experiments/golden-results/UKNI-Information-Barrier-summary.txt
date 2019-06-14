@@ -1,19 +1,9 @@
-Occurs: 7 times
-Calling function: Process_Declaration
-Error message: Subprogram body stub declaration
-Nkind: N_Subprogram_Body_Stub
---
-Occurs: 6 times
+Occurs: 27 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
-Occurs: 5 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
---
-Occurs: 2 times
+Occurs: 3 times
 Calling function: Do_While_Statement
 Error message: Wrong Nkind spec
 Nkind: N_Loop_Statement
@@ -27,6 +17,11 @@ Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
 Error message: unsupported upper range kind
 Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Range
 --
 Occurs: 5 times
 Redacted compiler error message:

@@ -154,6 +154,11 @@ Error message: Unsupported pragma: No return
 Nkind: N_Pragma
 --
 Occurs: 5 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 5 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
@@ -184,11 +189,6 @@ Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
 Occurs: 3 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
---
-Occurs: 3 times
 Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
@@ -217,11 +217,6 @@ Occurs: 1 times
 Calling function: Do_Pragma
 Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Declaration
-Error message: Subprogram body stub declaration
-Nkind: N_Subprogram_Body_Stub
 --
 Occurs: 1 times
 Calling function: Process_Statement

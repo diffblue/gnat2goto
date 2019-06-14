@@ -252,6 +252,9 @@ package body Tree_Walk is
    procedure Do_Subprogram_Body (N : Node_Id)
    with Pre => Nkind (N) = N_Subprogram_Body;
 
+   procedure Do_Subprogram_Body_Stub (N : Node_Id)
+   with Pre => Nkind (N) in N_Subprogram_Body_Stub;
+
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Subprogram_Body |
                              N_Task_Body       |
@@ -4134,7 +4137,21 @@ package body Tree_Walk is
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
 
-   -------------------------------
+   -----------------------------
+   -- Do_Subprogram_Body_Stub --
+   -----------------------------
+
+   procedure Do_Subprogram_Body_Stub (N : Node_Id) is
+   begin
+      --  The Gnat compilation model requires that a file
+      --  containing the separate subprogram body is present
+      --  otherwise a compilation error is generated.
+      --  Therefore, the subunit will always be present when gnat2goto
+      --  encounters a Subprogram_Body_Stub.
+      Do_Subprogram_Body (Proper_Body (Unit ((Library_Unit (N)))));
+   end Do_Subprogram_Body_Stub;
+
+-------------------------------
    -- Do_Subprogram_Declaration --
    -------------------------------
 
@@ -4762,8 +4779,7 @@ package body Tree_Walk is
             --  body_stub  --
 
          when N_Subprogram_Body_Stub =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Subprogram body stub declaration");
+            Do_Subprogram_Body_Stub (N);
 
          when N_Package_Body_Stub =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
