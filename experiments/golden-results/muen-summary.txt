@@ -159,36 +159,6 @@ Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
 --
 Occurs: 1 times
-Calling function: New_Parameter_Symbol_Entry
-Error message: standard__muchannel__readers__drain__channel
-Nkind: 
---
-Occurs: 1 times
-Calling function: New_Parameter_Symbol_Entry
-Error message: standard__muchannel__readers__drain__reader
-Nkind: 
---
-Occurs: 1 times
-Calling function: New_Parameter_Symbol_Entry
-Error message: standard__muchannel__writer__deactivate__channel
-Nkind: 
---
-Occurs: 1 times
-Calling function: New_Parameter_Symbol_Entry
-Error message: standard__muchannel__writer__initialize__channel
-Nkind: 
---
-Occurs: 1 times
-Calling function: New_Parameter_Symbol_Entry
-Error message: standard__muchannel__writer__initialize__epoch
-Nkind: 
---
-Occurs: 1 times
-Calling function: New_Parameter_Symbol_Entry
-Error message: standard__muchannel__writer__write__channel
-Nkind: 
---
-Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Use package clause declaration
 Nkind: N_Use_Package_Clause
