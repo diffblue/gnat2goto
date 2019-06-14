@@ -1192,7 +1192,6 @@ package body Tree_Walk is
    function Do_Defining_Identifier (E : Entity_Id) return Irep is
       Sym          : constant Irep := New_Irep (I_Symbol_Expr);
       Result_Type  : constant Irep := Do_Type_Reference (Etype (E));
-      Sym_Id       : constant Symbol_Id := Intern (Unique_Name (E));
 
       Is_Out_Param : constant Boolean :=
         Ekind (E) in E_In_Out_Parameter | E_Out_Parameter;
@@ -1206,13 +1205,6 @@ package body Tree_Walk is
       Set_Source_Location (Sym, Sloc (E));
       Set_Identifier      (Sym, Unique_Name (E));
       Set_Type            (Sym, Symbol_Type);
-
-      if not Global_Symbol_Table.Contains (Sym_Id) then
-         New_Object_Symbol_Entry (Object_Name       => Sym_Id,
-                                  Object_Type       => Symbol_Type,
-                                  Object_Init_Value => Make_Nil (Sloc (E)),
-                                  A_Symbol_Table    => Global_Symbol_Table);
-      end if;
 
       if Is_Out_Param then
          return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
@@ -4118,9 +4110,7 @@ package body Tree_Walk is
    procedure Do_Subprogram_Body (N : Node_Id) is
       Proc_Name   : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Entity (N)));
-      --  Intern (Unique_Name (Corresponding_Spec (N)));
 
-      Proc_Body   : constant Irep := Do_Subprogram_Or_Block (N);
       Proc_Symbol : Symbol;
    begin
       if not Global_Symbol_Table.Contains (Proc_Name) then
@@ -4140,7 +4130,7 @@ package body Tree_Walk is
       Proc_Symbol := Global_Symbol_Table (Proc_Name);
 
       --  Compile the subprogram body and update its entry in the symbol table.
-      Proc_Symbol.Value := Proc_Body;
+      Proc_Symbol.Value := Do_Subprogram_Or_Block (N);
       Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
    end Do_Subprogram_Body;
 
