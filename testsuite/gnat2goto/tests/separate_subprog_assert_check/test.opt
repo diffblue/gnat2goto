@@ -1,0 +1,1 @@
+ALL XFAIL Assert statement in p.adb should succeed.
