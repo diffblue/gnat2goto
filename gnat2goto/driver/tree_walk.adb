@@ -4143,9 +4143,9 @@ package body Tree_Walk is
 
    procedure Do_Subprogram_Body_Stub (N : Node_Id) is
    begin
-      --  The Gnat compilation model requires that a file containing the
-      --  which is the separate subprogram body is present otherwise
-      --  a compilation error is generated.
+      --  The Gnat compilation model requires that a file
+      --  containing the separate subprogram body is present
+      --  otherwise a compilation error is generated.
       --  Therefore, the subunit will always be present when gnat2goto
       --  encounters a Subprogram_Body_Stub.
       Do_Subprogram_Body (Proper_Body (Unit ((Library_Unit (N)))));
@@ -4779,8 +4779,6 @@ package body Tree_Walk is
             --  body_stub  --
 
          when N_Subprogram_Body_Stub =>
---            Report_Unhandled_Node_Empty (N, "Process_Declaration",
---                                         "Subprogram body stub declaration");
             Do_Subprogram_Body_Stub (N);
 
          when N_Package_Body_Stub =>
