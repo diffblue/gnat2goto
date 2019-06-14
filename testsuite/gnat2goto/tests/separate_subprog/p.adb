@@ -11,5 +11,7 @@ procedure P (X : in out integer) is
    Old_X : constant Integer := X;
 begin
    Inc (X);
+   --  The following assert should succeed if the possibility
+   --  overflow is ignored.
    pragma Assert (X = Old_X + 1);
 end P;
