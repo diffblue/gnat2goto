@@ -3,13 +3,21 @@
 # Usage info
 usage()
 {
-   echo "Usage:\n\nlist_unsupported.sh path_to_ada_source_folder\n"
-   echo "Run GNAT2Goto on an Ada repository.\n"
+   echo "Usage:list_unsupported.sh [--help] [--apex] path_to_ada_source_folder"
+   echo
+   echo "Run GNAT2Goto on an Ada repository."
+   echo
    echo "The output is an ordered list of currently unsupported features"
-   echo "with the number of times they occur in the input repository.\n"
-   echo "The script builds a parsing program using collect_unsupported.cpp and expects"
-   echo "this file to be in the same folder.\n"
+   echo "with the number of times they occur in the input repository."
+   echo
+   echo "Options:"
+   echo "  --help    Display this usage information"
+   echo "  --apex    Use Rational APEX style naming convention .1.ada and .2.ada"
 }
+
+# File extensions to expect for Specification files and Body files
+spec_ext="${SPEC_EXT:-ads}"
+body_ext="${BODY_EXT:-adb}"
 
 # First check some environment prerequisites
 echo >&2 "Checking environment..."
@@ -93,39 +101,60 @@ echo >&2 "...environment is OK."
 
 # Command line processing....
 
-if [ "$1" = '--help' ]; then
+if [ "$#" -eq 0 ]; then
    usage
    exit
 fi
 
-if [ "$#" -ne 1 ]; then
+while [ -n "$1" ] ; do
+   case "$1" in
+      --apex)
+         spec_ext="1.ada"
+         body_ext="2.ada"
+         ;;
+      --help)
+         usage
+         exit
+         ;;
+      *)
+         if [ -n "$project_dir" ]; then
+            usage >&2
+            echo >&2 "Only a single folder name may be specified"
+            exit 2
+         fi
+         project_dir="$1"
+   esac
+   shift
+done
+
+if [ -z "$project_dir" ]; then
    usage >&2
-   echo >&2 "Only a single folder name may be specified"
+   echo >&2 "A project folder name must be specified"
    exit 2
 fi
 
 # Finally start work
 
-echo >&2 "Project to build: $1"
-path="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
+echo >&2 "Project to build: ${project_dir}"
+file_name=$(basename "${project_dir}")
+path="$(cd "$(dirname "${project_dir}")"; pwd)/${file_name}"
 include_path=""
-file_name=$(basename "$1")
 
 for foldername in $(find ${path} -type d -name "*" | LC_ALL=posix sort ); do
-   count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
+   count=`ls -1 ${foldername}/*.${spec_ext} 2>/dev/null | wc -l`
    if [ $count != 0 ]
    then
       include_path="${include_path} -I ${foldername}"
    fi
 done
 
-echo "$1: Unsupported features\n" > "$file_name".txt
+echo "${project_dir}: Unsupported features\n" > "$file_name".txt
 
 # Enumerate all the sub directories of ADA_INCLUDE_PATH
 for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
    echo "Expanding $include_folder..."
    for foldername in $(find ${include_folder} -type d -name "*" | LC_ALL=posix sort); do
-      count=`ls -1 ${foldername}/*.ads 2>/dev/null | wc -l`
+      count=`ls -1 ${foldername}/*.${spec_ext} 2>/dev/null | wc -l`
       if [ $count != 0 ]
       then
          ADA_INCLUDE_PATH="${ADA_INCLUDE_PATH}:${foldername}"
@@ -147,7 +176,7 @@ echo >&2 "-------------------------------------------------------"
 # some other error that caused the compiler to exit with non-zero
 # exit code
 compile_error_occured=0
-for filename in $(find ${path} -name '*.adb' | LC_ALL=posix sort); do
+for filename in $(find ${path} -name "*.${body_ext}" | LC_ALL=posix sort); do
    printf "Compiling %s..." "${filename}" >&2
    echo "---------- COMPILING: $filename" >>"$file_name".txt
    "${GNAT2GOTO}" -gnatU ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
@@ -176,11 +205,15 @@ for filename in $(find ${path} -name '*.adb' | LC_ALL=posix sort); do
    fi
 done
 
+# Need to use ${spec_ext} and ${body_ext} inside some regex's here,
+# so add any quoting necessary
+quoted_spec_ext=$(printf "%s" "${spec_ext}" | sed 's/\./\\./g')
+quoted_body_ext=$(printf "%s" "${body_ext}" | sed 's/\./\\./g')
 # This redacting system is really pretty crude...
 sed '/^\[/ d' < "$file_name".txt | \
    sed 's/"[^"][^"]*"/"REDACTED"/g' | \
-      sed 's/[^ ][^ ]*\.adb/REDACTED.adb/g' | \
-         sed 's/[^ ][^ ]*\.ads/REDACTED.ads/g' \
+      sed "s/[^ ][^ ]*\.${quoted_body_ext}/REDACTED.${body_ext}/g" | \
+         sed "s/[^ ][^ ]*\.${quoted_spec_ext}/REDACTED.${spec_ext}/g" \
    > "$file_name"_redacted.txt
 
 # Collate and summarise unsupported features
