@@ -382,12 +382,24 @@ package body Arrays is
    --  is pure
 
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep is
+      --  Note this function only works for one dimensional arrays at present.
       Idx : constant Node_Id := First_Index (E);
+      --  The Entity is an array object
+      --  The first index is a discrete_subtype_definition which
+      --  may be a subtype_indication or a range.
+      --  For determining the upper bounds and lower bounds a range is required
+      --  and if the first index is a subtype_indication, the constraints
+      --  of the subtype have to be obtained - which should be a range.
+      Bound_Range : constant Node_Id :=
+        (if Nkind (Idx) = N_Range
+         then Idx
+         else Scalar_Range (Entity (Idx)));
+
       Lbound : constant Irep :=
-        Typecast_If_Necessary (Do_Expression (Low_Bound (Idx)),
+        Typecast_If_Necessary (Do_Expression (Low_Bound (Bound_Range)),
                                CProver_Size_T, Global_Symbol_Table);
       Hbound : constant Irep :=
-        Typecast_If_Necessary (Do_Expression (High_Bound (Idx)),
+        Typecast_If_Necessary (Do_Expression (High_Bound (Bound_Range)),
                                CProver_Size_T, Global_Symbol_Table);
       Source_Loc : constant Source_Ptr := Sloc (E);
       Len : constant Irep :=
