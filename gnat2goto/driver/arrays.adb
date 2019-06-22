@@ -392,8 +392,15 @@ package body Arrays is
       --  of the subtype have to be obtained - which should be a range.
       Bound_Range : constant Node_Id :=
         (if Nkind (Idx) = N_Range
-         then Idx
-         else Scalar_Range (Entity (Idx)));
+         then
+            --  It is a range
+            Idx
+         elsif Nkind (Idx) = N_Subtype_Indication then
+            --  It is an anonymous subtype
+            Scalar_Range (Etype (Idx))
+         else
+            --  It is an explicitly declared subtype
+            Scalar_Range (Entity (Idx)));
 
       Lbound : constant Irep :=
         Typecast_If_Necessary (Do_Expression (Low_Bound (Bound_Range)),
