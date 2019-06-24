@@ -1,12 +1,57 @@
-Occurs: 48 times
+Occurs: 461 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Precondition
+Nkind: N_Pragma
+--
+Occurs: 441 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Global
+Nkind: N_Pragma
+--
+Occurs: 152 times
+Calling function: Do_Function_Call
+Error message: func name not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 140 times
+Calling function: Do_Withed_Unit_Spec
+Error message: This type of library_unit is not yet handled
+Nkind: N_Generic_Package_Declaration
+--
+Occurs: 71 times
+Calling function: Do_Constant
+Error message: Constant Type not in symbol table
+Nkind: N_Integer_Literal
+--
+Occurs: 61 times
+Calling function: Process_Declaration
+Error message: Use type clause declaration
+Nkind: N_Use_Type_Clause
+--
+Occurs: 58 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Postcondition
+Nkind: N_Pragma
+--
+Occurs: 56 times
 Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 19 times
+Occurs: 29 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Freeze_Entity
+--
+Occurs: 25 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
+--
+Occurs: 18 times
+Calling function: Do_Pragma
+Error message: Unknown pragma name
+Nkind: N_Pragma
 --
 Occurs: 18 times
 Calling function: Process_Declaration
@@ -18,35 +63,110 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
+Occurs: 12 times
+Calling function: Do_Private_Type_Declaration
+Error message: Abstract type declaration unsupported
+Nkind: N_Private_Type_Declaration
+--
 Occurs: 9 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Null
 --
 Occurs: 8 times
-Calling function: Do_Private_Type_Declaration
-Error message: Abstract type declaration unsupported
-Nkind: N_Private_Type_Declaration
---
-Occurs: 6 times
 Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
+--
+Occurs: 8 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma
+Nkind: N_Pragma
 --
 Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
 --
+Occurs: 6 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Object_Declaration
+--
+Occurs: 4 times
+Calling function: Do_Itype_Integer_Subtype
+Error message: Non-literal bound unsupported
+Nkind: N_Defining_Identifier
+--
+Occurs: 4 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
+--
+Occurs: 3 times
+Calling function: Do_Op_Expon
+Error message: Exponentiation unhandled for non mod types at the moment
+Nkind: N_Op_Expon
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
+--
+Occurs: 3 times
+Calling function: Process_Declaration
+Error message: Package body declaration
+Nkind: N_Package_Body
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: Unknown attribute
+Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
+--
+Occurs: 2 times
+Calling function: Do_While_Statement
+Error message: Wrong Nkind spec
+Nkind: N_Loop_Statement
+--
 Occurs: 1 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Package_Declaration
+Calling function: Do_Expression
+Error message: In
+Nkind: N_In
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 1 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind
+Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
 Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Subprogram_Declaration
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Generic declaration
+Nkind: N_Generic_Subprogram_Declaration
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 3 times
 Redacted compiler error message:
