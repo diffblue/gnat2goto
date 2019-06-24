@@ -4652,14 +4652,14 @@ package body Tree_Walk is
       begin
          pragma Assert (Kind (Target_Type_Irep) in Class_Type);
          if Attr_Id = "size" then
-
             --  Just check that the front-end already applied this size
             --  clause, i .e. that the size of type-irep we already had
             --  equals the entity type this clause is applied to (and the
             --  size specified in this clause).
             pragma Assert (Entity_Esize =
-                             UI_From_Int (Int (Get_Width (Target_Type_Irep)))
-                           and Entity_Esize = Expression_Value);
+                             UI_From_Int (Int
+                               (Get_Width (Target_Type_Irep))));
+            pragma Assert (Entity_Esize >= Expression_Value);
             return;
          elsif Attr_Id = "component_size" then
             if not Is_Array_Type (Entity (N)) then
