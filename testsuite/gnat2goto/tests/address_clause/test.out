@@ -1,0 +1,24 @@
+Standard_Output from gnat2goto address_clause:
+N_Attribute_Definition_Clause "address" (Node_Id=2277) (source,analyzed)
+ Sloc = 12399  address_clause.adb:5:4
+ Chars = "address" (Name_Id=300000791)
+ Name = N_Identifier "var_addr_1" (Node_Id=2274)
+ Expression = N_Function_Call (Node_Id=2280)
+ Entity = N_Defining_Identifier "var_addr_1" (Entity_Id=2264)
+ Check_Address_Alignment = True
+N_Attribute_Definition_Clause "address" (Node_Id=2295) (source,analyzed)
+ Sloc = 12483  address_clause.adb:8:4
+ Chars = "address" (Name_Id=300000791)
+ Name = N_Identifier "var_addr_2" (Node_Id=2292)
+ Expression = N_Function_Call (Node_Id=2302)
+ Entity = N_Defining_Identifier "var_addr_2" (Entity_Id=2282)
+ Check_Address_Alignment = True
+
+Standard_Error from gnat2goto address_clause:
+----------At: Process_Declaration----------
+----------Address representation clauses are not currently supported----------
+----------At: Process_Declaration----------
+----------Address representation clauses are not currently supported----------
+
+[1] file address_clause.adb line 12 assertion: SUCCESS
+VERIFICATION SUCCESSFUL
