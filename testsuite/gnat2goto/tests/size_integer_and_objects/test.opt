@@ -1,0 +1,1 @@
+ALL XFAIL gnat2goto fails when Size representation clause applied to standard types and their derivations or to objects.
