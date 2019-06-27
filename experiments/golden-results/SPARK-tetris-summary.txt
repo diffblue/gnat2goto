@@ -3,6 +3,11 @@ Calling function: Process_Declaration
 Error message: Package declaration
 Nkind: N_Package_Declaration
 --
+Occurs: 4 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma
+Nkind: N_Pragma
+--
 Occurs: 1 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"

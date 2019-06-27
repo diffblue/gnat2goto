@@ -1,12 +1,22 @@
-Occurs: 27 times
+Occurs: 47 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
 --
-Occurs: 3 times
+Occurs: 20 times
+Calling function: Do_Expression
+Error message: In
+Nkind: N_In
+--
+Occurs: 15 times
 Calling function: Do_While_Statement
 Error message: Wrong Nkind spec
 Nkind: N_Loop_Statement
+--
+Occurs: 3 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Op_Add
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
@@ -15,8 +25,18 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
+Error message: unsupported lower range kind
+Nkind: N_Selected_Component
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
 Error message: unsupported upper range kind
 Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Selected_Component
 --
 Occurs: 1 times
 Calling function: Do_Expression

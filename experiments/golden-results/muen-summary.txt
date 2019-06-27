@@ -134,6 +134,11 @@ Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 2 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 2 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
