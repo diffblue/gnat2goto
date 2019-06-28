@@ -3,7 +3,7 @@
 # Usage info
 usage()
 {
-   echo "Usage:list_unsupported.sh [--help] [--apex] path_to_ada_source_folder"
+   echo "Usage:list_unsupported.sh [--help] [--apex] [--adc pragmas.adc] path_to_ada_source_folder"
    echo
    echo "Run GNAT2Goto on an Ada repository."
    echo
@@ -11,8 +11,9 @@ usage()
    echo "with the number of times they occur in the input repository."
    echo
    echo "Options:"
-   echo "  --help    Display this usage information"
-   echo "  --apex    Use Rational APEX style naming convention .1.ada and .2.ada"
+   echo "  --help             Display this usage information"
+   echo "  --apex             Use Rational APEX style naming convention .1.ada and .2.ada"
+   echo "  --adc pragmas.adc  Use the specified 'pragmas.adc' file during compilation"
 }
 
 # File extensions to expect for Specification files and Body files
@@ -111,6 +112,17 @@ while [ -n "$1" ] ; do
       --apex)
          spec_ext="1.ada"
          body_ext="2.ada"
+         pragma_file="$(dirname ${0})/rational-apex.adc"
+         ;;
+      --adc)
+         shift
+         if [ -r "${1}" ] ; then
+            pragma_file="${1}"
+         else
+            usage >&2
+            echo >&2 "--adc option must specify a configuration pragma file"
+            exit 2
+         fi
          ;;
       --help)
          usage
@@ -162,6 +174,10 @@ for include_folder in `echo "$ADA_INCLUDE_PATH" | tr ':' ' '` ; do
    done
 done
 
+if [ -n "${pragma_file}" ]; then
+   pragma_file_opt="-gnatec=${pragma_file}"
+fi
+
 # Before attempting to start compiling, make a clear log of the environment
 # we will be using:
 echo >&2 "-------------------------------------------------------"
@@ -179,7 +195,7 @@ compile_error_occured=0
 for filename in $(find ${path} -name "*.${body_ext}" | LC_ALL=posix sort); do
    printf "Compiling %s..." "${filename}" >&2
    echo "---------- COMPILING: $filename" >>"$file_name".txt
-   "${GNAT2GOTO}" -gnatU ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
+   "${GNAT2GOTO}" ${pragma_file_opt} -gnatU ${include_path} "${filename}" > "$file_name".txt.compiling 2>&1
    result=$?
    cat "$file_name".txt.compiling >> "$file_name".txt
 
