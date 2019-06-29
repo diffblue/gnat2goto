@@ -1,0 +1,7 @@
+separate (P)
+procedure Inc (N : in out Integer) is
+   Old_N : constant Integer := N;
+begin
+   N := N + 1;
+   pragma Assert (N = Old_N + 1);
+end Inc;
