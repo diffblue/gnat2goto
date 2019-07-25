@@ -1,6 +1,41 @@
-Occurs: 204 times
+Occurs: 374 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Precondition
+Nkind: N_Pragma
+--
+Occurs: 266 times
+Calling function: Do_Function_Call
+Error message: func name not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 266 times
+Calling function: Process_Declaration
+Error message: Package declaration
+Nkind: N_Package_Declaration
+--
+Occurs: 263 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
+Nkind: N_Pragma
+--
+Occurs: 248 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
+--
+Occurs: 233 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Validate_Unchecked_Conversion
+--
+Occurs: 209 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: alignment
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 208 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
 Occurs: 134 times
@@ -8,52 +43,47 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Freeze_Generic_Entity
 --
-Occurs: 105 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
---
-Occurs: 99 times
+Occurs: 107 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
 --
-Occurs: 50 times
+Occurs: 72 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma
+Nkind: N_Pragma
+--
+Occurs: 62 times
+Calling function: Do_Withed_Unit_Spec
+Error message: This type of library_unit is not yet handled
+Nkind: N_Generic_Subprogram_Declaration
+--
+Occurs: 56 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 43 times
+Occurs: 51 times
 Calling function: Do_Expression
 Error message: Unknown attribute
 Nkind: N_Attribute_Reference
---
-Occurs: 36 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 35 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: No strict aliasing
 Nkind: N_Pragma
 --
-Occurs: 31 times
+Occurs: 32 times
 Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Package_Declaration
 --
-Occurs: 31 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
---
-Occurs: 23 times
+Occurs: 27 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
-Occurs: 21 times
+Occurs: 22 times
 Calling function: Process_Declaration
 Error message: Package body declaration
 Nkind: N_Package_Body
@@ -63,10 +93,10 @@ Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 20 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Precondition
-Nkind: N_Pragma
+Occurs: 17 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
 --
 Occurs: 15 times
 Calling function: Process_Declaration
@@ -78,17 +108,12 @@ Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Declaration
 --
-Occurs: 14 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 11 times
+Occurs: 12 times
 Calling function: Do_Expression
 Error message: In
 Nkind: N_In
 --
-Occurs: 11 times
+Occurs: 12 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
@@ -100,23 +125,23 @@ Nkind: N_Raise_Statement
 --
 Occurs: 9 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
+Error message: Generic instantiation declaration
+Nkind: N_Package_Instantiation
 --
 Occurs: 9 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Elaborate Body
 Nkind: N_Pragma
 --
-Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Package_Instantiation
+Occurs: 9 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: No return
+Nkind: N_Pragma
 --
 Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: alignment
-Nkind: N_Attribute_Definition_Clause
+Calling function: Do_Constant
+Error message: Constant Type not in symbol table
+Nkind: N_Integer_Literal
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -128,20 +153,15 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Null
 --
-Occurs: 7 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Suppress initialization
-Nkind: N_Pragma
---
-Occurs: 6 times
-Calling function: Do_Constant
-Error message: Constant Type not in symbol table
-Nkind: N_Integer_Literal
---
 Occurs: 6 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Procedure_Instantiation
+--
+Occurs: 6 times
+Calling function: Process_Declaration
+Error message: Use package clause declaration
+Nkind: N_Use_Package_Clause
 --
 Occurs: 6 times
 Calling function: Process_Declaration
@@ -150,13 +170,8 @@ Nkind: N_Use_Type_Clause
 --
 Occurs: 6 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: No return
+Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
---
-Occurs: 5 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
 --
 Occurs: 5 times
 Calling function: Do_Operator_General
@@ -169,18 +184,8 @@ Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
 --
 Occurs: 5 times
-Calling function: Process_Declaration
-Error message: Use package clause declaration
-Nkind: N_Use_Package_Clause
---
-Occurs: 5 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
-Nkind: N_Pragma
---
-Occurs: 5 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
 --
 Occurs: 4 times
@@ -194,9 +199,44 @@ Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
 --
 Occurs: 2 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Op_Subtract
+--
+Occurs: 2 times
+Calling function: Do_Constant
+Error message: Constant Type not in Class_Bitvector_Type
+Nkind: N_Integer_Literal
+--
+Occurs: 2 times
+Calling function: Do_Derived_Type_Definition
+Error message: record extension unsupported
+Nkind: N_Derived_Type_Definition
+--
+Occurs: 2 times
 Calling function: Do_Function_Call
 Error message: function entity not defining identifier
 Nkind: N_Function_Call
+--
+Occurs: 2 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind
+Nkind: N_Defining_Identifier
+--
+Occurs: 2 times
+Calling function: Do_Itype_Integer_Subtype
+Error message: Non-literal bound unsupported
+Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported lower range kind
+Nkind: N_Real_Literal
+--
+Occurs: 1 times
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported upper range kind
+Nkind: N_Real_Literal
 --
 Occurs: 1 times
 Calling function: Do_Compilation_Unit
@@ -204,18 +244,58 @@ Error message: Unknown tree node
 Nkind: N_Compilation_Unit
 --
 Occurs: 1 times
-Calling function: Do_Constant
-Error message: Constant Type not in Class_Bitvector_Type
-Nkind: N_Integer_Literal
+Calling function: Do_Op_Expon
+Error message: Exponentiation unhandled for non mod types at the moment
+Nkind: N_Op_Expon
 --
 Occurs: 1 times
-Calling function: Do_Itype_Integer_Subtype
-Error message: Non-literal bound unsupported
-Nkind: N_Defining_Identifier
+Calling function: Do_Operator_General
+Error message: Mod of unsupported type
+Nkind: N_Op_Not
 --
 Occurs: 1 times
 Calling function: Do_Pragma
 Error message: Unsupported pragma: Unreferenced
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Do_Record_Component
+Error message: Wrong component nkind
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Having component sizes be different from the size of their underlying type is currently not supported
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: address
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Abstract state
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Async readers
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Atomic
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Effective writes
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Refine
 Nkind: N_Pragma
 --
 Occurs: 1 times

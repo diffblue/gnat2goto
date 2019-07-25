@@ -1,7 +1,12 @@
-Occurs: 135 times
+Occurs: 173 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: alignment
 Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 160 times
+Calling function: Process_Declaration
+Error message: Use type clause declaration
+Nkind: N_Use_Type_Clause
 --
 Occurs: 112 times
 Calling function: Process_Declaration
@@ -57,11 +62,6 @@ Occurs: 9 times
 Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Package_Declaration
---
-Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Use type clause declaration
-Nkind: N_Use_Type_Clause
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
