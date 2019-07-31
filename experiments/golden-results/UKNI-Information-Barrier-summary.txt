@@ -1,4 +1,4 @@
-Occurs: 47 times
+Occurs: 46 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Expanded_Name
@@ -7,11 +7,6 @@ Occurs: 42 times
 Calling function: Process_Declaration
 Error message: Address representation clauses are not currently supported
 Nkind: N_Attribute_Definition_Clause
---
-Occurs: 20 times
-Calling function: Do_Expression
-Error message: In
-Nkind: N_In
 --
 Occurs: 4 times
 Calling function: Process_Statement
