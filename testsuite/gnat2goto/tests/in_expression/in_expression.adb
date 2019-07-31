@@ -5,8 +5,8 @@ procedure In_Expression is
    Val : Integer := 10;
 begin
    if Val in Actual3'Range then
-      pragma Assert (Val > 1);
+      pragma Assert (Val < 1);
    else
-      pragma Assert (Val <= 1);
+      pragma Assert (Val > 1);
    end if;
 end In_Expression;
