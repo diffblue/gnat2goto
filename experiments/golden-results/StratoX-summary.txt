@@ -84,11 +84,6 @@ Error message: Generic instantiation declaration
 Nkind: N_Function_Instantiation
 --
 Occurs: 11 times
-Calling function: Do_Expression
-Error message: In
-Nkind: N_In
---
-Occurs: 11 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
