@@ -2110,12 +2110,26 @@ package body Tree_Walk is
                   if Nkind (Pre_Dsd) /= N_Signed_Integer_Type_Definition
                     and Nkind (Pre_Dsd) /= N_Range
                     and  Nkind (Pre_Dsd) /= N_Real_Range_Specification
+                    and not (Present (Scalar_Range (Etype (Pre_Dsd))))
                   then
-                     Report_Unhandled_Node_Empty (N, "Do_While_Statement",
+                     Report_Unhandled_Node_Empty (Pre_Dsd,
+                                                  "Do_While_Statement",
                                                   "Wrong Nkind spec");
                      return Loop_Wrapper;
                   end if;
-                  Dsd := Get_Range (Spec);
+                  if Nkind (Pre_Dsd) = N_Identifier or
+                    Nkind (Pre_Dsd) = N_Expanded_Name
+                  then
+                     Dsd := Scalar_Range (Etype (Pre_Dsd));
+                  else
+                     Dsd := Get_Range (Spec);
+                  end if;
+                  if not (Present (Low_Bound (Dsd))) then
+                     Report_Unhandled_Node_Empty (Dsd,
+                                                  "Do_While_Statement",
+                                                  "No range in subtype");
+                     return Loop_Wrapper;
+                  end if;
                   Bound_Low := Do_Expression (Low_Bound (Dsd));
                   Bound_High := Do_Expression (High_Bound (Dsd));
                   --  Loop var decl

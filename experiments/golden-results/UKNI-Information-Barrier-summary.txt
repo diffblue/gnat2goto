@@ -13,11 +13,6 @@ Calling function: Do_Expression
 Error message: In
 Nkind: N_In
 --
-Occurs: 19 times
-Calling function: Do_While_Statement
-Error message: Wrong Nkind spec
-Nkind: N_Loop_Statement
---
 Occurs: 4 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
