@@ -1405,8 +1405,13 @@ package body Tree_Walk is
          when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
          when N_In =>
-            return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                               "In");
+            if not (Present (Low_Bound (Right_Opnd (N)))) or
+              not (Present (High_Bound (Right_Opnd (N))))
+            then
+               return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                  "N_In not a range");
+            end if;
+            return Do_In (N);
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
          when N_And_Then => return Do_And_Then (N);
@@ -1419,6 +1424,28 @@ package body Tree_Walk is
                                                "Unknown expression kind");
       end case;
    end Do_Expression;
+
+   function Do_In (N : Node_Id) return Irep is
+      Left_Op : constant Irep := Do_Expression (Left_Opnd (N));
+      Low_Right : constant Irep := Do_Expression (Low_Bound (Right_Opnd (N)));
+      High_Right : constant Irep :=
+        Do_Expression (High_Bound (Right_Opnd (N)));
+      Geq_Low : constant Irep := Make_Op_Geq (Rhs             => Low_Right,
+                                              Lhs             => Left_Op,
+                                              Source_Location => Sloc (N),
+                                              I_Type => Make_Bool_Type);
+      Leq_High : constant Irep := Make_Op_Leq (Rhs             => High_Right,
+                                               Lhs             => Left_Op,
+                                               Source_Location => Sloc (N),
+                                               I_Type => Make_Bool_Type);
+      Range_Irep : constant Irep := New_Irep (I_Op_And);
+   begin
+      Append_Op (Range_Irep, Geq_Low);
+      Append_Op (Range_Irep, Leq_High);
+      Set_Type (Range_Irep, Make_Bool_Type);
+      Set_Source_Location (Range_Irep, Sloc (N));
+      return Range_Irep;
+   end Do_In;
 
    -------------------
    --  Do_And_Then  --

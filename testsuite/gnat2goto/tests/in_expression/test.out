@@ -1,0 +1,6 @@
+[precondition_instance.1] memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] memcpy source region readable: SUCCESS
+[precondition_instance.3] memcpy destination region writeable: SUCCESS
+[1] file in_expression.adb line 8 assertion: FAILURE
+[2] file in_expression.adb line 10 assertion: SUCCESS
+VERIFICATION FAILED
