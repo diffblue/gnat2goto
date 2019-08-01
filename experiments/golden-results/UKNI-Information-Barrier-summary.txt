@@ -1,8 +1,3 @@
-Occurs: 47 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
---
 Occurs: 20 times
 Calling function: Do_Expression
 Error message: In
