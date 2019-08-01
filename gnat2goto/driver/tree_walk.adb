@@ -112,7 +112,7 @@ package body Tree_Walk is
         Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
 
    function Do_Identifier (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Identifier;
+   with Pre  => Nkind (N) in N_Identifier | N_Expanded_Name;
 
    function Do_If_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_If_Statement,
@@ -1368,7 +1368,8 @@ package body Tree_Walk is
    begin
       Declare_Itype (Etype (N));
       case Nkind (N) is
-         when N_Identifier           => return Do_Identifier (N);
+         when N_Identifier |
+            N_Expanded_Name          => return Do_Identifier (N);
          when N_Selected_Component   => return Do_Selected_Component (N);
          when N_Op                   => return Do_Operator_General (N);
          when N_Integer_Literal      => return Do_Constant (N);
