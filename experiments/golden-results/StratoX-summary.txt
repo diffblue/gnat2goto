@@ -149,6 +149,11 @@ Error message: Unsupported pragma: No return
 Nkind: N_Pragma
 --
 Occurs: 5 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 5 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
