@@ -1,17 +1,12 @@
-Occurs: 46 times
+Occurs: 20 times
 Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
+Error message: In
+Nkind: N_In
 --
-Occurs: 42 times
-Calling function: Process_Declaration
-Error message: Address representation clauses are not currently supported
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 4 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Object_Declaration
+Occurs: 15 times
+Calling function: Do_While_Statement
+Error message: Wrong Nkind spec
+Nkind: N_Loop_Statement
 --
 Occurs: 3 times
 Calling function: Do_Base_Range_Constraint
@@ -42,16 +37,6 @@ Occurs: 1 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Range
---
-Occurs: 1 times
-Calling function: Do_Operator_General
-Error message: Mod of unsupported type
-Nkind: N_Op_Not
---
-Occurs: 1 times
-Calling function: Process_Declaration
-Error message: Use package clause declaration
-Nkind: N_Use_Package_Clause
 --
 Occurs: 5 times
 Redacted compiler error message:
