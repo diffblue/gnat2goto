@@ -84,11 +84,6 @@ Error message: Generic instantiation declaration
 Nkind: N_Function_Instantiation
 --
 Occurs: 11 times
-Calling function: Do_Expression
-Error message: In
-Nkind: N_In
---
-Occurs: 11 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
@@ -152,6 +147,11 @@ Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: No return
 Nkind: N_Pragma
+--
+Occurs: 5 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
 --
 Occurs: 5 times
 Calling function: Do_Operator_General
