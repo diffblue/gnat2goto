@@ -1,0 +1,11 @@
+[precondition_instance.1] memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] memcpy source region readable: SUCCESS
+[precondition_instance.3] memcpy destination region writeable: SUCCESS
+[precondition_instance.4] memcpy src/dst overlap: SUCCESS
+[precondition_instance.5] memcpy source region readable: SUCCESS
+[precondition_instance.6] memcpy destination region writeable: SUCCESS
+[precondition_instance.7] memcpy src/dst overlap: SUCCESS
+[precondition_instance.8] memcpy source region readable: SUCCESS
+[precondition_instance.9] memcpy destination region writeable: SUCCESS
+[1] file rhs_array_assign.adb line 9 assertion: SUCCESS
+VERIFICATION SUCCESSFUL
