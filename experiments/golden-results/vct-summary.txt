@@ -9,6 +9,11 @@ Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
 Occurs: 37 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Expanded_Name
+--
+Occurs: 37 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
 Nkind: N_Private_Type_Declaration
