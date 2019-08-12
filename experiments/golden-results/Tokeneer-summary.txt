@@ -18,11 +18,6 @@ Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
-Occurs: 10 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Expanded_Name
---
 Occurs: 9 times
 Calling function: Do_Aggregate_Literal
 Error message: Unhandled aggregate kind
