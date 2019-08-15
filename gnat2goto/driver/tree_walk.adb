@@ -831,7 +831,9 @@ package body Tree_Walk is
          Followed_Type_Symbol : constant Irep :=
             Follow_Symbol_Type (Get_Type (Mem), Global_Symbol_Table);
       begin
-         if Kind (Followed_Type_Symbol) = I_C_Enum_Type then
+         if Kind (Followed_Type_Symbol) = I_C_Enum_Type and
+           Kind (Mem) = I_Symbol_Expr
+         then
             declare
                Val : constant Irep := Global_Symbol_Table
                  (Intern
@@ -839,6 +841,9 @@ package body Tree_Walk is
                      (Mem)))
                  .Value;
             begin
+               if Val = Ireps.Empty then
+                  return Mem;
+               end if;
                return
                  (if Kind (Val) = I_Op_Typecast
                   then Get_Op0 (Val) else Val);
@@ -1405,14 +1410,7 @@ package body Tree_Walk is
          when N_Aggregate            => return Do_Aggregate_Literal (N);
          when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
-         when N_In =>
-            if not (Present (Low_Bound (Right_Opnd (N)))) or
-              not (Present (High_Bound (Right_Opnd (N))))
-            then
-               return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                  "N_In not a range");
-            end if;
-            return Do_In (N);
+         when N_In                   =>  return Do_In (N);
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
          when N_And_Then => return Do_And_Then (N);
@@ -1427,10 +1425,25 @@ package body Tree_Walk is
    end Do_Expression;
 
    function Do_In (N : Node_Id) return Irep is
+      function Get_Range (N : Node_Id) return Node_Id;
+      function Get_Range (N : Node_Id) return Node_Id is
+         Underlying_Type : Entity_Id := N;
+      begin
+         while not (Nkind (Underlying_Type) = N_Defining_Identifier) loop
+            Underlying_Type := Etype (N);
+         end loop;
+         if No (Scalar_Range (Underlying_Type)) then
+            Report_Unhandled_Node_Empty (N, "Get_Range",
+                                         "Does not contain range");
+            return N;
+         end if;
+         return Scalar_Range (Underlying_Type);
+      end Get_Range;
+
       Left_Op : constant Irep := Do_Expression (Left_Opnd (N));
-      Low_Right : constant Irep := Do_Expression (Low_Bound (Right_Opnd (N)));
-      High_Right : constant Irep :=
-        Do_Expression (High_Bound (Right_Opnd (N)));
+      Range_Node : constant Node_Id := Get_Range (Right_Opnd (N));
+      Low_Right : constant Irep := Do_Expression (Low_Bound (Range_Node));
+      High_Right : constant Irep := Do_Expression (High_Bound (Range_Node));
       Geq_Low : constant Irep := Make_Op_Geq (Rhs             => Low_Right,
                                               Lhs             => Left_Op,
                                               Source_Location => Sloc (N),
