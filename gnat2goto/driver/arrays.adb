@@ -384,24 +384,7 @@ package body Arrays is
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep is
       --  Note this function only works for one dimensional arrays at present.
       Idx : constant Node_Id := First_Index (E);
-      --  The Entity is an array object
-      --  The first index is a discrete_subtype_definition which
-      --  may be a subtype_indication or a range.
-      --  For determining the upper bounds and lower bounds a range is required
-      --  and if the first index is a subtype_indication, the constraints
-      --  of the subtype have to be obtained - which should be a range.
-      Bound_Range : constant Node_Id :=
-        (if Nkind (Idx) = N_Range
-         then
-            --  It is a range
-            Idx
-         elsif Nkind (Idx) = N_Subtype_Indication then
-            --  It is an anonymous subtype
-            Scalar_Range (Etype (Idx))
-         else
-            --  It is an explicitly declared subtype
-            Scalar_Range (Entity (Idx)));
-
+      Bound_Range : constant Node_Id := Get_Range (Idx);
       Lbound : constant Irep :=
         Typecast_If_Necessary (Do_Expression (Low_Bound (Bound_Range)),
                                CProver_Size_T, Global_Symbol_Table);
@@ -895,9 +878,11 @@ package body Arrays is
          Base : constant Irep := Param_Symbol (Array_Param);
          Idx_Type : constant Entity_Id :=
            Etype (First_Index (Etype (N)));
+         The_Range : constant Node_Id :=
+           Get_Range (Scalar_Range (Idx_Type));
          New_First_Expr : constant Irep :=
-           Typecast_If_Necessary (Do_Expression (Low_Bound (Scalar_Range
-                                  (Idx_Type))), CProver_Size_T,
+           Typecast_If_Necessary (Do_Expression (Low_Bound (The_Range)),
+                                  CProver_Size_T,
                                   Global_Symbol_Table);
          Old_First_Expr : constant Irep :=
            Make_Member_Expr (Compound         => Base,
@@ -907,8 +892,8 @@ package body Arrays is
                              Component_Name   => "first1");
 
          New_Last_Expr : constant Irep :=
-           Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
-                                  (Idx_Type))), CProver_Size_T,
+           Typecast_If_Necessary (Do_Expression (High_Bound (The_Range)),
+                                  CProver_Size_T,
                                   Global_Symbol_Table);
          Result_Block : constant Irep := New_Irep (I_Code_Block);
          Array_Temp : constant Irep :=
