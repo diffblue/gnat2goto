@@ -157,4 +157,6 @@ package GOTO_Utils is
       (N : Irep; Val : Irep; Symtab : in out Symbol_Table)
       with Pre => Kind (N) = I_Symbol_Expr;
 
+   function Cast_Enum (Expr : Irep; A_Symbol_Table : Symbol_Table) return Irep
+     with Pre => Kind (Expr) in Class_Expr;
 end GOTO_Utils;
