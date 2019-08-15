@@ -751,9 +751,9 @@ package body Tree_Walk is
          end if;
       end Get_Array_Attr_Bound_Symbol;
 
-      Range_Expr  : constant Node_Id := Get_Range (N);
-      Lower_Bound : constant Node_Id := Low_Bound (Range_Expr);
-      Upper_Bound : constant Node_Id := High_Bound (Range_Expr);
+      --  N must be a range node.  No need to use Get_Range function
+      Lower_Bound : constant Node_Id := Low_Bound (N);
+      Upper_Bound : constant Node_Id := High_Bound (N);
 
       Lower_Bound_Value : Integer;
       Upper_Bound_Value : Integer;
@@ -766,7 +766,7 @@ package body Tree_Walk is
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
       then
-         return Report_Unhandled_Node_Type (Range_Expr,
+         return Report_Unhandled_Node_Type (N,
                                             "Do_Base_Range_Constraint",
                                         "range expression not bitvector type");
       end if;
