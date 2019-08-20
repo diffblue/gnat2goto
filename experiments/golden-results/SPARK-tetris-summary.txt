@@ -17,3 +17,8 @@ Occurs: 1 times
 Redacted compiler error message:
 ghost entity cannot appear in this context
 Raw compiler error message:
+--
+Occurs: 5 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+Error detected at REDACTED
