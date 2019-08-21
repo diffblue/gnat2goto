@@ -1743,6 +1743,11 @@ Occurs: 5 times
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:1046                     |
 Error detected at REDACTED
 --
+Occurs: 4 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+Error detected at REDACTED
+--
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1620|
@@ -1773,11 +1778,6 @@ Occurs: 2 times
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4739                     |
 Error detected at REDACTED
 --
-Occurs: 2 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
@@ -1805,22 +1805,17 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sem_util.adb:20815                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:1046                     |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4739                     |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4739                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2257,3 +2252,8 @@ Occurs: 1 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from ireps.ads:1763
 
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4739                     |
+| Error detected at stm32-exti.adb:47:19                                   |
