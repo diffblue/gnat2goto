@@ -65,7 +65,22 @@ package body Arrays is
            Build_Array_Size (First      => Low_Expr,
                              Last       => High_Expr);
          Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
-         Element_Type : constant Irep := Do_Type_Reference (Element_Type_Ent);
+         Element_Type_Pre : constant Irep :=
+           Do_Type_Reference (Element_Type_Ent);
+
+         Element_Type : constant Irep :=
+           (if Kind (Follow_Symbol_Type (Element_Type_Pre,
+            Global_Symbol_Table)) = I_C_Enum_Type
+            then
+               Make_Signedbv_Type (32)
+            else
+               Element_Type_Pre);
+         Element_Size : constant Uint :=
+           (if Kind (Element_Type) in Class_Bitvector_Type
+            then
+               UI_From_Int (Int (Get_Width (Element_Type)))
+            else
+               Esize (Element_Type_Ent));
          Literal_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
                                   "array_literal");
@@ -89,8 +104,7 @@ package body Arrays is
                              I_Type          => Result_Type);
          Raw_Malloc_Call : constant Irep :=
            Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
-                                           Element_Type_Size =>
-                                             Esize (Element_Type_Ent),
+                                           Element_Type_Size => Element_Size,
                                            Source_Loc        => Source_Loc);
          Malloc_Call_Expr : constant Irep :=
            Typecast_If_Necessary (Raw_Malloc_Call,
@@ -104,8 +118,7 @@ package body Arrays is
            Make_Memcpy_Function_Call_Expr (Destination       => Data_Mem_Expr,
                                          Source            => Literal_Address,
                                          Num_Elem          => Len_Expr,
-                                         Element_Type_Size =>
-                                           Esize (Element_Type_Ent),
+                                         Element_Type_Size => Element_Size,
                                            Source_Loc        => Source_Loc);
 
          PElement_Type : constant Irep := Make_Pointer_Type (Element_Type);
@@ -115,7 +128,7 @@ package body Arrays is
             Raw_Malloc_Call : constant Irep :=
               Make_Malloc_Function_Call_Expr (Num_Elem          => Len_Expr,
                                               Element_Type_Size =>
-                                                Esize (Element_Type_Ent),
+                                                Element_Size,
                                               Source_Loc        => Source_Loc);
             Malloc_Call_Expr : constant Irep :=
               Typecast_If_Necessary (Raw_Malloc_Call,
@@ -238,7 +251,8 @@ package body Arrays is
                                         I_Type          => Element_Type);
             begin
                Append_Op (Result_Block,
-                          Make_Code_Assign (Rhs             => Expr,
+                          Make_Code_Assign (Rhs             =>
+               Typecast_If_Necessary (Expr, Element_Type, Global_Symbol_Table),
                                             Lhs             => Lhs_Irep,
                                             Source_Location => Source_Loc,
                                             I_Type          => Element_Type));
@@ -293,7 +307,8 @@ package body Arrays is
                                               I_Type          => Element_Type);
                   begin
                      Append_Op (Result_Block,
-                          Make_Code_Assign (Rhs             => Expr,
+                                Make_Code_Assign (Rhs             =>
+               Typecast_If_Necessary (Expr, Element_Type, Global_Symbol_Table),
                                             Lhs             => Lhs_Irep,
                                             Source_Location => Source_Loc,
                                             I_Type          => Element_Type));
@@ -453,8 +468,15 @@ package body Arrays is
                           Components => Ret_Components);
       Sub_Identifier : constant Node_Id :=
         Subtype_Indication (Component_Definition (N));
-      Sub : constant Irep :=
+      Sub_Pre : constant Irep :=
         Do_Type_Reference (Etype (Sub_Identifier));
+      Sub : constant Irep :=
+        (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
+         = I_C_Enum_Type
+         then
+            Make_Signedbv_Type (32)
+         else
+            Sub_Pre);
       Data_Type : constant Irep :=
         Make_Pointer_Type (I_Subtype => Sub,
                            Width     => Pointer_Type_Width);

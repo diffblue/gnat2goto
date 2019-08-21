@@ -859,6 +859,9 @@ package body Tree_Walk is
 
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
          Is_Out        : constant Boolean := Out_Present (Parent (Formal));
+         Formal_Type : constant Irep :=
+           Follow_Symbol_Type (Do_Type_Reference (Etype (Formal)),
+                               Global_Symbol_Table);
          Actual_Irep   : Irep;
          Expression    : constant Irep := Do_Expression (Actual);
       begin
@@ -870,7 +873,8 @@ package body Tree_Walk is
             return;
          end if;
          Actual_Irep := Wrap_Argument (
-          Handle_Enum_Symbol_Members (Expression), Is_Out);
+          Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
+                          Formal_Type, Global_Symbol_Table), Is_Out);
          Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
@@ -1440,10 +1444,15 @@ package body Tree_Walk is
          return Scalar_Range (Underlying_Type);
       end Get_Range;
 
-      Left_Op : constant Irep := Do_Expression (Left_Opnd (N));
+      Left_Op : constant Irep :=
+        Cast_Enum (Do_Expression (Left_Opnd (N)), Global_Symbol_Table);
       Range_Node : constant Node_Id := Get_Range (Right_Opnd (N));
-      Low_Right : constant Irep := Do_Expression (Low_Bound (Range_Node));
-      High_Right : constant Irep := Do_Expression (High_Bound (Range_Node));
+      Low_Right : constant Irep :=
+        Cast_Enum (Do_Expression (Low_Bound (Range_Node)),
+                   Global_Symbol_Table);
+      High_Right : constant Irep :=
+        Cast_Enum (Do_Expression (High_Bound (Range_Node)),
+                   Global_Symbol_Table);
       Geq_Low : constant Irep := Make_Op_Geq (Rhs             => Low_Right,
                                               Lhs             => Left_Op,
                                               Source_Location => Sloc (N),
@@ -3443,8 +3452,10 @@ package body Tree_Walk is
    ------------------------
 
    function Do_Operator_Simple (N : Node_Id) return Irep is
-      LHS : constant Irep := Do_Expression (Left_Opnd (N));
-      RHS : constant Irep := Do_Expression (Right_Opnd (N));
+      LHS : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
+                                        Global_Symbol_Table);
+      RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
+                                        Global_Symbol_Table);
 
       function Op_To_Kind (N : N_Op) return Irep_Kind;
 

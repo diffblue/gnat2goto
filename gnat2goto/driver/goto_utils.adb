@@ -551,4 +551,18 @@ package body GOTO_Utils is
       Identifier_Symbol.Value      := Val;
       Symtab.Insert (Identifier_Name, Identifier_Symbol);
    end Register_Identifier_In_Symbol_Table;
+
+   function Cast_Enum (Expr : Irep; A_Symbol_Table : Symbol_Table) return Irep
+   is
+   begin
+      if Kind (Follow_Symbol_Type (Get_Type (Expr),
+               A_Symbol_Table)) = I_C_Enum_Type
+      then
+         return Typecast_If_Necessary (Expr,
+                                       Make_Signedbv_Type (32),
+                                       A_Symbol_Table);
+      else
+         return Expr;
+      end if;
+   end Cast_Enum;
 end GOTO_Utils;
