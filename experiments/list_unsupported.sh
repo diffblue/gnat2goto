@@ -269,6 +269,48 @@ sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$file_name".txt | \
             print "--------------------------------------------------------------------------------"; \
          }'
 
+# For GNAT BUG DETECTED
+awk  '/^\+===========================GNAT BUG DETECTED==============================\+/ { \
+         buf = $0; \
+      } \
+      /^\+==========================================================================\+/ { \
+         print buf "<<<>>>" $0; \
+      } \
+      /^\| Error detected at .*$/ { \
+         buf = buf "<<<>>>" "Error detected at REDACTED" \
+      } \
+      /^\| .*$/ { \
+         buf = buf "<<<>>>" $0 \
+      }' "$file_name".txt \
+   | LC_ALL=posix sort | uniq -c | LC_ALL=posix sort -k1,1nr -k2 | \
+      awk '/^ *[0-9][0-9]* .*/ { \
+         print "--------------------------------------------------------------------------------"; \
+         print "Occurs:", $1, "times"; \
+         sub(/^ *[0-9][0-9]* */,"",$0); \
+         gsub(/<<<>>>/,"\n", $0); \
+         print $0; \
+         print "--------------------------------------------------------------------------------"; \
+      }'
+
+# For exceptions - note that we don't redact the file name here, because the filename/location
+# will be one of our own gnat2goto or gnat source files, not the users code.
+awk  '/^raised .*$/ { \
+         if (prev == "<========================>") \
+            print prev "<<<>>>" $0 "<<<>>>" ; \
+      } \
+      { \
+         prev = $0 \
+      }' "$file_name".txt \
+   | LC_ALL=posix sort | uniq -c | LC_ALL=posix sort -k1,1nr -k2 | \
+      awk '/^ *[0-9][0-9]* .*/ { \
+         print "--------------------------------------------------------------------------------"; \
+         print "Occurs:", $1, "times"; \
+         sub(/^ *[0-9][0-9]* */,"",$0); \
+         gsub(/<<<>>>/,"\n", $0); \
+         print $0; \
+         print "--------------------------------------------------------------------------------"; \
+      }'
+
 # For any other kind of failure, we will have logged the exit code. To summarize
 # these cases, we convert the log output into a single line 'canonical form'
 # (replace newlines with '<<<>>>>') then we can sort and uniq the list, before

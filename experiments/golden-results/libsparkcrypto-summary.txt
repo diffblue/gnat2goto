@@ -252,3 +252,23 @@ Occurs: 1 times
 Redacted compiler error message:
 no value was set for SPARK_Mode on "REDACTED"
 Raw compiler error message:
+--
+Occurs: 20 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4728                     |
+Error detected at REDACTED
+--
+Occurs: 2 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4728                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4728                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4728                     |
+Error detected at REDACTED
