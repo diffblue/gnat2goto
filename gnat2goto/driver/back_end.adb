@@ -136,7 +136,7 @@ package body Back_End is
       --    (if Opt.SPARK_Switches_File_Name = null then ""
       --     else Opt.SPARK_Switches_File_Name.all);
 
-      Opt.Disable_ALI_File := True;
+      Opt.Disable_ALI_File := False;
    end Scan_Compiler_Arguments;
 
 end Back_End;
