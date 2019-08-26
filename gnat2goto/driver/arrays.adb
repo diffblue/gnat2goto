@@ -804,17 +804,6 @@ package body Arrays is
       return Get_Last_Index (Do_Expression (Prefix (N)));
    end Do_Array_Last;
 
-   --  This handled the oddball anonymous range nodes that can occur
-   --  in array type declarations; they're effectively subtype indication
-   --  nodes with an implied base type and a range constraint.
-   function Do_Array_Range (N : Node_Id) return Irep
-   is
-      Underlying : constant Irep :=
-        Do_Type_Reference (Etype (Etype (N)));
-   begin
-      return Do_Bare_Range_Constraint (N, Underlying);
-   end Do_Array_Range;
-
    ------------------------------
    -- Get_Array_Component_Type --
    ------------------------------
