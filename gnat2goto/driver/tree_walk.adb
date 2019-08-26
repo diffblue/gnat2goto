@@ -4,6 +4,7 @@ with Sem;
 with Sem_Eval;              use Sem_Eval;
 with Sem_Util;              use Sem_Util;
 with Sem_Aux;               use Sem_Aux;
+--  with Sem_Eval;              use Sem_Eval;
 with Snames;                use Snames;
 with Stringt;               use Stringt;
 with Treepr;                use Treepr;
@@ -743,7 +744,7 @@ package body Tree_Walk is
                                             return Bound_Type_Symbol
       is
       begin
-         if Get_Attribute_Id (Attribute_Name (Bound_Node)) = Attribute_First
+         if Get_Attribute_Id (Attribute_Name (Bound_Node)) =  Attribute_First
          then
             return Bound_Type_Symbol (Do_Array_First (Bound_Node));
          else
@@ -751,11 +752,45 @@ package body Tree_Walk is
          end if;
       end Get_Array_Attr_Bound_Symbol;
 
+      procedure Set_Bound_Value (Bound : Node_Id;
+                                 Bound_Value : out Integer;
+                                 Ok : out Boolean)
+      with Pre => Is_OK_Static_Expression (Bound);
+      --  For static expressions, the gnat front end replaces all attribute
+      --  references by the lower and upper bounds of the attributed prefix.
+      --  If the type of the range is an integer type, it folds the lower and
+      --  upper bounds expressions into their intege value. If the range is
+      --  an enumeration type it sets the lower and upper bounds to the
+      --  enumeration literal identifiers of the bounds.
+
+      procedure Set_Bound_Value (Bound : Node_Id;
+                                 Bound_Value : out Integer;
+                                 Ok : out Boolean) is
+      begin
+         Ok := False;
+         Bound_Value := 0;
+         case Nkind (Bound) is
+         when N_Integer_Literal =>
+            Bound_Value :=
+              Store_Nat_Bound (Bound_Type_Nat (Intval (Bound)));
+            Ok := True;
+         when N_Identifier =>
+            Bound_Value :=
+                 Store_Symbol_Bound (Bound_Type_Symbol (
+                                     Do_Identifier (Bound)));
+            Ok := True;
+            when others =>
+               null;
+         end case;
+      end Set_Bound_Value;
+
       Lower_Bound : constant Node_Id := Low_Bound (Range_Expr);
       Upper_Bound : constant Node_Id := High_Bound (Range_Expr);
 
       Lower_Bound_Value : Integer;
       Upper_Bound_Value : Integer;
+
+      Ok : Boolean;
 
       Result_Type : constant Irep :=
         New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type
@@ -770,35 +805,40 @@ package body Tree_Walk is
                                         "range expression not bitvector type");
       end if;
 
-      case Nkind (Lower_Bound) is
-         when N_Integer_Literal => Lower_Bound_Value :=
-              Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound)));
-         when N_Attribute_Reference => Lower_Bound_Value :=
-              Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Lower_Bound));
-         when N_Identifier =>
-            Lower_Bound_Value :=
-              Store_Symbol_Bound (Bound_Type_Symbol (
-                                   Do_Identifier (Lower_Bound)));
-         when others =>
-            Report_Unhandled_Node_Empty (Lower_Bound,
-                                         "Do_Base_Range_Constraint",
-                                         "unsupported lower range kind");
-      end case;
+      if Is_OK_Static_Range (Range_Expr) then
+         Set_Bound_Value (Lower_Bound, Lower_Bound_Value, Ok);
+         if not Ok then
+            return Report_Unhandled_Node_Type
+              (Lower_Bound,
+               "Do_Base_Range_Constraint",
+               "unsupported lower range kind");
+         end if;
+         Set_Bound_Value (Upper_Bound, Upper_Bound_Value, Ok);
+         if not Ok then
+            return Report_Unhandled_Node_Type
+              (Lower_Bound,
+               "Do_Range_Constraint",
+               "unsupported upper range kind");
+         end if;
 
-      case Nkind (Upper_Bound) is
-         when N_Integer_Literal => Upper_Bound_Value :=
-              Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound)));
-         when N_Attribute_Reference => Upper_Bound_Value :=
-              Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
-         when N_Identifier =>
-            Upper_Bound_Value :=
-              Store_Symbol_Bound (Bound_Type_Symbol (
-                                   Do_Identifier (Upper_Bound)));
-         when others =>
-            Report_Unhandled_Node_Empty (Upper_Bound,
-                                         "Do_Base_Range_Constraint",
-                                         "unsupported upper range kind");
-      end case;
+      elsif Nkind (Lower_Bound) = N_Attribute_Reference and then
+        (Get_Attribute_Id (Attribute_Name (Lower_Bound)) =
+           Attribute_First and
+             (Get_Attribute_Id (Attribute_Name (Upper_Bound))) =
+             Attribute_Last)
+      then
+         Lower_Bound_Value :=
+           Store_Symbol_Bound
+             (Get_Array_Attr_Bound_Symbol (Lower_Bound));
+         Upper_Bound_Value :=
+           Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
+      else
+         return Report_Unhandled_Node_Type
+           (Lower_Bound,
+            "Do_Range_Constraint",
+            "only static ranges are supported");
+
+      end if;
 
       if Kind (Resolved_Underlying) = I_C_Enum_Type then
          Set_Width (Result_Type,
