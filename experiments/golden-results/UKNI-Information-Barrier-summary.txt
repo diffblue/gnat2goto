@@ -38,11 +38,6 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Range
 --
-Occurs: 1 times
-Calling function: Do_Operator_General
-Error message: Mod of unsupported type
-Nkind: N_Op_Not
---
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
