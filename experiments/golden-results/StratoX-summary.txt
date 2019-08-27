@@ -154,11 +154,6 @@ Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
 --
 Occurs: 5 times
-Calling function: Process_Declaration
-Error message: Use package clause declaration
-Nkind: N_Use_Package_Clause
---
-Occurs: 5 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma

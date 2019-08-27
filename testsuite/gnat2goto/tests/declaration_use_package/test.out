@@ -1,0 +1,4 @@
+Error from cbmc test:
+**** WARNING: no body for function lib__a
+
+VERIFICATION SUCCESSFUL
