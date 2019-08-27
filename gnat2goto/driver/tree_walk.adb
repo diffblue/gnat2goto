@@ -4836,8 +4836,8 @@ package body Tree_Walk is
             Handle_Representation_Clause (N);
 
          when N_Use_Package_Clause =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Use package clause declaration");
+            --  do nothing, name resolution is done by frontend
+            null;
 
          when N_Use_Type_Clause =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",

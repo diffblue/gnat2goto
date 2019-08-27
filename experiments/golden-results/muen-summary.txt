@@ -159,11 +159,6 @@ Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
 --
 Occurs: 1 times
-Calling function: Process_Declaration
-Error message: Use package clause declaration
-Nkind: N_Use_Package_Clause
---
-Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma

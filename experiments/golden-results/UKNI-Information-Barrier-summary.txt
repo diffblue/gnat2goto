@@ -43,11 +43,6 @@ Calling function: Do_Operator_General
 Error message: Mod of unsupported type
 Nkind: N_Op_Not
 --
-Occurs: 1 times
-Calling function: Process_Declaration
-Error message: Use package clause declaration
-Nkind: N_Use_Package_Clause
---
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
