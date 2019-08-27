@@ -181,6 +181,9 @@ package body Tree_Walk is
      with Pre => (Nkind (N) = N_Op_Not and then Kind (Ret_Type) in Class_Type),
      Post => Kind (Do_Op_Mod_Not'Result) in Class_Expr;
 
+   function Do_Unsigned_Op_Not (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_Op_Not);
+
    function Do_Op_Minus (N : Node_Id) return Irep
    with Pre => Nkind (N) in N_Op;
 
@@ -3094,6 +3097,18 @@ package body Tree_Walk is
                           I_Type          => Ret_Type);
    end Do_Op_Mod_Not;
 
+   function Do_Unsigned_Op_Not (N : Node_Id) return Irep is
+      Negated_Value : constant Irep := Do_Expression (Right_Opnd (N));
+      Followed_Type : constant Irep := Follow_Symbol_Type
+        (Do_Type_Reference (Etype (N)),
+         Global_Symbol_Table);
+   begin
+      pragma Assert (Kind (Followed_Type) = I_Unsignedbv_Type);
+      return Make_Op_Bitnot
+        (Op0 => Negated_Value,
+         Source_Location => Sloc (N),
+         I_Type => Followed_Type);
+   end Do_Unsigned_Op_Not;
    -------------------------
    --     Do_Op_Minus    --
    -------------------------
@@ -3418,8 +3433,11 @@ package body Tree_Walk is
             case Kind (Followed_Type) is
                when I_Bool_Type => return Do_Op_Not (N);
                when I_Ada_Mod_Type => return Do_Op_Mod_Not (N, Ret_Type);
+               when I_Unsignedbv_Type =>
+                  return Do_Unsigned_Op_Not (N);
                when others =>
-                  return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
+                  return Report_Unhandled_Node_Irep (N,
+                                                     "Do_Operator_General",
                                                     "Mod of unsupported type");
             end case;
          end;
