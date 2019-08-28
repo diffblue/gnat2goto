@@ -74,7 +74,8 @@ private
 
    function Load_Nat_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
                                return String
-     with Pre => Kind (Actual_Type) = I_Bounded_Signedbv_Type;
+     with Pre => Kind (Actual_Type) in
+     I_Bounded_Signedbv_Type | I_Bounded_Unsignedbv_Type;
 
    function Load_Real_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
                                     return String
