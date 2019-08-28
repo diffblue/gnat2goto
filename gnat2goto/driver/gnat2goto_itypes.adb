@@ -145,8 +145,7 @@ package body Gnat2goto_Itypes is
                                       Low_Bound (Scalar_Range (N))))),
                        Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
                                       High_Bound (Scalar_Range (N))))),
-                               Width       => Positive (UI_To_Int (Esize (N))),
-                               I_Subtype   => Ireps.Empty);
+                       Width       => Positive (UI_To_Int (Esize (N))));
    end Do_Itype_Integer_Subtype;
 
    ------------------------------
@@ -159,8 +158,7 @@ package body Gnat2goto_Itypes is
                                       Low_Bound (Scalar_Range (N))))),
                        Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
                                       High_Bound (Scalar_Range (N))))),
-                               Width       => Positive (UI_To_Int (Esize (N))),
-                               I_Subtype   => Ireps.Empty));
+                       Width       => Positive (UI_To_Int (Esize (N)))));
 
    -----------------------------
    -- Do_Itype_Record_Subtype --
@@ -211,16 +209,14 @@ package body Gnat2goto_Itypes is
       end case;
 
       if Kind (Followed_Mod_Type) = I_Ada_Mod_Type then
-         return Make_Bounded_Mod_Type (I_Subtype   => Make_Nil_Type,
-                                       Width       =>
+         return Make_Bounded_Mod_Type (Width       =>
                                          Get_Width (Followed_Mod_Type),
                                        Lower_Bound => Lower_Bound_Value,
                                        Ada_Mod_Max =>
                                          Get_Ada_Mod_Max (Followed_Mod_Type),
                                        Upper_Bound => Upper_Bound_Value);
       else
-         return Make_Bounded_Unsignedbv_Type (I_Subtype   => Make_Nil_Type,
-                                              Width       =>
+         return Make_Bounded_Unsignedbv_Type (Width       =>
                                                 Get_Width (Followed_Mod_Type),
                                               Lower_Bound => Lower_Bound_Value,
                                              Upper_Bound => Upper_Bound_Value);

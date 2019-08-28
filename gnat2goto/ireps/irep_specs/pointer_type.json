@@ -1,4 +1,7 @@
 {
-  "parent": "bitvector_type",
+   "parent": "type_with_subtype",
+   "namedSub": {
+      "width": {"type": "integer"}
+   },
   "id": "pointer"
 }

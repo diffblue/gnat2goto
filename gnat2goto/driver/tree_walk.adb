@@ -1078,7 +1078,7 @@ package body Tree_Walk is
       -- Dummy value initialisation --
       -- To be removed once the Unsupported reports are removed --
       Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Make_Signedint_Type (32));
+      Set_Type (Ret, Make_Signedbv_Type (32));
       Set_Value (Ret, "00000000000000000000000000000000");
 
       if Is_Integer_Literal then
@@ -1305,7 +1305,7 @@ package body Tree_Walk is
             Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
             Set_Type (Member_Symbol_Init,
-                      Make_Int_Type (Integer (Member_Size)));
+                      Make_Signedbv_Type (Integer (Member_Size)));
             Set_Value (Member_Symbol_Init,
                        Convert_Uint_To_Hex (Enumeration_Rep (Member),
                                                Member_Size));
@@ -1320,7 +1320,7 @@ package body Tree_Walk is
          Next (Member);
          exit when not Present (Member);
       end loop;
-      Set_Subtype (Ret, Make_Int_Type (32));
+      Set_Subtype (Ret, Make_Signedbv_Type (32));
       Set_Body (Ret, Enum_Body);
       return Ret;
    end Do_Enumeration_Definition;
@@ -3219,11 +3219,11 @@ package body Tree_Walk is
             Cast_LHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => LHS_Value,
                                 Source_Location => Source_Loc,
-                                I_Type => Make_Signedint_Type (32));
+                                I_Type => Make_Signedbv_Type (32));
             Cast_RHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => RHS_Value,
                                 Source_Location => Source_Loc,
-                                I_Type => Make_Signedint_Type (32));
+                                I_Type => Make_Signedbv_Type (32));
             R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
                                            Rhs => Cast_RHS_To_Integer,
                                            Source_Location => Source_Loc,
@@ -5516,8 +5516,7 @@ package body Tree_Walk is
       end if;
 
       return Make_Ada_Mod_Type
-        (I_Subtype => Make_Nil_Type,
-         Width => Ada_Type_Size,
+        (Width => Ada_Type_Size,
          Ada_Mod_Max => Convert_Uint_To_Hex
            (Mod_Max, Pos (Ada_Type_Size)));
    end Do_Modular_Type_Definition;

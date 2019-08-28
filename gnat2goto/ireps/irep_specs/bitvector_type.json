@@ -1,5 +1,5 @@
 {
-  "parent": "type_with_subtype",
+  "parent": "type",
   "namedSub": {
     "width": {"type": "integer"}
   }
