@@ -1,1 +1,4 @@
+[2] file case_statement_range.adb line 6 assertion: SUCCESS
+[3] file case_statement_range.adb line 8 assertion: SUCCESS
+[1] file main.adb line 5 assertion: SUCCESS
 VERIFICATION SUCCESSFUL

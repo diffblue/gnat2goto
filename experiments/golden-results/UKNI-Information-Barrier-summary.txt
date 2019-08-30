@@ -33,11 +33,6 @@ Calling function: Do_Base_Range_Constraint
 Error message: unsupported upper range kind
 Nkind: N_Selected_Component
 --
-Occurs: 1 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Range
---
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"

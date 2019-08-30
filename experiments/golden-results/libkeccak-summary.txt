@@ -55,7 +55,7 @@ Raw compiler error message:
 --
 Occurs: 23 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 2 times
@@ -95,132 +95,132 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4757                     |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4793                     |
 Error detected at REDACTED
 --
 Occurs: 1 times
