@@ -224,6 +224,8 @@ package body Tree_Walk is
         Post => Kind (Do_Procedure_Call_Statement'Result) =
                   I_Code_Function_Call;
 
+   function Do_Range_In_Case (N : Node_Id; Symbol : Irep) return Irep;
+
    function Do_Range_Constraint (N : Node_Id; Underlying : Irep) return Irep;
 
    function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep
@@ -932,13 +934,15 @@ package body Tree_Walk is
       function Make_Case_Test (Alts : List_Id) return Irep is
          function Make_Single_Test (Alt : Node_Id) return Irep;
          function Make_Single_Test (Alt : Node_Id) return Irep is
-            Ret : constant Irep := New_Irep (I_Op_Eq);
-            Rhs : constant Irep := Do_Expression (Alt);
          begin
-            Set_Lhs (Ret, Bound_Var);
-            Set_Rhs (Ret, Rhs);
-            Set_Type (Ret, New_Irep (I_Bool_Type));
-            return Ret;
+            if Nkind (Alt) /= N_Range then
+               return Make_Op_Eq (Lhs => Bound_Var,
+                                  Rhs => Do_Expression (Alt),
+                                  I_Type => Make_Bool_Type,
+                                  Source_Location => Sloc (Alt));
+            else
+               return Do_Range_In_Case (Alt, Bound_Var);
+            end if;
          end Make_Single_Test;
          First_Alt_Test : constant Irep := Make_Single_Test (First (Alts));
          This_Alt : Node_Id := First (Alts);
@@ -1975,6 +1979,35 @@ package body Tree_Walk is
      (N : Node_Id; Underlying : Irep) return Irep
    is (Underlying);
 
+   -----------------------------------------
+   --          Do_Range_In_Case           --
+   -----------------------------------------
+
+   --  Handle the case of a range expression in a case statement alternative
+   --  expression. Generalised to work for both case expressions and case
+   --  statements.
+   function Do_Range_In_Case (N : Node_Id; Symbol : Irep) return Irep is
+      Result : constant Irep := New_Irep (I_Op_And);
+      Lower_Bound : constant Irep := Do_Expression
+                                       (Low_Bound (N));
+      Upper_Bound : constant Irep := Do_Expression
+                                       (High_Bound (N));
+      Geq_Lower : constant Irep := Make_Op_Geq (Rhs => Lower_Bound,
+                                                Lhs => Symbol,
+                                                Source_Location => Sloc (N),
+                                                I_Type => Make_Bool_Type);
+      Leq_Upper : constant Irep := Make_Op_Leq (Rhs => Upper_Bound,
+                                                Lhs => Symbol,
+                                                Source_Location => Sloc (N),
+                                                I_Type => Make_Bool_Type);
+   begin
+      Append_Op (Result, Geq_Lower);
+      Append_Op (Result, Leq_Upper);
+      Set_Type (Result, Make_Bool_Type);
+      Set_Source_Location (Result, Sloc (N));
+      return Result;
+   end Do_Range_In_Case;
+
    -----------------------
    -- Do_Case_Statement --
    -----------------------
@@ -1983,7 +2016,6 @@ package body Tree_Walk is
       Ret : constant Irep := New_Irep (I_Code_Block);
       Value : constant Irep := Do_Expression (Expression (N));
 
-      function Do_Range (N : Node_Id; Symbol : Irep) return Irep;
       function Make_Case_Test (Alts : List_Id) return Irep;
 
       --  Auxiliary function to create a single test case
@@ -1992,15 +2024,15 @@ package body Tree_Walk is
       function Make_Case_Test (Alts : List_Id) return Irep is
          function Make_Single_Test (Alt : Node_Id) return Irep;
          function Make_Single_Test (Alt : Node_Id) return Irep is
-            Ret : constant Irep := New_Irep (I_Op_Eq);
-            Rhs : constant Irep :=
-              (if Nkind (Alt) = N_Range then
-                Do_Range (Alt, Value) else Do_Expression (Alt));
          begin
-            Set_Lhs (Ret, Value);
-            Set_Rhs (Ret, Rhs);
-            Set_Type (Ret, Make_Bool_Type);
-            return Ret;
+            if Nkind (Alt) /= N_Range then
+               return Make_Op_Eq (Lhs => Value,
+                                  Rhs => Do_Expression (Alt),
+                                  I_Type => Make_Bool_Type,
+                                  Source_Location => Sloc (Alt));
+            else
+               return Do_Range_In_Case (Alt, Value);
+            end if;
          end Make_Single_Test;
          First_Alt_Test : constant Irep := Make_Single_Test (First (Alts));
          This_Alt : Node_Id := First (Alts);
@@ -2021,30 +2053,6 @@ package body Tree_Walk is
             return Big_Or;
          end;
       end Make_Case_Test;
-
-      --  Handle the case of a range expression in a case statement alternative
-      --  expression.
-      function Do_Range (N : Node_Id; Symbol : Irep) return Irep is
-         Result : constant Irep := New_Irep (I_Op_And);
-         Lower_Bound : constant Irep := Do_Expression
-                                          (Low_Bound (N));
-         Upper_Bound : constant Irep := Do_Expression
-                                          (High_Bound (N));
-         Geq_Lower : constant Irep := Make_Op_Geq (Rhs => Lower_Bound,
-                                                   Lhs => Symbol,
-                                                   Source_Location => Sloc (N),
-                                                   I_Type => Make_Bool_Type);
-         Leq_Upper : constant Irep := Make_Op_Leq (Rhs => Upper_Bound,
-                                                   Lhs => Symbol,
-                                                   Source_Location => Sloc (N),
-                                                   I_Type => Make_Bool_Type);
-      begin
-         Append_Op (Result, Geq_Lower);
-         Append_Op (Result, Leq_Upper);
-         Set_Type (Result, Make_Bool_Type);
-         Set_Source_Location (Result, Sloc (N));
-         return Result;
-      end Do_Range;
 
       This_Alt : Node_Id := First (Alternatives (N));
    begin
