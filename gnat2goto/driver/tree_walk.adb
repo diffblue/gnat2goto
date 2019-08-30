@@ -1983,15 +1983,19 @@ package body Tree_Walk is
       Ret : constant Irep := New_Irep (I_Code_Block);
       Value : constant Irep := Do_Expression (Expression (N));
 
+      function Do_Range (N : Node_Id; Symbol : Irep) return Irep;
+      function Make_Case_Test (Alts : List_Id) return Irep;
+
       --  Auxiliary function to create a single test case
       --  to emplace in a condition from a list of alternative
       --  values.
-      function Make_Case_Test (Alts : List_Id) return Irep;
       function Make_Case_Test (Alts : List_Id) return Irep is
          function Make_Single_Test (Alt : Node_Id) return Irep;
          function Make_Single_Test (Alt : Node_Id) return Irep is
             Ret : constant Irep := New_Irep (I_Op_Eq);
-            Rhs : constant Irep := Do_Expression (Alt);
+            Rhs : constant Irep :=
+              (if Nkind (Alt) = N_Range then
+                Do_Range (Alt, Value) else Do_Expression (Alt));
          begin
             Set_Lhs (Ret, Value);
             Set_Rhs (Ret, Rhs);
@@ -2017,6 +2021,30 @@ package body Tree_Walk is
             return Big_Or;
          end;
       end Make_Case_Test;
+
+      --  Handle the case of a range expression in a case statement alternative
+      --  expression.
+      function Do_Range (N : Node_Id; Symbol : Irep) return Irep is
+         Result : constant Irep := New_Irep (I_Op_And);
+         Lower_Bound : constant Irep := Do_Expression
+                                          (Low_Bound (N));
+         Upper_Bound : constant Irep := Do_Expression
+                                          (High_Bound (N));
+         Geq_Lower : constant Irep := Make_Op_Geq (Rhs => Lower_Bound,
+                                                   Lhs => Symbol,
+                                                   Source_Location => Sloc (N),
+                                                   I_Type => Make_Bool_Type);
+         Leq_Upper : constant Irep := Make_Op_Leq (Rhs => Upper_Bound,
+                                                   Lhs => Symbol,
+                                                   Source_Location => Sloc (N),
+                                                   I_Type => Make_Bool_Type);
+      begin
+         Append_Op (Result, Geq_Lower);
+         Append_Op (Result, Leq_Upper);
+         Set_Type (Result, Make_Bool_Type);
+         Set_Source_Location (Result, Sloc (N));
+         return Result;
+      end Do_Range;
 
       This_Alt : Node_Id := First (Alternatives (N));
    begin
