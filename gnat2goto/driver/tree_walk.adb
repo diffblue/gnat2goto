@@ -723,7 +723,8 @@ package body Tree_Walk is
                           Global_Symbol_Table));
             end;
          else
-            Set_Rhs (R, RHS);
+            Set_Rhs (R, Typecast_If_Necessary (
+                     RHS, Get_Type (LHS), Global_Symbol_Table));
          end if;
          return R;
       end;
@@ -1078,7 +1079,7 @@ package body Tree_Walk is
       -- Dummy value initialisation --
       -- To be removed once the Unsupported reports are removed --
       Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Make_Signedint_Type (32));
+      Set_Type (Ret, Make_Signedbv_Type (32));
       Set_Value (Ret, "00000000000000000000000000000000");
 
       if Is_Integer_Literal then
@@ -1305,7 +1306,7 @@ package body Tree_Walk is
             Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
             Set_Type (Member_Symbol_Init,
-                      Make_Int_Type (Integer (Member_Size)));
+                      Make_Signedbv_Type (Integer (Member_Size)));
             Set_Value (Member_Symbol_Init,
                        Convert_Uint_To_Hex (Enumeration_Rep (Member),
                                                Member_Size));
@@ -1320,7 +1321,7 @@ package body Tree_Walk is
          Next (Member);
          exit when not Present (Member);
       end loop;
-      Set_Subtype (Ret, Make_Int_Type (32));
+      Set_Subtype (Ret, Make_Signedbv_Type (32));
       Set_Body (Ret, Enum_Body);
       return Ret;
    end Do_Enumeration_Definition;
@@ -1755,8 +1756,18 @@ package body Tree_Walk is
 
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep is
       Stmts : constant List_Id := Statements (N);
+      Stmnt : Node_Id := First (Stmts);
+      Reps : constant Irep := New_Irep (I_Code_Block);
    begin
-      return Process_Statements (Stmts);
+      while Present (Stmnt) loop
+         if Nkind (Stmnt) = N_Object_Declaration then
+            Process_Declaration (Stmnt, Reps);
+         else
+            Process_Statement (Stmnt, Reps);
+         end if;
+         Next (Stmnt);
+      end loop;
+      return Reps;
    end Do_Handled_Sequence_Of_Statements;
 
    -------------------
@@ -2230,7 +2241,8 @@ package body Tree_Walk is
                   --  TODO: needs generalization to support enums
                   if Reverse_Present (Spec) then
                      Set_Lhs (Init, Sym_Loopvar);
-                     Set_Rhs (Init, Bound_High);
+                     Set_Rhs (Init, Typecast_If_Necessary (Bound_High,
+                              Get_Type (Sym_Loopvar), Global_Symbol_Table));
                      Cond := Make_Op_Geq
                        (Rhs             => Bound_Low,
                         Lhs             => Sym_Loopvar,
@@ -2242,7 +2254,8 @@ package body Tree_Walk is
                        (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
                   else
                      Set_Lhs (Init, Sym_Loopvar);
-                     Set_Rhs (Init, Bound_Low);
+                     Set_Rhs (Init, Typecast_If_Necessary (Bound_Low,
+                              Get_Type (Sym_Loopvar), Global_Symbol_Table));
                      Cond := Make_Op_Leq
                        (Rhs             => Bound_High,
                         Lhs             => Sym_Loopvar,
@@ -3053,7 +3066,7 @@ package body Tree_Walk is
       Set_Symbol (Decl, Id);
       Append_Op (Block, Decl);
 
-      if Has_Init_Expression (N) then
+      if Has_Init_Expression (N) or Present (Expression (N)) then
          Init_Expr := Do_Expression (Expression (N));
       elsif Needs_Default_Initialisation (Etype (Defined)) then
          declare
@@ -3219,11 +3232,11 @@ package body Tree_Walk is
             Cast_LHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => LHS_Value,
                                 Source_Location => Source_Loc,
-                                I_Type => Make_Signedint_Type (32));
+                                I_Type => Make_Signedbv_Type (32));
             Cast_RHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => RHS_Value,
                                 Source_Location => Source_Loc,
-                                I_Type => Make_Signedint_Type (32));
+                                I_Type => Make_Signedbv_Type (32));
             R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
                                            Rhs => Cast_RHS_To_Integer,
                                            Source_Location => Source_Loc,
@@ -5458,6 +5471,9 @@ package body Tree_Walk is
 --         when N_Freeze_Entity =>
 --            --  Ignore, nothing to generate
 --            null;
+         when N_Object_Declaration =>
+            Report_Unhandled_Node_Empty (N, "Process_Statement",
+                                  "Object declaration statement unsupported.");
 
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
@@ -5516,8 +5532,7 @@ package body Tree_Walk is
       end if;
 
       return Make_Ada_Mod_Type
-        (I_Subtype => Make_Nil_Type,
-         Width => Ada_Type_Size,
+        (Width => Ada_Type_Size,
          Ada_Mod_Max => Convert_Uint_To_Hex
            (Mod_Max, Pos (Ada_Type_Size)));
    end Do_Modular_Type_Definition;

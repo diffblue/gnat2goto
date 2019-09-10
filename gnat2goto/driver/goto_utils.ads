@@ -22,14 +22,6 @@ package GOTO_Utils is
    function Fresh_Var_Name (Infix : String) return String;
    function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep;
 
-   function Make_Int_Type (Width : Positive) return Irep;
-
-   function Make_Signedint_Type (Width : Positive) return Irep;
-
-   function Make_Signedbv_Type (Width : Positive) return Irep;
-
-   function Make_Unsignedbv_Type (Width : Positive) return Irep;
-
    function Make_Pointer_Type (Base : Irep) return Irep;
 
    function Make_Address_Of (Base : Irep) return Irep;
@@ -145,7 +137,7 @@ package GOTO_Utils is
       Expr_Type : Irep;
       Source_Location : Source_Ptr)
    return Irep
-   with Pre => Kind (Expr_Type) in Class_Bitvector_Type,
+   with Pre => Kind (Expr_Type) in Class_Bitvector_Type | I_Pointer_Type,
         Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
 
    function Make_Simple_Side_Effect_Expr_Function_Call

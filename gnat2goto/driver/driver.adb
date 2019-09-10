@@ -143,7 +143,7 @@ package body Driver is
    end GNAT_To_Goto;
 
    procedure Initialize_CProver_Internal_Variables (Start_Body : Irep) is
-      Int_32_T : constant Irep := Make_Signedint_Type (32);
+      Int_32_T : constant Irep := Make_Signedbv_Type (32);
 
       procedure Declare_Missing_Global (Symbol_Expr : Irep)
         with Pre => Kind (Symbol_Expr) = I_Symbol_Expr;
@@ -193,9 +193,8 @@ package body Driver is
 
       procedure Initialize_CProver_Dead_Object;
       procedure Initialize_CProver_Dead_Object is
-         Dead_Object_Type : constant Irep := Make_Pointer_Type
-           (I_Subtype => Make_Void_Type,
-            Width => Pointer_Type_Width);
+         Dead_Object_Type : constant Irep :=
+           Make_Pointer_Type (Base => Make_Void_Type);
          Dead_Object_Sym : constant Irep := Make_Symbol_Expr
            (I_Type => Dead_Object_Type,
             Identifier => "__CPROVER_dead_object",
@@ -675,7 +674,7 @@ package body Driver is
       end Add_Global_Sym;
 
       --  must be int type or error when using __CPROVER_rounded_mode
-      Int_32_T : constant Irep := Make_Int_Type (32);
+      Int_32_T : constant Irep := Make_Signedbv_Type (32);
    begin
       Add_Global_Sym (Intern ("__CPROVER_rounding_mode"), Int_32_T);
    end Add_CProver_Internal_Symbols;
