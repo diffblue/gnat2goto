@@ -180,33 +180,24 @@ package body Gnat2goto_Itypes is
       Lower_Bound : constant Node_Id := Low_Bound (S_Range);
       Upper_Bound : constant Node_Id := High_Bound (S_Range);
 
-      Lower_Bound_Value : Integer;
-      Upper_Bound_Value : Integer;
+      Lower_Bound_Value : constant Integer :=
+        (case Nkind (Lower_Bound) is
+            when N_Integer_Literal =>
+               Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound))),
+            when others =>
+               Store_Symbol_Bound (Bound_Type_Symbol (
+           Do_Expression (Lower_Bound))));
+
+      Upper_Bound_Value : constant Integer :=
+        (case Nkind (Upper_Bound) is
+            when N_Integer_Literal =>
+               Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound))),
+            when others =>
+               Store_Symbol_Bound (Bound_Type_Symbol (
+           Do_Expression (Upper_Bound))));
    begin
       pragma Assert (Kind (Followed_Mod_Type) in I_Unsignedbv_Type
                        | I_Ada_Mod_Type);
-
-      case Nkind (Lower_Bound) is
-         when N_Integer_Literal => Lower_Bound_Value :=
-              Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound)));
-         when N_Identifier => Lower_Bound_Value :=
-              Store_Symbol_Bound (Bound_Type_Symbol (Lower_Bound));
-         when others =>
-            Report_Unhandled_Node_Empty (Lower_Bound,
-                                         "Do_Base_Range_Constraint",
-                                         "unsupported lower range kind");
-      end case;
-
-      case Nkind (Upper_Bound) is
-         when N_Integer_Literal => Upper_Bound_Value :=
-              Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound)));
-         when N_Identifier => Upper_Bound_Value :=
-              Store_Symbol_Bound (Bound_Type_Symbol (Upper_Bound));
-         when others =>
-            Report_Unhandled_Node_Empty (Upper_Bound,
-                                         "Do_Base_Range_Constraint",
-                                         "unsupported upper range kind");
-      end case;
 
       if Kind (Followed_Mod_Type) = I_Ada_Mod_Type then
          return Make_Bounded_Mod_Type (Width       =>

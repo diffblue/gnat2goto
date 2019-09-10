@@ -113,9 +113,6 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
         Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
 
-   function Do_Identifier (N : Node_Id) return Irep
-   with Pre  => Nkind (N) in N_Identifier | N_Expanded_Name;
-
    function Do_If_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
@@ -230,11 +227,6 @@ package body Tree_Walk is
    function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep
    with Pre  => Nkind (N) in N_Record_Definition | N_Variant,
         Post => Kind (Do_Record_Definition'Result) = I_Struct_Type;
-
-   function Do_Selected_Component (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Selected_Component,
-        Post => Kind (Do_Selected_Component'Result) in
-          I_Member_Expr | I_Op_Comma;
 
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Signed_Integer_Type_Definition,
@@ -3847,7 +3839,8 @@ package body Tree_Walk is
       Ok : Boolean;
 
       Result_Type : constant Irep :=
-        New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type
+        New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type or
+                      Kind (Resolved_Underlying) = I_Unsignedbv_Type
                     then I_Bounded_Unsignedbv_Type
                     else I_Bounded_Signedbv_Type);
    begin
