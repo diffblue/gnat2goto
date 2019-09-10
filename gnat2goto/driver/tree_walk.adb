@@ -4879,8 +4879,8 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Abstract subprogram declaration");
          when N_Package_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Package declaration");
+            Do_Package_Declaration (N);
+
          when N_Renaming_Declaration =>
             --  renaming declarations are handled by the gnat front-end;
             null;

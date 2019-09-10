@@ -23,11 +23,6 @@ Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
-Occurs: 13 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
---
 Occurs: 12 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
@@ -47,11 +42,6 @@ Occurs: 10 times
 Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Subprogram_Declaration
---
-Occurs: 9 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
 --
 Occurs: 9 times
 Calling function: Do_Withed_Unit_Spec
@@ -79,11 +69,6 @@ Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
 Occurs: 7 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 7 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
@@ -103,25 +88,15 @@ Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Procedure_Instantiation
 --
-Occurs: 5 times
+Occurs: 4 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
---
-Occurs: 4 times
-Calling function: Process_Declaration
-Error message: Package body declaration
-Nkind: N_Package_Body
 --
 Occurs: 3 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Function_Definition
---
-Occurs: 3 times
-Calling function: Process_Declaration
-Error message: Generic declaration
-Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 2 times
 Calling function: Do_Aggregate_Literal
@@ -132,6 +107,16 @@ Occurs: 2 times
 Calling function: Do_Type_Definition
 Error message: Unknown expression kind
 Nkind: N_Access_Procedure_Definition
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Generic declaration
+Nkind: N_Generic_Subprogram_Declaration
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
 --
 Occurs: 2 times
 Calling function: Process_Declaration
@@ -152,6 +137,11 @@ Occurs: 1 times
 Calling function: Do_Constant
 Error message: Constant Type not in symbol table
 Nkind: N_Integer_Literal
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: Unknown attribute
+Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Op_Expon
@@ -3018,7 +3008,7 @@ Occurs: 12 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
-Occurs: 7 times
+Occurs: 6 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
@@ -3036,6 +3026,11 @@ Error detected at REDACTED
 Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4806                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:114|
 Error detected at REDACTED
 --
 Occurs: 1 times
