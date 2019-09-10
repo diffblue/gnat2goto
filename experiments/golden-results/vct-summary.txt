@@ -8,6 +8,11 @@ Calling function: Process_Declaration
 Error message: Abstract subprogram declaration
 Nkind: N_Abstract_Subprogram_Declaration
 --
+Occurs: 40 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Postcondition
+Nkind: N_Pragma
+--
 Occurs: 37 times
 Calling function: Do_Private_Type_Declaration
 Error message: Abstract type declaration unsupported
@@ -44,11 +49,6 @@ Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
 --
 Occurs: 1 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
---
-Occurs: 1 times
 Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Package_Declaration
@@ -65,8 +65,8 @@ Nkind: N_Package_Body
 --
 Occurs: 1 times
 Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Null_Statement
 --
 Occurs: 7 times
 Redacted compiler error message:

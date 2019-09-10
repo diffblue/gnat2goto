@@ -8,15 +8,10 @@ Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Subprogram_Declaration
 --
-Occurs: 76 times
+Occurs: 78 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
---
-Occurs: 66 times
-Calling function: Do_Function_Call
-Error message: func name not in symbol table
-Nkind: N_Function_Call
 --
 Occurs: 50 times
 Calling function: Do_Type_Definition
@@ -38,40 +33,30 @@ Calling function: Do_Withed_Unit_Spec
 Error message: This type of library_unit is not yet handled
 Nkind: N_Generic_Package_Declaration
 --
-Occurs: 22 times
-Calling function: Process_Declaration
-Error message: Package declaration
-Nkind: N_Package_Declaration
+Occurs: 18 times
+Calling function: Do_Expression
+Error message: Unknown attribute
+Nkind: N_Attribute_Reference
 --
 Occurs: 18 times
 Calling function: Process_Declaration
 Error message: Exception declaration
 Nkind: N_Exception_Declaration
 --
-Occurs: 17 times
-Calling function: Do_Expression
-Error message: Unknown attribute
-Nkind: N_Attribute_Reference
---
-Occurs: 16 times
-Calling function: Process_Declaration
-Error message: Package body declaration
-Nkind: N_Package_Body
---
-Occurs: 16 times
+Occurs: 18 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 12 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 11 times
+Occurs: 13 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
 Nkind: N_Pragma
+--
+Occurs: 10 times
+Calling function: Process_Statement
+Error message: Raise statement
+Nkind: N_Raise_Statement
 --
 Occurs: 9 times
 Calling function: Process_Pragma_Declaration
@@ -85,6 +70,11 @@ Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Declaration
+Error message: Generic instantiation declaration
+Nkind: N_Function_Instantiation
+--
+Occurs: 8 times
+Calling function: Process_Declaration
 Error message: Representation clause unsupported: alignment
 Nkind: N_Attribute_Definition_Clause
 --
@@ -93,15 +83,15 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Obsolescent
 Nkind: N_Pragma
 --
-Occurs: 8 times
-Calling function: Process_Statement
-Error message: Raise statement
-Nkind: N_Raise_Statement
---
 Occurs: 7 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Null
+--
+Occurs: 7 times
+Calling function: Process_Declaration
+Error message: Package body declaration
+Nkind: N_Package_Body
 --
 Occurs: 7 times
 Calling function: Process_Declaration
@@ -115,17 +105,17 @@ Nkind: N_Pragma
 --
 Occurs: 6 times
 Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Procedure_Instantiation
---
-Occurs: 6 times
-Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
 --
 Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: No return
+Nkind: N_Pragma
+--
+Occurs: 6 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
 --
 Occurs: 6 times
@@ -143,35 +133,40 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Ada 05
 Nkind: N_Pragma
 --
-Occurs: 5 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Unreferenced
-Nkind: N_Pragma
---
 Occurs: 4 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
+Occurs: 4 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Null_Statement
+--
 Occurs: 3 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma
+Nkind: N_Pragma
+--
+Occurs: 2 times
+Calling function: Do_Function_Call
+Error message: function entity not defining identifier
+Nkind: N_Function_Call
+--
+Occurs: 2 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Package_Instantiation
 --
 Occurs: 2 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Null_Statement
+Error message: Generic instantiation declaration
+Nkind: N_Procedure_Instantiation
 --
 Occurs: 1 times
 Calling function: Do_Compilation_Unit
 Error message: Unknown tree node
 Nkind: N_Compilation_Unit
---
-Occurs: 1 times
-Calling function: Do_Function_Call
-Error message: function entity not defining identifier
-Nkind: N_Function_Call
 --
 Occurs: 1 times
 Calling function: Do_Pragma
@@ -1713,14 +1708,14 @@ Occurs: 29 times
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4806                     |
 Error detected at REDACTED
 --
-Occurs: 7 times
+Occurs: 6 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1597|
 Error detected at REDACTED
 --
 Occurs: 6 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1597|
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
 --
 Occurs: 3 times
@@ -1766,11 +1761,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:114|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1840,7 +1830,17 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:24|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sem_util.adb:20815                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2206,11 +2206,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:4806                     |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
 --
 Occurs: 1 times
