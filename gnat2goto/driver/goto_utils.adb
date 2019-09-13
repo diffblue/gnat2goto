@@ -18,6 +18,36 @@ package body GOTO_Utils is
       return Size_T;
    end CProver_Size_T;
 
+   Void_T : Irep := Ireps.Empty;
+   function CProver_Void_T return Irep
+   is
+   begin
+      if Void_T = Ireps.Empty then
+         Void_T := Make_Void_Type;
+      end if;
+      return Void_T;
+   end CProver_Void_T;
+
+   Nil_T : Irep := Ireps.Empty;
+   function CProver_Nil_T return Irep
+   is
+   begin
+      if Nil_T = Ireps.Empty then
+         Nil_T := Make_Nil_Type;
+      end if;
+      return Nil_T;
+   end CProver_Nil_T;
+
+   Bool_T : Irep := Ireps.Empty;
+   function CProver_Bool_T return Irep
+   is
+   begin
+      if Bool_T = Ireps.Empty then
+         Bool_T := Make_Bool_Type;
+      end if;
+      return Bool_T;
+   end CProver_Bool_T;
+
    ---------------------
    -- Make_Address_Of --
    ---------------------
@@ -379,9 +409,8 @@ package body GOTO_Utils is
                                Last       => Last);
    end Build_Array_Size;
 
-   function To_Float_Format (Float_Type : Irep) return Float_Format
+   function To_Float_Format (Float_Width : Integer) return Float_Format
    is
-      Float_Width : constant Integer := Get_Width (Float_Type);
       Unsupported_Float_Width : exception;
    begin
       case Float_Width is
@@ -393,9 +422,9 @@ package body GOTO_Utils is
       end case;
    end To_Float_Format;
 
-   function Float_Mantissa_Size (Float_Type : Irep) return Integer
+   function Float_Mantissa_Size (Float_Width : Integer) return Integer
    is
-      Format : constant Float_Format := To_Float_Format (Float_Type);
+      Format : constant Float_Format := To_Float_Format (Float_Width);
    begin
       case Format is
          when IEEE_32_Bit =>

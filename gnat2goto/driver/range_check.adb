@@ -340,7 +340,8 @@ package body Range_Check is
    function Load_Real_Bound_In_Hex (Index : Integer; Actual_Type : Irep)
                                     return String
    is
-      Bit_Width : constant Float_Format := To_Float_Format (Actual_Type);
+      Bit_Width : constant Float_Format :=
+        To_Float_Format (Get_Width (Actual_Type));
       Bound : constant Ureal :=
         Ureal (Real_Bounds_Table.Element (Index));
    begin

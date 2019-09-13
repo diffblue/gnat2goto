@@ -4200,7 +4200,7 @@ package body Tree_Walk is
       Esize_Width : constant Nat := UI_To_Int (Esize (E));
    begin
       Set_Width (Ret, Integer (Esize_Width));
-      Set_F (Ret, Float_Mantissa_Size (Ret));
+      Set_F (Ret, Float_Mantissa_Size (Get_Width (Ret)));
 
       --  If user specified range bounds we store them
       if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification then
