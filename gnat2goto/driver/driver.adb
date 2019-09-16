@@ -416,11 +416,6 @@ package body Driver is
                others => <>);
             Initial_Call_Args : constant Irep := Make_Argument_List;
             Entry_Procedure : constant Irep := Symbol_Expr (Program_Symbol);
-            Initial_Call      : constant Irep := Make_Code_Function_Call
-              (Arguments => Initial_Call_Args,
-               I_Function => Entry_Procedure,
-               Source_Location => No_Location);
-
             Program_Args : constant Irep_List :=
               Get_Parameter (Get_Parameters (Get_Type (Entry_Procedure)));
          begin
@@ -470,7 +465,6 @@ package body Driver is
                   C := List_Next (Program_Args, C);
                end loop;
             end;
-            Set_Arguments (Initial_Call, Initial_Call_Args);
             --  Catch the call's return value if it has one
             if Kind (Get_Return_Type (Get_Type (Entry_Procedure)))
               /= I_Empty
@@ -488,18 +482,18 @@ package body Driver is
                   Return_Decl : constant Irep := Make_Code_Decl
                     (Symbol => Return_Expr,
                      Source_Location => No_Location);
+                  Initial_Call      : constant Irep := Make_Code_Function_Call
+                    (Arguments => Initial_Call_Args,
+                     I_Function => Entry_Procedure,
+                     Source_Location => No_Location,
+                     Lhs => Return_Expr);
                begin
                   Global_Symbol_Table.Insert (Return_Id, Return_Symbol);
-
-                  Set_Identifier (Return_Expr, Unintern (Return_Id));
-                  Set_Type (Return_Expr, Return_Symbol.SymType);
-                  Set_Lhs (Initial_Call, Return_Expr);
-                  Set_Symbol (Return_Decl, Return_Expr);
                   Append_Op (Start_Body, Return_Decl);
+                  Append_Op (Start_Body, Initial_Call);
                end;
             end if;
             Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
-            Append_Op (Start_Body, Initial_Call);
          end;
       end if;
 
