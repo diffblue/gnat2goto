@@ -10,6 +10,9 @@ package GOTO_Utils is
    type Irep_Array is array (Integer range <>) of Irep;
 
    function CProver_Size_T return Irep;
+   function CProver_Void_T return Irep;
+   function CProver_Nil_T return Irep;
+   function CProver_Bool_T return Irep;
 
    --  Utility routines for high-level GOTO AST construction
 
@@ -115,10 +118,9 @@ package GOTO_Utils is
 
    type Float_Format is (IEEE_32_Bit, IEEE_64_Bit);
 
-   function To_Float_Format (Float_Type : Irep) return Float_Format
-     with Pre => Kind (Float_Type) in I_Floatbv_Type | I_Bounded_Floatbv_Type;
+   function To_Float_Format (Float_Width : Integer) return Float_Format;
 
-   function Float_Mantissa_Size (Float_Type : Irep) return Integer;
+   function Float_Mantissa_Size (Float_Width : Integer) return Integer;
 
    function Build_Index_Constant (Value : Int;
                                   Source_Loc : Source_Ptr) return Irep;

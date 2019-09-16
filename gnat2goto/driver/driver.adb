@@ -59,18 +59,17 @@ package body Driver is
 
    procedure Add_Malloc_Symbol is
       Malloc_Name : constant String := "malloc";
-      Malloc_Params : constant Irep := New_Irep (I_Parameter_List);
+      Malloc_Params : constant Irep := Make_Parameter_List;
       Size_Param : constant Irep :=
         Create_Fun_Parameter (Fun_Name        => Malloc_Name,
                               Param_Name      => "size",
-                              Param_Type      =>
-                           Make_Symbol_Type (Identifier => "__CPROVER_size_t"),
+                              Param_Type      => CProver_Size_T,
                               Param_List      => Malloc_Params,
                               A_Symbol_Table  => Global_Symbol_Table);
       Malloc_Type : constant Irep :=
         Make_Code_Type (Parameters  => Malloc_Params,
                         Ellipsis    => False,
-                        Return_Type => Make_Pointer_Type (Make_Void_Type),
+                        Return_Type => Make_Pointer_Type (CProver_Void_T),
                         Inlined     => False,
                         Knr         => False);
       Malloc_Symbol : Symbol;
@@ -89,26 +88,25 @@ package body Driver is
 
    procedure Add_Memcpy_Symbol is
       Memcpy_Name : constant String := "memcpy";
-      Memcpy_Params : constant Irep := New_Irep (I_Parameter_List);
+      Memcpy_Params : constant Irep := Make_Parameter_List;
       Destination_Param : constant Irep :=
         Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
                               Param_Name      => "destination",
                               Param_Type      =>
-                                Make_Pointer_Type (Make_Void_Type),
+                                Make_Pointer_Type (CProver_Void_T),
                               Param_List      => Memcpy_Params,
                               A_Symbol_Table  => Global_Symbol_Table);
       Source_Param : constant Irep :=
         Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
                               Param_Name      => "source",
                               Param_Type      =>
-                                Make_Pointer_Type (Make_Void_Type),
+                                Make_Pointer_Type (CProver_Void_T),
                               Param_List      => Memcpy_Params,
                               A_Symbol_Table  => Global_Symbol_Table);
       Num_Param : constant Irep :=
         Create_Fun_Parameter (Fun_Name        => Memcpy_Name,
                               Param_Name      => "num",
-                              Param_Type      =>
-                           Make_Symbol_Type (Identifier => "__CPROVER_size_t"),
+                              Param_Type      => CProver_Size_T,
                               Param_List      => Memcpy_Params,
                               A_Symbol_Table  => Global_Symbol_Table);
       Memcpy_Type : constant Irep :=
@@ -355,16 +353,6 @@ package body Driver is
    is
       pragma Assert (Nkind (GNAT_Root) = N_Compilation_Unit);
 
-      Void_Type : constant Irep := New_Irep (I_Void_Type);
-
-      Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
-
-      Start_Symbol      : Symbol;
-      Start_Type        : constant Irep := New_Irep (I_Code_Type);
-      Start_Body        : constant Irep := New_Irep (I_Code_Block);
-      Initial_Call      : constant Irep := New_Irep (I_Code_Function_Call);
-      Initial_Call_Args : constant Irep := New_Irep (I_Argument_List);
-
       Unit_Is_Subprogram : Boolean;
       Program_Symbol : constant Symbol :=
         Do_Compilation_Unit (GNAT_Root, Unit_Is_Subprogram);
@@ -407,21 +395,31 @@ package body Driver is
          end loop;
       end;
 
-      if not Add_Start then
-         Sanitise_Type_Declarations (Global_Symbol_Table,
-                                     Sanitised_Symbol_Table);
-         Put_Line (Sym_Tab_File,
-                   SymbolTable2Json (Sanitised_Symbol_Table).Write (False));
-      else
-         Initialize_CProver_Internal_Variables (Start_Body);
+      if Add_Start
+      then
          declare
-            Program_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-            Program_Type : constant Irep := Program_Symbol.SymType;
-            Program_Return_Type : constant Irep :=
-              Get_Return_Type (Program_Type);
+            Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
+
+            Start_Type        : constant Irep := Make_Code_Type
+              (Return_Type => CProver_Void_T,
+               Parameters => Make_Parameter_List,
+               Ellipsis => False,
+               Inlined => False,
+               Knr => False);
+            Start_Body        : constant Irep := Make_Code_Block
+              (Source_Location => No_Location);
+            Start_Symbol      : constant Symbol :=
+              (Name | PrettyName | BaseName => Start_Name,
+               SymType => Start_Type,
+               Value => Start_Body,
+               Mode => Intern ("C"),
+               others => <>);
+            Initial_Call_Args : constant Irep := Make_Argument_List;
+            Entry_Procedure : constant Irep := Symbol_Expr (Program_Symbol);
             Program_Args : constant Irep_List :=
-              Get_Parameter (Get_Parameters (Program_Type));
+              Get_Parameter (Get_Parameters (Get_Type (Entry_Procedure)));
          begin
+            Initialize_CProver_Internal_Variables (Start_Body);
             --  Generate a simple _start function that calls the entry point
             declare
                C : List_Cursor := List_First (Program_Args);
@@ -435,95 +433,76 @@ package body Driver is
                      Arg_Type : constant Irep := Get_Type (Arg);
                      Arg_Id   : constant Symbol_Id :=
                        Intern ("input_" &  Get_Identifier (Arg));
-                     Arg_Symbol : Symbol;
+                     Arg_Symbol : constant Symbol :=
+                       (Name | PrettyName | BaseName => Arg_Id,
+                        Mode => Intern ("C"),
+                        SymType => Arg_Type,
+                        IsStateVar | IsLValue | IsAuxiliary => True,
+                        others => <>);
 
                      Arg_Symbol_Expr : constant Irep :=
-                       New_Irep (I_Symbol_Expr);
-                     Arg_Decl        : constant Irep :=
-                       New_Irep (I_Code_Decl);
+                       Symbol_Expr (Arg_Symbol);
+                     Arg_Decl        : constant Irep := Make_Code_Decl
+                       (Symbol => Arg_Symbol_Expr,
+                        Source_Location => No_Location);
                      Arg_Nondet      : constant Irep :=
-                       New_Irep (I_Side_Effect_Expr_Nondet);
-                     Arg_Assign      : constant Irep :=
-                       New_Irep (I_Code_Assign);
+                       Make_Side_Effect_Expr_Nondet
+                       (I_Type => Arg_Symbol.SymType,
+                        Source_Location => No_Location);
+                     Arg_Assign      : constant Irep := Make_Code_Assign
+                       (Lhs => Arg_Symbol_Expr,
+                        Rhs => Arg_Nondet,
+                        Source_Location => No_Location);
 
                   begin
-                     Arg_Symbol.Name        := Arg_Id;
-                     Arg_Symbol.PrettyName  := Arg_Id;
-                     Arg_Symbol.BaseName    := Arg_Id;
-                     Arg_Symbol.Mode        := Intern ("C");
-                     Arg_Symbol.SymType     := Arg_Type;
-                     Arg_Symbol.IsStateVar  := True;
-                     Arg_Symbol.IsLValue    := True;
-                     Arg_Symbol.IsAuxiliary := True;
                      Global_Symbol_Table.Insert (Arg_Id, Arg_Symbol);
 
-                     Set_Identifier (Arg_Symbol_Expr, Unintern (Arg_Id));
-                     Set_Type       (Arg_Symbol_Expr, Arg_Type);
-
-                     Set_Symbol (Arg_Decl, Arg_Symbol_Expr);
-                     Append_Op  (Start_Body, Arg_Decl);
-
-                     Set_Type (Arg_Nondet, Arg_Type);
-                     Set_Lhs  (Arg_Assign, Arg_Symbol_Expr);
-                     Set_Rhs  (Arg_Assign, Arg_Nondet);
-
-                     Append_Op (Start_Body, Arg_Assign);
-
                      Append_Argument (Initial_Call_Args, Arg_Symbol_Expr);
+
+                     Append_Op  (Start_Body, Arg_Decl);
+                     Append_Op (Start_Body, Arg_Assign);
                   end;
                   C := List_Next (Program_Args, C);
                end loop;
             end;
-            Set_Arguments (Initial_Call, Initial_Call_Args);
             --  Catch the call's return value if it has one
-            if Kind (Program_Return_Type) /= I_Empty then
+            if Kind (Get_Return_Type (Get_Type (Entry_Procedure)))
+              /= I_Empty
+            then
                declare
-                  Return_Symbol : Symbol;
-                  Return_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-                  Return_Decl : constant Irep := New_Irep (I_Code_Decl);
                   Return_Id   : constant Symbol_Id := Intern ("return'");
+                  Return_Symbol : constant Symbol :=
+                    (Name | BaseName | PrettyName => Return_Id,
+                     Mode => Intern ("C"),
+                     SymType => Get_Return_Type (Get_Type (Entry_Procedure)),
+                     IsLValue => True,
+                     IsStaticLifetime => True,
+                     others => <>);
+                  Return_Expr : constant Irep := Symbol_Expr (Return_Symbol);
+                  Return_Decl : constant Irep := Make_Code_Decl
+                    (Symbol => Return_Expr,
+                     Source_Location => No_Location);
+                  Initial_Call      : constant Irep := Make_Code_Function_Call
+                    (Arguments => Initial_Call_Args,
+                     I_Function => Entry_Procedure,
+                     Source_Location => No_Location,
+                     Lhs => Return_Expr);
                begin
-                  Return_Symbol.Name       := Return_Id;
-                  Return_Symbol.BaseName   := Return_Id;
-                  Return_Symbol.PrettyName := Return_Id;
-                  Return_Symbol.Mode       := Intern ("C");
-                  Return_Symbol.SymType    := Program_Return_Type;
                   Global_Symbol_Table.Insert (Return_Id, Return_Symbol);
-
-                  Set_Identifier (Return_Expr, Unintern (Return_Id));
-                  Set_Type (Return_Expr, Return_Symbol.SymType);
-                  Set_Lhs (Initial_Call, Return_Expr);
-                  Set_Symbol (Return_Decl, Return_Expr);
                   Append_Op (Start_Body, Return_Decl);
+                  Append_Op (Start_Body, Initial_Call);
                end;
             end if;
-
-            Set_Identifier (Program_Expr, Unintern (Program_Symbol.Name));
-            Set_Type (Program_Expr, Program_Symbol.SymType);
-
-            Set_Function (Initial_Call, Program_Expr);
+            Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
          end;
-
-         Append_Op (Start_Body, Initial_Call);
-
-         Start_Symbol.Name       := Start_Name;
-         Start_Symbol.PrettyName := Start_Name;
-         Start_Symbol.BaseName   := Start_Name;
-
-         Set_Return_Type (Start_Type, Void_Type);
-
-         Start_Symbol.SymType := Start_Type;
-         Start_Symbol.Value   := Start_Body;
-         Start_Symbol.Mode    := Intern ("C");
-
-         Global_Symbol_Table.Insert (Start_Name, Start_Symbol);
-         Sanitise_Type_Declarations (Global_Symbol_Table,
-                                     Sanitised_Symbol_Table);
-         Put_Line (Sym_Tab_File,
-                   SymbolTable2Json (Sanitised_Symbol_Table).Write (False));
       end if;
 
+      Sanitise_Type_Declarations (Global_Symbol_Table,
+                                  Sanitised_Symbol_Table);
+      Put_Line (Sym_Tab_File,
+                SymbolTable2Json (Sanitised_Symbol_Table).Write (False));
       Close (Sym_Tab_File);
+
    end Translate_Compilation_Unit;
 
    function Is_Back_End_Switch (Switch : String) return Boolean is
@@ -588,65 +567,74 @@ package body Driver is
 
       procedure Add_CProver_Size_T;
       procedure Add_CProver_Size_T is
-         Builtin   : Symbol;
-         Type_Irep : constant Irep := New_Irep (I_Unsignedbv_Type);
+         Size_T : constant Irep := Make_Unsignedbv_Type
+           (Width => 64);
+         Size_T_Symbol   : constant Symbol :=
+           (Name | PrettyName | BaseName => Intern ("__CPROVER_size_t"),
+            SymType => Size_T,
+            IsType => True,
+            others => <>);
       begin
-         Set_Width (Type_Irep, 64);
-         Builtin.Name       := Intern ("__CPROVER_size_t");
-         Builtin.PrettyName := Builtin.Name;
-         Builtin.BaseName   := Builtin.Name;
-         Builtin.SymType    := Type_Irep;
-         Builtin.IsType     := True;
-
-         Global_Symbol_Table.Insert (Builtin.Name, Builtin);
+         Global_Symbol_Table.Insert (Size_T_Symbol.Name, Size_T_Symbol);
       end Add_CProver_Size_T;
+
+      function Get_Bv_Width (Type_Node : Node_Id) return Integer;
+      function Get_Bv_Width (Type_Node : Node_Id) return Integer
+        is (Integer (UI_To_Int (Esize (Type_Node))));
+      function Translate_Signed_Type (Type_Node : Node_Id)
+        return Irep;
+      function Translate_Enum_Type (Type_Node : Node_Id)
+        return Irep;
+      function Translate_Floating_Type (Type_Node : Node_Id)
+        return Irep;
+      Translated_Boolean_Type : constant Irep := CProver_Bool_T;
+
+      function Translate_Signed_Type (Type_Node : Node_Id)
+                                     return Irep
+      is (Make_Signedbv_Type
+            (Width => Get_Bv_Width (Type_Node)));
+
+      function Translate_Enum_Type (Type_Node : Node_Id)
+                                   return Irep
+      is (Make_Unsignedbv_Type
+            (Width => Get_Bv_Width (Type_Node)));
+
+      function Translate_Floating_Type (Type_Node : Node_Id)
+                                       return Irep
+      is
+         Width : constant Integer :=  Get_Bv_Width (Type_Node);
+         Mantissa_Size : constant Integer := Float_Mantissa_Size (Width);
+      begin
+         return Make_Floatbv_Type
+           (Width => Width,
+            F => Mantissa_Size);
+      end Translate_Floating_Type;
    begin
       --  Add primitive types to the symtab
+      --  XXX if we properly support processing Standard
+      --      this will become (mostly) redundant
       for Standard_Type in S_Types'Range loop
          declare
             Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
-
-            Type_Kind : constant Irep_Kind :=
-              (case Ekind (Builtin_Node) is
-                 when E_Floating_Point_Type    => I_Floatbv_Type,
-                 when E_Signed_Integer_Subtype => I_Signedbv_Type,
-                 when E_Enumeration_Type       =>
-                                                (if Standard_Type /= S_Boolean
-                                                then I_Unsignedbv_Type
-                                                else I_Bool_Type),
-                 when others                   => I_Empty);
-
+            Translated_Type : constant Irep := (case Ekind (Builtin_Node) is
+               when E_Floating_Point_Type =>
+                  Translate_Floating_Type (Builtin_Node),
+               when E_Signed_Integer_Subtype =>
+                  Translate_Signed_Type (Builtin_Node),
+               when E_Enumeration_Type =>
+                  (if Standard_Type /= S_Boolean
+                     then Translate_Enum_Type (Builtin_Node)
+                     else Translated_Boolean_Type),
+               when others => CProver_Nil_T);
+            Type_Symbol : constant Symbol :=
+            (Name | PrettyName | BaseName =>
+                Intern (Unique_Name (Builtin_Node)),
+             SymType => Translated_Type,
+             IsType => True,
+             others => <>);
          begin
-            if Type_Kind /= I_Empty then
-               declare
-                  Type_Irep : constant Irep := New_Irep (Type_Kind);
-                  Builtin   : Symbol;
-
-                  Esize_Width : constant Nat :=
-                    UI_To_Int (Esize (Builtin_Node));
-
-               begin
-                  if Kind (Type_Irep) in Class_Bitvector_Type then
-                     Set_Width (Type_Irep, Integer (Esize_Width));
-                  end if;
-
-                  if Type_Kind = I_Floatbv_Type then
-                     --  Ada's floating-point types are interesting, as they're
-                     --  specified in terms of decimal precision. Entirely too
-                     --  interesting for now... Let's use float32 or float64
-                     --  for now and fix this later.
-
-                     Set_F (Type_Irep, Float_Mantissa_Size (Type_Irep));
-                  end if;
-
-                  Builtin.Name       := Intern (Unique_Name (Builtin_Node));
-                  Builtin.PrettyName := Builtin.Name;
-                  Builtin.BaseName   := Builtin.Name;
-                  Builtin.SymType    := Type_Irep;
-                  Builtin.IsType     := True;
-
-                  Global_Symbol_Table.Insert (Builtin.Name, Builtin);
-               end;
+            if Kind (Translated_Type) /= I_Nil_Type then
+               Global_Symbol_Table.Insert (Type_Symbol.Name, Type_Symbol);
             end if;
          end;
       end loop;
@@ -705,6 +693,7 @@ package body Driver is
             Modified_Symbol.SymType :=
               Remove_Extra_Type_Information
               (Follow_Irep (SymType, Follow_Symbol'Access));
+
             Modified_Symbol.Value :=
               Remove_Extra_Type_Information
               (Follow_Irep (Value, Follow_Symbol'Access));
