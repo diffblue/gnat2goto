@@ -152,61 +152,54 @@ package body GOTO_Utils is
                                           Subprog_Type : Irep;
                                           A_Symbol_Table : in out Symbol_Table)
    is
-      Subprog_Symbol : Symbol;
+      Subprog_Symbol : constant Symbol :=
+        (Name | BaseName | PrettyName => Subprog_Name,
+         SymType => Subprog_Type,
+         Mode => Intern ("C"),
+         Value => CProver_Nil,
+         others => <>);
    begin
-      Subprog_Symbol.Name       := Subprog_Name;
-      Subprog_Symbol.BaseName   := Subprog_Name;
-      Subprog_Symbol.PrettyName := Subprog_Name;
-      Subprog_Symbol.SymType    := Subprog_Type;
-      Subprog_Symbol.Mode       := Intern ("C");
-      Subprog_Symbol.Value      := Make_Nil (No_Location);
-
       A_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
    end New_Subprogram_Symbol_Entry;
 
    procedure New_Type_Symbol_Entry (Type_Name : Symbol_Id; Type_Of_Type : Irep;
                                     A_Symbol_Table : in out Symbol_Table) is
-      Type_Symbol : Symbol;
+      Type_Symbol : constant Symbol :=
+        (Name | BaseName | PrettyName => Type_Name,
+         SymType => Type_Of_Type,
+         Mode => Intern ("C"),
+         IsType => True,
+         others => <>);
    begin
-      Type_Symbol.SymType    := Type_Of_Type;
-      Type_Symbol.IsType     := True;
-      Type_Symbol.Name       := Type_Name;
-      Type_Symbol.PrettyName := Type_Name;
-      Type_Symbol.BaseName   := Type_Name;
-      Type_Symbol.Mode       := Intern ("C");
-
       A_Symbol_Table.Insert (Type_Name, Type_Symbol);
    end New_Type_Symbol_Entry;
 
    procedure New_Valueless_Object_Symbol_Entry (Constant_Name : Symbol_Id;
                                         A_Symbol_Table : in out Symbol_Table)
    is
-      Object_Symbol : Symbol;
+      Object_Symbol : constant Symbol :=
+        (Name | BaseName | PrettyName => Constant_Name,
+         SymType => CProver_Nil_T,
+         Mode => Intern ("C"),
+         Value => CProver_Nil,
+         others => <>);
    begin
-      Object_Symbol.Name       := Constant_Name;
-      Object_Symbol.BaseName   := Constant_Name;
-      Object_Symbol.PrettyName := Constant_Name;
-      Object_Symbol.SymType    := Make_Nil (No_Location);
-      Object_Symbol.Mode       := Intern ("C");
-      Object_Symbol.Value      := Make_Nil (No_Location);
-
       A_Symbol_Table.Insert (Constant_Name, Object_Symbol);
    end New_Valueless_Object_Symbol_Entry;
 
    procedure New_Enum_Member_Symbol_Entry (
       Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
       Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table) is
-      Member_Symbol : Symbol;
+      Member_Symbol : constant Symbol :=
+        (Name => Member_Name,
+         BaseName | PrettyName => Base_Name,
+         Mode => Intern ("C"),
+         SymType => Enum_Type,
+         Value => Value_Expr,
+         IsStaticLifetime => True,
+         IsStateVar => True,
+         others => <>);
    begin
-      Member_Symbol.Name             := Member_Name;
-      Member_Symbol.PrettyName       := Base_Name;
-      Member_Symbol.BaseName         := Base_Name;
-      Member_Symbol.Mode             := Intern ("C");
-      Member_Symbol.IsStaticLifetime := True;
-      Member_Symbol.IsStateVar       := True;
-      Member_Symbol.SymType          := Enum_Type;
-      Member_Symbol.Value            := Value_Expr;
-
       A_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
    end New_Enum_Member_Symbol_Entry;
 
@@ -219,20 +212,14 @@ package body GOTO_Utils is
                                          Symbol_Type :           Irep;
                                          A_Symbol_Table : in out Symbol_Table)
    is
-      New_Symbol : Symbol;
+      New_Symbol : constant Symbol :=
+        (Name => Name_Id,
+         BaseName | PrettyName => Intern (BaseName),
+         Mode => Intern ("C"),
+         SymType => Symbol_Type,
+         IsParameter | IsLValue | IsFileLocal | IsThreadLocal => True,
+         others => <>);
    begin
-      New_Symbol.SymType := Symbol_Type;
-      New_Symbol.Name := Name_Id;
-      New_Symbol.PrettyName := Intern (BaseName);
-      New_Symbol.BaseName := Intern (BaseName);
-      New_Symbol.Mode := Intern ("C");
-
-      --  Setting it as a parameter
-      New_Symbol.IsParameter := True;
-      New_Symbol.IsLValue := True;
-      New_Symbol.IsFileLocal := True;
-      New_Symbol.IsThreadLocal := True;
-
       if A_Symbol_Table.Contains (Key => Name_Id) then
          Put_Line (Standard_Error,
                    "----------At: New_Parameter_Symbol_Entry----------");
@@ -252,15 +239,13 @@ package body GOTO_Utils is
                                        Value : Irep;
                                        A_Symbol_Table : in out Symbol_Table)
                                        return Symbol is
-      New_Symbol : Symbol;
+      New_Symbol : constant Symbol :=
+        (Name | BaseName | PrettyName => Intern (Name),
+         Mode => Intern ("C"),
+         SymType => Symbol_Type,
+         Value => Value,
+         others => <>);
    begin
-      New_Symbol.SymType := Symbol_Type;
-      New_Symbol.Name := Intern (Name);
-      New_Symbol.PrettyName := New_Symbol.Name;
-      New_Symbol.BaseName := New_Symbol.Name;
-      New_Symbol.Mode := Intern ("C");
-      New_Symbol.Value := Value;
-
       if A_Symbol_Table.Contains (Key => Intern (Name)) then
          Put_Line (Standard_Error,
                    "----------At: New_Function_Symbol_Entry----------");
@@ -547,16 +532,14 @@ package body GOTO_Utils is
       (N : Irep; Val : Irep; Symtab : in out Symbol_Table) is
       Identifier_Name : constant Symbol_Id :=
          Intern (Get_Identifier (N));
-      Identifier_Symbol : Symbol;
+      Identifier_Symbol : constant Symbol :=
+        (Name | BaseName | PrettyName => Identifier_Name,
+         SymType => Get_Type (N),
+         Mode => Intern ("C"),
+         Value => Val,
+         IsLValue | IsStaticLifetime => True,
+         others => <>);
    begin
-      Identifier_Symbol.Name       := Identifier_Name;
-      Identifier_Symbol.BaseName   := Identifier_Name;
-      Identifier_Symbol.PrettyName := Identifier_Name;
-      Identifier_Symbol.SymType    := Get_Type (N);
-      Identifier_Symbol.IsLValue   := True;
-      Identifier_Symbol.IsStaticLifetime := True;
-      Identifier_Symbol.Mode       := Intern ("C");
-      Identifier_Symbol.Value      := Val;
       Symtab.Insert (Identifier_Name, Identifier_Symbol);
    end Register_Identifier_In_Symbol_Table;
 
