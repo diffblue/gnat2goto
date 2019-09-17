@@ -3030,7 +3030,7 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:117|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:121|
 Error detected at REDACTED
 --
 Occurs: 1 times
