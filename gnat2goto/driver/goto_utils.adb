@@ -8,6 +8,11 @@ with Follow; use Follow;
 
 package body GOTO_Utils is
 
+   --  Irep constants
+   --    These are constants for Ireps that we use over and over again
+   --    having these saves us some typing, and also a bit of
+   --    performance/memory.
+
    Size_T : Irep := Ireps.Empty;
    function CProver_Size_T return Irep
    is
