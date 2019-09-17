@@ -70,24 +70,19 @@ package body GOTO_Utils is
    ---------------------
 
    function Make_Address_Of (Base : Irep) return Irep is
-      R : constant Irep := New_Irep (I_Address_Of_Expr);
-   begin
-      Set_Object (R, Base);
-      Set_Type   (R, Make_Pointer_Type (Get_Type (Base)));
-      return R;
-   end Make_Address_Of;
+      (Make_Address_Of_Expr
+         (Object => Base,
+          I_Type => Make_Pointer_Type (Get_Type (Base)),
+          Source_Location => Get_Source_Location (Base)));
 
    -----------------------
    -- Make_Pointer_Type --
    -----------------------
 
    function Make_Pointer_Type (Base : Irep) return Irep is
-      R : constant Irep := New_Irep (I_Pointer_Type);
-   begin
-      Set_Subtype (R, Base);
-      Set_Width   (R, Pointer_Type_Width);
-      return R;
-   end Make_Pointer_Type;
+      (Make_Pointer_Type
+         (I_Subtype => Base,
+          Width => Pointer_Type_Width));
 
    --------------------
    -- Fresh_Var_Name --
@@ -110,53 +105,46 @@ package body GOTO_Utils is
    ---------------------------
 
    function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep is
-      Id : constant String := Fresh_Var_Name (Infix);
-      Ret : constant Irep := New_Irep (I_Symbol_Expr);
-   begin
-      Set_Identifier (Ret, Id);
-      Set_Type (Ret, Ty);
-      return Ret;
-   end Fresh_Var_Symbol_Expr;
+      (Make_Symbol_Expr
+         (Identifier => Fresh_Var_Name (Infix),
+          I_Type => Ty,
+          Source_Location => Internal_Source_Location));
 
    ------------------
    -- Param_Symbol --
    ------------------
 
    function Param_Symbol (Param : Irep) return Irep is
-      Ret : constant Irep := New_Irep (I_Symbol_Expr);
-   begin
-      Set_Identifier (Ret, Get_Identifier (Param));
-      Set_Type (Ret, Get_Type (Param));
-      return Ret;
-   end Param_Symbol;
+      (Make_Symbol_Expr
+         (Identifier => Get_Identifier (Param),
+          I_Type => Get_Type (Param),
+          Source_Location => Get_Source_Location (Param)));
 
    -----------------
    -- Symbol_Expr --
    -----------------
 
    function Symbol_Expr (Sym : Symbol) return Irep is
-      Ret : constant Irep := New_Irep (I_Symbol_Expr);
-   begin
-      Set_Identifier (Ret, Unintern (Sym.Name));
-      Set_Type (Ret, Sym.SymType);
-      return Ret;
-   end Symbol_Expr;
+      (Make_Symbol_Expr
+        (Identifier => Unintern (Sym.Name),
+         I_Type => Sym.SymType,
+       -- TODO Should be Sym.Location, but that depends
+       --      on the "change source location to irep" PR
+         Source_Location => Internal_Source_Location));
 
    procedure New_Object_Symbol_Entry (Object_Name : Symbol_Id;
                                       Object_Type : Irep;
                                       Object_Init_Value : Irep;
                                       A_Symbol_Table : in out Symbol_Table)
    is
-      Object_Symbol : Symbol;
+      Object_Symbol : constant Symbol :=
+        (Name | BaseName | PrettyName => Object_Name,
+         SymType => Object_Type,
+         Mode => Intern ("C"),
+         Value => Object_Init_Value,
+         IsLValue => True,
+         others => <>);
    begin
-      Object_Symbol.Name       := Object_Name;
-      Object_Symbol.BaseName   := Object_Name;
-      Object_Symbol.PrettyName := Object_Name;
-      Object_Symbol.SymType    := Object_Type;
-      Object_Symbol.Mode       := Intern ("C");
-      Object_Symbol.Value      := Object_Init_Value;
-      Object_Symbol.IsLValue   := True;
-
       A_Symbol_Table.Insert (Object_Name, Object_Symbol);
    end New_Object_Symbol_Entry;
 
