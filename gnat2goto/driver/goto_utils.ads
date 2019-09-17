@@ -13,6 +13,10 @@ package GOTO_Utils is
    function CProver_Void_T return Irep;
    function CProver_Nil_T return Irep;
    function CProver_Bool_T return Irep;
+   function CProver_Nil return Irep;
+
+   --  TODO change this to Irep
+   function Internal_Source_Location return Text_Ptr;
 
    --  Utility routines for high-level GOTO AST construction
 

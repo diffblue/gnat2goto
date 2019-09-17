@@ -53,6 +53,18 @@ package body GOTO_Utils is
       return Bool_T;
    end CProver_Bool_T;
 
+   Nil : Irep := Ireps.Empty;
+   function CProver_Nil return Irep
+   is
+   begin
+      if Nil = Ireps.Empty then
+         Nil := Make_Nil (Internal_Source_Location);
+      end if;
+      return Nil;
+   end CProver_Nil;
+
+   function Internal_Source_Location return Source_Ptr is (No_Location);
+
    ---------------------
    -- Make_Address_Of --
    ---------------------
