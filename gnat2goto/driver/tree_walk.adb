@@ -966,19 +966,16 @@ package body Tree_Walk is
    -----------------
 
    function Do_Constant (N : Node_Id) return Irep is
-      Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
       Is_Integer_Literal : constant Boolean :=
         Etype (N) = Stand.Universal_Integer;
       Constant_Resolved_Type : Irep;
       Constant_Width : Integer := 64;
+      Dummy_Value : constant Irep := Make_Constant_Expr
+        (I_Type => Make_Signedbv_Type (32),
+         Value =>  "00000000000000000000000000000000",
+         Source_Location => Sloc (N));
    begin
-      -- Dummy value initialisation --
-      -- To be removed once the Unsupported reports are removed --
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Make_Signedbv_Type (32));
-      Set_Value (Ret, "00000000000000000000000000000000");
-
       if Is_Integer_Literal then
          Constant_Resolved_Type :=  Constant_Type;
       else
@@ -988,7 +985,7 @@ package body Tree_Walk is
          then
             Report_Unhandled_Node_Empty (N, "Do_Constant",
                                          "Constant Type not in symbol table");
-            return Ret;
+            return Dummy_Value;
          end if;
          Constant_Resolved_Type := Follow_Symbol_Type (Constant_Type,
                                                        Global_Symbol_Table);
@@ -1002,21 +999,22 @@ package body Tree_Walk is
          else
             Report_Unhandled_Node_Empty (N, "Do_Constant",
                                   "Constant Type not in Class_Bitvector_Type");
-            return Ret;
+            return Dummy_Value;
          end if;
       end if;
 
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Constant_Resolved_Type);
-      if not Is_Integer_Literal then
-         Set_Value (Ret,
-                    Convert_Uint_To_Hex
-                      (Intval (N), Pos (Constant_Width)));
-      else
-         Set_Value (Ret, UI_Image (Input  => Intval (N),
-                                   Format => Decimal));
-      end if;
-      return Ret;
+      declare
+         Value : constant String :=
+           (if not Is_Integer_Literal
+              then Convert_Uint_To_Hex
+           (Intval (N), Pos (Constant_Width))
+              else UI_Image (Input  => Intval (N), Format => Decimal));
+      begin
+         return Make_Constant_Expr
+           (Value => Value,
+            I_Type => Constant_Resolved_Type,
+            Source_Location => Sloc (N));
+      end;
    end Do_Constant;
 
    ---------------------------
