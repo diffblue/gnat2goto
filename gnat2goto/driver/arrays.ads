@@ -82,9 +82,6 @@ private
    function Do_RHS_Array_Assign (N : Node_Id) return Irep_Array
      with Pre => Nkind (N) in N_Subexpr;
 
-   function Do_Array_Range (N : Node_Id) return Irep
-     with Pre  => Nkind (N) = N_Range;
-
    function Make_Array_First_Expr
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep;
 

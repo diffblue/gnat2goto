@@ -136,9 +136,9 @@ package Tree_Walk is
                                         Fun_Name : String;
                                         Message : String) return Irep;
 
-   function Do_Bare_Range_Constraint (Range_Expr : Node_Id; Underlying : Irep)
-                                      return Irep
-     with Pre => Nkind (Range_Expr) = N_Range;
+   function Do_Range_Constraint (N : Node_Id; Underlying : Irep)
+                                 return Irep
+     with Pre => Nkind (Range_Expression (N)) = N_Range;
 
    procedure Append_Declare_And_Init
      (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
@@ -147,4 +147,12 @@ package Tree_Walk is
    function Create_Dummy_Irep return Irep;
 
    function Make_Type_Symbol (Name : Symbol_Id; Defn : Irep) return Symbol;
+
+   function Do_Identifier (N : Node_Id) return Irep
+     with Pre  => Nkind (N) in N_Identifier | N_Expanded_Name;
+
+   function Do_Selected_Component (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Selected_Component,
+        Post => Kind (Do_Selected_Component'Result) in
+          I_Member_Expr | I_Op_Comma;
 end Tree_Walk;
