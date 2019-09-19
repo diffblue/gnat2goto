@@ -4,7 +4,6 @@ with Sem;
 with Sem_Eval;              use Sem_Eval;
 with Sem_Util;              use Sem_Util;
 with Sem_Aux;               use Sem_Aux;
---  with Sem_Eval;              use Sem_Eval;
 with Snames;                use Snames;
 with Stringt;               use Stringt;
 with Treepr;                use Treepr;
