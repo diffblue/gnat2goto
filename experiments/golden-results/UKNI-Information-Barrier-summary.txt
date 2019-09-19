@@ -3,31 +3,6 @@ Calling function: Process_Declaration
 Error message: Address representation clauses are not currently supported
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 3 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported upper range kind
-Nkind: N_Op_Add
---
-Occurs: 1 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported lower range kind
-Nkind: N_Attribute_Reference
---
-Occurs: 1 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported lower range kind
-Nkind: N_Selected_Component
---
-Occurs: 1 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported upper range kind
-Nkind: N_Attribute_Reference
---
-Occurs: 1 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported upper range kind
-Nkind: N_Selected_Component
---
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
