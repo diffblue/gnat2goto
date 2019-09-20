@@ -1,4 +1,4 @@
-[assertion.1] Range Check: FAILURE
-[assertion.2] Range Check: SUCCESS
-[assertion.3] Range Check: FAILURE
+[assertion.2] file ranges.adb line 8 Range Check: SUCCESS
+[assertion.3] file ranges.adb line 9 Range Check: FAILURE
+[assertion.1] file ranges.adb line 11 Range Check: FAILURE
 VERIFICATION FAILED
