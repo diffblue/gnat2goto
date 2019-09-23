@@ -89,7 +89,8 @@ package body Arrays is
          Lhs_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Make_Pointer_Type (Element_Type),
                                   "temp_lhs");
-         Result_Block : constant Irep := New_Irep (I_Code_Block);
+         Result_Block : constant Irep :=
+           Make_Code_Block (Source_Loc, CProver_Nil_T);
          Pos_Number : Natural := 0;
 
          --  NB: Component number seem to be ignored by CBMC
@@ -346,7 +347,7 @@ package body Arrays is
 
       function Build_Array_Lit_Func (N : Node_Id) return Symbol is
          Func_Name : constant String := Fresh_Var_Name ("array_lit");
-         Func_Params : constant Irep := New_Irep (I_Parameter_List);
+         Func_Params : constant Irep := Make_Parameter_List;
          Func_Type : constant Irep :=
            Make_Code_Type (Parameters  => Func_Params,
                            Ellipsis    => False,
@@ -370,7 +371,7 @@ package body Arrays is
                                             Return_Type : Irep;
                                             Source_Loc : Source_Ptr)
                                             return Irep is
-         Call_Args  : constant Irep := New_Irep (I_Argument_List);
+         Call_Args  : constant Irep := Make_Argument_List;
          Fun_Call : constant Irep :=
            Make_Side_Effect_Expr_Function_Call (
                                               Arguments       => Call_Args,
@@ -462,7 +463,7 @@ package body Arrays is
    ---------------------------------------
 
    function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep is
-      Ret_Components : constant Irep := New_Irep (I_Struct_Union_Components);
+      Ret_Components : constant Irep := Make_Struct_Union_Components;
       Ret : constant Irep :=
         Make_Struct_Type (Tag        => "unconstr_array",
                           Components => Ret_Components);
@@ -559,8 +560,8 @@ package body Arrays is
       Ret_Type : constant Irep := Make_Void_Type;
       RHS_Arrays : constant Irep_Array := Do_RHS_Array_Assign (RHS_Node);
       Result_Type : constant Irep := Do_Type_Reference (Etype (LHS_Node));
-      Concat_Params : constant Irep := New_Irep (I_Parameter_List);
-      Concat_Arguments : constant Irep := New_Irep (I_Argument_List);
+      Concat_Params : constant Irep := Make_Parameter_List;
+      Concat_Arguments : constant Irep := Make_Argument_List;
       Elem_Type_Ent : constant Entity_Id :=
         Get_Array_Component_Type (LHS_Node);
       Element_Type : constant Irep := Do_Type_Reference (Elem_Type_Ent);
@@ -596,7 +597,8 @@ package body Arrays is
       function Build_Concat_Assign_Body return Irep
       is
          Slices : constant Irep_Array := Build_Array_Params;
-         Result_Block : constant Irep := New_Irep (I_Code_Block);
+         Result_Block : constant Irep :=
+           Make_Code_Block (Source_Loc, CProver_Nil_T);
          Dest_Symbol : constant Irep := Param_Symbol (Destination);
          PElement_Type : constant Irep :=
            Make_Pointer_Type (Element_Type, Pointer_Type_Width);
@@ -824,20 +826,17 @@ package body Arrays is
    function Make_Array_First_Expr
      (Base_Type : Node_Id; Base_Irep : Irep) return Irep
    is
-      First : constant Irep := New_Irep (I_Member_Expr);
+      First : constant Irep := Make_Member_Expr
+         (Compound => Base_Irep,
+          Source_Location => Sloc (Base_Type),
+          Component_Number => 0,
+          I_Type => CProver_Size_T,
+          Component_Name => "first1");
    begin
-      -- Dummy initialisation --
-      Set_Component_Name (First, "first1");
-
       if not Is_Array_Type (Base_Type) then
          Report_Unhandled_Node_Empty (Base_Type, "Make_Array_First_Expr",
                                       "Base type not array type");
-         return First;
       end if;
-      Set_Component_Number (First, 0);
-      Set_Component_Name (First, "first1");
-      Set_Compound (First, Base_Irep);
-      Set_Type (First, CProver_Size_T);
       return First;
    end Make_Array_First_Expr;
 
@@ -889,8 +888,8 @@ package body Arrays is
    function Do_Slice (N : Node_Id) return Irep is
       Source_Loc : constant Source_Ptr := Sloc (N);
       Result_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Slice_Params : constant Irep := New_Irep (I_Parameter_List);
-      Slice_Args : constant Irep := New_Irep (I_Argument_List);
+      Slice_Params : constant Irep := Make_Parameter_List;
+      Slice_Args : constant Irep := Make_Argument_List;
       Function_Name : constant String := "slice_expr";
       Array_Param : constant Irep :=
         Create_Fun_Parameter (Fun_Name        => Function_Name,
@@ -921,7 +920,8 @@ package body Arrays is
            Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
                                   (Idx_Type))), CProver_Size_T,
                                   Global_Symbol_Table);
-         Result_Block : constant Irep := New_Irep (I_Code_Block);
+         Result_Block : constant Irep :=
+           Make_Code_Block (Source_Loc, CProver_Nil_T);
          Array_Temp : constant Irep :=
            Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
 
