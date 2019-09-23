@@ -152,8 +152,7 @@ package body Range_Check is
                                     Bounds_Type : Irep)
                                     return Irep
    is
-      Call_Inst : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call);
-      Call_Args : constant Irep := New_Irep (I_Argument_List);
+      Call_Args : constant Irep := Make_Argument_List;
       Actual_Type : constant Irep := Follow_Symbol_Type (Get_Type (Value),
                                                          Global_Symbol_Table);
       Followed_Bound_Type : constant Irep := Follow_Symbol_Type (Bounds_Type,
@@ -181,7 +180,7 @@ package body Range_Check is
                                              I_Type          => Ireps.Empty,
                                              Range_Check     => False,
                                              Value           => "Range Check");
-         Func_Params : constant Irep := New_Irep (I_Parameter_List);
+         Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
            Create_Fun_Parameter (Fun_Name        => Func_Name,
                                  Param_Name      => "value",
@@ -237,19 +236,17 @@ package body Range_Check is
         Get_Bound (N, Followed_Bound_Type, Bound_Low);
       Upper_Bound : constant Irep :=
         Get_Bound (N, Followed_Bound_Type, Bound_High);
+
+      Call_Inst : constant Irep := Make_Side_Effect_Expr_Function_Call (
+        Arguments => Call_Args,
+        I_Function => Symbol_Expr (Build_Assert_Function),
+        Source_Location => Sloc (N),
+        I_Type => Actual_Type);
    begin
       Append_Argument (Call_Args, Value);
       Append_Argument (Call_Args, Lower_Bound);
       Append_Argument (Call_Args, Upper_Bound);
 
-      Set_Function (I     => Call_Inst,
-                    Value => Symbol_Expr (Build_Assert_Function));
-      Set_Arguments (I     => Call_Inst,
-                     Value => Call_Args);
-      Set_Source_Location (I     => Call_Inst,
-                           Value => Sloc (N));
-      Set_Type (I     => Call_Inst,
-                Value => Actual_Type);
       return Call_Inst;
    end Make_Range_Assert_Expr;
 
@@ -267,12 +264,51 @@ package body Range_Check is
       Value_Expr_Type : constant Irep :=
         Follow_Symbol_Type (Get_Type (Value_Expr), Global_Symbol_Table);
 
-      Op_Geq : constant Irep := New_Irep (I_Op_Geq);
-      Op_Leq : constant Irep := New_Irep (I_Op_Leq);
+      type Adjusted_Value_And_Bounds_T is
+        record
+           Value_Expr : Irep;
+           Upper_Bound : Irep;
+           Lower_Bound : Irep;
+        end record;
 
-      Adjusted_Value_Expr : Irep;
-      Adjusted_Lower_Bound : Irep;
-      Adjusted_Upper_Bound : Irep;
+      function Get_Adjusted_Value_And_Bounds
+         return Adjusted_Value_And_Bounds_T;
+      function Get_Adjusted_Value_And_Bounds
+         return Adjusted_Value_And_Bounds_T
+      is
+         Greater_Width : constant Boolean :=
+          Get_Width (Bound_Type) > Get_Width (Value_Expr_Type);
+      begin
+         if Greater_Width then
+            return (
+             Value_Expr => Typecast_If_Necessary
+               (Value_Expr, Bound_Type, Global_Symbol_Table),
+             Upper_Bound => Upper_Bound,
+             Lower_Bound => Lower_Bound);
+         else
+            return (
+             Value_Expr => Value_Expr,
+             Upper_Bound => Typecast_If_Necessary
+               (Upper_Bound, Value_Expr_Type, Global_Symbol_Table),
+             Lower_Bound => Typecast_If_Necessary
+               (Lower_Bound, Value_Expr_Type, Global_Symbol_Table));
+         end if;
+      end Get_Adjusted_Value_And_Bounds;
+
+      Values_Adjusted : constant Adjusted_Value_And_Bounds_T :=
+       Get_Adjusted_Value_And_Bounds;
+
+      Op_Geq : constant Irep := Make_Op_Geq (
+        Lhs => Values_Adjusted.Value_Expr,
+        Rhs => Values_Adjusted.Lower_Bound,
+        I_Type => Make_Bool_Type,
+        Source_Location => Get_Source_Location (Value_Expr));
+      Op_Leq : constant Irep := Make_Op_Leq (
+        Lhs => Values_Adjusted.Value_Expr,
+        Rhs => Values_Adjusted.Upper_Bound,
+        I_Type => Make_Bool_Type,
+        Source_Location => Get_Source_Location (Value_Expr));
+
       Source_Location : constant Source_Ptr := Get_Source_Location
         (Value_Expr);
    begin
@@ -282,39 +318,12 @@ package body Range_Check is
                        | I_Bounded_Floatbv_Type
                        | I_Unsignedbv_Type
                        | I_Signedbv_Type);
-      --  The compared expressions (value and bound) have to be of the
-      --  same type
-      if Get_Width (Bound_Type) > Get_Width (Value_Expr_Type)
-      then
-         --  If the value checked for being in the range is of smaller
-         --  type then we need to cast it to the type of the bounds
-         Adjusted_Value_Expr :=
-           Typecast_If_Necessary (Value_Expr, Bound_Type, Global_Symbol_Table);
-         Adjusted_Lower_Bound := Lower_Bound;
-         Adjusted_Upper_Bound := Upper_Bound;
-      else
-         --  If the bounds are of smaller type then we cast the bounds
-         --  to the type of the value being checked
-         Adjusted_Value_Expr := Value_Expr;
-         Adjusted_Lower_Bound :=
-           Typecast_If_Necessary (Lower_Bound, Value_Expr_Type,
-                                  Global_Symbol_Table);
-         Adjusted_Upper_Bound :=
-           Typecast_If_Necessary (Upper_Bound, Value_Expr_Type,
-                                  Global_Symbol_Table);
-      end if;
-      Set_Lhs (Op_Geq, Adjusted_Value_Expr);
-      Set_Rhs (Op_Geq, Adjusted_Lower_Bound);
-      Set_Type (Op_Geq, Make_Bool_Type);
-      Set_Lhs (Op_Leq, Adjusted_Value_Expr);
 
-      Set_Rhs (Op_Leq, Adjusted_Upper_Bound);
-      Set_Type (Op_Leq, Make_Bool_Type);
-      return R : constant Irep := New_Irep (I_Op_And) do
+      return R : constant Irep := Make_Op_And (
+          Source_Location => Source_Location,
+          I_Type => Make_Bool_Type) do
          Append_Op (R, Op_Geq);
          Append_Op (R, Op_Leq);
-         Set_Type (R, Make_Bool_Type);
-         Set_Source_Location (R, Source_Location);
       end return;
    end Make_Range_Expression;
 
@@ -364,23 +373,27 @@ package body Range_Check is
    function Make_Assert_Call (N : Node_Id; Assertion : Irep;
                               Description : Irep)
                               return Irep is
+      Assert_Args  : constant Irep := Make_Argument_List;
+      Sym_Assert   : constant Irep := Make_Symbol_Expr (
+        Source_Location => Sloc (N),
+        I_Type => Make_Code_Type (
+          Parameters => Make_Parameter_List,
+          Ellipsis => False,
+          Return_Type => Make_Void_Type,
+          Inlined => False,
+          Knr => False),
+        Identifier => "__CPROVER_assert");
       SE_Call_Expr : constant Irep :=
-        New_Irep (I_Code_Function_Call);
-      Sym_Assert   : constant Irep := New_Irep (I_Symbol_Expr);
-      Assert_Args  : constant Irep := New_Irep (I_Argument_List);
+        Make_Code_Function_Call (
+          Arguments => Assert_Args,
+          I_Function => Sym_Assert,
+          Lhs => Make_Nil (Sloc (N)),
+          Source_Location => Sloc (N),
+          I_Type => Make_Void_Type);
    begin
-      Set_Identifier (Sym_Assert, "__CPROVER_assert");
-      Set_Type (Sym_Assert, New_Irep (I_Code_Type));
-
       Append_Argument (Assert_Args, Assertion);
       Append_Argument (Assert_Args, Description);
 
-      Set_Lhs (I     => SE_Call_Expr,
-               Value => Make_Nil (Sloc (N)));
-      Set_Source_Location (SE_Call_Expr, Sloc (N));
-      Set_Function        (SE_Call_Expr, Sym_Assert);
-      Set_Arguments       (SE_Call_Expr, Assert_Args);
-      Set_Type            (SE_Call_Expr, Make_Void_Type);
       return SE_Call_Expr;
    end Make_Assert_Call;
 
