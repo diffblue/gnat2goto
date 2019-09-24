@@ -29,8 +29,7 @@ package body Tree_Walk is
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
 
    function Do_Address_Of (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Attribute_Reference,
-        Post => Kind (Do_Address_Of'Result) = I_Address_Of_Expr;
+   with Pre  => Nkind (N) = N_Attribute_Reference;
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Aggregate;
@@ -391,7 +390,7 @@ package body Tree_Walk is
         Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
                             Element_Type_Size => Element_Type_Size,
                             Source_Loc        => Source_Loc);
-      Malloc_Args  : constant Irep := New_Irep (I_Argument_List);
+      Malloc_Args  : constant Irep := Make_Argument_List;
       Malloc_Name : constant String := "malloc";
       Malloc_Call : constant Irep :=
         Make_Side_Effect_Expr_Function_Call (Arguments       => Malloc_Args,
@@ -414,7 +413,7 @@ package body Tree_Walk is
         Compute_Memory_Op_Size (Num_Elem          => Num_Elem,
                             Element_Type_Size => Element_Type_Size,
                             Source_Loc        => Source_Loc);
-      Memcpy_Args  : constant Irep := New_Irep (I_Argument_List);
+      Memcpy_Args  : constant Irep := Make_Argument_List;
       Memcpy_Name : constant String := "memcpy";
       Memcpy_Call : constant Irep :=
         Make_Side_Effect_Expr_Function_Call (Arguments       => Memcpy_Args,
@@ -493,12 +492,10 @@ package body Tree_Walk is
    -------------------
 
    function Do_Address_Of (N : Node_Id) return Irep is
-      R : constant Irep := New_Irep (I_Address_Of_Expr);
    begin
       if not (Kind (Get_Type (Do_Expression (Prefix (N)))) in Class_Type) then
-         Report_Unhandled_Node_Empty (N, "Do_Address_Of",
-                                      "Kind not in class type");
-         return R;
+         return Report_Unhandled_Node_Irep (N, "Do_Address_Of",
+                                            "Kind not in class type");
       end if;
       return Make_Address_Of (Do_Expression (Prefix (N)));
    end Do_Address_Of;
@@ -546,7 +543,9 @@ package body Tree_Walk is
          Component_Iter : Node_Id :=
            First_Component_Or_Discriminant (N_Type);
          Actual_Iter    : Node_Id := First (Component_Associations (N));
-         Struct_Expr : constant Irep := New_Irep (I_Struct_Expr);
+         Struct_Expr : constant Irep := Make_Struct_Expr
+           (Source_Location => Sloc (N),
+            I_Type => Do_Type_Reference (N_Underlying_Type));
          Non_Discriminant_Components_Seen : Int := 0;
          Non_Discriminant_Components_Expected : constant Int :=
            List_Length (Component_Items (Components));
@@ -662,8 +661,6 @@ package body Tree_Walk is
             end;
 
          end if;
-
-         Set_Type (Struct_Expr, Do_Type_Reference (N_Underlying_Type));
          return Struct_Expr;
       end;
 
@@ -695,28 +692,27 @@ package body Tree_Walk is
 
       declare
          LHS : constant Irep := Do_Expression (Name (N));
-         RHS : constant Irep := Do_Expression (Expression (N));
-         R : constant Irep := New_Irep (I_Code_Assign);
+         function RHS return Irep;
+         function RHS return Irep is
+            N_RHS : constant Node_Id := Expression (N);
+            Bare_RHS : constant Irep := Do_Expression (N_RHS);
+         begin
+            return
+              (if Do_Range_Check (N_RHS)
+               then Make_Range_Assert_Expr
+                 (N => N,
+                  Value => Bare_RHS,
+                  Bounds_Type => Get_Type (LHS))
+               else Bare_RHS);
+         end RHS;
       begin
-         Set_Source_Location (R, Sloc (N));
-         Set_Lhs (R, LHS);
-         if Do_Range_Check (Expression (N)) then
-            declare
-               Range_Expr : constant Irep :=
-                 Make_Range_Assert_Expr (
-                          N          => N,
-                          Value      => RHS,
-                          Bounds_Type => Get_Type (LHS));
-            begin
-               Set_Rhs (R,
-                        Typecast_If_Necessary (Range_Expr, Get_Type (LHS),
-                          Global_Symbol_Table));
-            end;
-         else
-            Set_Rhs (R, Typecast_If_Necessary (
-                     RHS, Get_Type (LHS), Global_Symbol_Table));
-         end if;
-         return R;
+         return Make_Code_Assign
+           (Lhs => LHS,
+            Rhs => Typecast_If_Necessary
+              (Expr => RHS,
+               New_Type => Get_Type (LHS),
+               A_Symbol_Table => Global_Symbol_Table),
+            Source_Location => Sloc (N));
       end;
    end Do_Assignment_Statement;
 
@@ -726,7 +722,7 @@ package body Tree_Walk is
 
    function Do_Call_Parameters (N : Node_Id) return Irep
    is
-      Args : constant Irep := New_Irep (I_Argument_List);
+      Args : constant Irep := Make_Argument_List;
 
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
          (if Is_Out
@@ -826,7 +822,6 @@ package body Tree_Walk is
       --  Appease the style police
       function Make_Case_Test (Alts : List_Id) return Irep;
 
-      Ret : constant Irep := New_Irep (I_Let_Expr);
       Value : constant Irep := Do_Expression (Expression (N));
       Bound_Var : constant Irep :=
         Fresh_Var_Symbol_Expr (Get_Type (Value), "case_binder");
@@ -856,9 +851,10 @@ package body Tree_Walk is
             return First_Alt_Test;
          end if;
          declare
-            Big_Or : constant Irep := New_Irep (I_Op_Or);
+            Big_Or : constant Irep := Make_Op_Or
+              (Source_Location => (Sloc (N)),
+               I_Type => CProver_Bool_T);
          begin
-            Set_Type (Big_Or, Make_Bool_Type);
             Append_Op (Big_Or, First_Alt_Test);
             while Present (This_Alt) loop
                Append_Op (Big_Or, Make_Single_Test (This_Alt));
@@ -868,51 +864,37 @@ package body Tree_Walk is
          end;
       end Make_Case_Test;
 
-      Case_Body_Leaf : Irep := Ireps.Empty;
-      This_Alt : Node_Id := First (Alternatives (N));
-   begin
-      Set_Symbol (Ret, Bound_Var);
-      Set_Value (Ret, Value);
+      function Make_Case_If_Expression (Alternatives : Node_Id) return Irep;
+      function Make_Case_If_Expression (Alternatives : Node_Id) return Irep
+      is
+         This_Alt : constant Node_Id := Alternatives;
+         Next_Alt : Node_Id := Alternatives;
+         This_Expr : constant Irep := Do_Expression (Expression (This_Alt));
+      begin
+         Next (Next_Alt);
+         if not Present (Next_Alt) then
+            return This_Expr;
+         else
+            if not (Kind (Get_Type (This_Expr)) in Class_Type)
+            then
+               return Report_Unhandled_Node_Irep (N, "Do_Case_Expression",
+               "Case kind not in class expr or alt expr not in class type");
+            end if;
+            return Make_If_Expr
+              (Cond => Make_Case_Test (Discrete_Choices (This_Alt)),
+               True_Case => This_Expr,
+               False_Case => Make_Case_If_Expression (Next_Alt),
+               I_Type => Get_Type (This_Expr),
+               Source_Location => Get_Source_Location (This_Expr));
+         end if;
+      end Make_Case_If_Expression;
 
-      --  Do-while loop because there must be at least one alternative.
-      loop
-         declare
-            This_Expr : constant Irep := Do_Expression (Expression (This_Alt));
-            This_Alt_Copy : constant Node_Id := This_Alt;
-            This_Test : Irep;
-         begin
-            Next (This_Alt);
-            if not Present (This_Alt) then
-               --  Omit test, this is either `others`
-               --  or the last case of complete coverage
-               This_Test := This_Expr;
-            else
-               This_Test := New_Irep (I_If_Expr);
-               Set_Cond (This_Test,
-                         Make_Case_Test (Discrete_Choices (This_Alt_Copy)));
-               Set_True_Case (This_Test, This_Expr);
-               if not (Kind (This_Test) in Class_Expr) or else
-                 not (Kind (Get_Type (This_Expr)) in Class_Type)
-               then
-                  Report_Unhandled_Node_Empty (N, "Do_Case_Expression",
-                  "Case kind not in class expr or alt expr not in class type");
-                  return Ret;
-               end if;
-               Set_Type (This_Test, Get_Type (This_Expr));
-            end if;
-            if Case_Body_Leaf = Ireps.Empty then
-               --  First case
-               Set_Where (Ret, This_Test);
-               Set_Type (Ret, Get_Type (This_Test));
-            else
-               --  Subsequent case, add to list of conditionals
-               Set_False_Case (Case_Body_Leaf, This_Test);
-            end if;
-            Case_Body_Leaf := This_Test;
-         end;
-         exit when not Present (This_Alt);
-      end loop;
-      return Ret;
+   begin
+      return Make_Let_Expr
+        (Symbol => Bound_Var,
+         Value => Value,
+         Where => Make_Case_If_Expression (First (Alternatives (N))),
+         Source_Location => Sloc (N));
    end Do_Case_Expression;
 
    -------------------------
@@ -972,19 +954,16 @@ package body Tree_Walk is
    -----------------
 
    function Do_Constant (N : Node_Id) return Irep is
-      Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
       Is_Integer_Literal : constant Boolean :=
         Etype (N) = Stand.Universal_Integer;
       Constant_Resolved_Type : Irep;
       Constant_Width : Integer := 64;
+      Dummy_Value : constant Irep := Make_Constant_Expr
+        (I_Type => Make_Signedbv_Type (32),
+         Value =>  "00000000000000000000000000000000",
+         Source_Location => Sloc (N));
    begin
-      -- Dummy value initialisation --
-      -- To be removed once the Unsupported reports are removed --
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Make_Signedbv_Type (32));
-      Set_Value (Ret, "00000000000000000000000000000000");
-
       if Is_Integer_Literal then
          Constant_Resolved_Type :=  Constant_Type;
       else
@@ -994,7 +973,7 @@ package body Tree_Walk is
          then
             Report_Unhandled_Node_Empty (N, "Do_Constant",
                                          "Constant Type not in symbol table");
-            return Ret;
+            return Dummy_Value;
          end if;
          Constant_Resolved_Type := Follow_Symbol_Type (Constant_Type,
                                                        Global_Symbol_Table);
@@ -1008,21 +987,22 @@ package body Tree_Walk is
          else
             Report_Unhandled_Node_Empty (N, "Do_Constant",
                                   "Constant Type not in Class_Bitvector_Type");
-            return Ret;
+            return Dummy_Value;
          end if;
       end if;
 
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Constant_Resolved_Type);
-      if not Is_Integer_Literal then
-         Set_Value (Ret,
-                    Convert_Uint_To_Hex
-                      (Intval (N), Pos (Constant_Width)));
-      else
-         Set_Value (Ret, UI_Image (Input  => Intval (N),
-                                   Format => Decimal));
-      end if;
-      return Ret;
+      declare
+         Value : constant String :=
+           (if not Is_Integer_Literal
+              then Convert_Uint_To_Hex
+           (Intval (N), Pos (Constant_Width))
+              else UI_Image (Input  => Intval (N), Format => Decimal));
+      begin
+         return Make_Constant_Expr
+           (Value => Value,
+            I_Type => Constant_Resolved_Type,
+            Source_Location => Sloc (N));
+      end;
    end Do_Constant;
 
    ---------------------------
@@ -1030,16 +1010,15 @@ package body Tree_Walk is
    ---------------------------
 
    function Do_Character_Constant (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Constant_Expr);
       Resolved_Type : constant Irep := Do_Type_Reference (Etype (N));
       Character_Size : constant Int := UI_To_Int (Esize (Etype (N)));
+      Value : constant String := Convert_Uint_To_Hex
+        (Char_Literal_Value (N), Pos (Character_Size));
    begin
-      Set_Type (Ret, Resolved_Type);
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Value (Ret,
-                 Convert_Uint_To_Hex
-                   (Char_Literal_Value (N), Pos (Character_Size)));
-      return Ret;
+      return Make_Constant_Expr
+        (I_Type => Resolved_Type,
+         Source_Location => Sloc (N),
+         Value => Value);
    end Do_Character_Constant;
 
    ------------------------
@@ -1047,7 +1026,6 @@ package body Tree_Walk is
    ------------------------
 
    function Do_String_Constant (N : Node_Id) return Irep is
-      Ret              : constant Irep := New_Irep (I_String_Constant_Expr);
      --  Element_Type_Ent : constant Entity_Id := Get_Array_Component_Type (N);
      --  Element_Type  : constant Irep := Do_Type_Reference (Element_Type_Ent);
       StrLen           : constant Integer :=
@@ -1064,15 +1042,15 @@ package body Tree_Walk is
       --             Convert_Uint_To_Hex (UI_From_Int (Int (String_Length
       --               (Strval (N)))), 64));
 
-      Set_Type (Ret, Make_String_Type);
       --  FIXME: We really need some sort of array type here, such as:
       --  Make_Array_Type (
       --     I_Subtype => Element_Type,
       --     Size => String_Length_Expr));
       String_To_Name_Buffer (Strval (N));
-      Set_Value (Ret, Name_Buffer (1 .. StrLen));
-      Set_Source_Location (Ret, Sloc (N));
-      return Ret;
+      return Make_String_Constant_Expr
+        (Source_Location => Sloc (N),
+         I_Type => Make_String_Type,
+         Value => Name_Buffer (1 .. StrLen));
    end Do_String_Constant;
 
    ----------------------
@@ -1080,33 +1058,30 @@ package body Tree_Walk is
    ----------------------
 
    function Do_Real_Constant (N : Node_Id) return Irep is
-      Ret           : constant Irep := New_Irep (I_Constant_Expr);
       Real_Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
       Bit_Width : constant Nat := UI_To_Int (Esize (Etype (N)));
-      Unknown_Float_Width : exception;
-   begin
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, Real_Constant_Type);
-
+      function Value return String;
+      function Value return String is
       begin
-         Set_Value (Ret,
-                    (case Bit_Width is
-                        when 32 =>
-                           Convert_Ureal_To_Hex_32bits_IEEE (Realval (N)),
-                        when 64 =>
-                           Convert_Ureal_To_Hex_64bits_IEEE (Realval (N)),
-                        when others => raise Unknown_Float_Width));
-
-      exception
-         when Error : others =>
-            Report_Unhandled_Node_Empty (N, "Do_Real_Constant",
-                                         Ada.Exceptions.Exception_Name
-                                           (Error));
-            Set_Value (Ret, "00000000000000000000000000000000");
-            return Ret;
-      end;
-
-      return Ret;
+         case Bit_Width is
+            when 32 =>
+               return Convert_Ureal_To_Hex_32bits_IEEE (Realval (N));
+            when 64 =>
+               return Convert_Ureal_To_Hex_64bits_IEEE (Realval (N));
+            when others =>
+               Report_Unhandled_Node_Empty
+                 (N,
+                  "Do_Real_Constant",
+                  "Can only handle 32/64 bit floats at the moment, but "
+                    & Nat'Image (Bit_Width) & " was requested");
+               return "00000000000000000000000000000000";
+         end case;
+      end Value;
+   begin
+      return Make_Constant_Expr
+        (I_Type => Real_Constant_Type,
+         Value => Value,
+         Source_Location => Sloc (N));
    end Do_Real_Constant;
 
    ----------------------------
@@ -1114,7 +1089,6 @@ package body Tree_Walk is
    ----------------------------
 
    function Do_Defining_Identifier (E : Entity_Id) return Irep is
-      Sym          : constant Irep := New_Irep (I_Symbol_Expr);
       Result_Type  : constant Irep := Do_Type_Reference (Etype (E));
 
       Is_Out_Param : constant Boolean :=
@@ -1122,19 +1096,19 @@ package body Tree_Walk is
 
       Symbol_Type  : constant Irep :=
         (if Is_Out_Param
-         then Make_Pointer_Type (Result_Type)
-         else Result_Type);
+           then Make_Pointer_Type (Result_Type)
+           else Result_Type);
 
+      Sym          : constant Irep := Make_Symbol_Expr
+           (Source_Location => Sloc (E),
+            Identifier => Unique_Name (E),
+            I_Type => Symbol_Type);
    begin
-      Set_Source_Location (Sym, Sloc (E));
-      Set_Identifier      (Sym, Unique_Name (E));
-      Set_Type            (Sym, Symbol_Type);
-
       if Is_Out_Param then
-         return Deref : constant Irep := New_Irep (I_Dereference_Expr) do
-            Set_Type   (Deref, Result_Type);
-            Set_Object (Deref, Sym);
-         end return;
+         return Make_Dereference_Expr
+           (I_Type => Result_Type,
+            Object => Sym,
+            Source_Location => Sloc (E));
       else
          return Sym;
       end if;
@@ -1145,12 +1119,10 @@ package body Tree_Walk is
    --------------------
 
    function Do_Dereference (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Dereference_Expr);
-   begin
-      Set_Type   (Ret, Do_Type_Reference (Etype (N)));
-      Set_Object (Ret, Do_Expression (Prefix (N)));
-      return Ret;
-   end Do_Dereference;
+      (Make_Dereference_Expr
+        (I_Type => Do_Type_Reference (Etype (N)),
+         Object => Do_Expression (Prefix (N)),
+         Source_Location => Sloc (N)));
 
    --------------------------------
    -- Do_Derived_Type_Definition --
@@ -1186,35 +1158,33 @@ package body Tree_Walk is
    -------------------------------
 
    function Do_Enumeration_Definition (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_C_Enum_Type);
-      Enum_Body : constant Irep := New_Irep (I_C_Enum_Members);
-      Enum_Type_Symbol : constant Irep := New_Irep (I_Symbol_Type);
+      Enum_Body : constant Irep := Make_C_Enum_Members;
+      Enum_Type_Symbol : constant Irep := Make_Symbol_Type
+        (Identifier => Unique_Name (Defining_Identifier (Parent (N))));
       Member : Node_Id := First (Literals (N));
    begin
-      Set_Identifier (Enum_Type_Symbol,
-                      Unique_Name (Defining_Identifier (Parent (N))));
       loop
          declare
-            Element : constant Irep := New_Irep (I_C_Enum_Member);
             Val_String : constant String :=
               UI_Image (Enumeration_Rep (Member));
             Val_Name : constant String := Unique_Name (Member);
             Base_Name : constant String := Get_Name_String (Chars (Member));
-            Member_Symbol_Init : constant Irep := New_Irep (I_Constant_Expr);
-            Typecast_Expr : constant Irep := New_Irep (I_Op_Typecast);
             Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
+            Element : constant Irep := Make_C_Enum_Member
+              (Basename => Base_Name,
+               Value => Val_String,
+               Identifier => Val_Name);
+            Member_Symbol_Init : constant Irep := Make_Constant_Expr
+              (I_Type => Make_Signedbv_Type (Integer (Member_Size)),
+               Value => Convert_Uint_To_Hex
+                 (Enumeration_Rep (Member), Member_Size),
+               Source_Location => Sloc (Member));
+            Typecast_Expr : constant Irep := Make_Op_Typecast
+              (Op0 => Member_Symbol_Init,
+               I_Type => Enum_Type_Symbol,
+               Source_Location => Sloc (Member));
          begin
-            Set_Value (Element, Val_String);
-            Set_Identifier (Element, Val_Name);
-            Set_Basename (Element, Base_Name);
             Append_Member (Enum_Body, Element);
-            Set_Type (Member_Symbol_Init,
-                      Make_Signedbv_Type (Integer (Member_Size)));
-            Set_Value (Member_Symbol_Init,
-                       Convert_Uint_To_Hex (Enumeration_Rep (Member),
-                                               Member_Size));
-            Set_Op0 (Typecast_Expr, Member_Symbol_Init);
-            Set_Type (Typecast_Expr, Enum_Type_Symbol);
             New_Enum_Member_Symbol_Entry (Member_Name    => Intern (Val_Name),
                                      Base_Name      => Intern (Base_Name),
                                      Enum_Type      => Enum_Type_Symbol,
@@ -1224,9 +1194,9 @@ package body Tree_Walk is
          Next (Member);
          exit when not Present (Member);
       end loop;
-      Set_Subtype (Ret, Make_Signedbv_Type (32));
-      Set_Body (Ret, Enum_Body);
-      return Ret;
+      return Make_C_Enum_Type
+        (I_Subtype => Make_Signedbv_Type (32), -- FIXME why 32?
+         I_Body => Enum_Body);
    end Do_Enumeration_Definition;
 
    function Do_Attribute_Pos_Val (N : Node_Id) return Irep is
@@ -1278,12 +1248,7 @@ package body Tree_Walk is
    -- Do_Expression --
    -------------------
 
-   function Create_Dummy_Irep return Irep is
-      ir : constant Irep := New_Irep (I_Constant_Expr);
-   begin
-      Set_Value (ir, "0");
-      return ir;
-   end Create_Dummy_Irep;
+   function Create_Dummy_Irep return Irep is (CProver_Nil);
 
    function Do_Expression (N : Node_Id) return Irep is
    begin
@@ -1372,12 +1337,12 @@ package body Tree_Walk is
                                                Lhs             => Left_Op,
                                                Source_Location => Sloc (N),
                                                I_Type => Make_Bool_Type);
-      Range_Irep : constant Irep := New_Irep (I_Op_And);
+      Range_Irep : constant Irep := Make_Op_And
+        (Source_Location => Sloc (N),
+         I_Type => CProver_Bool_T);
    begin
       Append_Op (Range_Irep, Geq_Low);
       Append_Op (Range_Irep, Leq_High);
-      Set_Type (Range_Irep, Make_Bool_Type);
-      Set_Source_Location (Range_Irep, Sloc (N));
       return Range_Irep;
    end Do_In;
 
@@ -1388,12 +1353,12 @@ package body Tree_Walk is
    function Do_And_Then (N : Node_Id) return Irep is
       L : constant Node_Id := Left_Opnd (N);
       R : constant Node_Id := Right_Opnd (N);
-      Expr : constant Irep := New_Irep (I_Op_And);
+      Expr : constant Irep := Make_Op_And
+        (I_Type => CProver_Bool_T,
+         Source_Location => Sloc (N));
    begin
       Append_Op (Expr, Do_Expression (L));
       Append_Op (Expr, Do_Expression (R));
-      Set_Type (Expr, Make_Bool_Type);
-      Set_Source_Location (Expr, Sloc (N));
       return Expr;
    end Do_And_Then;
 
@@ -1404,12 +1369,12 @@ package body Tree_Walk is
    function Do_Or_Else (N : Node_Id) return Irep is
       L : constant Node_Id := Left_Opnd (N);
       R : constant Node_Id := Right_Opnd (N);
-      Expr : constant Irep := New_Irep (I_Op_Or);
+      Expr : constant Irep := Make_Op_Or
+        (I_Type => CProver_Bool_T,
+         Source_Location => Sloc (N));
    begin
       Append_Op (Expr, Do_Expression (L));
       Append_Op (Expr, Do_Expression (R));
-      Set_Type (Expr, Make_Bool_Type);
-      Set_Source_Location (Expr, Sloc (N));
       return Expr;
    end Do_Or_Else;
 
@@ -1466,22 +1431,38 @@ package body Tree_Walk is
    ----------------------
 
    function Make_Assume_Expr (N : Node_Id; Assumption : Irep) return Irep is
+      Source_Location : constant Source_Ptr := Sloc (N);
+      Assume_Params : constant Irep := Make_Parameter_List;
+      Assume_Type : constant Irep := Make_Code_Type
+        (Parameters => Assume_Params,
+         Ellipsis => False,
+         Return_Type => CProver_Void_T,
+         Inlined => False,
+         Knr => False);
+      Assume_Function_Name : constant String := "__CPROVER_assume";
       Sym_Assume : constant Irep := Make_Symbol_Expr (
-                                     Source_Location => Sloc (N),
-                                     I_Type          => New_Irep (I_Code_Type),
+                                     Source_Location => Source_Location,
+                                     I_Type          => Assume_Type,
                                      Range_Check     => False,
-                                     Identifier      => "__CPROVER_assume");
-      SEE_Fun_Call : constant Irep :=
-        New_Irep (I_Side_Effect_Expr_Function_Call);
-      Assume_Args  : constant Irep := New_Irep (I_Argument_List);
+                                     Identifier      => Assume_Function_Name);
+      Assume_Args  : constant Irep := Make_Argument_List;
+      SEE_Fun_Call : constant Irep := Make_Side_Effect_Expr_Function_Call
+        (Source_Location => Source_Location,
+         I_Function => Sym_Assume,
+         Arguments => Assume_Args,
+         I_Type => CProver_Void_T);
    begin
-
+      Append_Parameter
+        (Assume_Params,
+         Make_Code_Parameter
+           (Source_Location => Source_Location,
+            Default_Value => Ireps.Empty,
+            --  arbitrary, should be replaced with a CProver_Int_T
+            I_Type => Make_Signedbv_Type (32),
+            Base_Name => Assume_Function_Name,
+            This => False,
+            Identifier => Assume_Function_Name & "::assumption"));
       Append_Argument (Assume_Args, Assumption);
-
-      Set_Source_Location (SEE_Fun_Call, Sloc (N));
-      Set_Function        (SEE_Fun_Call, Sym_Assume);
-      Set_Arguments       (SEE_Fun_Call, Assume_Args);
-      Set_Type            (SEE_Fun_Call, Make_Void_Type);
       return SEE_Fun_Call;
    end Make_Assume_Expr;
 
@@ -1520,7 +1501,7 @@ package body Tree_Walk is
    function Do_Nondet_Function_Call (N : Node_Id) return Irep is
       Func_Str     : constant String := Unique_Name (Entity (Name (N)));
       Func_Name    : constant Symbol_Id := Intern (Func_Str);
-      Source_Loc   : constant Source_Ptr := Sloc (N);
+      Source_Location   : constant Source_Ptr := Sloc (N);
    begin
       if Global_Symbol_Table.Contains (Func_Name) then
          --  ??? why not get this from the entity
@@ -1542,38 +1523,42 @@ package body Tree_Walk is
               Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
             Followed_Type : constant Irep :=
               Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
-            Nondet_Expr  : constant Irep :=
-              New_Irep (I_Side_Effect_Expr_Nondet);
-            Assume_And_Yield : constant Irep := New_Irep (I_Op_Comma);
+            Nondet_Expr  : constant Irep := Make_Side_Effect_Expr_Nondet
+              (Source_Location => Source_Location,
+               I_Type => Type_Irep);
+
+            function Assume_And_Yield_Lhs return Irep;
+            function Assume_And_Yield_Lhs return Irep is
+            begin
+               if Kind (Followed_Type) in
+                 I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+               then
+                  return Make_Assume_Expr
+                    (N,
+                     Make_Range_Expression
+                       (Sym_Nondet,
+                        Get_Bound (N, Followed_Type, Bound_Low),
+                        Get_Bound (N, Followed_Type, Bound_High)));
+               else
+                  return Make_Assume_Expr
+                    (N,
+                     Make_Constant_Expr
+                       (Source_Location => Source_Location,
+                        I_Type          => CProver_Bool_T,
+                        Range_Check     => False,
+                        Value           => "true"));
+               end if;
+            end Assume_And_Yield_Lhs;
+            Assume_And_Yield : constant Irep := Make_Op_Comma
+              (Lhs => Assume_And_Yield_Lhs,
+               Rhs => Sym_Nondet,
+               Source_Location => Source_Location);
          begin
-            Set_Source_Location (Sym_Nondet, Sloc (N));
-            Set_Type (Nondet_Expr, Type_Irep);
-            Set_Source_Location (Nondet_Expr, Sloc (N));
-
-            if Kind (Followed_Type) in
-              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
-            then
-               Set_Lhs (Assume_And_Yield,
-                        Make_Assume_Expr (N,
-                          Make_Range_Expression (Sym_Nondet,
-                            Get_Bound (N, Followed_Type, Bound_Low),
-                            Get_Bound (N, Followed_Type, Bound_High))));
-            else
-               Set_Lhs (Assume_And_Yield,
-                        Make_Assume_Expr (N,
-                          Make_Constant_Expr (Source_Location => Source_Loc,
-                                             I_Type          => Make_Bool_Type,
-                                              Range_Check     => False,
-                                              Value           => "true")));
-            end if;
-
-            Set_Rhs (Assume_And_Yield, Sym_Nondet);
-            Set_Source_Location (Assume_And_Yield, Sloc (N));
             return Make_Let_Expr
               (Symbol          => Sym_Nondet,
                Value           => Nondet_Expr,
                Where           => Assume_And_Yield,
-               Source_Location => Sloc (N),
+               Source_Location => Source_Location,
                I_Type          => Type_Irep);
          end;
       else -- How did that happen (GNAT should reject)?
@@ -1591,7 +1576,6 @@ package body Tree_Walk is
       Func_Ent     : Entity_Id;
       Func_Name    : Symbol_Id;
       Func_Symbol  : Symbol;
-      The_Function : Irep;
 
    begin
       if not (Nkind (Name (N)) in N_Has_Entity)
@@ -1628,22 +1612,15 @@ package body Tree_Walk is
       then
          return Do_Nondet_Function_Call (N);
       else
-         The_Function := New_Irep (I_Symbol_Expr);
-         Set_Identifier (The_Function, Unintern (Func_Name));
-
          if Global_Symbol_Table.Contains (Func_Name) then
             Func_Symbol  := Global_Symbol_Table (Func_Name);
-            Set_Type (The_Function, Func_Symbol.SymType);
             --  ??? why not get this from the entity
 
-            return R : constant Irep :=
-              New_Irep (I_Side_Effect_Expr_Function_Call)
-            do
-               Set_Source_Location (R, Sloc (N));
-               Set_Function        (R, The_Function);
-               Set_Arguments       (R, Do_Call_Parameters (N));
-               Set_Type (R, Get_Return_Type (Func_Symbol.SymType));
-            end return;
+            return Make_Side_Effect_Expr_Function_Call
+              (Source_Location => Sloc (N),
+               I_Function => Symbol_Expr (Func_Symbol),
+               Arguments => Do_Call_Parameters (N),
+               I_Type => Get_Return_Type (Func_Symbol.SymType));
          else
             --  This can happen for RTS functions (body not parsed by us)
             --  TODO: handle RTS functions in a sane way
@@ -1660,7 +1637,8 @@ package body Tree_Walk is
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep is
       Stmts : constant List_Id := Statements (N);
       Stmnt : Node_Id := First (Stmts);
-      Reps : constant Irep := New_Irep (I_Code_Block);
+      Reps : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (N));
    begin
       while Present (Stmnt) loop
          if Nkind (Stmnt) = N_Object_Declaration then
@@ -1734,9 +1712,10 @@ package body Tree_Walk is
          if Nkind (E) in N_Has_Etype and then (Is_Type (Etype (E))) then
             return Do_Defining_Identifier (E);
          end if;
-         Report_Unhandled_Node_Empty (N, "Do_Identifier",
-                                         "Etype not a type");
-         return R : constant Irep := New_Irep (I_Symbol_Expr);
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Do_Identifier",
+            "Etype not a type");
       end if;
    end Do_Identifier;
 
@@ -1745,24 +1724,6 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Exit_Statement (N : Node_Id) return Irep is
-
-      -------------
-      -- Do_When --
-      -------------
-
-      function Do_When (N : Node_Id) return Irep with
-        Pre  => Nkind (N) in N_Subexpr,
-        Post => Kind (Do_When'Result) in Class_Code;
-
-      function Do_When (N : Node_Id) return Irep is
-         Cond_Expr : constant Irep := Do_Expression (N);
-         Ret       : constant Irep := New_Irep (I_Code_Ifthenelse);
-      begin
-         Set_Source_Location (Ret, Sloc (N));
-         Set_Cond (Ret, Cond_Expr);
-         return Ret;
-      end Do_When;
-
       Jump_Irep : Irep;
    begin
       if Present (Name (N)) then
@@ -1774,9 +1735,11 @@ package body Tree_Walk is
          Jump_Irep := Make_Code_Break (Source_Location => Sloc (N));
       end if;
       if Present (Condition (N)) then
-         return R : constant Irep := Do_When (Condition (N)) do
-            Set_Then_Case (R, Jump_Irep);
-         end return;
+         return Make_Code_Ifthenelse
+           (Source_Location => Sloc (N),
+            Cond => Do_Expression (Condition (N)),
+            Then_Case => Jump_Irep,
+            Else_Case => Ireps.Empty);
       else
          return Jump_Irep;
       end if;
@@ -1826,16 +1789,11 @@ package body Tree_Walk is
       -----------------
 
       function Do_If_Block (N : Node_Id) return Irep is
-         Cond_Expr : constant Irep := Do_Expression (Condition (N));
-         If_Block  : constant Irep := Process_Statements (Then_Statements (N));
-         Ret       : constant Irep := New_Irep (I_Code_Ifthenelse);
-
-      begin
-         Set_Source_Location (Ret, Sloc (N));
-         Set_Cond (Ret, Cond_Expr);
-         Set_Then_Case (Ret, If_Block);
-         return Ret;
-      end Do_If_Block;
+         (Make_Code_Ifthenelse
+           (Cond => Do_Expression (Condition (N)),
+            Then_Case => Process_Statements (Then_Statements (N)),
+            Else_Case => Ireps.Empty,
+            Source_Location => Sloc (N)));
 
       --  Local variables
 
@@ -1901,7 +1859,9 @@ package body Tree_Walk is
    --  expression. Generalised to work for both case expressions and case
    --  statements.
    function Do_Range_In_Case (N : Node_Id; Symbol : Irep) return Irep is
-      Result : constant Irep := New_Irep (I_Op_And);
+      Result : constant Irep := Make_Op_And
+        (Source_Location => Sloc (N),
+         I_Type => CProver_Bool_T);
       Lower_Bound : constant Irep := Do_Expression
                                        (Low_Bound (N));
       Upper_Bound : constant Irep := Do_Expression
@@ -1917,8 +1877,6 @@ package body Tree_Walk is
    begin
       Append_Op (Result, Geq_Lower);
       Append_Op (Result, Leq_Upper);
-      Set_Type (Result, Make_Bool_Type);
-      Set_Source_Location (Result, Sloc (N));
       return Result;
    end Do_Range_In_Case;
 
@@ -1927,7 +1885,6 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Case_Statement (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Code_Block);
       Value : constant Irep := Do_Expression (Expression (N));
 
       function Make_Case_Test (Alts : List_Id) return Irep;
@@ -1956,10 +1913,11 @@ package body Tree_Walk is
             return First_Alt_Test;
          end if;
          declare
-            Big_Or : constant Irep := New_Irep (I_Op_Or);
+            Big_Or : constant Irep := Make_Op_Or
+              (Source_Location => Sloc (This_Alt),
+               I_Type => CProver_Bool_T);
          begin
             Append_Op (Big_Or, First_Alt_Test);
-            Set_Type (Big_Or, New_Irep (I_Bool_Type));
             while Present (This_Alt) loop
                Append_Op (Big_Or, Make_Single_Test (This_Alt));
                Next (This_Alt);
@@ -1968,35 +1926,39 @@ package body Tree_Walk is
          end;
       end Make_Case_Test;
 
-      This_Alt : Node_Id := First (Alternatives (N));
+      function Make_Case_If_Then_Else_Statements (Alternatives : Node_Id)
+                                                 return Irep;
+      function Make_Case_If_Then_Else_Statements (Alternatives : Node_Id)
+                                                 return Irep
+      is
+         This_Alternative : constant Node_Id := Alternatives;
+         Remaining_Alternatives : Node_Id := This_Alternative;
+         This_Block : constant Irep := Process_Statements
+           (Statements (This_Alternative));
+      begin
+         Next (Remaining_Alternatives);
+         --  check if this is the last case in the chain
+         if not Present (Remaining_Alternatives) then
+            --  no condition, because at least one case must be hit
+            --  and if its not any of the previous ones it must be this one
+            return This_Block;
+         else
+            return Make_Code_Ifthenelse
+              (Cond => Make_Case_Test (Discrete_Choices (This_Alternative)),
+               Then_Case => This_Block,
+               Else_Case => Make_Case_If_Then_Else_Statements
+                 (Remaining_Alternatives),
+               Source_Location => Sloc (This_Alternative));
+         end if;
+      end Make_Case_If_Then_Else_Statements;
    begin
+      --  there must at least be one alternative
       pragma Assert (List_Length (Alternatives (N)) >= 1);
-      --  Do-while loop because there must be at least one alternative.
-      loop
-         declare
-            This_Stmt : constant Irep :=
-             Process_Statements (Statements (This_Alt));
-            This_Alt_Copy : constant Node_Id := This_Alt;
-            This_Test : Irep;
-         begin
-            Next (This_Alt);
-            if not Present (This_Alt) then
-               --  Omit test, this is either `others`
-               --  or the last case of complete coverage
-               This_Test := This_Stmt;
-               Append_Op (Ret, This_Test);
-            else
-               This_Test := New_Irep (I_Code_Ifthenelse);
-               Set_Cond (This_Test,
-                         Make_Case_Test
-                           (Discrete_Choices (This_Alt_Copy)));
-               Set_Then_Case (This_Test, This_Stmt);
-               Append_Op (Ret, This_Test);
-            end if;
-         end;
-         exit when not Present (This_Alt);
-      end loop;
-      return Ret;
+      return Ret : constant Irep := Make_Code_Block (Sloc (N)) do
+         Append_Op
+           (Ret,
+            Make_Case_If_Then_Else_Statements (First (Alternatives (N))));
+      end return;
    end Do_Case_Statement;
 
    -----------------------
@@ -2006,61 +1968,25 @@ package body Tree_Walk is
    function Do_Loop_Statement (N : Node_Id) return Irep is
       Iter_Scheme  : constant Node_Id := Iteration_Scheme (N);
       Body_Block   : constant Irep := Process_Statements (Statements (N));
-
-      function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
-                                 return Irep;
-
-      function Do_While_Statement (Cond : Irep) return Irep;
-
-      ----------------------
-      -- Do_For_Statement --
-      ----------------------
-
-      function Do_For_Statement (Param : Irep; Cond : Irep; Post : Irep)
-                                 return Irep
-      is
-         Ret : constant Irep := New_Irep (I_Code_For);
-      begin
-         Set_Source_Location (Ret, Sloc (N));
-         Set_Init (Ret, Param);
-         Set_Cond (Ret, Cond);
-         Set_Iter (Ret, Post);
-         --  body block done in caller
-         return Ret;
-      end Do_For_Statement;
-
-      ------------------------
-      -- Do_While_Statement --
-      ------------------------
-
-      function Do_While_Statement (Cond : Irep) return Irep is
-         Ret : constant Irep := New_Irep (I_Code_While);
-      begin
-         --  body block done in caller
-         Set_Source_Location (Ret, Sloc (N));
-         Set_Cond (Ret, Cond);
-         return Ret;
-      end Do_While_Statement;
-
       Loop_Irep : Irep;
-      Loop_Wrapper : constant Irep := New_Irep (I_Code_Block);
+      Loop_Wrapper : constant Irep := Make_Code_Block
+        (Sloc (N));
    begin
       if not Present (Iter_Scheme) then
-         --  infinite loop
-         declare
-            Const_True : constant Irep := New_Irep (I_Constant_Expr);
-         begin
-            Set_Value (Const_True, "true");
-            Set_Type (Const_True, Make_Bool_Type);
-            Loop_Irep := Do_While_Statement (Const_True);
-         end;
+         Loop_Irep := Make_Code_While
+           (Loop_Body => Body_Block,
+            Cond => CProver_True,
+            Source_Location => Sloc (N));
       else
          if Present (Condition (Iter_Scheme)) then
             --  WHILE loop
             declare
                Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
             begin
-               Loop_Irep := Do_While_Statement (Cond);
+               Loop_Irep := Make_Code_While
+                 (Loop_Body => Body_Block,
+                  Cond => Cond,
+                  Source_Location => Sloc (N));
             end;
          else
             --  FOR loop.
@@ -2099,7 +2025,7 @@ package body Tree_Walk is
                        I_Type          => Type_Loopvar,
                        Identifier      => Loopvar_Name);
 
-                  Init : constant Irep := New_Irep (I_Code_Assign);
+                  Init : Irep;
                   Cond : Irep;
                   Post : Irep;
 
@@ -2143,9 +2069,13 @@ package body Tree_Walk is
 
                   --  TODO: needs generalization to support enums
                   if Reverse_Present (Spec) then
-                     Set_Lhs (Init, Sym_Loopvar);
-                     Set_Rhs (Init, Typecast_If_Necessary (Bound_High,
-                              Get_Type (Sym_Loopvar), Global_Symbol_Table));
+                     Init := Make_Code_Assign
+                       (Lhs => Sym_Loopvar,
+                        Rhs => Typecast_If_Necessary
+                          (Bound_High,
+                           Get_Type (Sym_Loopvar),
+                           Global_Symbol_Table),
+                        Source_Location => Sloc (Spec));
                      Cond := Make_Op_Geq
                        (Rhs             => Bound_Low,
                         Lhs             => Sym_Loopvar,
@@ -2156,9 +2086,13 @@ package body Tree_Walk is
                      Post := Make_Increment
                        (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
                   else
-                     Set_Lhs (Init, Sym_Loopvar);
-                     Set_Rhs (Init, Typecast_If_Necessary (Bound_Low,
-                              Get_Type (Sym_Loopvar), Global_Symbol_Table));
+                     Init := Make_Code_Assign
+                       (Lhs => Sym_Loopvar,
+                        Rhs => Typecast_If_Necessary
+                          (Bound_Low,
+                           Get_Type (Sym_Loopvar),
+                           Global_Symbol_Table),
+                        Source_Location => Sloc (Spec));
                      Cond := Make_Op_Leq
                        (Rhs             => Bound_High,
                         Lhs             => Sym_Loopvar,
@@ -2169,9 +2103,13 @@ package body Tree_Walk is
                      Post := Make_Increment
                        (Sym_Loopvar, Etype (Low_Bound (Dsd)), 1);
                   end if;
-                  Set_Source_Location (Init, Sloc (Spec));
                   Set_Source_Location (Post, Sloc (Spec));
-                  Loop_Irep := Do_For_Statement (Init, Cond, Post);
+                  Loop_Irep := Make_Code_For
+                    (Loop_Body => Body_Block,
+                     Cond => Cond,
+                     Init => Init,
+                     Iter => Post,
+                     Source_Location => Sloc (N));
                end;
             else
                if not Present (Iterator_Specification (Iter_Scheme)) then
@@ -2196,7 +2134,8 @@ package body Tree_Walk is
       if not Has_Created_Identifier (N) then
          Append_Op (Loop_Wrapper,
                     Make_Code_Label
-                      (Code            => New_Irep (I_Code_Skip),
+                      (Code            => Make_Code_Skip
+                         (Source_Location => (Sloc (Identifier (N)))),
                        Source_Location => Sloc (Identifier (N)),
                        Label           => Get_Name_String
                          (Chars (Identifier (N))) & "_exit"));
@@ -2236,13 +2175,22 @@ package body Tree_Walk is
       procedure Do_Pragma_Assert_or_Assume
         (N_Orig : Node_Id; Block : Irep)
       is
-
          Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
-         A_Irep : constant Irep := New_Irep
-           (if Which in Pragma_Assume
-            then I_Code_Assume else I_Code_Assert);
 
-         --  To be set by iterator:
+         function Make_Assert_Or_Assume (Condition : Irep) return Irep;
+         function Make_Assert_Or_Assume (Condition : Irep) return Irep is
+         begin
+            if Which = Pragma_Assume then
+               return Make_Code_Assume
+                 (Assumption => Condition,
+                  Source_Location => Sloc (N));
+            else
+               return Make_Code_Assert
+                 (Assertion => Condition,
+                  Source_Location => Sloc (N));
+            end if;
+         end Make_Assert_Or_Assume;
+
          Check : Irep := Ireps.Empty;
 
          ----------------
@@ -2287,13 +2235,9 @@ package body Tree_Walk is
                                          "Unassigned arg name");
          end if;
 
-         if Which in Pragma_Assert | Pragma_Loop_Invariant then
-            Set_Assertion (A_Irep, Check);
-         else
-            Set_Assumption (A_Irep, Check);
-         end if;
-         Set_Source_Location (A_Irep, Sloc (N));
-         Append_Op (Block, A_Irep);
+         Append_Op
+           (Block, Make_Assert_Or_Assume
+              (Condition => Check));
       end Do_Pragma_Assert_or_Assume;
 
       procedure Do_Pragma_Suppress
@@ -2698,7 +2642,9 @@ package body Tree_Walk is
      (N : Node_Id; Block : Irep) is
       Defined : constant Entity_Id := Defining_Identifier (N);
       Id   : constant Irep := Do_Defining_Identifier (Defined);
-      Decl : constant Irep := New_Irep (I_Code_Decl);
+      Decl : constant Irep := Make_Code_Decl
+        (Symbol => Id,
+         Source_Location => Sloc (N));
       Init_Expr : Irep := Ireps.Empty;
 
       Obj_Id : constant Symbol_Id := Intern (Unique_Name (Defined));
@@ -2840,7 +2786,9 @@ package body Tree_Walk is
          Record_Comps : constant Node_Id :=
            Component_List (Record_Def);
          Variant_Disc_Value : Node_Id;
-         Ret : constant Irep := New_Irep (I_Struct_Expr);
+         Ret : constant Irep := Make_Struct_Expr
+           (Source_Location => Sloc (N),
+            I_Type => Do_Type_Reference (E));
 
       --  begin processing for Make_Record_Default_Initialiser
 
@@ -2938,13 +2886,13 @@ package body Tree_Walk is
             end;
          end if;
 
-         Set_Type (Ret, Do_Type_Reference (E));
          return Ret;
 
       end Make_Record_Default_Initialiser;
 
       function Make_Default_Initialiser (E : Entity_Id;
-                                         DCs : Node_Id) return Irep is
+                                         DCs : Node_Id) return Irep
+      is
       begin
          if Ekind (E) in Array_Kind then
             return Make_Array_Default_Initialiser (E);
@@ -2965,8 +2913,6 @@ package body Tree_Walk is
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
    begin
-      Set_Source_Location (Decl, (Sloc (N)));
-      Set_Symbol (Decl, Id);
       Append_Op (Block, Decl);
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
@@ -4694,7 +4640,7 @@ package body Tree_Walk is
    function Make_Runtime_Check (Condition : Irep) return Irep
    is
       Call_Expr : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call);
-      Call_Args : constant Irep := New_Irep (I_Argument_List);
+      Call_Args : constant Irep := Make_Argument_List;
       Void_Type : constant Irep := New_Irep (I_Void_Type);
    begin
 

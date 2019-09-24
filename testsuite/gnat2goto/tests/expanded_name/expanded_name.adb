@@ -9,5 +9,5 @@ begin
       when others =>
          N := 1;
    end case;
-   pragma Assert ((if Withed_Package.X = 1 then N = 1));
+   pragma Assert ((if Withed_Package.X = 1 then N = 2 else N = 1));
 end Expanded_Name;

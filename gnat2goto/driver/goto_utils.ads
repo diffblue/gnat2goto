@@ -15,6 +15,8 @@ package GOTO_Utils is
    function CProver_Bool_T return Irep;
    function CProver_Nil return Irep;
 
+   function CProver_True return Irep;
+
    --  TODO change this to Irep
    function Internal_Source_Location return Source_Ptr;
 

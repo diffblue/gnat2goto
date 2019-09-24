@@ -63,6 +63,19 @@ package body GOTO_Utils is
       return Nil;
    end CProver_Nil;
 
+   True_V : Irep := Ireps.Empty;
+   function CProver_True return Irep
+   is
+   begin
+      if True_V = Ireps.Empty then
+         True_V := Make_Constant_Expr
+           (Source_Location => Internal_Source_Location,
+            I_Type => CProver_Bool_T,
+            Value => "true");
+      end if;
+      return True_V;
+   end CProver_True;
+
    function Internal_Source_Location return Source_Ptr is (No_Location);
 
    ---------------------
