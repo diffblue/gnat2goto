@@ -3526,11 +3526,28 @@ package body Tree_Walk is
         Typecast_If_Necessary (LHS, Large_Enough_Type, Global_Symbol_Table);
       Rhs_Cast : constant Irep :=
         Typecast_If_Necessary (RHS, Large_Enough_Type, Global_Symbol_Table);
-      Full_Result : constant Irep := New_Irep (Op_Kind);
+
+      --  XXX this should be from the parent node, not from the LHS
+      Source_Loc : constant Source_Ptr := Get_Source_Location (LHS);
+
+      --  Impossible because of the precondition
+      Impossible : exception;
+      Full_Result : constant Irep :=
+        (case Op_Kind is
+           when I_Op_Add => Make_Op_Add
+            (Lhs => Lhs_Cast,
+             Rhs => Rhs_Cast,
+             Source_Location => Source_Loc,
+             I_Type => Large_Enough_Type),
+           when I_Op_Mul => Make_Op_Mul
+            (Lhs => Lhs_Cast,
+             Rhs => Rhs_Cast,
+             Source_Location => Source_Loc,
+             I_Type => Large_Enough_Type),
+           when others => raise Impossible);
 
       Mod_Max_String : constant String :=
         Get_Ada_Mod_Max (Followed_Ret_Type);
-      Source_Loc : constant Source_Ptr := Get_Source_Location (LHS);
 
       --  Extract the modulus from Ret_Type
       Mod_Max : constant Irep :=
@@ -3538,21 +3555,17 @@ package body Tree_Walk is
                             I_Type          => Large_Enough_Type,
                             Range_Check     => False,
                             Value           => Mod_Max_String);
-      Mod_Ret : constant Irep := New_Irep (I_Op_Mod);
+      Mod_Ret : constant Irep := Make_Op_Mod
+        (Lhs => Full_Result,
+         Rhs => Mod_Max,
+         Source_Location => Source_Loc,
+         Div_By_Zero_Check => False,
+         I_Type => Large_Enough_Type);
    begin
-      Set_Source_Location (Full_Result, Source_Loc);
-      Set_Lhs (Full_Result, Lhs_Cast);
-      Set_Rhs (Full_Result, Rhs_Cast);
-      Set_Type (Full_Result, Large_Enough_Type);
-
-      --  Build the operator in the wider type
-      Set_Lhs (Mod_Ret, Full_Result);
-      Set_Rhs (Mod_Ret, Mod_Max);
-      Set_Type (Mod_Ret, Large_Enough_Type);
-      Set_Source_Location (Mod_Ret, Source_Loc);
-
-      --  And return the result casted to the origin type
-      return Typecast_If_Necessary (Mod_Ret, Ret_Type, Global_Symbol_Table);
+      return Make_Op_Typecast
+        (Op0 => Mod_Ret,
+         Source_Location => Source_Loc,
+         I_Type => Ret_Type);
    end Do_Operator_Mod;
 
    function Do_Operator_Mod (N : Node_Id) return Irep is
