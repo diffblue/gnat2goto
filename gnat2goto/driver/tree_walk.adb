@@ -226,9 +226,7 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Private_Type_Declaration;
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Procedure_Call_Statement,
-        Post => Kind (Do_Procedure_Call_Statement'Result) =
-                  I_Code_Function_Call;
+   with Pre  => Nkind (N) = N_Procedure_Call_Statement;
 
    function Do_Range_In_Case (N : Node_Id; Symbol : Irep) return Irep;
 
@@ -3639,7 +3637,8 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Package_Specification (N : Node_Id) is
-      Package_Decs : constant Irep := New_Irep (I_Code_Block);
+      Package_Decs : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (N));
       Package_Name : Symbol_Id;
       Package_Symbol : Symbol;
       Def_Unit_Name : Node_Id;
@@ -3663,13 +3662,12 @@ package body Tree_Walk is
       Package_Symbol.Name       := Package_Name;
       Package_Symbol.BaseName   := Package_Name;
       Package_Symbol.PrettyName := Package_Name;
-      Package_Symbol.SymType    := New_Irep (I_Void_Type);
+      Package_Symbol.SymType    := CProver_Void_T;
       Package_Symbol.Mode       := Intern ("C");
       Package_Symbol.Value      := Make_Nil (Sloc (N));
 
       Global_Symbol_Table.Insert (Package_Name, Package_Symbol);
 
-      Set_Source_Location (Package_Decs, Sloc (N));
       if Present (Visible_Declarations (N)) then
          Process_Declarations (Visible_Declarations (N), Package_Decs);
       end if;
@@ -3752,14 +3750,6 @@ package body Tree_Walk is
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
-      Callee : Unbounded_String;
-      --  ??? use Get_Entity_Name from gnat2why to handle entries and entry
-      --  families (and most likely extend it for accesses to subprograms).
-
-      Proc   : constant Irep := New_Irep (I_Symbol_Expr);
-      R      : constant Irep := New_Irep (I_Code_Function_Call);
-      Sym_Id : Symbol_Id;
-
    begin
       if not (Nkind (Name (N)) in N_Has_Entity)
         and then Nkind (Name (N)) /= N_Aspect_Specification
@@ -3767,31 +3757,40 @@ package body Tree_Walk is
         and then Nkind (Name (N)) /= N_Freeze_Entity
         and then Nkind (Name (N)) /= N_Freeze_Generic_Entity
       then
-         Report_Unhandled_Node_Empty (N, "Do_Procedure_Call_Statement",
-                                      "Wrong nkind of name");
-         return R;
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Do_Procedure_Call_Statement",
+            "Wrong nkind of name");
       end if;
-      Callee := To_Unbounded_String (Unique_Name (Entity (Name (N))));
-      Sym_Id := Intern (To_String (Callee));
-      Set_Identifier (Proc, To_String (Callee));
+      declare
+         Callee : constant Unbounded_String
+           := To_Unbounded_String (Unique_Name (Entity (Name (N))));
+         Sym_Id : constant Symbol_Id := Intern (To_String (Callee));
+      begin
+         if not Global_Symbol_Table.Contains (Sym_Id) then
+            return Report_Unhandled_Node_Irep
+              (N,
+               "Do_Procedure_Call_Statement",
+               "sym id not in symbol table");
+         end if;
+         declare
+            --  ??? use Get_Entity_Name from gnat2why to handle entries and
+            --  entry families (and most likely extend it for accesses to
+            --  subprograms).
 
-      Set_Source_Location (R, Sloc (N));
-      Set_Lhs (R, Make_Nil (Sloc (N)));
-      Set_Function (R, Proc);
-      Set_Arguments (R, Do_Call_Parameters (N));
-
-      if Global_Symbol_Table.Contains (Sym_Id) then
-         Set_Type (Proc, Global_Symbol_Table (Sym_Id).SymType);
-         --  ??? Why not look at type of entity?
-      else
-         --  Packages with belong to the RTS are not being parsed by us,
-         --  therefore functions like "Put_Line" have have no entry
-         --  in the symbol table
-         Report_Unhandled_Node_Empty (N, "Do_Procedure_Call_Statement",
-                                      "sym id not in symbol table");
-      end if;
-
-      return R;
+            Function_Type : constant Irep := Global_Symbol_Table
+              (Sym_Id).SymType;
+         begin
+            return Make_Code_Function_Call
+              (I_Function => Make_Symbol_Expr
+                 (Identifier => To_String (Callee),
+                  I_Type => Function_Type,
+                  Source_Location => Sloc (N)),
+               Arguments => Do_Call_Parameters (N),
+               Lhs => CProver_Nil,
+               Source_Location => Sloc (N));
+         end;
+      end;
    end Do_Procedure_Call_Statement;
 
    -------------------------
