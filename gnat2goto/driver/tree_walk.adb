@@ -3860,12 +3860,6 @@ package body Tree_Walk is
       Upper_Bound_Value : Integer;
 
       Ok : Boolean;
-
-      Result_Type : constant Irep :=
-        New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type or
-                      Kind (Resolved_Underlying) = I_Unsignedbv_Type
-                    then I_Bounded_Unsignedbv_Type
-                    else I_Bounded_Signedbv_Type);
    begin
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
@@ -3910,15 +3904,23 @@ package body Tree_Walk is
 
       end if;
 
-      if Kind (Resolved_Underlying) = I_C_Enum_Type then
-         Set_Width (Result_Type,
-          Get_Width (Get_Subtype (Resolved_Underlying)));
-      else
-         Set_Width (Result_Type, Get_Width (Resolved_Underlying));
-      end if;
-      Set_Lower_Bound (Result_Type, Lower_Bound_Value);
-      Set_Upper_Bound (Result_Type, Upper_Bound_Value);
-      return Result_Type;
+      declare
+         Width : constant Integer :=
+           (if Kind (Resolved_Underlying) = I_C_Enum_Type
+             then Get_Width (Get_Subtype (Resolved_Underlying))
+             else Get_Width (Resolved_Underlying));
+      begin
+         return
+           (if Kind (Resolved_Underlying) in I_Ada_Mod_Type | I_Unsignedbv_Type
+            then Make_Bounded_Unsignedbv_Type
+              (Width => Width,
+               Lower_Bound => Lower_Bound_Value,
+               Upper_Bound => Upper_Bound_Value)
+            else Make_Bounded_Signedbv_Type
+              (Width => Width,
+               Lower_Bound => Lower_Bound_Value,
+               Upper_Bound => Upper_Bound_Value));
+      end;
    end Do_Range_Constraint;
 
    --------------------------
