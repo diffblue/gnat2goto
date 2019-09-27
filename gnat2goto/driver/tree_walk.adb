@@ -3929,7 +3929,7 @@ package body Tree_Walk is
 
    function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep is
 
-      Components : constant Irep := New_Irep (I_Struct_Union_Components);
+      Components : constant Irep := Make_Struct_Union_Components;
       Disc_Iter : Node_Id := First (Discs);
 
       procedure Add_Record_Component (Comp_Name : String;
@@ -4048,7 +4048,6 @@ package body Tree_Walk is
       --  Local variables
       Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
       Variants_Node  : constant Node_Id := Variant_Part (Component_List (N));
-      Ret            : constant Irep := New_Irep (I_Struct_Type);
 
    --  Start of processing for Do_Record_Definition
 
@@ -4077,9 +4076,11 @@ package body Tree_Walk is
          --  plus a union of variant alternatives.
          declare
             Variant_Iter : Node_Id := First (Variants (Variants_Node));
-            Union_Irep : constant Irep := New_Irep (I_Union_Type);
             Union_Components : constant Irep :=
-              New_Irep (I_Struct_Union_Components);
+              Make_Struct_Union_Components;
+            Union_Irep : constant Irep := Make_Union_Type
+              (Tag => "Filled out further down with get_fresh_type_name",
+               Components => Union_Components);
          begin
             while Present (Variant_Iter) loop
                Do_Variant_Struct (Variant_Iter, Union_Components);
@@ -4097,9 +4098,9 @@ package body Tree_Walk is
          end;
       end if;
 
-      Set_Components (Ret, Components);
-
-      return Ret;
+      return Make_Struct_Type
+        (Tag => "This will be filled in later by Do_Type_Declaration",
+         Components => Components);
    end Do_Record_Definition;
 
    ---------------------------
