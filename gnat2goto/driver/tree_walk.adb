@@ -154,18 +154,28 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Op,
         Post => Kind (Do_Operator_Simple'Result) in Class_Expr;
 
-   function Do_Operator_Mod (LHS : Irep; Op_Kind : Irep_Kind;
-                                    RHS : Irep; Ret_Type : Irep)
-                                    return Irep
+   function Do_Operator_Mod
+     (LHS : Irep;
+      Op_Kind : Irep_Kind;
+      RHS : Irep; Ret_Type : Irep)
+     return Irep
      with Pre => Op_Kind in I_Op_Add | I_Op_Mul,
      Post => (Kind (Do_Operator_Mod'Result) in Class_Expr
-              and then Get_Type (Do_Operator_Mod'Result) = Ret_Type);
+                and then Get_Type (Do_Operator_Mod'Result) = Ret_Type);
 
-   function Do_Operator_Sub_Mod (LHS : Irep;
-                                 RHS : Irep; Ret_Type : Irep)
+   function Do_Operator_Mod (N : Node_Id) return Irep
+     with Pre => N_Op (Nkind (N)) in N_Op_Add | N_Op_Multiply;
+
+   function Do_Operator_Sub_Mod
+     (LHS : Irep;
+      RHS : Irep; Ret_Type : Irep)
+     return Irep
+     with Post => (Kind (Do_Operator_Sub_Mod'Result) in Class_Expr and then
+                     Get_Type (Do_Operator_Sub_Mod'Result) = Ret_Type);
+
+   function Do_Operator_Sub_Mod (N : Node_Id)
                                  return Irep
-     with Post => (Kind (Do_Operator_Sub_Mod'Result) in Class_Expr
-                   and then Get_Type (Do_Operator_Sub_Mod'Result) = Ret_Type);
+     with Pre => N_Op (Nkind (N)) = N_Op_Subtract;
 
    function Do_Operator_General (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op;
@@ -3368,100 +3378,133 @@ package body Tree_Walk is
    ------------------------
 
    function Do_Operator_Simple (N : Node_Id) return Irep is
-      LHS : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
-                                        Global_Symbol_Table);
-      RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
-                                        Global_Symbol_Table);
-
-      function Op_To_Kind (N : N_Op) return Irep_Kind;
-
-      ----------------
-      -- Op_To_Kind --
-      ----------------
-
-      function Op_To_Kind (N : N_Op) return Irep_Kind is
-      begin
-         return
-           (case N is
-               when N_Op_Divide   => I_Op_Div,
-               when N_Op_Add      => I_Op_Add,
-               when N_Op_Subtract => I_Op_Sub,
-               when N_Op_Multiply => I_Op_Mul,
-               when N_Op_Rem      => I_Op_Rem,
-               when N_Op_Mod      => I_Op_Mod,
-               when N_Op_And      => I_Op_And,
-               when N_Op_Or       => I_Op_Or,
-               when N_Op_Eq       => I_Op_Eq,
-               when N_Op_Ne       => I_Op_Notequal,
-               when N_Op_Ge       => I_Op_Geq,
-               when N_Op_Gt       => I_Op_Gt,
-               when N_Op_Le       => I_Op_Leq,
-               when N_Op_Lt       => I_Op_Lt,
-               when N_Op_Concat
-                  | N_Op_Expon
-                  | N_Op_Xor
-                  | N_Op_Rotate_Left
-                  | N_Op_Rotate_Right
-                  | N_Op_Shift_Left
-                  | N_Op_Shift_Right
-                  | N_Op_Shift_Right_Arithmetic
-                  | N_Op_Abs
-                  | N_Op_Minus
-                  | N_Op_Not
-                  | N_Op_Plus
-           => Report_Unhandled_Node_Kind (Do_Operator_Simple.N,
-                                          "Do_Operator_Simple",
-                                          "Unsupported operand"));
-      end Op_To_Kind;
-
-      Op_Kind : constant Irep_Kind := Op_To_Kind (N_Op (Nkind (N)));
-      Ret     : constant Irep      := New_Irep (Op_Kind);
       Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
       Followed_Type : constant Irep :=
         Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
 
-   --  Start of processing for Do_Operator_Simple
-
    begin
       if Kind (Followed_Type) = I_Ada_Mod_Type
       then
-         case Op_Kind is
-            when I_Op_Add | I_Op_Mul =>
-               return Do_Operator_Mod (LHS, Op_Kind, RHS, Ret_Type);
-            when I_Op_Sub =>
-               return Do_Operator_Sub_Mod (LHS, RHS, Ret_Type);
+         case N_Op (Nkind (N)) is
+            when N_Op_Add | N_Op_Multiply =>
+               return Do_Operator_Mod (N);
+            when N_Op_Subtract =>
+               return Do_Operator_Sub_Mod (N);
             when others =>
                null; --  proceed as with non-mod types
          end case;
       end if;
+      declare
+         type Make_Binary_Operation_T is
+           access function
+             (Rhs : Irep;
+              Lhs : Irep;
+              Source_Location : Source_Ptr;
+              Overflow_Check : Boolean := False;
+              I_Type : Irep;
+              Range_Check : Boolean := False)
+            return Irep;
 
-      Set_Source_Location (Ret, Sloc (N));
-      if not (Kind (Ret) in Class_Binary_Expr
-        | I_Code_Assign
-        | I_Code_Function_Call
-        | I_Ieee_Float_Op_Expr
-        | I_Side_Effect_Expr_Assign)
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Operator_Simple",
-                                      "Unsupported kind of LHS");
-         return Ret;
-      end if;
-      Set_Lhs (Ret, LHS);
-      Set_Rhs (Ret, Typecast_If_Necessary (RHS, Get_Type (LHS),
-               Global_Symbol_Table));
-      Set_Type (Ret, Ret_Type);
+         --  Small helper to set additional parameter Div_By_Zero_Check
+         --  to true, so the interface of Div, Rem and Mod fits
+         --  with Make_Binary_Operation_T
+         generic
+           with function Make
+             (Rhs : Irep;
+              Lhs : Irep;
+              Div_By_Zero_Check : Boolean;
+              Source_Location : Source_Ptr;
+              Overflow_Check : Boolean := False;
+              I_Type : Irep := Ireps.Empty;
+              Range_Check : Boolean := False)
+           return Irep;
+         function Make_With_Div_By_Zero_Check
+           (Rhs : Irep;
+            Lhs : Irep;
+            Source_Location : Source_Ptr;
+            Overflow_Check : Boolean := False;
+            I_Type : Irep;
+            Range_Check : Boolean := False)
+           return Irep;
 
-      if Do_Overflow_Check (N) then
-         Set_Overflow_Check (Ret, True);
-      end if;
+         function Make_With_Div_By_Zero_Check
+           (Rhs : Irep;
+            Lhs : Irep;
+            Source_Location : Source_Ptr;
+            Overflow_Check : Boolean := False;
+            I_Type : Irep;
+            Range_Check : Boolean := False)
+           return Irep is
+            (Make
+              (Rhs => Rhs,
+               Lhs => Lhs,
+               Div_By_Zero_Check => Do_Division_Check (N),
+               Source_Location => Source_Location,
+               Overflow_Check => Overflow_Check,
+               I_Type => I_Type,
+               Range_Check => Range_Check));
 
-      if Nkind (N) in N_Op_Divide | N_Op_Mod | N_Op_Rem
-        and then Do_Division_Check (N)
-      then
-         Set_Div_By_Zero_Check (Ret, True);
-      end if;
+         function Make_Div_Operation is new
+           Make_With_Div_By_Zero_Check (Make => Make_Op_Div);
+         function Make_Rem_Operation is new
+           Make_With_Div_By_Zero_Check (Make => Make_Op_Rem);
+         function Make_Mod_Operation is new
+           Make_With_Div_By_Zero_Check (Make => Make_Op_Mod);
 
-      return Ret;
+         function Make_Unsupported_Op
+           (Rhs : Irep;
+              Lhs : Irep;
+              Source_Location : Source_Ptr;
+              Overflow_Check : Boolean := False;
+              I_Type : Irep;
+              Range_Check : Boolean := False)
+           return Irep;
+
+         function Make_Unsupported_Op
+           (Rhs : Irep;
+            Lhs : Irep;
+            Source_Location : Source_Ptr;
+            Overflow_Check : Boolean := False;
+            I_Type : Irep;
+            Range_Check : Boolean := False)
+          return Irep is
+          (Report_Unhandled_Node_Irep
+             (N,
+              "Do_Operator_Simple",
+              "Unsupported operand"));
+
+         Make_Binary_Operation : constant Make_Binary_Operation_T :=
+           (case N_Op (Nkind (N)) is
+              when N_Op_Divide => Make_Div_Operation'Access,
+              when N_Op_Add => Make_Op_Add'Access,
+              when N_Op_Subtract => Make_Op_Sub'Access,
+              when N_Op_Multiply => Make_Op_Mul'Access,
+              when N_Op_Rem => Make_Rem_Operation'Access,
+              when N_Op_Mod => Make_Mod_Operation'Access,
+              when N_Op_Eq => Make_Op_Eq'Access,
+              when N_Op_Ne => Make_Op_Notequal'Access,
+              when N_Op_Ge => Make_Op_Geq'Access,
+              when N_Op_Gt => Make_Op_Gt'Access,
+              when N_Op_Le => Make_Op_Leq'Access,
+              when N_Op_Lt => Make_Op_Lt'Access,
+              when others => Make_Unsupported_Op'Access);
+
+         LHS : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
+                                           Global_Symbol_Table);
+         RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
+                                           Global_Symbol_Table);
+
+      --  Start of processing for Do_Operator_Simple
+
+      begin
+         return Make_Binary_Operation
+           (Lhs => LHS,
+            Rhs => Typecast_If_Necessary
+              (RHS, Get_Type (LHS), Global_Symbol_Table),
+            I_Type => Ret_Type,
+            Overflow_Check => Do_Overflow_Check (N),
+            Source_Location => Sloc (N));
+      end;
    end Do_Operator_Simple;
 
    --  In case the type of operands in modular we attach a I_Op_Mod to the
@@ -3512,6 +3555,21 @@ package body Tree_Walk is
       return Typecast_If_Necessary (Mod_Ret, Ret_Type, Global_Symbol_Table);
    end Do_Operator_Mod;
 
+   function Do_Operator_Mod (N : Node_Id) return Irep is
+      Impossible_Exception : exception;
+      Op_Kind : constant Irep_Kind :=
+        (case N_Op (Nkind (N)) is
+           when N_Op_Add => I_Op_Add,
+           when N_Op_Multiply => I_Op_Mul,
+           when others => raise Impossible_Exception
+                          with "this case is excluded by the precondition");
+      Lhs : constant Irep := Do_Expression (Left_Opnd (N));
+      Rhs : constant Irep := Do_Expression (Right_Opnd (N));
+      Expr_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      return Do_Operator_Mod (Lhs, Op_Kind, Rhs, Expr_Type);
+   end Do_Operator_Mod;
+
    --  Modular minus gets special treatment, effectively x - y =>
    --  x + (Mod_Max (T) - y)
    --  this expression never over/under-flows so no type widening is necessary
@@ -3544,6 +3602,14 @@ package body Tree_Walk is
                      Source_Location => Source_Loc,
                      Overflow_Check  => False,
                      I_Type          => Ret_Type);
+   end Do_Operator_Sub_Mod;
+
+   function Do_Operator_Sub_Mod (N : Node_Id) return Irep is
+      Lhs : constant Irep := Do_Expression (Left_Opnd (N));
+      Rhs : constant Irep := Do_Expression (Right_Opnd (N));
+      Expr_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      return Do_Operator_Sub_Mod (Lhs, Rhs, Expr_Type);
    end Do_Operator_Sub_Mod;
 
    ----------------------------
