@@ -4111,99 +4111,109 @@ package body Tree_Walk is
       Root           : constant Irep := Do_Expression (Prefix (N));
       Component      : constant Entity_Id := Entity (Selector_Name (N));
       Component_Type : constant Irep := Do_Type_Reference (Etype (Component));
-      Ret            : constant Irep := New_Irep (I_Member_Expr);
+      Component_Name : constant String := Unique_Name (Component);
+      Source_Location : constant Source_Ptr := Sloc (N);
    begin
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Component_Name (Ret, Unique_Name (Component));
-      Set_Type (Ret, Component_Type);
       if Do_Discriminant_Check (N) then
+         --  ??? Can this even happen
+         if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
+         then
+            return Report_Unhandled_Node_Irep
+              (N,
+               "Do_Selected_Component",
+               "Parent not full type declaration");
+         end if;
 
          declare
-            Component_Variant : Node_Id := Types.Empty;
-            Record_Type : Node_Id;
-            Variant_Iter : Node_Id;
-            Variant_Spec : Node_Id;
-            Union_Selector : constant Irep := New_Irep (I_Member_Expr);
-            Substruct_Selector : constant Irep := New_Irep (I_Member_Expr);
-            Disc_Selector : constant Irep := New_Irep (I_Member_Expr);
-            Disc_Check : constant Irep := New_Irep (I_Op_Eq);
-            Comma_Expr : constant Irep := New_Irep (I_Op_Comma);
-         begin
-            if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
-            then
-               Report_Unhandled_Node_Empty (N, "Do_Selected_Component",
-                                           "Parent not full type declaration");
-               return Comma_Expr;
-            end if;
-            Record_Type := Type_Definition (Parent (Etype (Prefix (N))));
-            Variant_Iter := First (Variants (Variant_Part (Component_List
-                                                             (Record_Type))));
-            Variant_Spec := Variant_Part (Component_List (Record_Type));
-            --  Find the variant this belongs to:
-            while Present (Variant_Iter) and then Component_Variant = 0 loop
-               declare
-                  Item_Iter : Node_Id :=
-                    First (Component_Items (Component_List (Variant_Iter)));
-               begin
-                  while Present (Item_Iter) and then Component_Variant = 0 loop
-                     if Defining_Identifier (Item_Iter) = Component then
-                        Component_Variant := Variant_Iter;
-                     end if;
-                     Next (Item_Iter);
-                  end loop;
-               end;
-               Next (Variant_Iter);
-            end loop;
+            Record_Type : constant Node_Id := Type_Definition
+              (Parent (Etype (Prefix (N))));
+            Variant_Spec : constant Node_Id := Variant_Part
+              (Component_List (Record_Type));
 
-            if not Present (Component_Variant) then
-               Report_Unhandled_Node_Empty (N, "Do_Selected_Component",
-                                            "Component variant not present");
-               return Comma_Expr;
-            end if;
+            function Find_Variant_Containing_Component return Node_Id;
+            function Find_Variant_Containing_Component return Node_Id
+            is
+               Variant_Iter : Node_Id := First
+                 (Variants (Variant_Part (Component_List (Record_Type))));
+            begin
+               while Present (Variant_Iter) loop
+                  declare
+                     Item_Iter : Node_Id :=
+                       First (Component_Items (Component_List (Variant_Iter)));
+                  begin
+                     while Present (Item_Iter) loop
+                        if Defining_Identifier (Item_Iter) = Component then
+                           return Variant_Iter;
+                        end if;
+                        Next (Item_Iter);
+                     end loop;
+                  end;
+                  Next (Variant_Iter);
+               end loop;
+               --  XXX this was previously an "unsupported feature",
+               --     not sure if/how this could ever happen
+               pragma Assert
+                 (False,
+                  "A component not being present in any " &
+                    "of the record variants shouldn't ever happen");
+               return Variant_Iter;
+            end Find_Variant_Containing_Component;
 
-            --  Add a discriminant-check side-effect:
-            Set_Compound (Disc_Selector, Root);
-            Set_Component_Name (
-              Disc_Selector, Unique_Name (Entity (Name (Variant_Spec))));
-            Set_Type (
-              Disc_Selector, Do_Type_Reference (Etype (Name (Variant_Spec))));
-            Set_Lhs (Disc_Check, Disc_Selector);
-            Set_Rhs (
-              Disc_Check,
-              Do_Expression (First (Discrete_Choices (Component_Variant))));
-            Set_Type (Disc_Check, New_Irep (I_Bool_Type));
-            Set_Lhs (Comma_Expr, Make_Runtime_Check (Disc_Check));
+            Variant_Containing_Component : constant Node_Id :=
+              Find_Variant_Containing_Component;
+
+            Variant_Containing_Component_Constraint : constant Node_Id :=
+              First (Discrete_Choices (Variant_Containing_Component));
+
+            --  Emit a runtime check to see if we're actually accessing
+            --  a component of the active variant
+            Disc_Selector : constant Irep := Make_Member_Expr
+              (Compound => Root,
+               Component_Name => Unique_Name (Entity (Name (Variant_Spec))),
+               I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
+               Source_Location => Source_Location);
+            Disc_Check : constant Irep := Make_Op_Eq
+              (Lhs => Disc_Selector,
+               Rhs => Do_Expression (Variant_Containing_Component_Constraint),
+               I_Type => CProver_Bool_T,
+               Source_Location => Source_Location);
+            Correct_Variant_Check : constant Irep :=
+              Make_Runtime_Check (Disc_Check);
 
             --  Create the actual member access by interposing a union access:
             --  The actual access for member X of the Y == Z variant will look
             --  like (_check(Base.Disc == Z), Base._variants.Z.X)
 
-            declare
-               Variant_Constraint_Node : constant Node_Id :=
-                 First (Discrete_Choices (Component_Variant));
-               Variant_Name : constant String :=
-                 Get_Variant_Union_Member_Name (Variant_Constraint_Node);
-            begin
-               Set_Component_Name (Substruct_Selector, Variant_Name);
-            end;
+            Union_Selector : constant Irep := Make_Member_Expr
+              (I_Type => Anonymous_Type_Map (Variant_Spec),
+               Compound => Root,
+               Component_Name => "_variants",
+               Source_Location => Source_Location);
 
-            Set_Type (Substruct_Selector,
-                      Anonymous_Type_Map.Element (Component_Variant));
-            Set_Component_Name (Union_Selector, "_variants");
-            Set_Type (Union_Selector,
-                      Anonymous_Type_Map.Element (Variant_Spec));
-            Set_Compound (Union_Selector, Root);
-            Set_Compound (Substruct_Selector, Union_Selector);
-            Set_Compound (Ret, Substruct_Selector);
+            Substruct_Selector : constant Irep := Make_Member_Expr
+              (I_Type => Anonymous_Type_Map (Variant_Containing_Component),
+               Compound => Union_Selector,
+               Component_Name => Get_Variant_Union_Member_Name
+                 (Variant_Containing_Component_Constraint),
+               Source_Location => Source_Location);
 
-            Set_Rhs (Comma_Expr, Ret);
-            Set_Type (Comma_Expr, Get_Type (Ret));
-            return Comma_Expr;
-
+            Component_Selector : constant Irep := Make_Member_Expr
+              (I_Type => Component_Type,
+               Compound => Substruct_Selector,
+               Component_Name => Component_Name,
+               Source_Location => Source_Location);
+         begin
+            return Make_Op_Comma
+              (Lhs => Correct_Variant_Check,
+               Rhs => Component_Selector,
+               Source_Location => Source_Location);
          end;
       else
-         Set_Compound (Ret, Root);
-         return Ret;
+         return Make_Member_Expr
+           (I_Type => Component_Type,
+            Compound => Root,
+            Component_Name => Component_Name,
+            Source_Location => Source_Location);
       end if;
    end Do_Selected_Component;
 
