@@ -4222,26 +4222,20 @@ package body Tree_Walk is
    ----------------------------------
 
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep is
-      Ret   : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
-
       E : constant Entity_Id := Defining_Entity (Parent (N));
-      --  Type entity
-
    begin
+      --  ??? This sounds like it should be a precondition
       if not Is_Type (E) then
-         Report_Unhandled_Node_Empty (N, "Do_Signed_Integer_Definition",
-                                      "Entity id is not a type");
-         return Ret;
+         return Report_Unhandled_Node_Irep
+           (N, "Do_Signed_Integer_Definition",
+            "Entity id is not a type");
       end if;
-      Set_Lower_Bound (I     => Ret,
-                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                         Low_Bound (N)))));
-      Set_Upper_Bound (I     => Ret,
-                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                         High_Bound (N)))));
-      Set_Width (I     => Ret,
-                 Value => Positive (UI_To_Int (Esize (E))));
-      return  Ret;
+      return Make_Bounded_Signedbv_Type
+        (Lower_Bound =>
+           Store_Nat_Bound (Bound_Type_Nat (Intval (Low_Bound (N)))),
+         Upper_Bound =>
+           Store_Nat_Bound (Bound_Type_Nat (Intval (High_Bound (N)))),
+         Width => Positive (UI_To_Int (Esize (E))));
    end Do_Signed_Integer_Definition;
 
    ----------------------------------
@@ -4253,32 +4247,31 @@ package body Tree_Walk is
 
       --  This determines if ranges were specified or not
       Scalar_Range_Ent : constant Node_Id := Scalar_Range (E);
-      Ret : constant Irep :=
-        New_Irep (if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification
-                  then I_Bounded_Floatbv_Type
-                  else I_Floatbv_Type);
-      Esize_Width : constant Nat := UI_To_Int (Esize (E));
+      Width : constant Integer := Integer (UI_To_Int (Esize (E)));
+      Mantissa : constant Integer := Float_Mantissa_Size (Width);
    begin
-      Set_Width (Ret, Integer (Esize_Width));
-      Set_F (Ret, Float_Mantissa_Size (Get_Width (Ret)));
-
-      --  If user specified range bounds we store them
       if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification then
+         --  If user specified range bounds we store them
          declare
             Range_Spec : constant Node_Id := Real_Range_Specification (N);
             Lower_Bound : constant Integer :=
-              Store_Real_Bound (Bound_Type_Real (Realval (
-                                Low_Bound (Range_Spec))));
+              Store_Real_Bound
+              (Bound_Type_Real (Realval (Low_Bound (Range_Spec))));
             Upper_Bound : constant Integer :=
-              Store_Real_Bound (Bound_Type_Real (Realval (
-                                High_Bound (Range_Spec))));
+              Store_Real_Bound
+              (Bound_Type_Real (Realval (High_Bound (Range_Spec))));
          begin
-            Set_Lower_Bound (Ret, Lower_Bound);
-            Set_Upper_Bound (Ret, Upper_Bound);
+            return Make_Bounded_Floatbv_Type
+              (Width => Width,
+               F => Mantissa,
+               Lower_Bound => Lower_Bound,
+               Upper_Bound => Upper_Bound);
          end;
+      else
+         return Make_Floatbv_Type
+           (Width => Width,
+            F => Mantissa);
       end if;
-
-      return Ret;
    end Do_Floating_Point_Definition;
 
    --------------------------------
