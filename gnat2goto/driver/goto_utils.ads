@@ -159,4 +159,12 @@ package GOTO_Utils is
 
    function Cast_Enum (Expr : Irep; A_Symbol_Table : Symbol_Table) return Irep
      with Pre => Kind (Expr) in Class_Expr;
+
+   --  Wrapper arround Make_Code_Type because we usually set all the flags to
+   --  false
+   function Make_Code_Type
+     (Parameters : Irep;
+      Return_Type : Irep)
+     return Irep;
+
 end GOTO_Utils;

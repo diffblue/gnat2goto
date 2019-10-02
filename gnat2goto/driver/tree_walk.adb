@@ -4279,18 +4279,14 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Simple_Return_Statement (N : Node_Id) return Irep is
-      Expr : constant Node_Id := Expression (N);
-      R    : constant Irep := New_Irep (I_Code_Return);
+      Return_Value : constant Irep :=
+        (if Present (Expression (N))
+         then Do_Expression (Expression (N))
+         else CProver_Nil);
    begin
-      Set_Source_Location (R, Sloc (N));
-      if Present (Expr) then
-         Set_Return_Value (R, Do_Expression (Expr));
-      else
-         --  A return statement always needs a value, so make a nil value
-         --  if this is a plain 'Return' statement
-         Set_Return_Value (R, Make_Nil (Sloc (N)));
-      end if;
-      return R;
+      return Make_Code_Return
+        (Return_Value => Return_Value,
+         Source_Location => Sloc (N));
    end Do_Simple_Return_Statement;
 
    ------------------------
@@ -4355,13 +4351,13 @@ package body Tree_Walk is
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep is
       Decls : constant List_Id := Declarations (N);
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
-      Reps : constant Irep := New_Irep (I_Code_Block);
+      Reps : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (N));
    begin
       if Present (Decls) then
          Process_Declarations (Decls, Reps);
       end if;
 
-      Set_Source_Location (Reps, Sloc (N));
       if Present (HSS) then
          Process_Statement (HSS, Reps);
       end if;
@@ -4374,39 +4370,37 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Subprogram_Specification (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Code_Type);
-      Param_List : constant Irep := New_Irep (I_Parameter_List);
+      Param_List : constant Irep := Make_Parameter_List;
       Param_Iter : Node_Id := First (Parameter_Specifications (N));
    begin
       while Present (Param_Iter) loop
+         if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
+            return Report_Unhandled_Node_Type
+              (N,
+               "Do_Subprogram_Specification",
+               "Param iter type not have etype");
+         end if;
          declare
             Is_Out : constant Boolean := Out_Present (Param_Iter);
-
-            Param_Type_Base : Irep;
-            Param_Type      : Irep;
 
             Param_Name : constant String :=
                 Unique_Name (Defining_Identifier (Param_Iter));
 
-            Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
-         begin
-            if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
-               Report_Unhandled_Node_Empty (N, "Do_Subprogram_Specification",
-                                            "Param iter type not have etype");
-               return Ret;
-            end if;
-            Param_Type_Base :=
+            Param_Type_Base : constant Irep :=
               Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
-            Param_Type :=
+            Param_Type : constant Irep :=
               (if Is_Out
                  then Make_Pointer_Type (Param_Type_Base)
                  else Param_Type_Base);
-            Set_Source_Location (Param_Irep, Sloc (Param_Iter));
-            Set_Type            (Param_Irep, Param_Type);
-            Set_Identifier      (Param_Irep, Param_Name);
-            Set_Base_Name       (Param_Irep, Param_Name);
+            Param_Irep : constant Irep := Make_Code_Parameter
+              (Source_Location => Sloc (Param_Iter),
+               I_Type => Param_Type,
+               Identifier => Param_Name,
+               Base_Name => Param_Name,
+               This => False,
+               Default_Value => Ireps.Empty);
+         begin
             Append_Parameter (Param_List, Param_Irep);
-            --  Add the param to the symtab as well:
             New_Parameter_Symbol_Entry (Name_Id        => Intern (Param_Name),
                                         BaseName       => Param_Name,
                                         Symbol_Type    => Param_Type,
@@ -4414,13 +4408,15 @@ package body Tree_Walk is
             Next (Param_Iter);
          end;
       end loop;
-      Set_Return_Type
-        (Ret,
-         (if Nkind (N) = N_Function_Specification
-          then Do_Type_Reference (Etype (Result_Definition (N)))
-          else New_Irep (I_Void_Type)));
-      Set_Parameters (Ret, Param_List);
-      return Ret;
+      return Make_Code_Type
+        (Parameters => Param_List,
+         Ellipsis => False,
+         Return_Type =>
+           (if Nkind (N) = N_Function_Specification
+              then Do_Type_Reference (Etype (Result_Definition (N)))
+              else CProver_Void_T),
+         Inlined => False,
+         Knr => False);
    end Do_Subprogram_Specification;
 
    ----------------------------
@@ -4480,21 +4476,18 @@ package body Tree_Walk is
    function Do_Type_Conversion (N : Node_Id) return Irep is
       To_Convert : constant Irep := Do_Expression (Expression (N));
       New_Type   : constant Irep := Do_Type_Reference (Etype (N));
-      Ret        : constant Irep := New_Irep (I_Op_Typecast);
+      Maybe_Checked_Op : constant Irep :=
+        (if Do_Range_Check (Expression (N))
+         then Make_Range_Assert_Expr
+           (N => N,
+            Value => To_Convert,
+            Bounds_Type => New_Type)
+         else To_Convert);
    begin
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, New_Type);
-
-      if Do_Range_Check (Expression (N)) then
-         Set_Op0 (I     => Ret,
-                  Value => Make_Range_Assert_Expr (N          => N,
-                                                   Value      => To_Convert,
-                                                   Bounds_Type => New_Type));
-      else
-         Set_Op0  (Ret, To_Convert);
-      end if;
-
-      return Ret;
+      return Make_Op_Typecast
+        (Op0 => Maybe_Checked_Op,
+         I_Type => New_Type,
+         Source_Location => Sloc (N));
    end Do_Type_Conversion;
 
    -------------------------
@@ -4645,12 +4638,13 @@ package body Tree_Walk is
    function Get_Fresh_Type_Name (Actual_Type : Irep;
                                  Associated_Node : Node_Id) return Irep
    is
-      Ret : constant Irep := New_Irep (I_Symbol_Type);
       Number_Str_Raw : constant String :=
         Integer'Image (Anonymous_Type_Counter);
       Number_Str : constant String :=
         Number_Str_Raw (2 .. Number_Str_Raw'Last);
       Fresh_Name : constant String := "__anonymous_type_" & Number_Str;
+      Fresh_Symbol_Type : constant Irep := Make_Symbol_Type
+        (Identifier => Fresh_Name);
    begin
       Anonymous_Type_Counter := Anonymous_Type_Counter + 1;
 
@@ -4658,11 +4652,9 @@ package body Tree_Walk is
                              Type_Of_Type   => Actual_Type,
                              A_Symbol_Table => Global_Symbol_Table);
 
-      Set_Identifier (Ret, Fresh_Name);
+      Anonymous_Type_Map.Insert (Associated_Node, Fresh_Symbol_Type);
 
-      Anonymous_Type_Map.Insert (Associated_Node, Ret);
-
-      return Ret;
+      return Fresh_Symbol_Type;
    end Get_Fresh_Type_Name;
 
    -----------------------------------
@@ -4689,18 +4681,19 @@ package body Tree_Walk is
    function Make_Increment
      (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep
    is
-      Inc : constant Irep := New_Irep (I_Side_Effect_Expr_Assign);
-      Plus : constant Irep := New_Irep (I_Op_Add);
       Amount_Expr : constant Irep :=
         Make_Integer_Constant (Amount, Sym_Type);
+      Plus : constant Irep := Make_Op_Add
+        (Lhs => Sym,
+         Rhs => Amount_Expr,
+         I_Type => Get_Type (Sym),
+         Source_Location => Internal_Source_Location);
    begin
-      Set_Lhs (Plus, Sym);
-      Set_Rhs (Plus, Amount_Expr);
-      Set_Type (Plus, Get_Type (Sym));
-
-      Set_Lhs (Inc, Sym);
-      Set_Rhs (Inc, Plus);
-      return Inc;
+      return Make_Side_Effect_Expr_Assign
+        (Lhs => Sym,
+         Rhs => Plus,
+         Source_Location => Internal_Source_Location,
+         I_Type => Get_Type (Sym));
    end Make_Increment;
 
    ---------------------------
@@ -4710,11 +4703,11 @@ package body Tree_Walk is
    function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep is
       Type_Width : constant Int := UI_To_Int (Esize (Ty));
       Val_Binary : constant String := Convert_Int_To_Binary (Val, Type_Width);
-      Ret : constant Irep := New_Irep (I_Constant_Expr);
    begin
-      Set_Type (Ret, Do_Type_Reference (Ty));
-      Set_Value (Ret, Val_Binary);
-      return Ret;
+      return Make_Constant_Expr
+        (Value => Val_Binary,
+         I_Type => Do_Type_Reference (Ty),
+         Source_Location => Internal_Source_Location);
    end Make_Integer_Constant;
 
    ------------------------
@@ -4723,53 +4716,51 @@ package body Tree_Walk is
 
    function Make_Runtime_Check (Condition : Irep) return Irep
    is
-      Call_Expr : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call);
-      Call_Args : constant Irep := Make_Argument_List;
-      Void_Type : constant Irep := New_Irep (I_Void_Type);
    begin
 
       if Check_Function_Symbol = Ireps.Empty then
          --  Create the check function on demand:
          declare
-            Fn_Symbol : Symbol;
+            Formal_Params : constant Irep := Make_Parameter_List;
+            Fn_Type : constant Irep := Make_Code_Type
+              (Parameters => Formal_Params,
+               Return_Type => CProver_Void_T);
             Fn_Name : constant String := "__ada_runtime_check";
-            Assertion : constant Irep := New_Irep (I_Code_Assert);
-            Formal_Params : constant Irep := New_Irep (I_Parameter_List);
-            Formal_Param : constant Irep := New_Irep (I_Code_Parameter);
-            Formal_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-            Fn_Type : constant Irep := New_Irep (I_Code_Type);
-            Bool_Type : constant Irep := New_Irep (I_Bool_Type);
+            Formal_Param : constant Irep := Make_Code_Parameter
+              (Identifier => Fn_Name & "::arg",
+               Base_Name => "arg",
+               I_Type => CProver_Bool_T,
+               Default_Value => Ireps.Empty,
+               This => False,
+               Source_Location => Internal_Source_Location);
+            Formal_Expr : constant Irep := Make_Symbol_Expr
+              (Identifier => Get_Identifier (Formal_Param),
+               I_Type => Get_Type (Formal_Param),
+               Source_Location => Get_Source_Location (Formal_Param));
+            Assertion : constant Irep := Make_Code_Assert
+              (Assertion => Formal_Expr,
+               Source_Location => Internal_Source_Location);
+            Fn_Symbol : constant Symbol := New_Function_Symbol_Entry
+              (Name          => Fn_Name,
+               Symbol_Type   => Fn_Type,
+               Value         => Assertion,
+               A_Symbol_Table => Global_Symbol_Table);
          begin
-            Set_Identifier (Formal_Param, "__ada_runtime_check::arg");
-            Set_Base_Name (Formal_Param, "arg");
-            Set_Type (Formal_Param, Bool_Type);
-            Set_Identifier (Formal_Expr, Get_Identifier (Formal_Param));
-            Set_Type (Formal_Expr, Get_Type (Formal_Param));
             Append_Parameter (Formal_Params, Formal_Param);
-            Set_Parameters (Fn_Type, Formal_Params);
-            Set_Return_Type (Fn_Type, Void_Type);
-            Set_Assertion (Assertion, Formal_Expr);
-
-            Fn_Symbol :=
-              New_Function_Symbol_Entry (Name          => Fn_Name,
-                                         Symbol_Type   => Fn_Type,
-                                         Value         => Assertion,
-                                        A_Symbol_Table => Global_Symbol_Table);
-
-            Check_Function_Symbol := New_Irep (I_Symbol_Expr);
-            Set_Identifier (Check_Function_Symbol, Fn_Name);
-            Set_Type (Check_Function_Symbol, Fn_Symbol.SymType);
+            Check_Function_Symbol := Symbol_Expr (Fn_Symbol);
          end;
       end if;
 
-      --  Create a call to the (newly created?) function:
-      Set_Function (Call_Expr, Check_Function_Symbol);
-      Set_Type (Call_Expr, Void_Type);
-      Append_Argument (Call_Args, Condition);
-      Set_Arguments (Call_Expr, Call_Args);
-
-      return Call_Expr;
-
+      declare
+         Call_Args : constant Irep := Make_Argument_List;
+      begin
+         Append_Argument (Call_Args, Condition);
+         return Make_Side_Effect_Expr_Function_Call
+           (I_Function => Check_Function_Symbol,
+            I_Type => CProver_Void_T,
+            Arguments => Call_Args,
+            Source_Location => Get_Source_Location (Condition));
+      end;
    end Make_Runtime_Check;
 
    -----------------------------
@@ -5540,8 +5531,9 @@ package body Tree_Walk is
    ------------------------
 
    function Process_Statements (L : List_Id) return Irep is
-      Reps : constant Irep := New_Irep (I_Code_Block);
       Stmt : Node_Id := First (L);
+      Reps : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (Stmt));
       package IO renames Ada.Text_IO;
    begin
       while Present (Stmt) loop

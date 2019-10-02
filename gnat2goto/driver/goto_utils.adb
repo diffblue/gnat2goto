@@ -569,4 +569,16 @@ package body GOTO_Utils is
          return Expr;
       end if;
    end Cast_Enum;
+
+   function Make_Code_Type
+     (Parameters : Irep;
+      Return_Type : Irep)
+     return Irep
+   is
+      (Make_Code_Type
+        (Parameters => Parameters,
+         Return_Type => Return_Type,
+         Ellipsis => False,
+         Inlined => False,
+         Knr => False));
 end GOTO_Utils;
