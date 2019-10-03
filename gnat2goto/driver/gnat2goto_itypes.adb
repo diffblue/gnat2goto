@@ -101,26 +101,16 @@ package body Gnat2goto_Itypes is
    ----------------------------
 
    function Do_Itype_Array_Subtype (N : Node_Id) return Irep is
-   begin
-      --  Since we don't note the bounds at the irep level, just
-      --  call this an alias:
-      return R : constant Irep := New_Irep (I_Symbol_Type) do
-         Set_Identifier (R, Unique_Name (Etype (N)));
-      end return;
-   end Do_Itype_Array_Subtype;
+      (Make_Symbol_Type
+        (Identifier => Unique_Name (Etype (N))));
 
    -------------------------------------
    -- Do_Itype_String_Literal_Subtype --
    -------------------------------------
 
    function Do_Itype_String_Literal_Subtype (N : Node_Id) return Irep is
-   begin
-      --  Since we don't note the bounds at the irep level, just
-      --  call this an alias:
-      return R : constant Irep := New_Irep (I_Symbol_Type) do
-         Set_Identifier (R, Unique_Name (Etype (N)));
-      end return;
-   end Do_Itype_String_Literal_Subtype;
+      (Make_Symbol_Type
+         (Identifier => Unique_Name (Etype (N))));
 
    ------------------------------
    -- Do_Itype_Integer_Subtype --
