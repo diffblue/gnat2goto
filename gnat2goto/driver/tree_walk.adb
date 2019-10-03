@@ -226,9 +226,7 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Private_Type_Declaration;
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Procedure_Call_Statement,
-        Post => Kind (Do_Procedure_Call_Statement'Result) =
-                  I_Code_Function_Call;
+   with Pre  => Nkind (N) = N_Procedure_Call_Statement;
 
    function Do_Range_In_Case (N : Node_Id; Symbol : Irep) return Irep;
 
@@ -3526,11 +3524,28 @@ package body Tree_Walk is
         Typecast_If_Necessary (LHS, Large_Enough_Type, Global_Symbol_Table);
       Rhs_Cast : constant Irep :=
         Typecast_If_Necessary (RHS, Large_Enough_Type, Global_Symbol_Table);
-      Full_Result : constant Irep := New_Irep (Op_Kind);
+
+      --  XXX this should be from the parent node, not from the LHS
+      Source_Loc : constant Source_Ptr := Get_Source_Location (LHS);
+
+      --  Impossible because of the precondition
+      Impossible : exception;
+      Full_Result : constant Irep :=
+        (case Op_Kind is
+           when I_Op_Add => Make_Op_Add
+            (Lhs => Lhs_Cast,
+             Rhs => Rhs_Cast,
+             Source_Location => Source_Loc,
+             I_Type => Large_Enough_Type),
+           when I_Op_Mul => Make_Op_Mul
+            (Lhs => Lhs_Cast,
+             Rhs => Rhs_Cast,
+             Source_Location => Source_Loc,
+             I_Type => Large_Enough_Type),
+           when others => raise Impossible);
 
       Mod_Max_String : constant String :=
         Get_Ada_Mod_Max (Followed_Ret_Type);
-      Source_Loc : constant Source_Ptr := Get_Source_Location (LHS);
 
       --  Extract the modulus from Ret_Type
       Mod_Max : constant Irep :=
@@ -3538,21 +3553,17 @@ package body Tree_Walk is
                             I_Type          => Large_Enough_Type,
                             Range_Check     => False,
                             Value           => Mod_Max_String);
-      Mod_Ret : constant Irep := New_Irep (I_Op_Mod);
+      Mod_Ret : constant Irep := Make_Op_Mod
+        (Lhs => Full_Result,
+         Rhs => Mod_Max,
+         Source_Location => Source_Loc,
+         Div_By_Zero_Check => False,
+         I_Type => Large_Enough_Type);
    begin
-      Set_Source_Location (Full_Result, Source_Loc);
-      Set_Lhs (Full_Result, Lhs_Cast);
-      Set_Rhs (Full_Result, Rhs_Cast);
-      Set_Type (Full_Result, Large_Enough_Type);
-
-      --  Build the operator in the wider type
-      Set_Lhs (Mod_Ret, Full_Result);
-      Set_Rhs (Mod_Ret, Mod_Max);
-      Set_Type (Mod_Ret, Large_Enough_Type);
-      Set_Source_Location (Mod_Ret, Source_Loc);
-
-      --  And return the result casted to the origin type
-      return Typecast_If_Necessary (Mod_Ret, Ret_Type, Global_Symbol_Table);
+      return Make_Op_Typecast
+        (Op0 => Mod_Ret,
+         Source_Location => Source_Loc,
+         I_Type => Ret_Type);
    end Do_Operator_Mod;
 
    function Do_Operator_Mod (N : Node_Id) return Irep is
@@ -3626,7 +3637,8 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Package_Specification (N : Node_Id) is
-      Package_Decs : constant Irep := New_Irep (I_Code_Block);
+      Package_Decs : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (N));
       Package_Name : Symbol_Id;
       Package_Symbol : Symbol;
       Def_Unit_Name : Node_Id;
@@ -3650,13 +3662,12 @@ package body Tree_Walk is
       Package_Symbol.Name       := Package_Name;
       Package_Symbol.BaseName   := Package_Name;
       Package_Symbol.PrettyName := Package_Name;
-      Package_Symbol.SymType    := New_Irep (I_Void_Type);
+      Package_Symbol.SymType    := CProver_Void_T;
       Package_Symbol.Mode       := Intern ("C");
       Package_Symbol.Value      := Make_Nil (Sloc (N));
 
       Global_Symbol_Table.Insert (Package_Name, Package_Symbol);
 
-      Set_Source_Location (Package_Decs, Sloc (N));
       if Present (Visible_Declarations (N)) then
          Process_Declarations (Visible_Declarations (N), Package_Decs);
       end if;
@@ -3739,14 +3750,6 @@ package body Tree_Walk is
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
-      Callee : Unbounded_String;
-      --  ??? use Get_Entity_Name from gnat2why to handle entries and entry
-      --  families (and most likely extend it for accesses to subprograms).
-
-      Proc   : constant Irep := New_Irep (I_Symbol_Expr);
-      R      : constant Irep := New_Irep (I_Code_Function_Call);
-      Sym_Id : Symbol_Id;
-
    begin
       if not (Nkind (Name (N)) in N_Has_Entity)
         and then Nkind (Name (N)) /= N_Aspect_Specification
@@ -3754,31 +3757,40 @@ package body Tree_Walk is
         and then Nkind (Name (N)) /= N_Freeze_Entity
         and then Nkind (Name (N)) /= N_Freeze_Generic_Entity
       then
-         Report_Unhandled_Node_Empty (N, "Do_Procedure_Call_Statement",
-                                      "Wrong nkind of name");
-         return R;
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Do_Procedure_Call_Statement",
+            "Wrong nkind of name");
       end if;
-      Callee := To_Unbounded_String (Unique_Name (Entity (Name (N))));
-      Sym_Id := Intern (To_String (Callee));
-      Set_Identifier (Proc, To_String (Callee));
+      declare
+         Callee : constant Unbounded_String
+           := To_Unbounded_String (Unique_Name (Entity (Name (N))));
+         Sym_Id : constant Symbol_Id := Intern (To_String (Callee));
+      begin
+         if not Global_Symbol_Table.Contains (Sym_Id) then
+            return Report_Unhandled_Node_Irep
+              (N,
+               "Do_Procedure_Call_Statement",
+               "sym id not in symbol table");
+         end if;
+         declare
+            --  ??? use Get_Entity_Name from gnat2why to handle entries and
+            --  entry families (and most likely extend it for accesses to
+            --  subprograms).
 
-      Set_Source_Location (R, Sloc (N));
-      Set_Lhs (R, Make_Nil (Sloc (N)));
-      Set_Function (R, Proc);
-      Set_Arguments (R, Do_Call_Parameters (N));
-
-      if Global_Symbol_Table.Contains (Sym_Id) then
-         Set_Type (Proc, Global_Symbol_Table (Sym_Id).SymType);
-         --  ??? Why not look at type of entity?
-      else
-         --  Packages with belong to the RTS are not being parsed by us,
-         --  therefore functions like "Put_Line" have have no entry
-         --  in the symbol table
-         Report_Unhandled_Node_Empty (N, "Do_Procedure_Call_Statement",
-                                      "sym id not in symbol table");
-      end if;
-
-      return R;
+            Function_Type : constant Irep := Global_Symbol_Table
+              (Sym_Id).SymType;
+         begin
+            return Make_Code_Function_Call
+              (I_Function => Make_Symbol_Expr
+                 (Identifier => To_String (Callee),
+                  I_Type => Function_Type,
+                  Source_Location => Sloc (N)),
+               Arguments => Do_Call_Parameters (N),
+               Lhs => CProver_Nil,
+               Source_Location => Sloc (N));
+         end;
+      end;
    end Do_Procedure_Call_Statement;
 
    -------------------------
@@ -3848,12 +3860,6 @@ package body Tree_Walk is
       Upper_Bound_Value : Integer;
 
       Ok : Boolean;
-
-      Result_Type : constant Irep :=
-        New_Irep (if Kind (Resolved_Underlying) = I_Ada_Mod_Type or
-                      Kind (Resolved_Underlying) = I_Unsignedbv_Type
-                    then I_Bounded_Unsignedbv_Type
-                    else I_Bounded_Signedbv_Type);
    begin
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
@@ -3898,15 +3904,23 @@ package body Tree_Walk is
 
       end if;
 
-      if Kind (Resolved_Underlying) = I_C_Enum_Type then
-         Set_Width (Result_Type,
-          Get_Width (Get_Subtype (Resolved_Underlying)));
-      else
-         Set_Width (Result_Type, Get_Width (Resolved_Underlying));
-      end if;
-      Set_Lower_Bound (Result_Type, Lower_Bound_Value);
-      Set_Upper_Bound (Result_Type, Upper_Bound_Value);
-      return Result_Type;
+      declare
+         Width : constant Integer :=
+           (if Kind (Resolved_Underlying) = I_C_Enum_Type
+             then Get_Width (Get_Subtype (Resolved_Underlying))
+             else Get_Width (Resolved_Underlying));
+      begin
+         return
+           (if Kind (Resolved_Underlying) in I_Ada_Mod_Type | I_Unsignedbv_Type
+            then Make_Bounded_Unsignedbv_Type
+              (Width => Width,
+               Lower_Bound => Lower_Bound_Value,
+               Upper_Bound => Upper_Bound_Value)
+            else Make_Bounded_Signedbv_Type
+              (Width => Width,
+               Lower_Bound => Lower_Bound_Value,
+               Upper_Bound => Upper_Bound_Value));
+      end;
    end Do_Range_Constraint;
 
    --------------------------
@@ -3915,7 +3929,7 @@ package body Tree_Walk is
 
    function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep is
 
-      Components : constant Irep := New_Irep (I_Struct_Union_Components);
+      Components : constant Irep := Make_Struct_Union_Components;
       Disc_Iter : Node_Id := First (Discs);
 
       procedure Add_Record_Component (Comp_Name : String;
@@ -4034,7 +4048,6 @@ package body Tree_Walk is
       --  Local variables
       Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
       Variants_Node  : constant Node_Id := Variant_Part (Component_List (N));
-      Ret            : constant Irep := New_Irep (I_Struct_Type);
 
    --  Start of processing for Do_Record_Definition
 
@@ -4063,9 +4076,11 @@ package body Tree_Walk is
          --  plus a union of variant alternatives.
          declare
             Variant_Iter : Node_Id := First (Variants (Variants_Node));
-            Union_Irep : constant Irep := New_Irep (I_Union_Type);
             Union_Components : constant Irep :=
-              New_Irep (I_Struct_Union_Components);
+              Make_Struct_Union_Components;
+            Union_Irep : constant Irep := Make_Union_Type
+              (Tag => "Filled out further down with get_fresh_type_name",
+               Components => Union_Components);
          begin
             while Present (Variant_Iter) loop
                Do_Variant_Struct (Variant_Iter, Union_Components);
@@ -4083,9 +4098,9 @@ package body Tree_Walk is
          end;
       end if;
 
-      Set_Components (Ret, Components);
-
-      return Ret;
+      return Make_Struct_Type
+        (Tag => "This will be filled in later by Do_Type_Declaration",
+         Components => Components);
    end Do_Record_Definition;
 
    ---------------------------
@@ -4096,99 +4111,109 @@ package body Tree_Walk is
       Root           : constant Irep := Do_Expression (Prefix (N));
       Component      : constant Entity_Id := Entity (Selector_Name (N));
       Component_Type : constant Irep := Do_Type_Reference (Etype (Component));
-      Ret            : constant Irep := New_Irep (I_Member_Expr);
+      Component_Name : constant String := Unique_Name (Component);
+      Source_Location : constant Source_Ptr := Sloc (N);
    begin
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Component_Name (Ret, Unique_Name (Component));
-      Set_Type (Ret, Component_Type);
       if Do_Discriminant_Check (N) then
+         --  ??? Can this even happen
+         if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
+         then
+            return Report_Unhandled_Node_Irep
+              (N,
+               "Do_Selected_Component",
+               "Parent not full type declaration");
+         end if;
 
          declare
-            Component_Variant : Node_Id := Types.Empty;
-            Record_Type : Node_Id;
-            Variant_Iter : Node_Id;
-            Variant_Spec : Node_Id;
-            Union_Selector : constant Irep := New_Irep (I_Member_Expr);
-            Substruct_Selector : constant Irep := New_Irep (I_Member_Expr);
-            Disc_Selector : constant Irep := New_Irep (I_Member_Expr);
-            Disc_Check : constant Irep := New_Irep (I_Op_Eq);
-            Comma_Expr : constant Irep := New_Irep (I_Op_Comma);
-         begin
-            if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
-            then
-               Report_Unhandled_Node_Empty (N, "Do_Selected_Component",
-                                           "Parent not full type declaration");
-               return Comma_Expr;
-            end if;
-            Record_Type := Type_Definition (Parent (Etype (Prefix (N))));
-            Variant_Iter := First (Variants (Variant_Part (Component_List
-                                                             (Record_Type))));
-            Variant_Spec := Variant_Part (Component_List (Record_Type));
-            --  Find the variant this belongs to:
-            while Present (Variant_Iter) and then Component_Variant = 0 loop
-               declare
-                  Item_Iter : Node_Id :=
-                    First (Component_Items (Component_List (Variant_Iter)));
-               begin
-                  while Present (Item_Iter) and then Component_Variant = 0 loop
-                     if Defining_Identifier (Item_Iter) = Component then
-                        Component_Variant := Variant_Iter;
-                     end if;
-                     Next (Item_Iter);
-                  end loop;
-               end;
-               Next (Variant_Iter);
-            end loop;
+            Record_Type : constant Node_Id := Type_Definition
+              (Parent (Etype (Prefix (N))));
+            Variant_Spec : constant Node_Id := Variant_Part
+              (Component_List (Record_Type));
 
-            if not Present (Component_Variant) then
-               Report_Unhandled_Node_Empty (N, "Do_Selected_Component",
-                                            "Component variant not present");
-               return Comma_Expr;
-            end if;
+            function Find_Variant_Containing_Component return Node_Id;
+            function Find_Variant_Containing_Component return Node_Id
+            is
+               Variant_Iter : Node_Id := First
+                 (Variants (Variant_Part (Component_List (Record_Type))));
+            begin
+               while Present (Variant_Iter) loop
+                  declare
+                     Item_Iter : Node_Id :=
+                       First (Component_Items (Component_List (Variant_Iter)));
+                  begin
+                     while Present (Item_Iter) loop
+                        if Defining_Identifier (Item_Iter) = Component then
+                           return Variant_Iter;
+                        end if;
+                        Next (Item_Iter);
+                     end loop;
+                  end;
+                  Next (Variant_Iter);
+               end loop;
+               --  XXX this was previously an "unsupported feature",
+               --     not sure if/how this could ever happen
+               pragma Assert
+                 (False,
+                  "A component not being present in any " &
+                    "of the record variants shouldn't ever happen");
+               return Variant_Iter;
+            end Find_Variant_Containing_Component;
 
-            --  Add a discriminant-check side-effect:
-            Set_Compound (Disc_Selector, Root);
-            Set_Component_Name (
-              Disc_Selector, Unique_Name (Entity (Name (Variant_Spec))));
-            Set_Type (
-              Disc_Selector, Do_Type_Reference (Etype (Name (Variant_Spec))));
-            Set_Lhs (Disc_Check, Disc_Selector);
-            Set_Rhs (
-              Disc_Check,
-              Do_Expression (First (Discrete_Choices (Component_Variant))));
-            Set_Type (Disc_Check, New_Irep (I_Bool_Type));
-            Set_Lhs (Comma_Expr, Make_Runtime_Check (Disc_Check));
+            Variant_Containing_Component : constant Node_Id :=
+              Find_Variant_Containing_Component;
+
+            Variant_Containing_Component_Constraint : constant Node_Id :=
+              First (Discrete_Choices (Variant_Containing_Component));
+
+            --  Emit a runtime check to see if we're actually accessing
+            --  a component of the active variant
+            Disc_Selector : constant Irep := Make_Member_Expr
+              (Compound => Root,
+               Component_Name => Unique_Name (Entity (Name (Variant_Spec))),
+               I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
+               Source_Location => Source_Location);
+            Disc_Check : constant Irep := Make_Op_Eq
+              (Lhs => Disc_Selector,
+               Rhs => Do_Expression (Variant_Containing_Component_Constraint),
+               I_Type => CProver_Bool_T,
+               Source_Location => Source_Location);
+            Correct_Variant_Check : constant Irep :=
+              Make_Runtime_Check (Disc_Check);
 
             --  Create the actual member access by interposing a union access:
             --  The actual access for member X of the Y == Z variant will look
             --  like (_check(Base.Disc == Z), Base._variants.Z.X)
 
-            declare
-               Variant_Constraint_Node : constant Node_Id :=
-                 First (Discrete_Choices (Component_Variant));
-               Variant_Name : constant String :=
-                 Get_Variant_Union_Member_Name (Variant_Constraint_Node);
-            begin
-               Set_Component_Name (Substruct_Selector, Variant_Name);
-            end;
+            Union_Selector : constant Irep := Make_Member_Expr
+              (I_Type => Anonymous_Type_Map (Variant_Spec),
+               Compound => Root,
+               Component_Name => "_variants",
+               Source_Location => Source_Location);
 
-            Set_Type (Substruct_Selector,
-                      Anonymous_Type_Map.Element (Component_Variant));
-            Set_Component_Name (Union_Selector, "_variants");
-            Set_Type (Union_Selector,
-                      Anonymous_Type_Map.Element (Variant_Spec));
-            Set_Compound (Union_Selector, Root);
-            Set_Compound (Substruct_Selector, Union_Selector);
-            Set_Compound (Ret, Substruct_Selector);
+            Substruct_Selector : constant Irep := Make_Member_Expr
+              (I_Type => Anonymous_Type_Map (Variant_Containing_Component),
+               Compound => Union_Selector,
+               Component_Name => Get_Variant_Union_Member_Name
+                 (Variant_Containing_Component_Constraint),
+               Source_Location => Source_Location);
 
-            Set_Rhs (Comma_Expr, Ret);
-            Set_Type (Comma_Expr, Get_Type (Ret));
-            return Comma_Expr;
-
+            Component_Selector : constant Irep := Make_Member_Expr
+              (I_Type => Component_Type,
+               Compound => Substruct_Selector,
+               Component_Name => Component_Name,
+               Source_Location => Source_Location);
+         begin
+            return Make_Op_Comma
+              (Lhs => Correct_Variant_Check,
+               Rhs => Component_Selector,
+               Source_Location => Source_Location);
          end;
       else
-         Set_Compound (Ret, Root);
-         return Ret;
+         return Make_Member_Expr
+           (I_Type => Component_Type,
+            Compound => Root,
+            Component_Name => Component_Name,
+            Source_Location => Source_Location);
       end if;
    end Do_Selected_Component;
 
@@ -4197,26 +4222,20 @@ package body Tree_Walk is
    ----------------------------------
 
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep is
-      Ret   : constant Irep := New_Irep (I_Bounded_Signedbv_Type);
-
       E : constant Entity_Id := Defining_Entity (Parent (N));
-      --  Type entity
-
    begin
+      --  ??? This sounds like it should be a precondition
       if not Is_Type (E) then
-         Report_Unhandled_Node_Empty (N, "Do_Signed_Integer_Definition",
-                                      "Entity id is not a type");
-         return Ret;
+         return Report_Unhandled_Node_Irep
+           (N, "Do_Signed_Integer_Definition",
+            "Entity id is not a type");
       end if;
-      Set_Lower_Bound (I     => Ret,
-                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                         Low_Bound (N)))));
-      Set_Upper_Bound (I     => Ret,
-                       Value => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                         High_Bound (N)))));
-      Set_Width (I     => Ret,
-                 Value => Positive (UI_To_Int (Esize (E))));
-      return  Ret;
+      return Make_Bounded_Signedbv_Type
+        (Lower_Bound =>
+           Store_Nat_Bound (Bound_Type_Nat (Intval (Low_Bound (N)))),
+         Upper_Bound =>
+           Store_Nat_Bound (Bound_Type_Nat (Intval (High_Bound (N)))),
+         Width => Positive (UI_To_Int (Esize (E))));
    end Do_Signed_Integer_Definition;
 
    ----------------------------------
@@ -4228,32 +4247,31 @@ package body Tree_Walk is
 
       --  This determines if ranges were specified or not
       Scalar_Range_Ent : constant Node_Id := Scalar_Range (E);
-      Ret : constant Irep :=
-        New_Irep (if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification
-                  then I_Bounded_Floatbv_Type
-                  else I_Floatbv_Type);
-      Esize_Width : constant Nat := UI_To_Int (Esize (E));
+      Width : constant Integer := Integer (UI_To_Int (Esize (E)));
+      Mantissa : constant Integer := Float_Mantissa_Size (Width);
    begin
-      Set_Width (Ret, Integer (Esize_Width));
-      Set_F (Ret, Float_Mantissa_Size (Get_Width (Ret)));
-
-      --  If user specified range bounds we store them
       if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification then
+         --  If user specified range bounds we store them
          declare
             Range_Spec : constant Node_Id := Real_Range_Specification (N);
             Lower_Bound : constant Integer :=
-              Store_Real_Bound (Bound_Type_Real (Realval (
-                                Low_Bound (Range_Spec))));
+              Store_Real_Bound
+              (Bound_Type_Real (Realval (Low_Bound (Range_Spec))));
             Upper_Bound : constant Integer :=
-              Store_Real_Bound (Bound_Type_Real (Realval (
-                                High_Bound (Range_Spec))));
+              Store_Real_Bound
+              (Bound_Type_Real (Realval (High_Bound (Range_Spec))));
          begin
-            Set_Lower_Bound (Ret, Lower_Bound);
-            Set_Upper_Bound (Ret, Upper_Bound);
+            return Make_Bounded_Floatbv_Type
+              (Width => Width,
+               F => Mantissa,
+               Lower_Bound => Lower_Bound,
+               Upper_Bound => Upper_Bound);
          end;
+      else
+         return Make_Floatbv_Type
+           (Width => Width,
+            F => Mantissa);
       end if;
-
-      return Ret;
    end Do_Floating_Point_Definition;
 
    --------------------------------
@@ -4261,18 +4279,14 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Simple_Return_Statement (N : Node_Id) return Irep is
-      Expr : constant Node_Id := Expression (N);
-      R    : constant Irep := New_Irep (I_Code_Return);
+      Return_Value : constant Irep :=
+        (if Present (Expression (N))
+         then Do_Expression (Expression (N))
+         else CProver_Nil);
    begin
-      Set_Source_Location (R, Sloc (N));
-      if Present (Expr) then
-         Set_Return_Value (R, Do_Expression (Expr));
-      else
-         --  A return statement always needs a value, so make a nil value
-         --  if this is a plain 'Return' statement
-         Set_Return_Value (R, Make_Nil (Sloc (N)));
-      end if;
-      return R;
+      return Make_Code_Return
+        (Return_Value => Return_Value,
+         Source_Location => Sloc (N));
    end Do_Simple_Return_Statement;
 
    ------------------------
@@ -4337,13 +4351,13 @@ package body Tree_Walk is
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep is
       Decls : constant List_Id := Declarations (N);
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
-      Reps : constant Irep := New_Irep (I_Code_Block);
+      Reps : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (N));
    begin
       if Present (Decls) then
          Process_Declarations (Decls, Reps);
       end if;
 
-      Set_Source_Location (Reps, Sloc (N));
       if Present (HSS) then
          Process_Statement (HSS, Reps);
       end if;
@@ -4356,39 +4370,37 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Subprogram_Specification (N : Node_Id) return Irep is
-      Ret : constant Irep := New_Irep (I_Code_Type);
-      Param_List : constant Irep := New_Irep (I_Parameter_List);
+      Param_List : constant Irep := Make_Parameter_List;
       Param_Iter : Node_Id := First (Parameter_Specifications (N));
    begin
       while Present (Param_Iter) loop
+         if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
+            return Report_Unhandled_Node_Type
+              (N,
+               "Do_Subprogram_Specification",
+               "Param iter type not have etype");
+         end if;
          declare
             Is_Out : constant Boolean := Out_Present (Param_Iter);
-
-            Param_Type_Base : Irep;
-            Param_Type      : Irep;
 
             Param_Name : constant String :=
                 Unique_Name (Defining_Identifier (Param_Iter));
 
-            Param_Irep : constant Irep := New_Irep (I_Code_Parameter);
-         begin
-            if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
-               Report_Unhandled_Node_Empty (N, "Do_Subprogram_Specification",
-                                            "Param iter type not have etype");
-               return Ret;
-            end if;
-            Param_Type_Base :=
+            Param_Type_Base : constant Irep :=
               Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
-            Param_Type :=
+            Param_Type : constant Irep :=
               (if Is_Out
                  then Make_Pointer_Type (Param_Type_Base)
                  else Param_Type_Base);
-            Set_Source_Location (Param_Irep, Sloc (Param_Iter));
-            Set_Type            (Param_Irep, Param_Type);
-            Set_Identifier      (Param_Irep, Param_Name);
-            Set_Base_Name       (Param_Irep, Param_Name);
+            Param_Irep : constant Irep := Make_Code_Parameter
+              (Source_Location => Sloc (Param_Iter),
+               I_Type => Param_Type,
+               Identifier => Param_Name,
+               Base_Name => Param_Name,
+               This => False,
+               Default_Value => Ireps.Empty);
+         begin
             Append_Parameter (Param_List, Param_Irep);
-            --  Add the param to the symtab as well:
             New_Parameter_Symbol_Entry (Name_Id        => Intern (Param_Name),
                                         BaseName       => Param_Name,
                                         Symbol_Type    => Param_Type,
@@ -4396,13 +4408,15 @@ package body Tree_Walk is
             Next (Param_Iter);
          end;
       end loop;
-      Set_Return_Type
-        (Ret,
-         (if Nkind (N) = N_Function_Specification
-          then Do_Type_Reference (Etype (Result_Definition (N)))
-          else New_Irep (I_Void_Type)));
-      Set_Parameters (Ret, Param_List);
-      return Ret;
+      return Make_Code_Type
+        (Parameters => Param_List,
+         Ellipsis => False,
+         Return_Type =>
+           (if Nkind (N) = N_Function_Specification
+              then Do_Type_Reference (Etype (Result_Definition (N)))
+              else CProver_Void_T),
+         Inlined => False,
+         Knr => False);
    end Do_Subprogram_Specification;
 
    ----------------------------
@@ -4462,21 +4476,18 @@ package body Tree_Walk is
    function Do_Type_Conversion (N : Node_Id) return Irep is
       To_Convert : constant Irep := Do_Expression (Expression (N));
       New_Type   : constant Irep := Do_Type_Reference (Etype (N));
-      Ret        : constant Irep := New_Irep (I_Op_Typecast);
+      Maybe_Checked_Op : constant Irep :=
+        (if Do_Range_Check (Expression (N))
+         then Make_Range_Assert_Expr
+           (N => N,
+            Value => To_Convert,
+            Bounds_Type => New_Type)
+         else To_Convert);
    begin
-      Set_Source_Location (Ret, Sloc (N));
-      Set_Type (Ret, New_Type);
-
-      if Do_Range_Check (Expression (N)) then
-         Set_Op0 (I     => Ret,
-                  Value => Make_Range_Assert_Expr (N          => N,
-                                                   Value      => To_Convert,
-                                                   Bounds_Type => New_Type));
-      else
-         Set_Op0  (Ret, To_Convert);
-      end if;
-
-      return Ret;
+      return Make_Op_Typecast
+        (Op0 => Maybe_Checked_Op,
+         I_Type => New_Type,
+         Source_Location => Sloc (N));
    end Do_Type_Conversion;
 
    -------------------------
@@ -4627,12 +4638,13 @@ package body Tree_Walk is
    function Get_Fresh_Type_Name (Actual_Type : Irep;
                                  Associated_Node : Node_Id) return Irep
    is
-      Ret : constant Irep := New_Irep (I_Symbol_Type);
       Number_Str_Raw : constant String :=
         Integer'Image (Anonymous_Type_Counter);
       Number_Str : constant String :=
         Number_Str_Raw (2 .. Number_Str_Raw'Last);
       Fresh_Name : constant String := "__anonymous_type_" & Number_Str;
+      Fresh_Symbol_Type : constant Irep := Make_Symbol_Type
+        (Identifier => Fresh_Name);
    begin
       Anonymous_Type_Counter := Anonymous_Type_Counter + 1;
 
@@ -4640,11 +4652,9 @@ package body Tree_Walk is
                              Type_Of_Type   => Actual_Type,
                              A_Symbol_Table => Global_Symbol_Table);
 
-      Set_Identifier (Ret, Fresh_Name);
+      Anonymous_Type_Map.Insert (Associated_Node, Fresh_Symbol_Type);
 
-      Anonymous_Type_Map.Insert (Associated_Node, Ret);
-
-      return Ret;
+      return Fresh_Symbol_Type;
    end Get_Fresh_Type_Name;
 
    -----------------------------------
@@ -4671,18 +4681,19 @@ package body Tree_Walk is
    function Make_Increment
      (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep
    is
-      Inc : constant Irep := New_Irep (I_Side_Effect_Expr_Assign);
-      Plus : constant Irep := New_Irep (I_Op_Add);
       Amount_Expr : constant Irep :=
         Make_Integer_Constant (Amount, Sym_Type);
+      Plus : constant Irep := Make_Op_Add
+        (Lhs => Sym,
+         Rhs => Amount_Expr,
+         I_Type => Get_Type (Sym),
+         Source_Location => Internal_Source_Location);
    begin
-      Set_Lhs (Plus, Sym);
-      Set_Rhs (Plus, Amount_Expr);
-      Set_Type (Plus, Get_Type (Sym));
-
-      Set_Lhs (Inc, Sym);
-      Set_Rhs (Inc, Plus);
-      return Inc;
+      return Make_Side_Effect_Expr_Assign
+        (Lhs => Sym,
+         Rhs => Plus,
+         Source_Location => Internal_Source_Location,
+         I_Type => Get_Type (Sym));
    end Make_Increment;
 
    ---------------------------
@@ -4692,11 +4703,11 @@ package body Tree_Walk is
    function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep is
       Type_Width : constant Int := UI_To_Int (Esize (Ty));
       Val_Binary : constant String := Convert_Int_To_Binary (Val, Type_Width);
-      Ret : constant Irep := New_Irep (I_Constant_Expr);
    begin
-      Set_Type (Ret, Do_Type_Reference (Ty));
-      Set_Value (Ret, Val_Binary);
-      return Ret;
+      return Make_Constant_Expr
+        (Value => Val_Binary,
+         I_Type => Do_Type_Reference (Ty),
+         Source_Location => Internal_Source_Location);
    end Make_Integer_Constant;
 
    ------------------------
@@ -4705,53 +4716,51 @@ package body Tree_Walk is
 
    function Make_Runtime_Check (Condition : Irep) return Irep
    is
-      Call_Expr : constant Irep := New_Irep (I_Side_Effect_Expr_Function_Call);
-      Call_Args : constant Irep := Make_Argument_List;
-      Void_Type : constant Irep := New_Irep (I_Void_Type);
    begin
 
       if Check_Function_Symbol = Ireps.Empty then
          --  Create the check function on demand:
          declare
-            Fn_Symbol : Symbol;
+            Formal_Params : constant Irep := Make_Parameter_List;
+            Fn_Type : constant Irep := Make_Code_Type
+              (Parameters => Formal_Params,
+               Return_Type => CProver_Void_T);
             Fn_Name : constant String := "__ada_runtime_check";
-            Assertion : constant Irep := New_Irep (I_Code_Assert);
-            Formal_Params : constant Irep := New_Irep (I_Parameter_List);
-            Formal_Param : constant Irep := New_Irep (I_Code_Parameter);
-            Formal_Expr : constant Irep := New_Irep (I_Symbol_Expr);
-            Fn_Type : constant Irep := New_Irep (I_Code_Type);
-            Bool_Type : constant Irep := New_Irep (I_Bool_Type);
+            Formal_Param : constant Irep := Make_Code_Parameter
+              (Identifier => Fn_Name & "::arg",
+               Base_Name => "arg",
+               I_Type => CProver_Bool_T,
+               Default_Value => Ireps.Empty,
+               This => False,
+               Source_Location => Internal_Source_Location);
+            Formal_Expr : constant Irep := Make_Symbol_Expr
+              (Identifier => Get_Identifier (Formal_Param),
+               I_Type => Get_Type (Formal_Param),
+               Source_Location => Get_Source_Location (Formal_Param));
+            Assertion : constant Irep := Make_Code_Assert
+              (Assertion => Formal_Expr,
+               Source_Location => Internal_Source_Location);
+            Fn_Symbol : constant Symbol := New_Function_Symbol_Entry
+              (Name          => Fn_Name,
+               Symbol_Type   => Fn_Type,
+               Value         => Assertion,
+               A_Symbol_Table => Global_Symbol_Table);
          begin
-            Set_Identifier (Formal_Param, "__ada_runtime_check::arg");
-            Set_Base_Name (Formal_Param, "arg");
-            Set_Type (Formal_Param, Bool_Type);
-            Set_Identifier (Formal_Expr, Get_Identifier (Formal_Param));
-            Set_Type (Formal_Expr, Get_Type (Formal_Param));
             Append_Parameter (Formal_Params, Formal_Param);
-            Set_Parameters (Fn_Type, Formal_Params);
-            Set_Return_Type (Fn_Type, Void_Type);
-            Set_Assertion (Assertion, Formal_Expr);
-
-            Fn_Symbol :=
-              New_Function_Symbol_Entry (Name          => Fn_Name,
-                                         Symbol_Type   => Fn_Type,
-                                         Value         => Assertion,
-                                        A_Symbol_Table => Global_Symbol_Table);
-
-            Check_Function_Symbol := New_Irep (I_Symbol_Expr);
-            Set_Identifier (Check_Function_Symbol, Fn_Name);
-            Set_Type (Check_Function_Symbol, Fn_Symbol.SymType);
+            Check_Function_Symbol := Symbol_Expr (Fn_Symbol);
          end;
       end if;
 
-      --  Create a call to the (newly created?) function:
-      Set_Function (Call_Expr, Check_Function_Symbol);
-      Set_Type (Call_Expr, Void_Type);
-      Append_Argument (Call_Args, Condition);
-      Set_Arguments (Call_Expr, Call_Args);
-
-      return Call_Expr;
-
+      declare
+         Call_Args : constant Irep := Make_Argument_List;
+      begin
+         Append_Argument (Call_Args, Condition);
+         return Make_Side_Effect_Expr_Function_Call
+           (I_Function => Check_Function_Symbol,
+            I_Type => CProver_Void_T,
+            Arguments => Call_Args,
+            Source_Location => Get_Source_Location (Condition));
+      end;
    end Make_Runtime_Check;
 
    -----------------------------
@@ -5522,8 +5531,9 @@ package body Tree_Walk is
    ------------------------
 
    function Process_Statements (L : List_Id) return Irep is
-      Reps : constant Irep := New_Irep (I_Code_Block);
       Stmt : Node_Id := First (L);
+      Reps : constant Irep := Make_Code_Block
+        (Source_Location => Sloc (Stmt));
       package IO renames Ada.Text_IO;
    begin
       while Present (Stmt) loop
