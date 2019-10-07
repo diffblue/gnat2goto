@@ -1,4 +1,3 @@
-with Atree;                 use Atree;
 with Sinfo;                 use Sinfo;
 
 with GOTO_Utils;            use GOTO_Utils;
@@ -92,12 +91,13 @@ package body Range_Check is
                   then Uint_0
                   else UI_From_Int (2 ** Type_Width - 1));
             begin
-               return Make_Constant_Expr (Source_Location => No_Location,
-                                          I_Type          => Bound_Type,
-                                          Range_Check     => False,
-                                          Value =>
-                                            Convert_Uint_To_Hex (Bound_Value,
-                                              Types.Pos (Type_Width)));
+               return Make_Constant_Expr
+                 (Source_Location => Internal_Source_Location,
+                  I_Type          => Bound_Type,
+                  Range_Check     => False,
+                  Value =>
+                    Convert_Uint_To_Hex (Bound_Value,
+                                         Types.Pos (Type_Width)));
             end;
          when I_Signedbv_Type =>
             declare
@@ -107,12 +107,13 @@ package body Range_Check is
                   then UI_From_Int (-(2 ** (Type_Width - 1)))
                   else UI_From_Int (2 ** (Type_Width - 1) - 1));
             begin
-               return Make_Constant_Expr (Source_Location => No_Location,
-                                          I_Type          => Bound_Type,
-                                          Range_Check     => False,
-                                          Value =>
-                                            Convert_Uint_To_Hex (Bound_Value,
-                                              Types.Pos (Type_Width)));
+               return Make_Constant_Expr
+                 (Source_Location => Internal_Source_Location,
+                  I_Type          => Bound_Type,
+                  Range_Check     => False,
+                  Value =>
+                    Convert_Uint_To_Hex (Bound_Value,
+                                         Types.Pos (Type_Width)));
             end;
          when others =>
                return Report_Unhandled_Node_Irep (N, "Get_Bound",
@@ -126,7 +127,7 @@ package body Range_Check is
       Bound_Index : constant Integer := (if Pos = Bound_Low
                                          then Get_Lower_Bound (Bound_Type)
                                          else Get_Upper_Bound (Bound_Type));
-      Source_Loc : constant Source_Ptr := No_Location;
+      Source_Loc : constant Irep := Internal_Source_Location;
    begin
       case Get_Bound_Type (Bound_Index) is
          when Nat_Bound =>
@@ -157,7 +158,7 @@ package body Range_Check is
                                                          Global_Symbol_Table);
       Followed_Bound_Type : constant Irep := Follow_Symbol_Type (Bounds_Type,
                                                          Global_Symbol_Table);
-      Source_Loc : constant Source_Ptr := Sloc (N);
+      Source_Loc : constant Irep := Get_Source_Location (N);
 
       function Build_Assert_Function return Symbol;
 
@@ -174,7 +175,8 @@ package body Range_Check is
       function Build_Assert_Function return Symbol
       is
          Func_Name : constant String := Fresh_Var_Name ("range_check");
-         Body_Block : constant Irep := Make_Code_Block (Sloc (N));
+         Body_Block : constant Irep :=
+           Make_Code_Block (Get_Source_Location (N));
          Description : constant Irep := Make_String_Constant_Expr (
                                              Source_Location => Source_Loc,
                                              I_Type          => Ireps.Empty,
@@ -216,7 +218,7 @@ package body Range_Check is
          --
          Return_Inst : constant Irep :=
            Make_Code_Return (Return_Value    => Value_Param,
-                             Source_Location => Sloc (N),
+                             Source_Location => Get_Source_Location (N),
                              I_Type          => Ireps.Empty);
       begin
          Append_Op (Body_Block,
@@ -240,7 +242,7 @@ package body Range_Check is
       Call_Inst : constant Irep := Make_Side_Effect_Expr_Function_Call (
         Arguments => Call_Args,
         I_Function => Symbol_Expr (Build_Assert_Function),
-        Source_Location => Sloc (N),
+        Source_Location => Get_Source_Location (N),
         I_Type => Actual_Type);
    begin
       Append_Argument (Call_Args, Value);
@@ -309,7 +311,7 @@ package body Range_Check is
         I_Type => Make_Bool_Type,
         Source_Location => Get_Source_Location (Value_Expr));
 
-      Source_Location : constant Source_Ptr := Get_Source_Location
+      Source_Location : constant Irep := Get_Source_Location
         (Value_Expr);
    begin
       pragma Assert (Kind (Bound_Type) in
@@ -375,7 +377,7 @@ package body Range_Check is
                               return Irep is
       Assert_Args  : constant Irep := Make_Argument_List;
       Sym_Assert   : constant Irep := Make_Symbol_Expr (
-        Source_Location => Sloc (N),
+        Source_Location => Get_Source_Location (N),
         I_Type => Make_Code_Type (
           Parameters => Make_Parameter_List,
           Ellipsis => False,
@@ -387,8 +389,8 @@ package body Range_Check is
         Make_Code_Function_Call (
           Arguments => Assert_Args,
           I_Function => Sym_Assert,
-          Lhs => Make_Nil (Sloc (N)),
-          Source_Location => Sloc (N),
+          Lhs => Make_Nil (Get_Source_Location (N)),
+          Source_Location => Get_Source_Location (N),
           I_Type => Make_Void_Type);
    begin
       Append_Argument (Assert_Args, Assertion);

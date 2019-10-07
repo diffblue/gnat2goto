@@ -96,7 +96,7 @@ package Tree_Walk is
 
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
                                             Element_Type_Size : Uint;
-                                            Source_Loc : Source_Ptr)
+                                            Source_Loc : Irep)
                                             return Irep
      with Pre => Kind (Num_Elem) in Class_Expr,
      Post => Kind (Make_Malloc_Function_Call_Expr'Result) =
@@ -114,7 +114,7 @@ package Tree_Walk is
                                             Source : Irep;
                                             Num_Elem : Irep;
                                             Element_Type_Size : Uint;
-                                            Source_Loc : Source_Ptr)
+                                            Source_Loc : Irep)
                                             return Irep
      with Pre => (Kind (Get_Type (Destination)) = I_Pointer_Type
                   and then Kind (Get_Type (Source)) = I_Pointer_Type
@@ -141,7 +141,7 @@ package Tree_Walk is
      with Pre => Nkind (Range_Expression (N)) = N_Range;
 
    procedure Append_Declare_And_Init
-     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Source_Ptr)
+     (Symbol : Irep; Value : Irep; Block : Irep; Source_Loc : Irep)
      with Pre => Kind (Value) in Class_Expr;
 
    function Create_Dummy_Irep return Irep;

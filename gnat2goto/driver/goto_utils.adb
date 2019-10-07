@@ -5,6 +5,9 @@ with Binary_To_Hex;         use Binary_To_Hex;
 
 with Ada.Text_IO;           use Ada.Text_IO;
 with Follow; use Follow;
+with Ada.Strings;
+with Ada.Strings.Fixed;
+with Sinput; use Sinput;
 
 package body GOTO_Utils is
 
@@ -76,7 +79,18 @@ package body GOTO_Utils is
       return True_V;
    end CProver_True;
 
-   function Internal_Source_Location return Source_Ptr is (No_Location);
+   Internal_Source_Location_V : Irep := Ireps.Empty;
+   function Internal_Source_Location return Irep is
+   begin
+      if Internal_Source_Location_V = Ireps.Empty then
+         Internal_Source_Location_V := Make_Source_Location
+           (File => "<internal>",
+            Line => "",
+            Column => "",
+            Comment => "");
+      end if;
+      return Internal_Source_Location_V;
+   end Internal_Source_Location;
 
    ---------------------
    -- Make_Address_Of --
@@ -281,7 +295,8 @@ package body GOTO_Utils is
    function Create_Fun_Parameter (Fun_Name : String; Param_Name : String;
                                   Param_Type : Irep; Param_List : Irep;
                                   A_Symbol_Table : in out Symbol_Table;
-                                  Source_Location : Source_Ptr := No_Location)
+                                  Source_Location : Irep :=
+                                    Internal_Source_Location)
                                   return Irep is
       Unique_Name : constant String :=
         Fun_Name & "::" & Fresh_Var_Name (Param_Name);
@@ -305,7 +320,8 @@ package body GOTO_Utils is
    end Create_Fun_Parameter;
 
    function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
-                                    Source_Loc : Source_Ptr := No_Location)
+                                    Source_Loc : Irep :=
+                                      Internal_Source_Location)
                                     return Irep is
 
       Member_Size : constant Irep :=
@@ -358,7 +374,7 @@ package body GOTO_Utils is
                                         A_Symbol_Table => A_Symbol_Table);
    end Build_Function;
 
-   function Build_Index_Constant (Value : Int; Source_Loc : Source_Ptr)
+   function Build_Index_Constant (Value : Int; Source_Loc : Irep)
                                   return Irep
    is
       Value_Hex : constant String :=
@@ -373,7 +389,7 @@ package body GOTO_Utils is
 
    function Build_Array_Size (First : Irep; Last : Irep) return Irep
    is
-      Source_Loc : constant Source_Ptr := Get_Source_Location (First);
+      Source_Loc : constant Irep := Get_Source_Location (First);
       Diff : constant Irep :=
         Make_Op_Sub (Rhs             => First,
                      Lhs             => Last,
@@ -393,7 +409,7 @@ package body GOTO_Utils is
 
    function Build_Array_Size (Array_Comp : Irep) return Irep
    is
-      Source_Loc : constant Source_Ptr := Get_Source_Location (Array_Comp);
+      Source_Loc : constant Irep := Get_Source_Location (Array_Comp);
       First : constant Irep :=
         Make_Member_Expr (Compound         => Array_Comp,
                           Source_Location  => Source_Loc,
@@ -512,7 +528,7 @@ package body GOTO_Utils is
    function Integer_Constant_To_Expr
      (Value : Uint;
       Expr_Type : Irep;
-      Source_Location : Source_Ptr)
+      Source_Location : Irep)
    return Irep is
       Value_Hex : constant String := Convert_Uint_To_Hex
         (Value => Value,
@@ -527,7 +543,7 @@ package body GOTO_Utils is
    function Make_Simple_Side_Effect_Expr_Function_Call
      (Arguments : Irep_Array;
       Function_Expr : Irep;
-      Source_Location : Source_Ptr) return Irep is
+      Source_Location : Irep) return Irep is
       Argument_List : constant Irep := Make_Argument_List;
    begin
       for Argument of Arguments loop
@@ -576,9 +592,56 @@ package body GOTO_Utils is
      return Irep
    is
       (Make_Code_Type
-        (Parameters => Parameters,
-         Return_Type => Return_Type,
-         Ellipsis => False,
-         Inlined => False,
-         Knr => False));
+         (Parameters => Parameters,
+          Return_Type => Return_Type,
+          Ellipsis => False,
+          Inlined => False,
+          Knr => False));
+
+      function Source_Ptr_To_Irep (Src : Source_Ptr) return Irep
+      is
+         use Ada.Strings;
+         use Ada.Strings.Fixed;
+         SFI : constant Source_File_Index := Get_Source_File_Index (Src);
+         FN : constant File_Name_Type := File_Name (SFI);
+      begin
+         if Src = No_Location or Src <= Standard_Location
+         then
+            return Internal_Source_Location;
+         else
+            return Make_Source_Location
+              (File => Get_Name_String (FN),
+               Line => Trim
+                 (Logical_Line_Number'Image
+                    (Get_Logical_Line_Number (Src)), Both),
+               Column => Trim
+                 (Column_Number'Image (Get_Column_Number (Src)), Both),
+               Comment => "");
+         end if;
+      end Source_Ptr_To_Irep;
+
+      function Get_Source_Location (N : Node_Id) return Irep
+      is (Source_Ptr_To_Irep (Sloc (N)));
+
+      function Make_Source_Location
+        (Comment : String := "";
+         Working_Directory : String := "";
+         File : String := "";
+         Property_Id : String := "";
+         I_Function : String := "";
+         Property_Class : String := "";
+         Line : String := "";
+         Column : String := "")
+        return Irep
+      is
+         (Make_Source_Location
+            (Comment => Comment,
+             Working_Directory => Working_Directory,
+             File => File,
+             Property_Id => Property_Id,
+             Java_Bytecode_Index => "",
+             I_Function => I_Function,
+             Property_Class => Property_Class,
+             Line => Line,
+             Column => Column));
 end GOTO_Utils;

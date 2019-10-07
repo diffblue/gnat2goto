@@ -23,7 +23,7 @@ package body Arrays is
 
       function Make_No_Args_Func_Call_Expr (Fun_Symbol : Irep;
                                             Return_Type : Irep;
-                                            Source_Loc : Source_Ptr)
+                                            Source_Loc : Irep)
                                             return Irep
         with Pre => (Kind (Fun_Symbol) = I_Symbol_Expr
                      and then Kind (Return_Type) in Class_Type),
@@ -53,7 +53,7 @@ package body Arrays is
       function Build_Array_Lit_Func_Body (N : Node_Id) return Irep is
 
          Pos_Iter : Node_Id := First (Expressions (N));
-         Source_Loc : constant Source_Ptr := Sloc (N);
+         Source_Loc : constant Irep := Get_Source_Location (N);
          Bounds : constant Node_Id := Aggregate_Bounds (N);
          Low_Expr : constant Irep :=
            Typecast_If_Necessary (Do_Expression (Low_Bound (Bounds)),
@@ -369,7 +369,7 @@ package body Arrays is
 
       function Make_No_Args_Func_Call_Expr (Fun_Symbol : Irep;
                                             Return_Type : Irep;
-                                            Source_Loc : Source_Ptr)
+                                            Source_Loc : Irep)
                                             return Irep is
          Call_Args  : constant Irep := Make_Argument_List;
          Fun_Call : constant Irep :=
@@ -384,10 +384,11 @@ package body Arrays is
 
       Func_Symbol : constant Symbol := Build_Array_Lit_Func (N);
    begin
-      return Make_No_Args_Func_Call_Expr (Fun_Symbol  =>
-                                            Symbol_Expr (Func_Symbol),
-                                          Return_Type => Result_Type,
-                                          Source_Loc  => Sloc (N));
+      return Make_No_Args_Func_Call_Expr
+        (Fun_Symbol  =>
+           Symbol_Expr (Func_Symbol),
+         Return_Type => Result_Type,
+         Source_Loc  => Get_Source_Location (N));
    end Do_Aggregate_Literal_Array;
 
    ------------------------------------
@@ -424,7 +425,7 @@ package body Arrays is
       Hbound : constant Irep :=
         Typecast_If_Necessary (Do_Expression (High_Bound (Bound_Range)),
                                CProver_Size_T, Global_Symbol_Table);
-      Source_Loc : constant Source_Ptr := Sloc (E);
+      Source_Loc : constant Irep := Get_Source_Location (E);
       Len : constant Irep :=
         Build_Array_Size (First      => Lbound,
                           Last       => Hbound);
@@ -556,7 +557,7 @@ package body Arrays is
       LHS_Node : constant Node_Id := Name (N);
       RHS_Node : constant Node_Id := Expression (N);
 
-      Source_Loc : constant Source_Ptr := Sloc (N);
+      Source_Loc : constant Irep := Get_Source_Location (N);
       Ret_Type : constant Irep := Make_Void_Type;
       RHS_Arrays : constant Irep_Array := Do_RHS_Array_Assign (RHS_Node);
       Result_Type : constant Irep := Do_Type_Reference (Etype (LHS_Node));
@@ -828,7 +829,7 @@ package body Arrays is
    is
       First : constant Irep := Make_Member_Expr
          (Compound => Base_Irep,
-          Source_Location => Sloc (Base_Type),
+          Source_Location => Get_Source_Location (Base_Type),
           Component_Number => 0,
           I_Type => CProver_Size_T,
           Component_Name => "first1");
@@ -847,7 +848,7 @@ package body Arrays is
    function Make_Array_Index_Op
      (Base_Irep : Irep; Idx_Irep : Irep) return Irep
    is
-      Source_Loc : constant Source_Ptr := Get_Source_Location (Base_Irep);
+      Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
       First_Irep : constant Irep :=
         Get_First_Index (Base_Irep);
       Zero_Based_Index : constant Irep :=
@@ -886,7 +887,7 @@ package body Arrays is
    --  }
    ----------------------------------------------------------------------------
    function Do_Slice (N : Node_Id) return Irep is
-      Source_Loc : constant Source_Ptr := Sloc (N);
+      Source_Loc : constant Irep := Get_Source_Location (N);
       Result_Type : constant Irep := Do_Type_Reference (Etype (N));
       Slice_Params : constant Irep := Make_Parameter_List;
       Slice_Args : constant Irep := Make_Argument_List;
@@ -1040,7 +1041,7 @@ package body Arrays is
         Get_First_Index_Component (Array_Struct);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => No_Location,
+                               Source_Location  => Internal_Source_Location,
                                Component_Number => 0,
                                I_Type           => CProver_Size_T,
                                Component_Name   =>
@@ -1053,7 +1054,7 @@ package body Arrays is
         Get_Last_Index_Component (Array_Struct);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => No_Location,
+                               Source_Location  => Internal_Source_Location,
                                Component_Number => 1,
                                I_Type           => CProver_Size_T,
                                Component_Name   =>
@@ -1068,7 +1069,7 @@ package body Arrays is
         Get_Data_Component (Array_Struct, A_Symbol_Table);
    begin
       return Make_Member_Expr (Compound         => Array_Struct,
-                               Source_Location  => No_Location,
+                               Source_Location  => Internal_Source_Location,
                                Component_Number => 2,
                                I_Type           =>
                                  Get_Type (Data_Member),
@@ -1079,7 +1080,7 @@ package body Arrays is
    function Build_Array_Size (First : Irep; Last : Irep; Idx_Type : Irep)
                               return Irep
    is
-      Source_Loc : constant Source_Ptr := Get_Source_Location (First);
+      Source_Loc : constant Irep := Get_Source_Location (First);
       Diff : constant Irep :=
         Make_Op_Sub (Rhs             => First,
                      Lhs             => Last,

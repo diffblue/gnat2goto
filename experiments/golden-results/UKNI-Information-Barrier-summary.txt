@@ -75,10 +75,10 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1595|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1613|
 Error detected at REDACTED
 --
 Occurs: 1 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from ireps.ads:1595
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from ireps.ads:1613
 
