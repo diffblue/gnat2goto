@@ -1,2 +1,2 @@
-[1] file test.adb line 27 assertion: FAILURE
+[foo.assertion.1] line 27 assertion : FAILURE
 VERIFICATION FAILED

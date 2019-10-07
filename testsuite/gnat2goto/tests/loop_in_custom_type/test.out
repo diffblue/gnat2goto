@@ -1,3 +1,3 @@
-[1] file test.adb line 8 assertion: FAILURE
-[2] file test.adb line 11 assertion: SUCCESS
+[test.assertion.1] line 8 assertion : FAILURE
+[test.assertion.2] line 11 assertion : SUCCESS
 VERIFICATION FAILED

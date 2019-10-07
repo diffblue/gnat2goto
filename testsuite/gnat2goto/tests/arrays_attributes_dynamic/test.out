@@ -1,7 +1,7 @@
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[1] file array_attributes_dynamic.adb line 7 assertion: SUCCESS
-[2] file array_attributes_dynamic.adb line 8 assertion: FAILURE
-[3] file array_attributes_dynamic.adb line 9 assertion: SUCCESS
+[array_consumer.assertion.1] line 7 assertion : SUCCESS
+[array_consumer.assertion.2] line 8 assertion : FAILURE
+[array_consumer.assertion.3] line 9 assertion : SUCCESS
 VERIFICATION FAILED

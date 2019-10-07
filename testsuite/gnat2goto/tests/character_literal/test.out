@@ -1,3 +1,3 @@
-[1] file character_literal.adb line 5 assertion: FAILURE
-[2] file character_literal.adb line 6 assertion: SUCCESS
+[character_literal.assertion.1] line 5 assertion : FAILURE
+[character_literal.assertion.2] line 6 assertion : SUCCESS
 VERIFICATION FAILED

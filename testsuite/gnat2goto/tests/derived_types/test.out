@@ -1,4 +1,4 @@
-[1] file derived_types.adb line 6 assertion: SUCCESS
-[2] file derived_types.adb line 7 assertion: SUCCESS
-[3] file derived_types.adb line 8 assertion: SUCCESS
+[derived_types.assertion.1] line 6 assertion : SUCCESS
+[derived_types.assertion.2] line 7 assertion : SUCCESS
+[derived_types.assertion.3] line 8 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

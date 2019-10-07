@@ -1,6 +1,6 @@
-[1] file mixed_parameters.adb line 10 assertion: SUCCESS
-[2] file mixed_parameters.adb line 12 assertion: SUCCESS
-[3] file mixed_parameters.adb line 14 assertion: SUCCESS
-[4] file mixed_parameters.adb line 16 assertion: SUCCESS
-[5] file mixed_parameters.adb line 18 assertion: FAILURE
+[mixed_parameters.assertion.1] line 10 assertion : SUCCESS
+[mixed_parameters.assertion.2] line 12 assertion : SUCCESS
+[mixed_parameters.assertion.3] line 14 assertion : SUCCESS
+[mixed_parameters.assertion.4] line 16 assertion : SUCCESS
+[mixed_parameters.assertion.5] line 18 assertion : FAILURE
 VERIFICATION FAILED

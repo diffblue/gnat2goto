@@ -1,4 +1,4 @@
-[1] file absolute.adb line 7 assertion: SUCCESS
-[2] file absolute.adb line 8 assertion: SUCCESS
-[3] file absolute.adb line 10 assertion: FAILURE
+[absolute.assertion.1] line 7 assertion : SUCCESS
+[absolute.assertion.2] line 8 assertion : SUCCESS
+[absolute.assertion.3] line 10 assertion : FAILURE
 VERIFICATION FAILED

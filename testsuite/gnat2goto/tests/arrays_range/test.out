@@ -2,9 +2,9 @@
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
 [assertion.2] file arrays_range.adb line 8 Range Check: SUCCESS
-[1] file arrays_range.adb line 9 assertion: SUCCESS
-[assertion.3] file arrays_range.adb line 10 Range Check: FAILURE
-[2] file arrays_range.adb line 11 assertion: SUCCESS
-[assertion.1] file arrays_range.adb line 12 Range Check: FAILURE
-[3] file arrays_range.adb line 13 assertion: SUCCESS
+[array_consumer.assertion.1] line 9 assertion : SUCCESS
+[assertion.3] line 10 Range Check: FAILURE
+[array_consumer.assertion.2] line 11 assertion : SUCCESS
+[assertion.1] line 12 Range Check: FAILURE
+[array_consumer.assertion.3] line 13 assertion : SUCCESS
 VERIFICATION FAILED

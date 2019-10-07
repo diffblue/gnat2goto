@@ -1,4 +1,4 @@
-[1] file op_or_example.adb line 11 assertion: SUCCESS
-[2] file op_or_example.adb line 15 assertion: SUCCESS
-[3] file op_or_example.adb line 16 assertion: FAILURE
+[op_or_example.assertion.1] line 11 assertion : SUCCESS
+[op_or_example.assertion.2] line 15 assertion : SUCCESS
+[op_or_example.assertion.3] line 16 assertion : FAILURE
 VERIFICATION FAILED

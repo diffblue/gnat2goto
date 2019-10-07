@@ -1,4 +1,4 @@
-[1] file and_then.adb line 8 assertion: SUCCESS
-[2] file and_then.adb line 13 assertion: SUCCESS
-[3] file and_then.adb line 18 assertion: FAILURE
+[and_then.assertion.1] line 8 assertion : SUCCESS
+[and_then.assertion.2] line 13 assertion : SUCCESS
+[and_then.assertion.3] line 18 assertion : FAILURE
 VERIFICATION FAILED
