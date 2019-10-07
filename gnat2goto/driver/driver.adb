@@ -175,16 +175,16 @@ package body Driver is
          Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
            (I_Type => Int_32_T,
             Identifier => "__CPROVER_rounding_mode",
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          Rounding_Mode_Val_Bits : constant String (1 .. 32) := (others => '0');
          Rounding_Mode_Val : constant Irep := Make_Constant_Expr
            (I_Type => Int_32_T,
             Value => Rounding_Mode_Val_Bits,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          Initialization_Statement : constant Irep := Make_Code_Assign
            (Lhs => Rounding_Mode_Sym,
             Rhs => Rounding_Mode_Val,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
       begin
          Append_Op (Start_Body, Initialization_Statement);
       end Initialize_CProver_Rounding_Mode;
@@ -196,11 +196,11 @@ package body Driver is
          Dead_Object_Sym : constant Irep := Make_Symbol_Expr
            (I_Type => Dead_Object_Type,
             Identifier => "__CPROVER_dead_object",
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          Dead_Object_Val : constant Irep := Integer_Constant_To_Expr
            (Value => Uint_0,
             Expr_Type => Dead_Object_Type,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
       begin
          Declare_Missing_Global (Dead_Object_Sym);
          Append_Op
@@ -208,7 +208,7 @@ package body Driver is
             Make_Code_Assign
              (Lhs => Dead_Object_Sym,
               Rhs => Dead_Object_Val,
-              Source_Location => No_Location));
+              Source_Location => Internal_Source_Location));
       end Initialize_CProver_Dead_Object;
 
       procedure Initialize_CProver_Deallocated;
@@ -219,11 +219,11 @@ package body Driver is
          Deallocated_Sym : constant Irep := Make_Symbol_Expr
            (I_Type => Deallocated_Type,
             Identifier => "__CPROVER_deallocated",
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          Deallocated_Val : constant Irep := Integer_Constant_To_Expr
            (Value => Uint_0,
             Expr_Type => Deallocated_Type,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
       begin
          Declare_Missing_Global (Deallocated_Sym);
          Append_Op
@@ -231,7 +231,7 @@ package body Driver is
             Make_Code_Assign
               (Lhs => Deallocated_Sym,
                Rhs => Deallocated_Val,
-               Source_Location => No_Location));
+               Source_Location => Internal_Source_Location));
       end Initialize_CProver_Deallocated;
 
       procedure Initialize_CProver_Malloc_Object;
@@ -242,11 +242,11 @@ package body Driver is
          Malloc_Object_Sym : constant Irep := Make_Symbol_Expr
            (I_Type => Malloc_Object_Type,
             Identifier => "__CPROVER_malloc_object",
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          Malloc_Object_Val : constant Irep := Integer_Constant_To_Expr
            (Value => Uint_0,
             Expr_Type => Malloc_Object_Type,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
       begin
          Declare_Missing_Global (Malloc_Object_Sym);
          Append_Op
@@ -254,7 +254,7 @@ package body Driver is
             Make_Code_Assign
               (Lhs => Malloc_Object_Sym,
                Rhs => Malloc_Object_Val,
-               Source_Location => No_Location));
+               Source_Location => Internal_Source_Location));
       end Initialize_CProver_Malloc_Object;
 
       procedure Initialize_Enum_Values;
@@ -269,7 +269,7 @@ package body Driver is
             Member_Assignment : constant Irep := Make_Code_Assign
               (Lhs => Symbol_Expr (Member_Symbol),
                Rhs => Member_Symbol.Value,
-               Source_Location => No_Location);
+               Source_Location => Internal_Source_Location);
          begin
             Append_Op (Start_Body, Member_Assignment);
          end Initialize_Enum_Member;
@@ -298,34 +298,34 @@ package body Driver is
          True_Symbol_Expr : constant Irep := Make_Symbol_Expr
            (I_Type => Make_Bool_Type,
             Identifier => "standard__boolean__true",
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          True_Val : constant Irep := Make_Op_Typecast
            (Op0 => Make_Constant_Expr
               (I_Type => Int_32_T,
                Value => "1",
-               Source_Location => No_Location),
+               Source_Location => Internal_Source_Location),
             I_Type => Make_Bool_Type,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          True_Assign : constant Irep := Make_Code_Assign
            (Lhs => True_Symbol_Expr,
             Rhs => True_Val,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
 
          False_Symbol_Expr : constant Irep := Make_Symbol_Expr
            (I_Type => Make_Bool_Type,
             Identifier => "standard__boolean__false",
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          False_Val : constant Irep := Make_Op_Typecast
            (Op0 => Make_Constant_Expr
               (I_Type => Int_32_T,
                Value => "0",
-               Source_Location => No_Location),
+               Source_Location => Internal_Source_Location),
             I_Type => Make_Bool_Type,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
          False_Assign : constant Irep := Make_Code_Assign
            (Lhs => False_Symbol_Expr,
             Rhs => False_Val,
-            Source_Location => No_Location);
+            Source_Location => Internal_Source_Location);
       begin
          --  True and false only appear in the symbol table if they're actually
          --  being used in the program, hence we need to check so we don't
@@ -407,7 +407,7 @@ package body Driver is
                Inlined => False,
                Knr => False);
             Start_Body        : constant Irep := Make_Code_Block
-              (Source_Location => No_Location);
+              (Source_Location => Internal_Source_Location);
             Start_Symbol      : constant Symbol :=
               (Name | PrettyName | BaseName => Start_Name,
                SymType => Start_Type,
@@ -444,15 +444,15 @@ package body Driver is
                        Symbol_Expr (Arg_Symbol);
                      Arg_Decl        : constant Irep := Make_Code_Decl
                        (Symbol => Arg_Symbol_Expr,
-                        Source_Location => No_Location);
+                        Source_Location => Internal_Source_Location);
                      Arg_Nondet      : constant Irep :=
                        Make_Side_Effect_Expr_Nondet
                        (I_Type => Arg_Symbol.SymType,
-                        Source_Location => No_Location);
+                        Source_Location => Internal_Source_Location);
                      Arg_Assign      : constant Irep := Make_Code_Assign
                        (Lhs => Arg_Symbol_Expr,
                         Rhs => Arg_Nondet,
-                        Source_Location => No_Location);
+                        Source_Location => Internal_Source_Location);
 
                   begin
                      Global_Symbol_Table.Insert (Arg_Id, Arg_Symbol);
@@ -481,11 +481,11 @@ package body Driver is
                   Return_Expr : constant Irep := Symbol_Expr (Return_Symbol);
                   Return_Decl : constant Irep := Make_Code_Decl
                     (Symbol => Return_Expr,
-                     Source_Location => No_Location);
+                     Source_Location => Internal_Source_Location);
                   Initial_Call      : constant Irep := Make_Code_Function_Call
                     (Arguments => Initial_Call_Args,
                      I_Function => Entry_Procedure,
-                     Source_Location => No_Location,
+                     Source_Location => Internal_Source_Location,
                      Lhs => Return_Expr);
                begin
                   Global_Symbol_Table.Insert (Return_Id, Return_Symbol);

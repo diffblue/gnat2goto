@@ -18,7 +18,7 @@ package GOTO_Utils is
    function CProver_True return Irep;
 
    --  TODO change this to Irep
-   function Internal_Source_Location return Source_Ptr;
+   function Internal_Source_Location return Irep;
 
    --  Utility routines for high-level GOTO AST construction
 
@@ -84,14 +84,16 @@ package GOTO_Utils is
    function Create_Fun_Parameter (Fun_Name : String; Param_Name : String;
                                   Param_Type : Irep; Param_List : Irep;
                                   A_Symbol_Table : in out Symbol_Table;
-                                  Source_Location : Source_Ptr := No_Location)
+                                  Source_Location : Irep :=
+                                    Internal_Source_Location)
                                   return Irep
      with Pre => (Kind (Param_Type) in Class_Type
                   and then Kind (Param_List) = I_Parameter_List),
      Post => Kind (Create_Fun_Parameter'Result) = I_Code_Parameter;
 
    function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
-                                    Source_Loc : Source_Ptr := No_Location)
+                                    Source_Loc : Irep :=
+                                      Internal_Source_Location)
                                     return Irep
      with Pre => Kind (Num_Elem) in Class_Expr,
      Post => (Kind (Compute_Memory_Op_Size'Result) = I_Op_Mul
@@ -129,7 +131,7 @@ package GOTO_Utils is
    function Float_Mantissa_Size (Float_Width : Integer) return Integer;
 
    function Build_Index_Constant (Value : Int;
-                                  Source_Loc : Source_Ptr) return Irep;
+                                  Source_Loc : Irep) return Irep;
 
    function Name_Has_Prefix (N : Node_Id; Prefix : String) return Boolean;
 
@@ -143,7 +145,7 @@ package GOTO_Utils is
    function Integer_Constant_To_Expr
      (Value : Uint;
       Expr_Type : Irep;
-      Source_Location : Source_Ptr)
+      Source_Location : Irep)
    return Irep
    with Pre => Kind (Expr_Type) in Class_Bitvector_Type | I_Pointer_Type,
         Post => Kind (Integer_Constant_To_Expr'Result) = I_Constant_Expr;
@@ -151,7 +153,7 @@ package GOTO_Utils is
    function Make_Simple_Side_Effect_Expr_Function_Call
      (Arguments : Irep_Array;
       Function_Expr : Irep;
-      Source_Location : Source_Ptr) return Irep;
+      Source_Location : Irep) return Irep;
 
    procedure Register_Identifier_In_Symbol_Table
       (N : Irep; Val : Irep; Symtab : in out Symbol_Table)
@@ -165,6 +167,24 @@ package GOTO_Utils is
    function Make_Code_Type
      (Parameters : Irep;
       Return_Type : Irep)
+     return Irep;
+
+   function Source_Ptr_To_Irep (Src : Source_Ptr) return Irep
+     with Post => Kind (Source_Ptr_To_Irep'Result) = I_Source_Location;
+
+   function Get_Source_Location (N : Node_Id) return Irep
+     with Post => Kind (Get_Source_Location'Result) = I_Source_Location;
+
+   --  Helper for making source locations technically all fields are optional
+   function Make_Source_Location
+     (Comment : String := "";
+      Working_Directory : String := "";
+      File : String := "";
+      Property_Id : String := "";
+      I_Function : String := "";
+      Property_Class : String := "";
+      Line : String := "";
+      Column : String := "")
      return Irep;
 
 end GOTO_Utils;

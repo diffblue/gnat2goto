@@ -39,8 +39,7 @@ IREP_TO_ADA_TYPE = {
     "irep"      : "Irep",
     "bool"      : "Boolean",
     "integer"   : "Integer",
-    "string"    : "String",
-    "gnat:sloc" : "Source_Ptr"
+    "string"    : "String"
 }
 
 OP_NAME = {
@@ -83,7 +82,6 @@ def ada_setter_name(name, is_list):
 def ada_component_name(layout_kind, layout_id=None):
     rv = "%s_%%u" % ({"str"  : "Int",
                       "int"  : "Int",
-                      "sloc" : "Int",
                       "bool" : "Bool"}[layout_kind])
     if layout_id is not None:
         rv = rv % layout_id
@@ -408,8 +406,6 @@ class IrepsGenerator(object):
                     val = "Trivial_Integer (%s)" % tbl_field
                 elif layout_kind == "bool":
                     val = "Trivial_Boolean (%s)" % tbl_field
-                elif layout_kind == "sloc":
-                    val = "Trivial_Sloc (Source_Ptr (%s))" % tbl_field
                 else:
                     assert False
 
@@ -553,9 +549,6 @@ class IrepsGenerator(object):
                 write(b, "")
 
     def register_schema(self, sn):
-        if sn == "source_location":
-            return
-
         schema = self.schemata[sn]
         tmp = copy(schema)
 
@@ -689,11 +682,6 @@ class IrepsGenerator(object):
 
         actual_kind = kind
         actual_type = value_type
-        if kind == "irep" and value_type == "source_location":
-            # We magically map GNAT source locations to CPROVER source
-            # locations
-            actual_kind = "trivial"
-            actual_type = "gnat:sloc"
 
         if friendly_name not in self.named_setters:
             self.named_setters[friendly_name] = {}
@@ -792,7 +780,7 @@ class IrepsGenerator(object):
     def emit_getter(self,
                     fn_name,
                     fn_kind,    # irep|trivial|list
-                    value_type, # irep|bool|integer|string|gnat:sloc
+                    value_type, # irep|bool|integer|string
                     inputs,     # map sn -> sn|None (if value_type != irep)
                     s,
                     b):
@@ -800,8 +788,7 @@ class IrepsGenerator(object):
         assert fn_kind != "irep" or value_type == "irep"
         assert fn_kind != "trivial" or value_type in ("bool",
                                                       "integer",
-                                                      "string",
-                                                      "gnat:sloc")
+                                                      "string")
         assert fn_kind != "list" or value_type == "irep"
         is_list = fn_kind == "list"
         name = "Get_" + ada_casing(fn_name)
@@ -854,8 +841,6 @@ class IrepsGenerator(object):
             get_conversion = "%s"
         elif value_type == "string":
             get_conversion = "To_String (String_Id (%s))"
-        elif value_type == "gnat:sloc":
-            get_conversion = "Source_Ptr (%s)"
         else:
             assert False
 
@@ -896,7 +881,7 @@ class IrepsGenerator(object):
     def emit_setter(self,
                     fn_name,
                     fn_kind,    # irep|trivial|list
-                    value_type, # irep|bool|integer|string|gnat:sloc
+                    value_type, # irep|bool|integer|string
                     inputs,     # map sn -> sn|None (if value_type != irep)
                     s,
                     b):
@@ -904,8 +889,7 @@ class IrepsGenerator(object):
         assert fn_kind != "irep" or value_type == "irep"
         assert fn_kind != "trivial" or value_type in ("bool",
                                                       "integer",
-                                                      "string",
-                                                      "gnat:sloc")
+                                                      "string")
         assert fn_kind != "list" or value_type == "irep"
         is_list = fn_kind == "list"
         name = ada_setter_name(fn_name, is_list)
@@ -962,8 +946,6 @@ class IrepsGenerator(object):
             asn_rhs = "Integer (Value)"
         elif value_type in ("bool", "integer"):
             asn_rhs = "Value"
-        elif value_type == "gnat:sloc":
-            asn_rhs = "Integer (Value)"
         elif value_type == "string":
             write(b, "Start_String;")
             write(b, "Store_String_Chars (Value);")
@@ -1039,7 +1021,7 @@ class IrepsGenerator(object):
                 lo_typ, _, lo_kind = self.layout[sn][friendly_name]
                 if lo_kind in ("irep", "list"):
                     a_kind = "int"
-                elif lo_typ in ("int", "str", "sloc"):
+                elif lo_typ in ("int", "str"):
                     a_kind = "int"
                 else:
                     a_kind = "bool"
@@ -1096,7 +1078,7 @@ class IrepsGenerator(object):
                     optimal_lo[nam] = pos
             assert sorted(optimal_lo) == all_acc
 
-            # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+            # lo ::= schema -> friendly_name -> (str|int|bool,
             #                                    index,
             #                                    irep|list|trivial)
 
@@ -1181,16 +1163,12 @@ class IrepsGenerator(object):
                               sn in ("struct_type",
                                      "pointer_type",
                                      "signedbv_type"))
-            if sn == "source_location":
-                # We will be using the GNAT ones instead
-                schema["used"] = False
-
         self.export_to_dot("tree")
 
         # Emit spec and body file
         s = new_file("ireps.ads")
         b = new_file("ireps.adb")
-        write(s, "with Types;         use Types;")  # Source_Ptr
+        write(b, "with Types;         use Types;")  # Source_Ptr
         write(s, "")
         write(s, "with GNATCOLL.JSON; use GNATCOLL.JSON;")  # JSON
         write(s, "")
@@ -1296,7 +1274,7 @@ class IrepsGenerator(object):
         #    where int includes irep, list, trivial integer
 
         self.layout = {}
-        # schema -> friendly_name -> (str|int|bool|sloc, index, irep|list|trivial)
+        # schema -> friendly_name -> (str|int|bool, index, irep|list|trivial)
 
         for sn in self.top_sorted_sn:
             op_counts[sn] = {"int"  : 0,
@@ -1332,11 +1310,6 @@ class IrepsGenerator(object):
                                                     op_counts[sn]["bool"],
                                                     "trivial")
                             op_counts[sn]["bool"] += 1
-                        elif typ == "gnat:sloc":
-                            self.layout[sn][setter_name] = ("sloc",
-                                                    op_counts[sn]["int"],
-                                                    "trivial")
-                            op_counts[sn]["int"] += 1
                         else:
                             print sn, setter_name, kind, typ
                             assert False
@@ -1397,8 +1370,6 @@ class IrepsGenerator(object):
         continuation(b)
         write(b, "                           S_Int,")
         continuation(b)
-        write(b, "                           S_Sloc,")
-        continuation(b)
         write(b, "                           S_Str);")
         continuation(b)
         write(b, "")
@@ -1408,7 +1379,6 @@ class IrepsGenerator(object):
         write(b, "   S_Irep   => Integer (Empty),")
         write(b, "   S_List   => Integer (0),")
         write(b, "   S_Int    => Integer'First,")
-        write(b, "   S_Sloc   => Integer (No_Location),")
         write(b, "   S_Str    => Integer (No_String));")
         write(b, "")
 
@@ -1422,16 +1392,16 @@ class IrepsGenerator(object):
         write(b, "type Semantics_T is array (Valid_Irep_Kind) of Node_Semantics;")
         write(b, "")
 
-        # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+        # lo ::= schema -> friendly_name -> (str|int|bool,
         #                                    index,
         #                                    irep|list|trivial)
-        # sem ::= sn -> index -> unused|irep|list|int|sloc|str
+        # sem ::= sn -> index -> unused|irep|list|int|str
         semantics = {}
         for sn in self.layout:
             semantics[sn] = {}
             for friendly_name in self.layout[sn]:
                 lo_kind, lo_idx, lo_typ = self.layout[sn][friendly_name]
-                if lo_kind in ("str", "int", "sloc"):
+                if lo_kind in ("str", "int"):
                     if lo_typ == "irep":
                         semantics[sn][lo_idx] = "irep"
                     elif lo_typ == "list":
@@ -1440,8 +1410,6 @@ class IrepsGenerator(object):
                         semantics[sn][lo_idx] = "int"
                     elif lo_kind == "str":
                         semantics[sn][lo_idx] = "str"
-                    elif lo_kind == "sloc":
-                        semantics[sn][lo_idx] = "sloc"
                     else:
                         assert False
                 for i in xrange(MAX_INTS):
@@ -1857,11 +1825,7 @@ class IrepsGenerator(object):
         write(b, "--  Create a trivial irep with id = S")
         write(b, "")
 
-        write(b, "function Trivial_Sloc (S : Source_Ptr) return JSON_Value;")
-        write(b, "--  Create a source_location from S")
-        write(b, "")
-
-        # lo ::= schema -> friendly_name -> (str|int|bool|sloc,
+        # lo ::= schema -> friendly_name -> (str|int|bool,
         #                                    index,
         #                                    irep|list|trivial)
         # subs ::= setter_name -> value|list -> {schema: (op_id, type)}
@@ -1946,12 +1910,6 @@ class IrepsGenerator(object):
         write(b, "function Trivial_String (S : String) return JSON_Value")
         with indent(b):
             write(b, "renames Trivial_Irep;")
-        write(b, "")
-
-        write_comment_block(b, "Trivial_Sloc")
-        write(b, "function Trivial_Sloc (S : Source_Ptr) return JSON_Value")
-        write(b, "is separate;")
-        continuation(b)
         write(b, "")
 
         write_comment_block(b, "To_JSON")
@@ -2187,10 +2145,6 @@ class IrepsGenerator(object):
         write(b, "--  Print one-line string description")
         write(b, "--    e.g. \"wibble\" (String_Id=400000001)")
         write(b, "")
-        write(b, "procedure PI_Sloc (S : Source_Ptr);")
-        write(b, "--  Print one-line source location")
-        write(b, "--    e.g. \"foo.bar:42:666\" (Source_Ptr=12345)")
-        write(b, "")
         write(b, "procedure PI_Bool (B : Boolean);")
         write(b, "--  Print one-line boolean description")
         write(b, "--    e.g. True")
@@ -2292,26 +2246,6 @@ class IrepsGenerator(object):
         write(b, "end PI_String;")
         write(b, "")
 
-        write_comment_block(b, "PI_Sloc")
-        write(b, "procedure PI_Sloc (S : Source_Ptr)")
-        write(b, "is")
-        continuation(b)
-        write(b, "begin")
-        with indent(b):
-            write(b, "if S = No_Location then")
-            with indent(b):
-                write(b, 'Write_Str ("No_Location");')
-            write(b, "else")
-            with indent(b):
-                write(b, 'Write_Str ("TODO");')
-            write(b, "end if;")
-            write(b, 'Write_Str (" (Source_Ptr=");')
-            write(b, "Write_Int (Int (S));")
-            write(b, "Write_Char (')');")
-            write(b, "Write_Eol;")
-        write(b, "end PI_Sloc;")
-        write(b, "")
-
         write_comment_block(b, "PI_Bool")
         write(b, "procedure PI_Bool (B : Boolean)")
         write(b, "is")
@@ -2374,9 +2308,6 @@ class IrepsGenerator(object):
                 elif layout_kind == "bool":
                     assert layout_typ == "trivial"
                     write(b, 'PI_Bool (N.%s);' % cn)
-                elif layout_kind == "sloc":
-                    assert layout_typ == "trivial"
-                    write(b, "PI_Sloc (Source_Ptr (N.%s));" % cn)
                 else:
                     assert layout_kind == "int"
                     if layout_typ == "irep":
