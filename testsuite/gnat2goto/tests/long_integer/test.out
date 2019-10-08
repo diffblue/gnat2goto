@@ -1,2 +1,2 @@
-[test_long_integer.assertion.1] line 4 assertion : SUCCESS
+[test_long_integer.assertion.1] line 4 assertion x > 100000: SUCCESS
 VERIFICATION SUCCESSFUL

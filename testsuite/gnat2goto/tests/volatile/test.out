@@ -1,2 +1,2 @@
-[volatile_type.assertion.1] line 14 assertion : SUCCESS
+[volatile_type.assertion.1] line 14 assertion Data=42: SUCCESS
 VERIFICATION SUCCESSFUL

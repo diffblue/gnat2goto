@@ -1,2 +1,2 @@
-[test.assertion.1] line 10 assertion : FAILURE
+[test.assertion.1] line 10 assertion Width_1 > Width_2: FAILURE
 VERIFICATION FAILED

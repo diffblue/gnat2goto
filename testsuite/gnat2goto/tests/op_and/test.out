@@ -1,6 +1,6 @@
-[op_and.assertion.1] line 7 assertion : FAILURE
-[op_and.assertion.2] line 9 assertion : FAILURE
-[op_and.assertion.3] line 11 assertion : SUCCESS
-[op_and.assertion.4] line 13 assertion : FAILURE
-[op_and.assertion.5] line 15 assertion : FAILURE
+[op_and.assertion.1] line 7 assertion A and B: FAILURE
+[op_and.assertion.2] line 9 assertion B and A: FAILURE
+[op_and.assertion.3] line 11 assertion A and A: SUCCESS
+[op_and.assertion.4] line 13 assertion B and B: FAILURE
+[op_and.assertion.5] line 15 assertion C and A and B: FAILURE
 VERIFICATION FAILED

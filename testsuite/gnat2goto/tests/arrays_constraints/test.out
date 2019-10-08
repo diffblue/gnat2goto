@@ -1,7 +1,7 @@
-[array_constraints.assertion.1] line 117 assertion : SUCCESS
-[array_constraints.assertion.2] line 131 assertion : SUCCESS
-[array_constraints.assertion.3] line 143 assertion : SUCCESS
-[array_constraints.assertion.4] line 154 assertion : SUCCESS
-[array_constraints.assertion.5] line 166 assertion : SUCCESS
-[array_constraints.assertion.6] line 180 assertion : SUCCESS
+[array_constraints.assertion.1] line 117 assertion VUA1 (1) + VUA2 (2) + VUA3 (3) + VUA4 (4) + VUA5 (5) + VUA6 (6) + VUA7 (7) + VUA8 (8) = 36: SUCCESS
+[array_constraints.assertion.2] line 131 assertion VCA1 (VCA1'Last) + VCA2 (VCA2'Last - 1) + VCA3 (VCA3'Last - 2) + VCA4 (Constrained_Array_4'Last - 3) = 10: SUCCESS
+[array_constraints.assertion.3] line 143 assertion VEA1 (One) + VEA2 (Two) + VEA3 (Three) + VEA4 (Four) + VEA5 (Five) + VEA6 (Six) = 21: SUCCESS
+[array_constraints.assertion.4] line 154 assertion VBA1 (False) + VBA2 (True) + VBA3 (False) + VBA4 (True) + VBA5 (False) + VBA6 (True) = 7: SUCCESS
+[array_constraints.assertion.5] line 166 assertion VAC1 ('A') + VAC3 ('b') + VAC4 ('c') + VAC5 ('0') + VAC6 ('x') + VAC8 ('e') + VAC9 ('f') = 36: SUCCESS
+[array_constraints.assertion.6] line 180 assertion VAM1 (1) + VAM2 (2) + VAM3 (3) + VAM4 (4) + VAM5 (5) + VAM6 (6) + VAM7 (7) + VAM8 (8) + VAM9 (9) = 45: SUCCESS
 VERIFICATION SUCCESSFUL

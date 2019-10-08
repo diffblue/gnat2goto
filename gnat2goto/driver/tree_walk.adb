@@ -23,6 +23,10 @@ with GNAT2GOTO.Options;
 with Range_Check; use Range_Check;
 with Arrays; use Arrays;
 with Gnat2goto_Itypes; use Gnat2goto_Itypes;
+with Ada.Strings;
+with Ada.Strings.Fixed;
+with Ada.Characters.Handling;
+with Sinput;
 
 package body Tree_Walk is
 
@@ -2200,13 +2204,153 @@ package body Tree_Walk is
       is
          Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
 
-         function Make_Assert_Comment (Condition : Irep) return Irep;
+         --  I've tried pretty printing but this way seems to be easier and
+         --  more accurate basically, just go to the source file, scan for
+         --  opening paren to find the start of the condition, then scan for
+         --  a closing paren or a comma to find the end of the condition,
+         --  ignoring comments
+         function Get_Assert_Condition_As_Ada_Source_Code return String;
+         function Get_Assert_Condition_As_Ada_Source_Code return String is
+            Source_File : Ada.Text_IO.File_Type;
+            package SU renames Ada.Strings.Unbounded;
+            Condition_Text_Buffer : SU.Unbounded_String;
 
-         function Make_Assert_Comment (Condition : Irep) return Irep
+            --  Skip over whitespace and comments then return the next
+            --  character that isn't either of those
+            function Get_Next_Relevant_Char return Character;
+            function Get_Next_Relevant_Char return Character is
+               Char : Character;
+               use Ada.Characters.Handling; --  Is_Space
+               --  We want to convert all consecutive whitespace
+               --  and/or comments into a single space,
+               --  but only if there's at least one of them
+               Have_Written_Space : Boolean := False;
+            begin
+               loop
+                  --  I don't bother checking for EOF in here because we know
+                  --  that the source file is valid Ada (otherwise it wouldn't
+                  --  have passed the parsing stage in the frontend), so this
+                  --  will terminate before hitting EOF
+                  Get (Source_File, Char);
+                  if Char = '-' then
+                     --  check if this is the start of a comment
+                     declare
+                        Next_Char : Character;
+                        Is_End_Of_Line : Boolean;
+                     begin
+                        Look_Ahead (Source_File, Next_Char, Is_End_Of_Line);
+                        if not Is_End_Of_Line and then Next_Char = '-' then
+                           Skip_Line (Source_File);
+                        else
+                           return Char;
+                        end if;
+                     end;
+                  elsif Is_Space (Char) then
+                     --  just skip this
+                     null;
+                  else
+                     --  not a comment, newline or whitespace character
+                     return Char;
+                  end if;
+                  if not Have_Written_Space then
+                     --  insert a whitespace character if we skipped over at
+                     --  least one (or a comment, same difference)
+                     SU.Append (Condition_Text_Buffer, ' ');
+                     Have_Written_Space := True;
+                  end if;
+               end loop;
+            end Get_Next_Relevant_Char;
+
+            procedure Collect_Condition_Text;
+            procedure Collect_Condition_Text is
+               Parentheses_Depth : Integer := 0;
+            begin
+               --  find start of expression
+               while Get_Next_Relevant_Char /= '(' loop
+                  null;
+               end loop;
+               Parentheses_Depth := 1;
+               --  record expression until end, which for a Pragma Assert is
+               --  either the last ')' if it's the form `Pragma Assert (Cond)`
+               --  or the top level ',' if it's the form
+               --  `Pragma Assert (Cond, Message)`
+               --  (fortunately it is guaranteed to come before the message)
+               loop
+                  declare
+                     Next_Char : constant Character := Get_Next_Relevant_Char;
+                  begin
+                     case Next_Char is
+                        when '(' =>
+                           Parentheses_Depth := Parentheses_Depth + 1;
+                        when ')' =>
+                           if Parentheses_Depth = 1 then
+                              exit;
+                           end if;
+                           Parentheses_Depth := Parentheses_Depth - 1;
+                        when ',' =>
+                           if Parentheses_Depth = 1 then
+                              exit;
+                           end if;
+                        when '=' =>
+                           if Parentheses_Depth = 1 then
+                              --  Check for =>, so we can strip the
+                              --  optional "Check =>" prefix if it's there
+                              declare
+                                 Maybe_Gt_Char : Character;
+                                 Is_End_Of_Line : Boolean;
+                              begin
+                                 Look_Ahead
+                                   (Source_File,
+                                    Maybe_Gt_Char,
+                                    Is_End_Of_Line);
+                                 if not Is_End_Of_Line
+                                   and then Maybe_Gt_Char = '>'
+                                 then
+                                    Get (Source_File, Maybe_Gt_Char);
+                                    Condition_Text_Buffer :=
+                                      SU.Null_Unbounded_String;
+                                    goto Skip_Append;
+                                 end if;
+                              end;
+                           end if;
+                        when others =>
+                           null;
+                     end case;
+                     SU.Append (Condition_Text_Buffer, Next_Char);
+                     <<Skip_Append>>
+                  end;
+               end loop;
+            end Collect_Condition_Text;
+
+            use Ada.Strings.Fixed;
+            use Sinput;
+            Assertion_Sloc : constant Source_Ptr := Sloc (N);
+            Start_Line : constant Positive_Count :=
+              Positive_Count (Get_Logical_Line_Number (Assertion_Sloc));
+            Start_Column : constant Positive_Count :=
+              Positive_Count (Get_Column_Number (Assertion_Sloc));
+
+            Source_File_Name : constant String :=
+              Get_Name_String
+                (Full_File_Name
+                   (Get_Source_File_Index
+                      (Assertion_Sloc)));
+         begin
+            Open
+              (File => Source_File,
+               Mode => In_File,
+               Name => Source_File_Name);
+            Set_Line (Source_File, Start_Line);
+            Set_Col (Source_File, Start_Column);
+            Collect_Condition_Text;
+            Close (Source_File);
+            return Ada.Strings.Fixed.Trim
+              (SU.To_String (Condition_Text_Buffer), Ada.Strings.Both);
+         end Get_Assert_Condition_As_Ada_Source_Code;
+
+         function Make_Assert_Comment return Irep;
+         function Make_Assert_Comment return Irep
          is
-            --  will be used to pretty print condition later
-            pragma Unreferenced (Condition);
-
             --  return name of containing function or package
             --  (whichever comes earlier)
             function Get_Context_Name (Intermediate_Node : Node_Id)
@@ -2229,10 +2373,12 @@ package body Tree_Walk is
             Source_Loc : constant Irep := Get_Source_Location (N);
             Context_Name : constant String := Get_Context_Name (N);
             Comment_Prefix : constant String := "assertion ";
+            Comment : constant String :=
+              Get_Assert_Condition_As_Ada_Source_Code;
          begin
             Set_Property_Class (Source_Loc, "assertion");
             Set_Function (Source_Loc, Context_Name);
-            Set_Comment (Source_Loc, Comment_Prefix);
+            Set_Comment (Source_Loc, Comment_Prefix & Comment);
             return Source_Loc;
          end Make_Assert_Comment;
 
@@ -2246,7 +2392,7 @@ package body Tree_Walk is
             else
                return Make_Code_Assert
                  (Assertion => Condition,
-                  Source_Location => Make_Assert_Comment (Condition));
+                  Source_Location => Make_Assert_Comment);
             end if;
          end Make_Assert_Or_Assume;
 

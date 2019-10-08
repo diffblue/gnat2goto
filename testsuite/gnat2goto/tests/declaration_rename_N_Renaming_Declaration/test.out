@@ -1,5 +1,5 @@
-[declaration_rename.assertion.1] line 28 assertion : SUCCESS
-[declaration_rename.assertion.2] line 29 assertion : SUCCESS
-[declaration_rename.assertion.3] line 30 assertion : SUCCESS
-[declaration_rename.assertion.4] line 31 assertion : SUCCESS
+[declaration_rename.assertion.1] line 28 assertion B=3: SUCCESS
+[declaration_rename.assertion.2] line 29 assertion Simply_Named_Int=11: SUCCESS
+[declaration_rename.assertion.3] line 30 assertion My_Plus(A,B)=5: SUCCESS
+[declaration_rename.assertion.4] line 31 assertion C=4: SUCCESS
 VERIFICATION SUCCESSFUL

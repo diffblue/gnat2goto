@@ -1,4 +1,4 @@
-[derived_types.assertion.1] line 6 assertion : SUCCESS
-[derived_types.assertion.2] line 7 assertion : SUCCESS
-[derived_types.assertion.3] line 8 assertion : SUCCESS
+[derived_types.assertion.1] line 6 assertion 0 in My_Int: SUCCESS
+[derived_types.assertion.2] line 7 assertion 11.0 in My_Real: SUCCESS
+[derived_types.assertion.3] line 8 assertion My_Int'Succ (22) = 23: SUCCESS
 VERIFICATION SUCCESSFUL

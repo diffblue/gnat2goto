@@ -1,4 +1,4 @@
-[test.assertion.1] line 8 assertion : SUCCESS
-[test.assertion.2] line 10 assertion : SUCCESS
-[test.assertion.3] line 11 assertion : FAILURE
+[test.assertion.1] line 8 assertion Val < 2.0: SUCCESS
+[test.assertion.2] line 10 assertion Val > 0.0: SUCCESS
+[test.assertion.3] line 11 assertion Val * 20.0 < 10.0: FAILURE
 VERIFICATION FAILED

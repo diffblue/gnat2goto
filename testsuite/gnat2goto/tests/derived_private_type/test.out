@@ -1,2 +1,2 @@
-[derived_private_type.assertion.1] line 7 assertion : SUCCESS
+[derived_private_type.assertion.1] line 7 assertion Derived_Priv (V_Priv) = V_D_Priv: SUCCESS
 VERIFICATION SUCCESSFUL

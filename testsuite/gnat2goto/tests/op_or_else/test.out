@@ -1,9 +1,9 @@
 [division-by-zero.2] file op_or_else.adb line 16 division by zero in op_or_else__div_by_zero__x / op_or_else__div_by_zero__y$$op_or_else__div_by_zero__y: FAILURE
 [division-by-zero.1] file op_or_else.adb line 26 division by zero in op_or_else__div_by_zero_not_called__x / op_or_else__div_by_zero_not_called__y$$op_or_else__div_by_zero_not_called__y: SUCCESS
-[op_or_else.assertion.1] line 34 assertion : SUCCESS
-[op_or_else.assertion.2] line 35 assertion : SUCCESS
-[op_or_else.assertion.3] line 36 assertion : SUCCESS
-[op_or_else.assertion.4] line 37 assertion : SUCCESS
-[op_or_else.assertion.5] line 42 assertion : SUCCESS
-[op_or_else.assertion.6] line 46 assertion : SUCCESS
+[op_or_else.assertion.1] line 34 assertion A or else B: SUCCESS
+[op_or_else.assertion.2] line 35 assertion B or else A: SUCCESS
+[op_or_else.assertion.3] line 36 assertion A or else A: SUCCESS
+[op_or_else.assertion.4] line 37 assertion C or else A or else B: SUCCESS
+[op_or_else.assertion.5] line 42 assertion A or else div_by_zero_not_called (0): SUCCESS
+[op_or_else.assertion.6] line 46 assertion A or div_by_zero (0): SUCCESS
 VERIFICATION FAILED

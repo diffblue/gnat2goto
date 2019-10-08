@@ -1,4 +1,4 @@
-[divide.assertion.1] line 4 assertion : SUCCESS
-[divide.assertion.2] line 6 assertion : SUCCESS
-[divide.assertion.3] line 8 assertion : FAILURE
+[divide.assertion.1] line 4 assertion B / 1 = B: SUCCESS
+[divide.assertion.2] line 6 assertion B / B = 1: SUCCESS
+[divide.assertion.3] line 8 assertion B < 0: FAILURE
 VERIFICATION FAILED

@@ -1,10 +1,10 @@
-[modular.assertion.1] line 15 assertion : SUCCESS
-[modular.assertion.2] line 16 assertion : SUCCESS
-[modular.assertion.3] line 17 assertion : SUCCESS
-[modular.assertion.4] line 18 assertion : SUCCESS
-[modular.assertion.5] line 19 assertion : SUCCESS
-[modular.assertion.6] line 20 assertion : SUCCESS
-[modular.assertion.7] line 21 assertion : SUCCESS
-[modular.assertion.8] line 22 assertion : SUCCESS
-[modular.assertion.9] line 23 assertion : SUCCESS
+[modular.assertion.1] line 15 assertion Zero_Unsigned = 0: SUCCESS
+[modular.assertion.2] line 16 assertion Next (Zero_Unsigned) = 1: SUCCESS
+[modular.assertion.3] line 17 assertion Zero_Unsigned /= 10: SUCCESS
+[modular.assertion.4] line 18 assertion Next (Zero_Unsigned - 1) = 0: SUCCESS
+[modular.assertion.5] line 19 assertion Next (Max_Minus_One) = 0: SUCCESS
+[modular.assertion.6] line 20 assertion Next (Byte) = 0: SUCCESS
+[modular.assertion.7] line 21 assertion Next (Next (Byte)) = 1: SUCCESS
+[modular.assertion.8] line 22 assertion Next (Number) = 0: SUCCESS
+[modular.assertion.9] line 23 assertion Next (Next (Number)) = 1: SUCCESS
 VERIFICATION SUCCESSFUL

@@ -1,4 +1,4 @@
-[case_statement_vals.assertion.1] line 14 assertion : SUCCESS
-[case_statement_vals.assertion.2] line 15 assertion : SUCCESS
-[case_statement_vals.assertion.3] line 16 assertion : SUCCESS
+[case_statement_vals.assertion.1] line 14 assertion Result /= 0: SUCCESS
+[case_statement_vals.assertion.2] line 15 assertion Result = 1: SUCCESS
+[case_statement_vals.assertion.3] line 16 assertion Result /= 2: SUCCESS
 VERIFICATION SUCCESSFUL

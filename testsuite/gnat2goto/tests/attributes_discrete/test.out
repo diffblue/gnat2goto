@@ -1,11 +1,11 @@
-[attributes_discrete.assertion.1] line 7 assertion : FAILURE
-[attributes_discrete.assertion.2] line 8 assertion : SUCCESS
-[attributes_discrete.assertion.3] line 9 assertion : SUCCESS
-[attributes_discrete.assertion.4] line 11 assertion : SUCCESS
-[attributes_discrete.assertion.5] line 12 assertion : SUCCESS
-[attributes_discrete.assertion.6] line 13 assertion : SUCCESS
-[attributes_discrete.assertion.7] line 15 assertion : SUCCESS
-[attributes_discrete.assertion.8] line 16 assertion : SUCCESS
-[attributes_discrete.assertion.9] line 17 assertion : SUCCESS
-[attributes_discrete.assertion.10] line 18 assertion : SUCCESS
+[attributes_discrete.assertion.1] line 7 assertion My_Enum'Pos(Enum1) = 2: FAILURE
+[attributes_discrete.assertion.2] line 8 assertion My_Enum'Pos(Enum1) = 0: SUCCESS
+[attributes_discrete.assertion.3] line 9 assertion My_Enum'Pos(Enum3) = 2: SUCCESS
+[attributes_discrete.assertion.4] line 11 assertion My_Enum'Val(0) = Enum1: SUCCESS
+[attributes_discrete.assertion.5] line 12 assertion My_Enum'Val(1) = Enum2: SUCCESS
+[attributes_discrete.assertion.6] line 13 assertion My_Enum'Val(2) = Enum3: SUCCESS
+[attributes_discrete.assertion.7] line 15 assertion Integer'Pos(I) = -30: SUCCESS
+[attributes_discrete.assertion.8] line 16 assertion Integer'Val(I) = -30: SUCCESS
+[attributes_discrete.assertion.9] line 17 assertion Integer'Pred(I) = -31: SUCCESS
+[attributes_discrete.assertion.10] line 18 assertion Integer'Succ(I) = -29: SUCCESS
 VERIFICATION FAILED

@@ -7,5 +7,5 @@
 [precondition_instance.7] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.8] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.9] file <internal> memcpy destination region writeable: SUCCESS
-[rhs_array_assign.assertion.1] line 9 assertion : SUCCESS
+[rhs_array_assign.assertion.1] line 9 assertion A (5) = 5 and A (1) = 0: SUCCESS
 VERIFICATION SUCCESSFUL
