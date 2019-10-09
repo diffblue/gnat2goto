@@ -20,5 +20,5 @@ Standard_Error from gnat2goto address_clause:
 ----------At: Process_Declaration----------
 ----------Address representation clauses are not currently supported----------
 
-[1] file address_clause.adb line 12 assertion: SUCCESS
+[address_clause.assertion.1] line 12 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

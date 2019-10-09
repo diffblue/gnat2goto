@@ -1,6 +1,6 @@
-[1] file op_or.adb line 6 assertion: SUCCESS
-[2] file op_or.adb line 7 assertion: SUCCESS
-[3] file op_or.adb line 8 assertion: SUCCESS
-[4] file op_or.adb line 9 assertion: FAILURE
-[5] file op_or.adb line 10 assertion: SUCCESS
+[op_or.assertion.1] line 6 assertion : SUCCESS
+[op_or.assertion.2] line 7 assertion : SUCCESS
+[op_or.assertion.3] line 8 assertion : SUCCESS
+[op_or.assertion.4] line 9 assertion : FAILURE
+[op_or.assertion.5] line 10 assertion : SUCCESS
 VERIFICATION FAILED

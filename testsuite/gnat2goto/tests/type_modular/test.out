@@ -1,10 +1,10 @@
-[1] file modular.adb line 15 assertion: SUCCESS
-[2] file modular.adb line 16 assertion: SUCCESS
-[3] file modular.adb line 17 assertion: SUCCESS
-[4] file modular.adb line 18 assertion: SUCCESS
-[5] file modular.adb line 19 assertion: SUCCESS
-[6] file modular.adb line 20 assertion: SUCCESS
-[7] file modular.adb line 21 assertion: SUCCESS
-[8] file modular.adb line 22 assertion: SUCCESS
-[9] file modular.adb line 23 assertion: SUCCESS
+[modular.assertion.1] line 15 assertion : SUCCESS
+[modular.assertion.2] line 16 assertion : SUCCESS
+[modular.assertion.3] line 17 assertion : SUCCESS
+[modular.assertion.4] line 18 assertion : SUCCESS
+[modular.assertion.5] line 19 assertion : SUCCESS
+[modular.assertion.6] line 20 assertion : SUCCESS
+[modular.assertion.7] line 21 assertion : SUCCESS
+[modular.assertion.8] line 22 assertion : SUCCESS
+[modular.assertion.9] line 23 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

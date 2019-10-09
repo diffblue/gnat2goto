@@ -1,5 +1,5 @@
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[1] file arrays_access.adb line 6 assertion: SUCCESS
+[arrays_access.assertion.1] line 6 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

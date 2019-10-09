@@ -7,5 +7,5 @@
 [precondition_instance.7] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.8] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.9] file <internal> memcpy destination region writeable: SUCCESS
-[1] file rhs_array_assign.adb line 9 assertion: SUCCESS
+[rhs_array_assign.assertion.1] line 9 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

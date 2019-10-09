@@ -1,5 +1,5 @@
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[1] file test.adb line 7 assertion: SUCCESS
+[test.assertion.1] line 7 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

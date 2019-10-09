@@ -1,2 +1,2 @@
-[1] file test_long_integer.adb line 4 assertion: SUCCESS
+[test_long_integer.assertion.1] line 4 assertion : SUCCESS
 VERIFICATION SUCCESSFUL

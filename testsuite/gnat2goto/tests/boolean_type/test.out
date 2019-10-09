@@ -1,5 +1,5 @@
-[1] file boolean_type.adb line 5 assertion: SUCCESS
-[2] file boolean_type.adb line 6 assertion: FAILURE
-[3] file boolean_type.adb line 7 assertion: SUCCESS
-[4] file boolean_type.adb line 8 assertion: FAILURE
+[boolean_type.assertion.1] line 5 assertion : SUCCESS
+[boolean_type.assertion.2] line 6 assertion : FAILURE
+[boolean_type.assertion.3] line 7 assertion : SUCCESS
+[boolean_type.assertion.4] line 8 assertion : FAILURE
 VERIFICATION FAILED

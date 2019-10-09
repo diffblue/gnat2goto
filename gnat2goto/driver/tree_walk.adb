@@ -2200,6 +2200,42 @@ package body Tree_Walk is
       is
          Which : constant Pragma_Id := Get_Pragma_Id (N_Orig);
 
+         function Make_Assert_Comment (Condition : Irep) return Irep;
+
+         function Make_Assert_Comment (Condition : Irep) return Irep
+         is
+            --  will be used to pretty print condition later
+            pragma Unreferenced (Condition);
+
+            --  return name of containing function or package
+            --  (whichever comes earlier)
+            function Get_Context_Name (Intermediate_Node : Node_Id)
+                                      return String;
+            function Get_Context_Name (Intermediate_Node : Node_Id)
+                                      return String is
+            begin
+               case Nkind (Intermediate_Node) is
+                  when N_Subprogram_Body | N_Package_Body =>
+                     return Get_Name_String
+                       (Chars
+                          (Defining_Unit_Name
+                             (Specification
+                                (Intermediate_Node))));
+                  when others =>
+                     return Get_Context_Name (Parent (Intermediate_Node));
+               end case;
+            end Get_Context_Name;
+
+            Source_Loc : constant Irep := Get_Source_Location (N);
+            Context_Name : constant String := Get_Context_Name (N);
+            Comment_Prefix : constant String := "assertion ";
+         begin
+            Set_Property_Class (Source_Loc, "assertion");
+            Set_Function (Source_Loc, Context_Name);
+            Set_Comment (Source_Loc, Comment_Prefix);
+            return Source_Loc;
+         end Make_Assert_Comment;
+
          function Make_Assert_Or_Assume (Condition : Irep) return Irep;
          function Make_Assert_Or_Assume (Condition : Irep) return Irep is
          begin
@@ -2210,7 +2246,7 @@ package body Tree_Walk is
             else
                return Make_Code_Assert
                  (Assertion => Condition,
-                  Source_Location => Get_Source_Location (N));
+                  Source_Location => Make_Assert_Comment (Condition));
             end if;
          end Make_Assert_Or_Assume;
 
