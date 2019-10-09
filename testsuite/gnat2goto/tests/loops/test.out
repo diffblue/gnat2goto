@@ -1,2 +1,2 @@
-[loops.assertion.1] line 32 assertion : FAILURE
+[loops.assertion.1] line 32 assertion i < 10: FAILURE
 VERIFICATION FAILED

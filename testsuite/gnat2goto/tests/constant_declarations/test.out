@@ -1,2 +1,2 @@
-[test.assertion.1] line 8 assertion : FAILURE
+[test.assertion.1] line 8 assertion My_P = 50: FAILURE
 VERIFICATION FAILED

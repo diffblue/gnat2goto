@@ -1,5 +1,5 @@
-[sum_plus_three.assertion.1] line 12 assertion : SUCCESS
-[statement_block.assertion.1] line 30 assertion : SUCCESS
-[statement_block.assertion.2] line 35 assertion : SUCCESS
-[statement_block.assertion.3] line 45 assertion : SUCCESS
+[sum_plus_three.assertion.1] line 12 assertion Local1=3: SUCCESS
+[statement_block.assertion.1] line 30 assertion Var2=2: SUCCESS
+[statement_block.assertion.2] line 35 assertion Var2=4: SUCCESS
+[statement_block.assertion.3] line 45 assertion Var2=10: SUCCESS
 VERIFICATION SUCCESSFUL

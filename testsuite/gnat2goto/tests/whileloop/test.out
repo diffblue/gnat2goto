@@ -1,4 +1,4 @@
-[whileloop.assertion.1] line 7 assertion : SUCCESS
-[whileloop.assertion.2] line 9 assertion : SUCCESS
-[whileloop.assertion.3] line 11 assertion : FAILURE
+[whileloop.assertion.1] line 7 assertion A <= B: SUCCESS
+[whileloop.assertion.2] line 9 assertion A - C <= B: SUCCESS
+[whileloop.assertion.3] line 11 assertion A <= B: FAILURE
 VERIFICATION FAILED

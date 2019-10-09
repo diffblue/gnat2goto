@@ -1,6 +1,6 @@
-[op_or.assertion.1] line 6 assertion : SUCCESS
-[op_or.assertion.2] line 7 assertion : SUCCESS
-[op_or.assertion.3] line 8 assertion : SUCCESS
-[op_or.assertion.4] line 9 assertion : FAILURE
-[op_or.assertion.5] line 10 assertion : SUCCESS
+[op_or.assertion.1] line 6 assertion A or B: SUCCESS
+[op_or.assertion.2] line 7 assertion B or A: SUCCESS
+[op_or.assertion.3] line 8 assertion A or A: SUCCESS
+[op_or.assertion.4] line 9 assertion B or B: FAILURE
+[op_or.assertion.5] line 10 assertion C or A or B: SUCCESS
 VERIFICATION FAILED

@@ -1,2 +1,2 @@
-[test.assertion.1] line 7 assertion : SUCCESS
+[test.assertion.1] line 7 assertion My_Rec.A = 2: SUCCESS
 VERIFICATION SUCCESSFUL

@@ -20,5 +20,5 @@ Standard_Error from gnat2goto address_clause:
 ----------At: Process_Declaration----------
 ----------Address representation clauses are not currently supported----------
 
-[address_clause.assertion.1] line 12 assertion : SUCCESS
+[address_clause.assertion.1] line 12 assertion Var_Addr_1 + Var_Addr_2 = 3: SUCCESS
 VERIFICATION SUCCESSFUL

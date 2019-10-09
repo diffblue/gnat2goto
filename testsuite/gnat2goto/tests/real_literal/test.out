@@ -1,4 +1,4 @@
-[real_literal.assertion.1] line 5 assertion : SUCCESS
-[real_literal.assertion.2] line 6 assertion : SUCCESS
-[real_literal.assertion.3] line 7 assertion : SUCCESS
+[real_literal.assertion.1] line 5 assertion X>0.0: SUCCESS
+[real_literal.assertion.2] line 6 assertion Y>0.0: SUCCESS
+[real_literal.assertion.3] line 7 assertion X>Y: SUCCESS
 VERIFICATION SUCCESSFUL

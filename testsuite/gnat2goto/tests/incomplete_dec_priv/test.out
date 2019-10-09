@@ -1,2 +1,2 @@
-[test.assertion.1] line 7 assertion : SUCCESS
+[test.assertion.1] line 7 assertion My_Int = 5: SUCCESS
 VERIFICATION SUCCESSFUL

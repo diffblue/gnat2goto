@@ -1,4 +1,4 @@
-[absolute.assertion.1] line 7 assertion : SUCCESS
-[absolute.assertion.2] line 8 assertion : SUCCESS
-[absolute.assertion.3] line 10 assertion : FAILURE
+[absolute.assertion.1] line 7 assertion Symmetric_Difference (X, Y) = Symmetric_Difference (Y, X): SUCCESS
+[absolute.assertion.2] line 8 assertion Symmetric_Difference (X, Y) = 5: SUCCESS
+[absolute.assertion.3] line 10 assertion Symmetric_Difference (Y, X) /= 5: FAILURE
 VERIFICATION FAILED

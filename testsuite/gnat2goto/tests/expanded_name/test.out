@@ -1,2 +1,2 @@
-[expanded_name.assertion.1] line 12 assertion : SUCCESS
+[expanded_name.assertion.1] line 12 assertion (if Withed_Package.X = 1 then N = 2 else N = 1): SUCCESS
 VERIFICATION SUCCESSFUL

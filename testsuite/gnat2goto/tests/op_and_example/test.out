@@ -1,4 +1,4 @@
-[op_and_example.assertion.1] line 11 assertion : SUCCESS
-[op_and_example.assertion.2] line 15 assertion : SUCCESS
-[op_and_example.assertion.3] line 16 assertion : FAILURE
+[op_and_example.assertion.1] line 11 assertion False: SUCCESS
+[op_and_example.assertion.2] line 15 assertion X = 1: SUCCESS
+[op_and_example.assertion.3] line 16 assertion False: FAILURE
 VERIFICATION FAILED

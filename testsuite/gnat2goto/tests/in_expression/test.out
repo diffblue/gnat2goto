@@ -1,6 +1,6 @@
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[in_expression.assertion.1] line 8 assertion : FAILURE
-[in_expression.assertion.2] line 10 assertion : SUCCESS
+[in_expression.assertion.1] line 8 assertion Val < 1: FAILURE
+[in_expression.assertion.2] line 10 assertion Val > 1: SUCCESS
 VERIFICATION FAILED

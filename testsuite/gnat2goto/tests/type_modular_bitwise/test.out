@@ -1,5 +1,5 @@
-[assert_val.assertion.1] line 7 assertion : SUCCESS
-[assert_val.assertion.2] line 8 assertion : SUCCESS
-[assert_val.assertion.3] line 9 assertion : SUCCESS
-[assert_val.assertion.4] line 10 assertion : SUCCESS
+[assert_val.assertion.1] line 7 assertion (Y and X) = 0: SUCCESS
+[assert_val.assertion.2] line 8 assertion (Z or X) = 5: SUCCESS
+[assert_val.assertion.3] line 9 assertion (Y xor (Y - 1)) = 5: SUCCESS
+[assert_val.assertion.4] line 10 assertion (not X) = 4: SUCCESS
 VERIFICATION SUCCESSFUL

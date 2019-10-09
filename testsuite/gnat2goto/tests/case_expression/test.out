@@ -1,3 +1,3 @@
-[case_expression.assertion.1] line 22 assertion : SUCCESS
-[case_expression.assertion.2] line 23 assertion : SUCCESS
+[case_expression.assertion.1] line 22 assertion Hours = 2: SUCCESS
+[case_expression.assertion.2] line 23 assertion Hours /= 1: SUCCESS
 VERIFICATION SUCCESSFUL

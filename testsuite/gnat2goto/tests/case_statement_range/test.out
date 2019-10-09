@@ -1,4 +1,4 @@
-[case_statement_range.assertion.1] line 6 assertion : SUCCESS
-[case_statement_range.assertion.2] line 8 assertion : SUCCESS
-[main.assertion.1] line 5 assertion : SUCCESS
+[case_statement_range.assertion.1] line 6 assertion false: SUCCESS
+[case_statement_range.assertion.2] line 8 assertion false: SUCCESS
+[main.assertion.1] line 5 assertion Case_Statement_Range = 20: SUCCESS
 VERIFICATION SUCCESSFUL

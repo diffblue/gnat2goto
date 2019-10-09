@@ -1,2 +1,2 @@
-[assert_val.assertion.1] line 5 assertion : SUCCESS
+[assert_val.assertion.1] line 5 assertion X = 5: SUCCESS
 VERIFICATION SUCCESSFUL
