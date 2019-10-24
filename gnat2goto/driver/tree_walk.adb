@@ -446,8 +446,8 @@ package body Tree_Walk is
                                           Fun_Name : String;
                                           Message : String) is
    begin
-      Put_Line (Standard_Error, "----------At: " & Fun_Name & "----------");
-      Put_Line (Standard_Error, "----------" & Message & "----------");
+      Put_Line ("----------At: " & Fun_Name & "----------");
+      Put_Line ("----------" & Message & "----------");
       pp (Union_Id (N));
    end Report_Unhandled_Node_Empty;
 
