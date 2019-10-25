@@ -149,13 +149,18 @@ awk  '/^\+===========================GNAT BUG DETECTED==========================
          buf = $0; \
       } \
       /^\+==========================================================================\+/ { \
-         print buf "<<<>>>" $0; \
+         print buf "<<<>>>" $0; buf = ""\
       } \
       /^\| Error detected at .*$/ { \
          buf = buf "<<<>>>" "Error detected at REDACTED" \
       } \
       /^\| .*$/ { \
          buf = buf "<<<>>>" $0 \
+      } \
+      /^[^|\+].*/ { \
+         if (length(buf) > 0) { \
+            print buf "<<<>>>" $0; buf = "" \
+         } \
       }' "$raw_input_file" \
    | LC_ALL=posix sort | uniq -c | LC_ALL=posix sort -k1,1nr -k2 | \
       awk '/^ *[0-9][0-9]* .*/ { \
