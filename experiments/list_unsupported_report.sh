@@ -134,7 +134,9 @@ sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$raw_input_file" | \
          awk '/^ *[0-9]+ .*$/ { \
             count=$1; \
             raw=$0; sub(/^ *[0-9]+ /, "", raw); \
-            redacted=raw; gsub(/"[^"]+"/, "\"REDACTED\"", redacted); \
+            redacted=raw; \
+            gsub(/"[^"]+"/, "\"REDACTED\"", redacted); \
+            gsub(/at ([a-zA-Z0-9\.\-_]+:[0-9]+)/, "at REDACTED", redacted); \
             print "--------------------------------------------------------------------------------"; \
             print "Occurs:", count, "times"; \
             print "Redacted compiler error message:"; \
