@@ -1,4 +1,6 @@
 Standard_Output from gnat2goto address_clause:
+----------At: Process_Declaration----------
+----------Address representation clauses are not currently supported----------
 N_Attribute_Definition_Clause "address" (Node_Id=2277) (source,analyzed)
  Sloc = 8303  address_clause.adb:5:4
  Chars = "address" (Name_Id=300000791)
@@ -6,6 +8,8 @@ N_Attribute_Definition_Clause "address" (Node_Id=2277) (source,analyzed)
  Expression = N_Function_Call (Node_Id=2280)
  Entity = N_Defining_Identifier "var_addr_1" (Entity_Id=2264)
  Check_Address_Alignment = True
+----------At: Process_Declaration----------
+----------Address representation clauses are not currently supported----------
 N_Attribute_Definition_Clause "address" (Node_Id=2295) (source,analyzed)
  Sloc = 8387  address_clause.adb:8:4
  Chars = "address" (Name_Id=300000791)
@@ -13,12 +17,6 @@ N_Attribute_Definition_Clause "address" (Node_Id=2295) (source,analyzed)
  Expression = N_Function_Call (Node_Id=2302)
  Entity = N_Defining_Identifier "var_addr_2" (Entity_Id=2282)
  Check_Address_Alignment = True
-
-Standard_Error from gnat2goto address_clause:
-----------At: Process_Declaration----------
-----------Address representation clauses are not currently supported----------
-----------At: Process_Declaration----------
-----------Address representation clauses are not currently supported----------
 
 [address_clause.assertion.1] line 12 assertion Var_Addr_1 + Var_Addr_2 = 3: SUCCESS
 VERIFICATION SUCCESSFUL

@@ -132,7 +132,6 @@ int main(int argc, char** argv)
    string line;
    getline(input_file, line);
    unsigned long count=0;
-   cerr << "Scanning " << argv[1] << "...";
    while (true) {
       ++count;
       if (count % 1000 == 0) cerr << ".";
