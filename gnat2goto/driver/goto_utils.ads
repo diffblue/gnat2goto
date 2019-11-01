@@ -20,6 +20,15 @@ package GOTO_Utils is
    --  TODO change this to Irep
    function Internal_Source_Location return Irep;
 
+   function Float32_T return Irep;
+   function Float64_T return Irep;
+   function Int32_T return Irep;
+   function Int64_T return Irep;
+   function Uint8_T return Irep;
+   function Uint32_T return Irep;
+   function Uint64_T return Irep;
+   function Maybe_Double_Type_Width (Original_Type : Irep) return Irep;
+
    --  Utility routines for high-level GOTO AST construction
 
    Pointer_Type_Width : constant Positive := 64;
@@ -90,6 +99,14 @@ package GOTO_Utils is
      with Pre => (Kind (Param_Type) in Class_Type
                   and then Kind (Param_List) = I_Parameter_List),
      Post => Kind (Create_Fun_Parameter'Result) = I_Code_Parameter;
+
+   procedure Create_Fun_Parameter (Fun_Name : String; Param_Name : String;
+                                  Param_Type : Irep; Param_List : Irep;
+                                  A_Symbol_Table : in out Symbol_Table;
+                                  Source_Location : Irep :=
+                                    Internal_Source_Location)
+     with Pre => (Kind (Param_Type) in Class_Type
+                  and then Kind (Param_List) = I_Parameter_List);
 
    function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
                                     Source_Loc : Irep :=
@@ -187,4 +204,17 @@ package GOTO_Utils is
       Column : String := "")
      return Irep;
 
+   function Make_Assert_Call (Assertion : Irep;
+                              Description : Irep; Source_Loc : Irep;
+                              A_Symbol_Table : in out Symbol_Table)
+                              return Irep;
+
+   function Make_Assume_Call (Assumption : Irep; Source_Loc : Irep;
+                              A_Symbol_Table : in out Symbol_Table)
+                              return Irep;
+   function Get_Int32_T_Zero return Irep;
+   function Get_Ada_Check_Symbol (Name : String;
+                                  A_Symbol_Table : out Symbol_Table;
+                                  Source_Loc : Irep)
+                                  return Symbol;
 end GOTO_Utils;
