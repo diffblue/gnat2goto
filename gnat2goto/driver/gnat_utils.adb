@@ -9,13 +9,13 @@ package body GNAT_Utils is
 
    function Get_Called_Entity (N : Node_Id) return Entity_Id is
       Nam : constant Node_Id := Name (N);
-
    begin
       return
-        Entity (case Nkind (Nam) is
-                   when N_Selected_Component => Selector_Name (Nam),
-                   when N_Indexed_Component  => Selector_Name (Prefix (Nam)),
-                   when others               => Nam);
+        (case Nkind (Nam) is
+            when N_Selected_Component => Entity (Selector_Name (Nam)),
+            when N_Indexed_Component => Entity (Selector_Name (Prefix (Nam))),
+            when N_Explicit_Dereference => Etype (Nam),
+            when others => Entity (Nam));
    end Get_Called_Entity;
 
    -----------------------------

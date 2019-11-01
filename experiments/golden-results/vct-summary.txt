@@ -38,6 +38,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
+Occurs: 4 times
+Calling function: Process_Declaration
+Error message: size clause not applied by the front-end
+Nkind: N_Attribute_Definition_Clause
+--
 Occurs: 3 times
 Calling function: Do_Expression
 Error message: Unknown attribute
@@ -115,7 +120,12 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -300,10 +310,10 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:5079                     |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:5079                     |
-Error detected at REDACTED
+Occurs: 2 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:50
+
