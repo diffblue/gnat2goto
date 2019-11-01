@@ -19,4 +19,5 @@ N_Attribute_Definition_Clause "address" (Node_Id=2295) (source,analyzed)
  Check_Address_Alignment = True
 
 [address_clause.assertion.1] line 12 assertion Var_Addr_1 + Var_Addr_2 = 3: SUCCESS
+[assertion.1] line 12 Ada Check assertion: SUCCESS
 VERIFICATION SUCCESSFUL

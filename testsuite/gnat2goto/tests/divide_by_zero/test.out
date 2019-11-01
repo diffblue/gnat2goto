@@ -1,2 +1,3 @@
-[division-by-zero.1] file divide_by_zero.adb line 6 division by zero in divide_by_zero__a / divide_by_zero__b: FAILURE
+[assertion.2] file divide_by_zero.adb line 6 Ada Check assertion: FAILURE
+[assertion.1] file divide_by_zero.adb line 6 Ada Check assertion: FAILURE
 VERIFICATION FAILED

@@ -1,3 +1,4 @@
 [assign.assertion.1] line 6 assertion a = 1: SUCCESS
 [assign.assertion.2] line 7 assertion b = 2: SUCCESS
+[assertion.1] line 8 Ada Check assertion: SUCCESS
 VERIFICATION SUCCESSFUL

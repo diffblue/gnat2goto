@@ -1,2 +1,3 @@
+[assertion.1] file ifthenelse.adb line 7 Ada Check assertion: SUCCESS
 [ifthenelse.assertion.1] line 11 assertion C = 3: SUCCESS
 VERIFICATION SUCCESSFUL

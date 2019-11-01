@@ -1,3 +1,4 @@
+[assertion.1] file func_args.adb line 6 Ada Check assertion: SUCCESS
 [func_args.assertion.1] line 10 assertion C = 3: SUCCESS
 [func_args.assertion.2] line 11 assertion Assign2 (5, 6) = 12: FAILURE
 VERIFICATION FAILED

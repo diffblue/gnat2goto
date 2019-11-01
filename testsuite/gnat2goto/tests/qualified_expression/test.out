@@ -1,3 +1,2 @@
-[assertion.2] file qualified_expr.adb line 7 Range Check: SUCCESS
-[assertion.1] file qualified_expr.adb line 7 Range Check: FAILURE
+[assertion.1] file qualified_expr.adb line 7 Ada Check assertion: FAILURE
 VERIFICATION FAILED

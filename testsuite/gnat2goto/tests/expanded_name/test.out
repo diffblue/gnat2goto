@@ -1,2 +1,3 @@
+[assertion.1] file expanded_name.adb line 8 Ada Check assertion: SUCCESS
 [expanded_name.assertion.1] line 12 assertion (if Withed_Package.X = 1 then N = 2 else N = 1): SUCCESS
 VERIFICATION SUCCESSFUL

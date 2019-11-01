@@ -1,3 +1,4 @@
+[assertion.1] file declaration_rename.adb line 25 Ada Check assertion: SUCCESS
 [declaration_rename.assertion.1] line 28 assertion B=3: SUCCESS
 [declaration_rename.assertion.2] line 29 assertion Simply_Named_Int=11: SUCCESS
 [declaration_rename.assertion.3] line 30 assertion My_Plus(A,B)=5: SUCCESS
