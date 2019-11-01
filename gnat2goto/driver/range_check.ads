@@ -35,6 +35,9 @@ package Range_Check is
        | I_Bounded_Unsignedbv_Type,
        Post => Kind (Get_Bound_Of_Bounded_Type'Result) in Class_Expr;
 
+   function Make_Div_Zero_Assert_Expr (N : Node_Id; Value : Irep;
+                                       Divisor : Irep) return Irep;
+
    function Make_Overflow_Assert_Expr (N : Node_Id; Value : Irep) return Irep;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;

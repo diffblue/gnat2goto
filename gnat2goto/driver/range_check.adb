@@ -162,6 +162,102 @@ package body Range_Check is
       end case;
    end Get_Bound_Of_Bounded_Type;
 
+   function Make_Div_Zero_Assert_Expr (N : Node_Id; Value : Irep;
+                                       Divisor : Irep) return Irep
+   is
+      Value_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Value), Global_Symbol_Table);
+      Source_Loc : constant Irep := Get_Source_Location (N);
+
+      function Build_Assert_Function return Symbol;
+
+      ---------------------------
+      -- Build_Assert_Function --
+      ---------------------------
+
+      --  Build a symbol for the following function
+      --  Value_Type division_check(Value_Type value, Value_Type divisor)
+      --  {
+      --    __CPROVER_Ada_Division_Check (divisor != 0);
+      --    return value;
+      --  }
+      function Build_Assert_Function return Symbol
+      is
+         Func_Name : constant String := Fresh_Var_Name ("division_check");
+         Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+         Func_Params : constant Irep := Make_Parameter_List;
+         Value_Arg : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "value",
+                                 Param_Type      => Value_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Divisor_Arg : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "divisor",
+                                 Param_Type      => Value_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => Value_Type,
+                           Inlined     => False,
+                           Knr         => False);
+         Value_Param : constant Irep := Param_Symbol (Value_Arg);
+         Divisor_Param : constant Irep := Param_Symbol (Divisor_Arg);
+         Return_Inst : constant Irep :=
+           Make_Code_Return (Return_Value    => Value_Param,
+                             Source_Location => Source_Loc,
+                             I_Type          => Ireps.Empty);
+         Division_Check_Args : constant Irep := Make_Argument_List;
+         Divisor_Neq_Zero_Expr : constant Irep :=
+           Make_Op_Notequal (Rhs             =>
+                               Typecast_If_Necessary (Get_Int32_T_Zero,
+                                 Value_Type, Global_Symbol_Table),
+                             Lhs             => Divisor_Param,
+                             Source_Location => Source_Loc,
+                             Overflow_Check  => False,
+                             I_Type          => Make_Bool_Type,
+                             Range_Check     => False);
+         Neq_Zero_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Divisor_Neq_Zero_Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Division_Check_Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol ("__CPROVER_Ada_Division_Check",
+                        Global_Symbol_Table, Source_Loc));
+         Division_Check_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Division_Check_Args,
+                                    I_Function      => Division_Check_Sym_Expr,
+                                    Lhs             => Make_Nil (Source_Loc),
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Make_Void_Type);
+      begin
+         Append_Argument (Division_Check_Args, Neq_Zero_As_Int);
+         Append_Op (Body_Block, Division_Check_Call);
+         Append_Op (Body_Block, Return_Inst);
+
+         return New_Function_Symbol_Entry
+           (Name        => Func_Name,
+            Symbol_Type => Func_Type,
+            Value       => Body_Block,
+            A_Symbol_Table => Global_Symbol_Table);
+      end Build_Assert_Function;
+
+      Call_Args : constant Irep := Make_Argument_List;
+   begin
+      Append_Argument (Call_Args, Value);
+      Append_Argument (Call_Args, Divisor);
+
+      return Make_Side_Effect_Expr_Function_Call
+        (Arguments       => Call_Args,
+         I_Function      => Symbol_Expr (Build_Assert_Function),
+         Source_Location => Source_Loc,
+         I_Type          => Value_Type);
+   end Make_Div_Zero_Assert_Expr;
 
    function Make_Overflow_Assert_Expr (N : Node_Id; Value : Irep) return Irep
    is
