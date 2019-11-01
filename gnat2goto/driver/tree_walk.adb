@@ -985,9 +985,9 @@ package body Tree_Walk is
       if Is_Integer_Literal then
          Constant_Resolved_Type :=  Constant_Type;
       else
-         if not Global_Symbol_Table.Contains (
-                                              Intern (Get_Identifier
-                                                        (Constant_Type)))
+         if Kind (Constant_Type) = I_Symbol_Type
+             and then not Global_Symbol_Table.Contains
+               (Intern (Get_Identifier (Constant_Type)))
          then
             Report_Unhandled_Node_Empty (N, "Do_Constant",
                                          "Constant Type not in symbol table");
@@ -4780,8 +4780,21 @@ package body Tree_Walk is
    -----------------------
 
    function Do_Type_Reference (E : Entity_Id) return Irep is
+      Type_Name : constant String := Unique_Name
+        (if Ekind (E) = E_Access_Subtype then Etype (E) else E);
+      Type_Id : constant Symbol_Id := Intern (Type_Name);
    begin
-      return Make_Symbol_Type (Identifier => Unique_Name (E));
+      if Global_Symbol_Table.Contains (Type_Id) then
+         if Kind (Global_Symbol_Table.Element (Type_Id).SymType) in Class_Type
+         then
+            return Global_Symbol_Table.Element (Type_Id).SymType;
+         else
+            return Report_Unhandled_Node_Type (E, "Do_Type_Reference",
+                                               "Type of type not a type");
+         end if;
+      else
+         return Make_Symbol_Type (Type_Name);
+      end if;
    end Do_Type_Reference;
 
    -------------------------
