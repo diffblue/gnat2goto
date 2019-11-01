@@ -394,6 +394,10 @@ package body Tree_Walk is
                  and then List_Length (Expressions (N)) = 1),
           Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
 
+   function Do_Access_Function_Definition (N : Node_Id) return Irep
+     with Pre => Nkind (N) in N_Access_Function_Definition |
+     N_Access_Procedure_Definition;
+
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
                                             Element_Type_Size : Uint;
                                             Source_Loc : Irep)
@@ -505,6 +509,21 @@ package body Tree_Walk is
 
    function Do_Address_Of (N : Node_Id) return Irep is
    begin
+      if Ekind (Entity (Prefix (N))) in E_Function | E_Procedure
+      then
+         declare
+            Addressee_Type : constant Irep :=
+              Get_Subtype (Do_Type_Reference (Etype (N)));
+            Addressee_Id : constant String :=
+              Unique_Name (Entity (Prefix (N)));
+         begin
+            return Make_Address_Of
+              (Make_Symbol_Expr (Source_Location => Get_Source_Location (N),
+                                 I_Type          => Addressee_Type,
+                                 Range_Check     => False,
+                                 Identifier      => Addressee_Id));
+         end;
+      end if;
       if not (Kind (Get_Type (Do_Expression (Prefix (N)))) in Class_Type) then
          return Report_Unhandled_Node_Irep (N, "Do_Address_Of",
                                             "Kind not in class type");
@@ -1289,8 +1308,28 @@ package body Tree_Walk is
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
-               when Attribute_First  => return Do_Array_First (N);
-               when Attribute_Last   => return Do_Array_Last (N);
+               when Attribute_First  =>
+                  if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
+                    and then
+                      Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
+                    = "string"
+                  then
+                     return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                "First of string unsupported");
+                  else
+                     return Do_Array_First (N);
+                  end if;
+               when Attribute_Last   =>
+                  if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
+                    and then
+                      Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
+                    = "string"
+                  then
+                     return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                 "Last of string unsupported");
+                  else
+                     return Do_Array_Last (N);
+                  end if;
                when Attribute_Val =>
                   return Do_Attribute_Pos_Val (N);
                when Attribute_Pos =>
@@ -1306,7 +1345,17 @@ package body Tree_Walk is
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
          when N_Aggregate            => return Do_Aggregate_Literal (N);
-         when N_Indexed_Component    => return Do_Indexed_Component (N);
+         when N_Indexed_Component    =>
+            if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
+              and then
+                Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
+              = "string"
+            then
+               return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                                "Index of string unsupported");
+            else
+               return Do_Indexed_Component (N);
+            end if;
          when N_Slice                => return Do_Slice (N);
          when N_In                   =>  return Do_In (N);
          when N_Real_Literal => return Do_Real_Constant (N);
@@ -1443,7 +1492,11 @@ package body Tree_Walk is
          end if;
       end if;
 
-      pragma Assert (Global_Symbol_Table.Contains (Intern (Unique_Name (E))));
+      if not (Global_Symbol_Table.Contains (Intern (Unique_Name (E))))
+      then
+         Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
+                                 "type not in symbol table after declaration");
+      end if;
    end Do_Full_Type_Declaration;
 
    ----------------------
@@ -1600,6 +1653,27 @@ package body Tree_Walk is
       Func_Symbol  : Symbol;
 
    begin
+      if Nkind (Name (N)) = N_Explicit_Dereference then
+         declare
+            Fun_Type : constant Irep :=
+              Get_Subtype (Do_Type_Reference (Etype (Prefix (Name (N)))));
+            Return_Type : constant Irep := Get_Return_Type (Fun_Type);
+            Deref_Function : constant Irep :=
+              Make_Dereference_Expr
+              (Object          => Do_Identifier (Prefix (Name (N))),
+               Source_Location => Get_Source_Location (N),
+               I_Type          => Fun_Type,
+               Range_Check     => False);
+         begin
+            return Make_Side_Effect_Expr_Function_Call
+              (Arguments       => Do_Call_Parameters (N),
+               I_Function      => Deref_Function,
+               Source_Location => Get_Source_Location (N),
+               I_Type          => Return_Type,
+               Range_Check     => False);
+         end;
+      end if;
+
       if not (Nkind (Name (N)) in N_Has_Entity)
         and then Nkind (Name (N)) /= N_Aspect_Specification
         and then Nkind (Name (N)) /= N_Attribute_Definition_Clause
@@ -3980,6 +4054,26 @@ package body Tree_Walk is
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
    begin
+      if Nkind (Name (N)) = N_Explicit_Dereference then
+         declare
+            Fun_Type : constant Irep :=
+              Get_Subtype (Do_Type_Reference (Etype (Prefix (Name (N)))));
+            Deref_Function : constant Irep := Make_Dereference_Expr
+              (Object          => Do_Identifier (Prefix (Name (N))),
+               Source_Location => Get_Source_Location (N),
+               I_Type          => Fun_Type,
+               Range_Check     => False);
+         begin
+            return Make_Code_Function_Call
+              (Arguments       => Do_Call_Parameters (N),
+               I_Function      => Deref_Function,
+               Lhs             => CProver_Nil,
+               Source_Location => Get_Source_Location (N),
+               I_Type          => CProver_Void_T,
+               Range_Check     => False);
+         end;
+      end if;
+
       if not (Nkind (Name (N)) in N_Has_Entity)
         and then Nkind (Name (N)) /= N_Aspect_Specification
         and then Nkind (Name (N)) /= N_Attribute_Definition_Clause
@@ -4766,6 +4860,10 @@ package body Tree_Walk is
             return Do_Modular_Type_Definition (N);
          when N_Floating_Point_Definition =>
             return Do_Floating_Point_Definition (N);
+         when N_Access_Function_Definition =>
+            return Do_Access_Function_Definition (N);
+         when N_Access_Procedure_Definition =>
+            return Do_Access_Function_Definition (N);
          when N_Access_To_Object_Definition =>
             return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
                                                "Access type unsupported");
@@ -5088,10 +5186,14 @@ package body Tree_Walk is
                   --  clause, i .e. that the size of type-irep we already had
                   --  equals the entity type this clause is applied to (and the
                   --  size specified in this clause).
-                  pragma Assert
-                    (Entity_Esize =
+                  if Entity_Esize /=
                        UI_From_Int (Int (Get_Width (Target_Type_Irep)))
-                     and Entity_Esize = Expression_Value);
+                    or Entity_Esize /= Expression_Value
+                  then
+                     Report_Unhandled_Node_Empty
+                       (N, "Process_Declaration",
+                        "size clause not applied by the front-end");
+                  end if;
                   return;
                elsif Attr_Id = "component_size" then
                   if not Is_Array_Type (Entity (N)) then
@@ -5880,5 +5982,41 @@ package body Tree_Walk is
       end if;
       return Left.Index_Type < Right.Index_Type;
    end "<";
+
+   function Do_Access_Function_Definition (N : Node_Id) return Irep
+   is
+      Return_Type : constant Irep :=
+        (if Nkind (N) = N_Access_Procedure_Definition
+         then CProver_Void_T
+         else Do_Type_Reference (Etype (Result_Definition (N))));
+      Parameters : constant Irep := Make_Parameter_List;
+      Fun_Name : constant String :=
+        Unique_Name (Defining_Identifier (Parent (N)));
+      A_Parameter : Node_Id := First (Parameter_Specifications (N));
+   begin
+      while Present (A_Parameter) loop
+         declare
+            Param_Name : constant String :=
+              Unique_Name (Defining_Identifier (A_Parameter));
+            Param_Type : constant Irep :=
+              Do_Type_Reference (Etype (Parameter_Type (A_Parameter)));
+            Param_Irep : constant Irep :=
+              Create_Fun_Parameter (Fun_Name        => Fun_Name,
+                                    Param_Name      => Param_Name,
+                                    Param_Type      => Param_Type,
+                                    Param_List      => Parameters,
+                                    A_Symbol_Table  => Global_Symbol_Table,
+                                   Source_Location => Get_Source_Location (N));
+         begin
+            pragma Assert (Kind (Param_Irep) = I_Code_Parameter);
+         end;
+         Next (A_Parameter);
+      end loop;
+      return Make_Pointer_Type (Make_Code_Type (Parameters  => Parameters,
+                                                Ellipsis    => False,
+                                                Return_Type => Return_Type,
+                                                Inlined     => False,
+                                                Knr         => False));
+   end Do_Access_Function_Definition;
 
 end Tree_Walk;
