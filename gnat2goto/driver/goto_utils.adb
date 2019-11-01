@@ -911,4 +911,15 @@ package body GOTO_Utils is
       end if;
    end Get_Ada_Check_Symbol;
 
+   function File_Name_Without_Extension (N : Node_Id) return String
+   is
+      Full_File_Name : constant String := Get_File (Get_Source_Location (N));
+      Dot_Index : constant Natural := Ada.Strings.Fixed.Index
+        (Source  => Full_File_Name,
+         Pattern => ".");
+   begin
+      return Ada.Strings.Fixed.Head (Source => Full_File_Name,
+                                     Count  => Dot_Index);
+   end File_Name_Without_Extension;
+
 end GOTO_Utils;

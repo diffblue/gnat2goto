@@ -217,4 +217,6 @@ package GOTO_Utils is
                                   A_Symbol_Table : out Symbol_Table;
                                   Source_Loc : Irep)
                                   return Symbol;
+
+   function File_Name_Without_Extension (N : Node_Id) return String;
 end GOTO_Utils;

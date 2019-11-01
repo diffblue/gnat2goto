@@ -332,7 +332,8 @@ package body Range_Check is
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String := Fresh_Var_Name ("range_check");
+         Func_Name : constant String :=
+           Fresh_Var_Name ("range_check_" & File_Name_Without_Extension (N));
          Body_Block : constant Irep :=
            Make_Code_Block (Get_Source_Location (N));
          Func_Params : constant Irep := Make_Parameter_List;
