@@ -3,6 +3,21 @@ Calling function: Process_Declaration
 Error message: Address representation clauses are not currently supported
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: First of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: Index of string unsupported
+Nkind: N_Indexed_Component
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: Last of string unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
@@ -72,13 +87,3 @@ Occurs: 1 times
 Redacted compiler error message:
 unmatched actual "REDACTED" in call
 Raw compiler error message:
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1613|
-Error detected at REDACTED
---
-Occurs: 1 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from ireps.ads:1613
-
