@@ -23,8 +23,8 @@ package Range_Check is
                              return Irep
      with Pre => Kind (Bound_Type) in
      I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
-     | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type,
-
+       | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
+         | I_Floatbv_Type,
      Post => Kind (Get_Bound'Result) in Class_Expr;
 
    function Get_Bound_Of_Bounded_Type (Bound_Type : Irep;
@@ -35,6 +35,13 @@ package Range_Check is
        | I_Bounded_Unsignedbv_Type,
        Post => Kind (Get_Bound_Of_Bounded_Type'Result) in Class_Expr;
 
+   function Make_Overflow_Assert_Expr (N : Node_Id; Value : Irep) return Irep;
+
+   function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
+                                    Lower_Bound : Irep; Upper_Bound : Irep;
+                                    Expected_Return_Type : Irep;
+                                    Check_Name : String)
+                                    return Irep;
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
                                     Bounds_Type : Irep) return Irep
      with Pre => Kind (Bounds_Type) in
@@ -82,10 +89,4 @@ private
      with Pre => Kind (Actual_Type) = I_Bounded_Floatbv_Type;
 
    function Load_Symbol_Bound (Index : Integer) return Irep;
-
-   --  might be best if this is moved to a utility package in future
-   --  atm placement documents it is only used by range_check
-   function Make_Assert_Call (N : Node_Id; Assertion : Irep;
-                              Description : Irep) return Irep;
-
 end Range_Check;

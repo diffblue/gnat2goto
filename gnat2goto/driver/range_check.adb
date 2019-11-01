@@ -1,5 +1,3 @@
-with Sinfo;                 use Sinfo;
-
 with GOTO_Utils;            use GOTO_Utils;
 
 with Binary_To_Hex;         use Binary_To_Hex;
@@ -92,12 +90,12 @@ package body Range_Check is
                   else UI_From_Int (2 ** Type_Width - 1));
             begin
                return Make_Constant_Expr
-                 (Source_Location => Internal_Source_Location,
-                  I_Type          => Bound_Type,
+                 (Source_Location => Get_Source_Location (N),
+                  I_Type          => Maybe_Double_Type_Width (Bound_Type),
                   Range_Check     => False,
-                  Value =>
-                    Convert_Uint_To_Hex (Bound_Value,
-                                         Types.Pos (Type_Width)));
+                  Value           => Convert_Uint_To_Hex
+                    (Bound_Value,
+                     Types.Pos (Type_Width * 2)));
             end;
          when I_Signedbv_Type =>
             declare
@@ -108,12 +106,31 @@ package body Range_Check is
                   else UI_From_Int (2 ** (Type_Width - 1) - 1));
             begin
                return Make_Constant_Expr
-                 (Source_Location => Internal_Source_Location,
-                  I_Type          => Bound_Type,
+                 (Source_Location => Get_Source_Location (N),
+                  I_Type          => Maybe_Double_Type_Width (Bound_Type),
                   Range_Check     => False,
-                  Value =>
-                    Convert_Uint_To_Hex (Bound_Value,
-                                         Types.Pos (Type_Width)));
+                  Value           => Convert_Uint_To_Hex
+                    (Bound_Value,
+                     Types.Pos (Type_Width * 2)));
+            end;
+         when I_Floatbv_Type =>
+            declare
+               Smallest_Float : constant String := "C7EFFFFFE0000000";
+               --  0xff7fffff : single-precision min stored in double precision
+               Largest_Float : constant String := "47EFFFFFE0000000";
+               --  0x7f7fffff : single-precision max stored in double precision
+               Result_Type : constant Irep :=
+                 (case To_Float_Format (Get_Width (Bound_Type)) is
+                     when others => Float64_T);
+               --  We may want to extend it here for wider floats
+            begin
+               return Make_Constant_Expr
+                 (Source_Location => Get_Source_Location (N),
+                  I_Type          => Result_Type,
+                  Range_Check     => False,
+                  Value           => (if Pos = Bound_Low
+                                      then Smallest_Float
+                                      else Largest_Float));
             end;
          when others =>
                return Report_Unhandled_Node_Irep (N, "Get_Bound",
@@ -145,19 +162,64 @@ package body Range_Check is
       end case;
    end Get_Bound_Of_Bounded_Type;
 
-   ----------------------------
-   -- Make_Range_Assert_Expr --
-   ----------------------------
+
+   function Make_Overflow_Assert_Expr (N : Node_Id; Value : Irep) return Irep
+   is
+      Value_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Value), Global_Symbol_Table);
+      Low_Value : constant Irep := Get_Bound (N, Value_Type, Bound_Low);
+      High_Value : constant Irep := Get_Bound (N, Value_Type, Bound_High);
+      Maybe_Casted_Value : constant Irep := Value;
+   begin
+      pragma Assert (Get_Type (Low_Value) = Get_Type (High_Value));
+
+      if Kind (Value) in Class_Binary_Expr
+      then
+         declare
+            Cast_Lhs : constant Irep :=
+              Typecast_If_Necessary (Get_Lhs (Value), Get_Type (Low_Value),
+                                     Global_Symbol_Table);
+            Cast_Rhs : constant Irep :=
+              Typecast_If_Necessary (Get_Rhs (Value), Get_Type (Low_Value),
+                                     Global_Symbol_Table);
+         begin
+            Set_Lhs (Maybe_Casted_Value, Cast_Lhs);
+            Set_Rhs (Maybe_Casted_Value, Cast_Rhs);
+            Set_Type (Maybe_Casted_Value, Get_Type (Low_Value));
+         end;
+      end if;
+
+      if Kind (Value) in Class_Unary_Expr
+      then
+         declare
+            Cast_Op : constant Irep :=
+              Typecast_If_Necessary (Get_Op0 (Value), Get_Type (Low_Value),
+                                     Global_Symbol_Table);
+         begin
+            Set_Op0 (Maybe_Casted_Value, Cast_Op);
+            Set_Type (Maybe_Casted_Value, Get_Type (Low_Value));
+         end;
+      end if;
+
+      return Make_Range_Assert_Expr (N           => N,
+                                     Value       => Maybe_Casted_Value,
+                                     Lower_Bound => Low_Value,
+                                     Upper_Bound => High_Value,
+                                     Expected_Return_Type => Value_Type,
+                                Check_Name  => "__CPROVER_Ada_Overflow_Check");
+   end Make_Overflow_Assert_Expr;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
-                                    Bounds_Type : Irep)
+                                    Lower_Bound : Irep; Upper_Bound : Irep;
+                                    Expected_Return_Type : Irep;
+                                    Check_Name : String)
                                     return Irep
    is
       Call_Args : constant Irep := Make_Argument_List;
-      Actual_Type : constant Irep := Follow_Symbol_Type (Get_Type (Value),
-                                                         Global_Symbol_Table);
-      Followed_Bound_Type : constant Irep := Follow_Symbol_Type (Bounds_Type,
-                                                         Global_Symbol_Table);
+      Underlying_Lower_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
+      Underlying_Upper_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Upper_Bound), Global_Symbol_Table);
       Source_Loc : constant Irep := Get_Source_Location (N);
 
       function Build_Assert_Function return Symbol;
@@ -169,7 +231,7 @@ package body Range_Check is
       --  Build a symbol for the following function
       --  Actual_Type range_check(Actual_Type value, Actual_Type lower_bound,
       --                          Actual_Type upper_bound) {
-      --    assert (value >= lower_bound && value <= upper_bound);
+      --    `Check_Name` (value >= lower_bound && value <= upper_bound);
       --    return value;
       --  }
       function Build_Assert_Function return Symbol
@@ -177,30 +239,25 @@ package body Range_Check is
          Func_Name : constant String := Fresh_Var_Name ("range_check");
          Body_Block : constant Irep :=
            Make_Code_Block (Get_Source_Location (N));
-         Description : constant Irep := Make_String_Constant_Expr (
-                                             Source_Location => Source_Loc,
-                                             I_Type          => Ireps.Empty,
-                                             Range_Check     => False,
-                                             Value           => "Range Check");
          Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
            Create_Fun_Parameter (Fun_Name        => Func_Name,
                                  Param_Name      => "value",
-                                 Param_Type      => Actual_Type,
+                                 Param_Type      => Underlying_Lower_Type,
                                  Param_List      => Func_Params,
                                  A_Symbol_Table  => Global_Symbol_Table,
                                  Source_Location => Source_Loc);
          Lower_Bound_Arg : constant Irep :=
            Create_Fun_Parameter (Fun_Name        => Func_Name,
                                  Param_Name      => "low",
-                                 Param_Type      => Bounds_Type,
+                                 Param_Type      => Underlying_Lower_Type,
                                  Param_List      => Func_Params,
                                  A_Symbol_Table  => Global_Symbol_Table,
                                  Source_Location => Source_Loc);
          Upper_Bound_Arg : constant Irep :=
            Create_Fun_Parameter (Fun_Name        => Func_Name,
                                  Param_Name      => "high",
-                                 Param_Type      => Bounds_Type,
+                                 Param_Type      => Underlying_Upper_Type,
                                  Param_List      => Func_Params,
                                  A_Symbol_Table  => Global_Symbol_Table,
                                  Source_Location => Source_Loc);
@@ -209,7 +266,7 @@ package body Range_Check is
                             --  Create_Fun_Parameter
                             Parameters  => Func_Params,
                             Ellipsis    => False,
-                            Return_Type => Actual_Type,
+                            Return_Type => Expected_Return_Type,
                             Inlined     => False,
                             Knr         => False);
          Value_Param : constant Irep := Param_Symbol (Value_Arg);
@@ -217,39 +274,80 @@ package body Range_Check is
          Upper_Bound_Param : constant Irep := Param_Symbol (Upper_Bound_Arg);
          --
          Return_Inst : constant Irep :=
-           Make_Code_Return (Return_Value    => Value_Param,
-                             Source_Location => Get_Source_Location (N),
+           Make_Code_Return (Return_Value    =>
+                               Typecast_If_Necessary (
+                                 Value_Param, Expected_Return_Type,
+                                 Global_Symbol_Table),
+                             Source_Location => Source_Loc,
                              I_Type          => Ireps.Empty);
+         Range_Check_Args : constant Irep := Make_Argument_List;
+         Range_Expr : constant Irep :=
+           Make_Range_Expression (Value_Expr  => Value_Param,
+                                  Lower_Bound => Lower_Bound_Param,
+                                  Upper_Bound => Upper_Bound_Param);
+         Range_Expr_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Range_Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Range_Check_Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol (Check_Name,
+                        Global_Symbol_Table, Source_Loc));
+         Range_Check_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Range_Check_Args,
+                                    I_Function      => Range_Check_Sym_Expr,
+                                    Lhs             => Make_Nil (Source_Loc),
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Make_Void_Type);
       begin
-         Append_Op (Body_Block,
-                    Make_Assert_Call (Expression (N),
-                      Make_Range_Expression
-                        (Value_Param, Lower_Bound_Param, Upper_Bound_Param),
-                      Description));
+         Append_Argument (Range_Check_Args, Range_Expr_As_Int);
+         Append_Op (Body_Block, Range_Check_Call);
          Append_Op (Body_Block, Return_Inst);
 
-         return New_Function_Symbol_Entry (Name        => Func_Name,
-                                        Symbol_Type => Func_Type,
-                                        Value       => Body_Block,
-                                        A_Symbol_Table => Global_Symbol_Table);
+         return New_Function_Symbol_Entry
+           (Name        => Func_Name,
+            Symbol_Type => Func_Type,
+            Value       => Body_Block,
+            A_Symbol_Table => Global_Symbol_Table);
       end Build_Assert_Function;
 
-      Lower_Bound : constant Irep :=
-        Get_Bound (N, Followed_Bound_Type, Bound_Low);
-      Upper_Bound : constant Irep :=
-        Get_Bound (N, Followed_Bound_Type, Bound_High);
-
-      Call_Inst : constant Irep := Make_Side_Effect_Expr_Function_Call (
-        Arguments => Call_Args,
-        I_Function => Symbol_Expr (Build_Assert_Function),
-        Source_Location => Get_Source_Location (N),
-        I_Type => Actual_Type);
+      Call_Inst : constant Irep := Make_Side_Effect_Expr_Function_Call
+        (Arguments => Call_Args,
+         I_Function => Symbol_Expr (Build_Assert_Function),
+         Source_Location => Get_Source_Location (N),
+         I_Type => Expected_Return_Type);
    begin
-      Append_Argument (Call_Args, Value);
+      pragma Assert (Underlying_Lower_Type = Underlying_Upper_Type);
+
+      Append_Argument (Call_Args,
+                Typecast_If_Necessary (Expr           => Value,
+                                       New_Type       => Underlying_Lower_Type,
+                                       A_Symbol_Table => Global_Symbol_Table));
+      --  Value);
       Append_Argument (Call_Args, Lower_Bound);
       Append_Argument (Call_Args, Upper_Bound);
 
       return Call_Inst;
+   end Make_Range_Assert_Expr;
+
+   ----------------------------
+   -- Make_Range_Assert_Expr --
+   ----------------------------
+
+   function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
+                                    Bounds_Type : Irep)
+                                    return Irep
+   is
+      Followed_Bound_Type : constant Irep := Follow_Symbol_Type (Bounds_Type,
+                                                         Global_Symbol_Table);
+
+   begin
+      return Make_Range_Assert_Expr (N           => N,
+                 Value       => Value,
+                 Lower_Bound => Get_Bound (N, Followed_Bound_Type, Bound_Low),
+                 Upper_Bound => Get_Bound (N, Followed_Bound_Type, Bound_High),
+                 Expected_Return_Type => Get_Type (Value),
+                 Check_Name  => "__CPROVER_Ada_Range_Check");
+
    end Make_Range_Assert_Expr;
 
    -------------------------------
@@ -319,11 +417,13 @@ package body Range_Check is
                        | I_Bounded_Signedbv_Type
                        | I_Bounded_Floatbv_Type
                        | I_Unsignedbv_Type
-                       | I_Signedbv_Type);
-
-      return R : constant Irep := Make_Op_And (
-          Source_Location => Source_Location,
-          I_Type => Make_Bool_Type) do
+                       | I_Signedbv_Type
+                       | I_Floatbv_Type
+                       | I_Ada_Mod_Type);
+      return R : constant Irep := Make_Op_And
+        (Source_Location => Source_Location,
+         I_Type => Make_Bool_Type)
+      do
          Append_Op (R, Op_Geq);
          Append_Op (R, Op_Leq);
       end return;
@@ -367,36 +467,5 @@ package body Range_Check is
    begin
       return Irep (Expr_Bounds_Table.Element (Index));
    end Load_Symbol_Bound;
-
-   ----------------------
-   -- Make_Assert_Call --
-   ----------------------
-
-   function Make_Assert_Call (N : Node_Id; Assertion : Irep;
-                              Description : Irep)
-                              return Irep is
-      Assert_Args  : constant Irep := Make_Argument_List;
-      Sym_Assert   : constant Irep := Make_Symbol_Expr (
-        Source_Location => Get_Source_Location (N),
-        I_Type => Make_Code_Type (
-          Parameters => Make_Parameter_List,
-          Ellipsis => False,
-          Return_Type => Make_Void_Type,
-          Inlined => False,
-          Knr => False),
-        Identifier => "__CPROVER_assert");
-      SE_Call_Expr : constant Irep :=
-        Make_Code_Function_Call (
-          Arguments => Assert_Args,
-          I_Function => Sym_Assert,
-          Lhs => Make_Nil (Get_Source_Location (N)),
-          Source_Location => Get_Source_Location (N),
-          I_Type => Make_Void_Type);
-   begin
-      Append_Argument (Assert_Args, Assertion);
-      Append_Argument (Assert_Args, Description);
-
-      return SE_Call_Expr;
-   end Make_Assert_Call;
 
 end Range_Check;
