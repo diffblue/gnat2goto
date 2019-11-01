@@ -16,5 +16,6 @@
 [assert_val.assertion.16] line 23 assertion Y * 8 = 2: SUCCESS
 [assert_val.assertion.17] line 24 assertion Y * 9 = 6: SUCCESS
 [assert_val.assertion.18] line 26 assertion X - 6 = 9: SUCCESS
+[assertion.1] line 28 Ada Check assertion: SUCCESS
 [assert_val.assertion.19] line 28 assertion X / 2 = 2: SUCCESS
 VERIFICATION SUCCESSFUL

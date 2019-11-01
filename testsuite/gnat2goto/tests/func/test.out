@@ -1,2 +1,3 @@
+[assertion.1] file func.adb line 6 Ada Check assertion: SUCCESS
 [func.assertion.1] line 10 assertion C = 3: SUCCESS
 VERIFICATION SUCCESSFUL

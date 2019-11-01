@@ -92,6 +92,103 @@ package body GOTO_Utils is
       return Internal_Source_Location_V;
    end Internal_Source_Location;
 
+   Float_T : Irep := Ireps.Empty;
+   function Float32_T return Irep
+   is
+   begin
+      if Float_T = Ireps.Empty then
+         Float_T := Make_Floatbv_Type (Width => 32,
+                                       F     => 23);
+      end if;
+      return Float_T;
+   end Float32_T;
+
+   Double_T : Irep := Ireps.Empty;
+   function Float64_T return Irep
+   is
+   begin
+      if Double_T = Ireps.Empty then
+         Double_T := Make_Floatbv_Type (Width => 64,
+                                        F     => 52);
+      end if;
+      return Double_T;
+   end Float64_T;
+
+   Int_T : Irep := Ireps.Empty;
+   function Int32_T return Irep
+   is
+   begin
+      if Int_T = Ireps.Empty then
+         Int_T := Make_Signedbv_Type (32);
+      end if;
+      return Int_T;
+   end Int32_T;
+
+   Long_T : Irep := Ireps.Empty;
+   function Int64_T return Irep
+   is
+   begin
+      if Long_T = Ireps.Empty then
+         Long_T := Make_Signedbv_Type (64);
+      end if;
+      return Long_T;
+   end Int64_T;
+
+   Char_T : Irep := Ireps.Empty;
+   function Uint8_T return Irep
+   is
+   begin
+      if Char_T = Ireps.Empty then
+         Char_T := Make_Unsignedbv_Type (8);
+      end if;
+      return Char_T;
+   end Uint8_T;
+
+   Unsigned_T : Irep := Ireps.Empty;
+   function Uint32_T return Irep
+   is
+   begin
+      if Unsigned_T = Ireps.Empty then
+         Unsigned_T := Make_Unsignedbv_Type (32);
+      end if;
+      return Unsigned_T;
+   end Uint32_T;
+
+   Unsigned_Long_T : Irep := Ireps.Empty;
+   function Uint64_T return Irep
+   is
+   begin
+      if Unsigned_Long_T = Ireps.Empty then
+         Unsigned_Long_T := Make_Unsignedbv_Type (64);
+      end if;
+      return Unsigned_Long_T;
+   end Uint64_T;
+
+   function Maybe_Double_Type_Width (Original_Type : Irep) return Irep
+   is
+   begin
+      if Get_Width (Original_Type) /= 32 then
+         return Original_Type;
+      end if;
+
+      if Original_Type = Int32_T or
+        Kind (Original_Type) = I_Signedbv_Type
+      then
+         return Int64_T;
+      end if;
+      if Original_Type = Float32_T or
+        Kind (Original_Type) = I_Floatbv_Type
+      then
+         return Float64_T;
+      end if;
+      if Original_Type = Uint32_T or
+        Kind (Original_Type) = I_Unsignedbv_Type
+      then
+         return Uint64_T;
+      end if;
+      return Original_Type;
+   end Maybe_Double_Type_Width;
+
    ---------------------
    -- Make_Address_Of --
    ---------------------
@@ -317,6 +414,34 @@ package body GOTO_Utils is
                                   A_Symbol_Table => A_Symbol_Table);
       Append_Parameter (Param_List, Value_Arg);
       return Value_Arg;
+   end Create_Fun_Parameter;
+
+   --  To be called when one needs to build a function inside gnat2goto
+   --  Modifies symbol table and Param_List as a side effect
+   --  Returns irep of type I_Code_Parameter
+   procedure Create_Fun_Parameter (Fun_Name : String; Param_Name : String;
+                                  Param_Type : Irep; Param_List : Irep;
+                                  A_Symbol_Table : in out Symbol_Table;
+                            Source_Location : Irep := Internal_Source_Location)
+   is
+      Unique_Name : constant String :=
+        Fun_Name & "::" & Fresh_Var_Name (Param_Name);
+      Func_Param_Id : constant Symbol_Id := Intern (Unique_Name);
+      --  Create an irep for the parameter
+      Value_Arg : constant Irep :=
+        Make_Code_Parameter (Source_Location => Source_Location,
+                             Default_Value   => Ireps.Empty,
+                             I_Type          => Param_Type,
+                             Base_Name       => Unique_Name,
+                             This            => False,
+                             Identifier      => Unintern (Func_Param_Id));
+   begin
+      --  Creates a symbol for the parameter
+      New_Parameter_Symbol_Entry (Name_Id        => Func_Param_Id,
+                                  BaseName       => Unique_Name,
+                                  Symbol_Type    => Param_Type,
+                                  A_Symbol_Table => A_Symbol_Table);
+      Append_Parameter (Param_List, Value_Arg);
    end Create_Fun_Parameter;
 
    function Compute_Memory_Op_Size (Num_Elem : Irep; Element_Type_Size : Uint;
@@ -578,9 +703,7 @@ package body GOTO_Utils is
       if Kind (Follow_Symbol_Type (Get_Type (Expr),
                A_Symbol_Table)) = I_C_Enum_Type
       then
-         return Typecast_If_Necessary (Expr,
-                                       Make_Signedbv_Type (32),
-                                       A_Symbol_Table);
+         return Typecast_If_Necessary (Expr, Int32_T, A_Symbol_Table);
       else
          return Expr;
       end if;
@@ -644,4 +767,159 @@ package body GOTO_Utils is
              Property_Class => Property_Class,
              Line => Line,
              Column => Column));
+
+   function Make_Assert_Call (Assertion : Irep;
+                              Description : Irep; Source_Loc : Irep;
+                              A_Symbol_Table : in out Symbol_Table)
+                              return Irep is
+      Assert_Param_List : constant Irep := Make_Parameter_List;
+      Assert_Name : constant String := "__CPROVER_assert";
+      Sym_Assert : constant Irep :=
+        Make_Symbol_Expr (Source_Location => Source_Loc,
+                          I_Type          =>
+                            Make_Code_Type (Parameters  => Assert_Param_List,
+                                            Ellipsis    => False,
+                                            Return_Type => Make_Void_Type,
+                                            Inlined     => False,
+                                            Knr         => False),
+                          Range_Check     => False,
+                          Identifier      => Assert_Name);
+      Assert_Args  : constant Irep := Make_Argument_List;
+   begin
+      Create_Fun_Parameter (Fun_Name        => Assert_Name,
+                            Param_Name      => "condition",
+                            Param_Type      => Int32_T,
+                            Param_List      => Assert_Param_List,
+                            A_Symbol_Table  => A_Symbol_Table,
+                            Source_Location => Source_Loc);
+      Create_Fun_Parameter (Fun_Name        => Assert_Name,
+                            Param_Name      => "comment",
+                            Param_Type      => Make_Pointer_Type (Uint8_T),
+                            Param_List      => Assert_Param_List,
+                            A_Symbol_Table  => A_Symbol_Table,
+                            Source_Location => Source_Loc);
+
+      Append_Argument (Assert_Args, Assertion);
+      Append_Argument (Assert_Args, Description);
+
+      return Make_Code_Function_Call (Arguments       => Assert_Args,
+                                      I_Function      => Sym_Assert,
+                                      Lhs             => Make_Nil (Source_Loc),
+                                      Source_Location => Source_Loc,
+                                      I_Type          => Make_Void_Type,
+                                      Range_Check     => False);
+   end Make_Assert_Call;
+
+   function Make_Assume_Call (Assumption : Irep; Source_Loc : Irep;
+                             A_Symbol_Table : in out Symbol_Table)
+                              return Irep is
+      Assume_Param_List : constant Irep := Make_Parameter_List;
+      Assume_Name : constant String := "__CPROVER_assume";
+      Sym_Assume : constant Irep :=
+        Make_Symbol_Expr (Source_Location => Source_Loc,
+                          I_Type          =>
+                            Make_Code_Type (Parameters  => Assume_Param_List,
+                                            Ellipsis    => False,
+                                            Return_Type => Make_Void_Type,
+                                            Inlined     => False,
+                                            Knr         => False),
+                          Range_Check     => False,
+                          Identifier      => Assume_Name);
+      Assume_Args  : constant Irep := Make_Argument_List;
+   begin
+      Create_Fun_Parameter (Fun_Name        => Assume_Name,
+                            Param_Name      => "condition",
+                            Param_Type      => Int32_T,
+                            Param_List      => Assume_Param_List,
+                            A_Symbol_Table  => A_Symbol_Table,
+                            Source_Location => Source_Loc);
+
+      Append_Argument (Assume_Args, Assumption);
+
+      return Make_Code_Function_Call (Arguments       => Assume_Args,
+                                      I_Function      => Sym_Assume,
+                                      Lhs             => Make_Nil (Source_Loc),
+                                      Source_Location => Source_Loc,
+                                      I_Type          => Make_Void_Type,
+                                      Range_Check     => False);
+   end Make_Assume_Call;
+
+   function Get_Int32_T_Zero return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_0,
+         Expr_Type       => Int32_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int32_T_Zero;
+
+   function Get_Ada_Check_Symbol (Name : String;
+                                  A_Symbol_Table : out Symbol_Table;
+                                  Source_Loc : Irep)
+                                  return Symbol is
+   begin
+      if A_Symbol_Table.Contains (Intern (Name)) then
+         return A_Symbol_Table.Element (Intern (Name));
+      else
+         declare
+            Func_Params : constant Irep := Make_Parameter_List;
+            Expr_Param : constant Irep := Create_Fun_Parameter
+              (Fun_Name        => Name,
+               Param_Name      => "expr",
+               Param_Type      => Int32_T,
+               Param_List      => Func_Params,
+               A_Symbol_Table  => A_Symbol_Table,
+               Source_Location => Source_Loc);
+            Func_Type : constant Irep :=
+              Make_Code_Type (Parameters  => Func_Params,
+                              Ellipsis    => False,
+                              Return_Type => Make_Void_Type,
+                              Inlined     => False,
+                              Knr         => False);
+            Default_Body : constant Irep :=
+              Make_Code_Block (Source_Loc);
+            Assert_Comment : constant Irep := Make_String_Constant_Expr
+              (Source_Location => Source_Loc,
+               I_Type          => Ireps.Empty,
+               Range_Check     => False,
+               Value           => "Ada Check assertion");
+            Expr_Neq_Zero : constant Irep := Make_Op_Notequal
+              (Rhs             => Get_Int32_T_Zero,
+               Lhs             => Param_Symbol (Expr_Param),
+               Source_Location => Source_Loc,
+               Overflow_Check  => False,
+               I_Type          => Make_Bool_Type,
+               Range_Check     => False);
+         begin
+            Append_Op (Default_Body,
+                       Make_Assert_Call
+                         (Assertion   => Expr_Neq_Zero,
+                          Description => Assert_Comment,
+                          Source_Loc  => Source_Loc,
+                          A_Symbol_Table => A_Symbol_Table));
+            Append_Op (Default_Body,
+                       Make_Assume_Call
+                         (Assumption   => Expr_Neq_Zero,
+                          Source_Loc   => Source_Loc,
+                          A_Symbol_Table => A_Symbol_Table));
+            return New_Function_Symbol_Entry
+              (Name           => Name,
+               Symbol_Type    => Func_Type,
+               Value          => Default_Body,
+               A_Symbol_Table => A_Symbol_Table);
+         end;
+      end if;
+   end Get_Ada_Check_Symbol;
+
+   function File_Name_Without_Extension (N : Node_Id) return String
+   is
+      Full_File_Name : constant String := Get_File (Get_Source_Location (N));
+      Dot_Index : constant Natural := Ada.Strings.Fixed.Index
+        (Source  => Full_File_Name,
+         Pattern => ".");
+   begin
+      return Ada.Strings.Fixed.Head (Source => Full_File_Name,
+                                     Count  => Dot_Index);
+   end File_Name_Without_Extension;
+
 end GOTO_Utils;

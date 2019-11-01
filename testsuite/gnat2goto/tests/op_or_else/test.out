@@ -1,5 +1,5 @@
-[division-by-zero.2] file op_or_else.adb line 16 division by zero in op_or_else__div_by_zero__x / op_or_else__div_by_zero__y$$op_or_else__div_by_zero__y: FAILURE
-[division-by-zero.1] file op_or_else.adb line 26 division by zero in op_or_else__div_by_zero_not_called__x / op_or_else__div_by_zero_not_called__y$$op_or_else__div_by_zero_not_called__y: SUCCESS
+[assertion.2] file op_or_else.adb line 16 Ada Check assertion: FAILURE
+[assertion.1] file op_or_else.adb line 16 Ada Check assertion: FAILURE
 [op_or_else.assertion.1] line 34 assertion A or else B: SUCCESS
 [op_or_else.assertion.2] line 35 assertion B or else A: SUCCESS
 [op_or_else.assertion.3] line 36 assertion A or else A: SUCCESS

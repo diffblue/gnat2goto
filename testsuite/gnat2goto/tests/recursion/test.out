@@ -1,1 +1,2 @@
-VERIFICATION SUCCESSFUL
+[assertion.1] file recursion.adb line 6 Ada Check assertion: FAILURE
+VERIFICATION FAILED

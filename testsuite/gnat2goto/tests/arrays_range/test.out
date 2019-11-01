@@ -1,10 +1,9 @@
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[assertion.2] file arrays_range.adb line 8 Range Check: SUCCESS
+[assertion.2] file arrays_range.adb line 8 Ada Check assertion: FAILURE
+[assertion.1] file arrays_range.adb line 8 Ada Check assertion: SUCCESS
 [array_consumer.assertion.1] line 9 assertion An_Index = 2: SUCCESS
-[assertion.3] line 10 Range Check: FAILURE
 [array_consumer.assertion.2] line 11 assertion An_Index = 4: SUCCESS
-[assertion.1] line 12 Range Check: FAILURE
 [array_consumer.assertion.3] line 13 assertion An_Index = -1: SUCCESS
 VERIFICATION FAILED

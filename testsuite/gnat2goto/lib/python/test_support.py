@@ -79,10 +79,12 @@ def process_cbmc(debug, files, cbmcargs):
     cbmcerr_file = open (cbmcerr)
     cbmcerr_text = cbmcerr_file.read()
     cbmcerr_file.close()
+    CBMC_VER_SUCC_CODE=0
+    CBMC_VER_FAIL_CODE=10
     if cbmcerr_text != '':
         print "Error from cbmc " + unit + ":"
         print cbmcerr_text
-    if results.status != 0 and results.status != 10:
+    if results.status != CBMC_VER_SUCC_CODE and results.status != CBMC_VER_FAIL_CODE:
         print "ERROR code ", results.status, "returned by cbmc when processing " + unit
 
     return filter_timing(results.out)

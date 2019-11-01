@@ -1497,7 +1497,9 @@ package body Tree_Walk is
           Do_Type_Reference (Etype (N)),
           Global_Symbol_Table);
       Typecast_Expr : constant Irep :=
-        Make_Op_Typecast (Value, Get_Source_Location (N), Type_Of_Val);
+        Typecast_If_Necessary (Expr           => Value,
+                               New_Type       => Type_Of_Val,
+                               A_Symbol_Table => Global_Symbol_Table);
    begin
       --  TODO: Range expressions for non-bounded types are outside
       --        the scope of this PR
@@ -3220,10 +3222,15 @@ package body Tree_Walk is
    function Do_Op_Minus (N : Node_Id) return Irep is
       Original_Value : constant Irep := Do_Expression (Right_Opnd (N));
       Original_Value_Type : constant Irep := Do_Type_Reference (Etype (N));
+      Unchecked_Result : constant Irep :=
+        Make_Op_Neg (Original_Value,
+                     Get_Source_Location (N),
+                     Original_Value_Type);
    begin
-      return Make_Op_Neg (Original_Value,
-                          Get_Source_Location (N),
-                          Original_Value_Type);
+      return (if Do_Overflow_Check (N)
+              then Make_Overflow_Assert_Expr (N     => N,
+                                              Value => Unchecked_Result)
+              else Unchecked_Result);
    end Do_Op_Minus;
 
    -------------------------
@@ -3289,11 +3296,11 @@ package body Tree_Walk is
             Cast_LHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => LHS_Value,
                                 Source_Location => Source_Loc,
-                                I_Type => Make_Signedbv_Type (32));
+                                I_Type => Int32_T);
             Cast_RHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => RHS_Value,
                                 Source_Location => Source_Loc,
-                                I_Type => Make_Signedbv_Type (32));
+                                I_Type => Int32_T);
             R : constant Irep := Operator (Lhs => Cast_LHS_To_Integer,
                                            Rhs => Cast_RHS_To_Integer,
                                            Source_Location => Source_Loc,
@@ -3692,16 +3699,38 @@ package body Tree_Walk is
          RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
                                            Global_Symbol_Table);
 
-      --  Start of processing for Do_Operator_Simple
+         --  Start of processing for Do_Operator_Simple
+
+         Unchecked_Result : constant Irep := Make_Binary_Operation
+              (Lhs => LHS,
+               Rhs => Typecast_If_Necessary
+                 (RHS, Get_Type (LHS), Global_Symbol_Table),
+               I_Type => Ret_Type,
+               Overflow_Check => Do_Overflow_Check (N),
+               Source_Location => Get_Source_Location (N));
+
+         Maybe_Overflow_Check : Irep := Unchecked_Result;
+         Maybe_Division_Check : Irep := Unchecked_Result;
 
       begin
-         return Make_Binary_Operation
-           (Lhs => LHS,
-            Rhs => Typecast_If_Necessary
-              (RHS, Get_Type (LHS), Global_Symbol_Table),
-            I_Type => Ret_Type,
-            Overflow_Check => Do_Overflow_Check (N),
-            Source_Location => Get_Source_Location (N));
+         if Do_Overflow_Check (N) then
+            Maybe_Overflow_Check := Make_Overflow_Assert_Expr
+              (N     => N,
+               Value => Unchecked_Result);
+         end if;
+
+         if Nkind (N) in N_Op_Divide | N_Op_Mod | N_Op_Rem
+           and then Do_Division_Check (N)
+         then
+            Maybe_Division_Check := Make_Div_Zero_Assert_Expr
+              (N       => N,
+               Value   => Maybe_Overflow_Check,
+               Divisor => Get_Rhs (Unchecked_Result));
+         else
+            Maybe_Division_Check := Maybe_Overflow_Check;
+         end if;
+
+         return Maybe_Division_Check;
       end;
    end Do_Operator_Simple;
 
@@ -3718,7 +3747,7 @@ package body Tree_Walk is
       --  Multiplication can result in intermediate results larger than what
       --  could be stored in Ret_Type: we cast to a wider type
       Large_Enough_Type : constant Irep :=
-        Make_Signedbv_Type (Get_Width (Followed_Ret_Type) * 2);
+        Maybe_Double_Type_Width (Followed_Ret_Type);
 
       Lhs_Cast : constant Irep :=
         Typecast_If_Necessary (LHS, Large_Enough_Type, Global_Symbol_Table);
@@ -4101,7 +4130,6 @@ package body Tree_Walk is
            (Lower_Bound,
             "Do_Range_Constraint",
             "only static ranges are supported");
-
       end if;
 
       declare

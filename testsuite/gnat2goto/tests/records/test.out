@@ -1,3 +1,4 @@
+[assertion.1] file records.adb line 10 Ada Check assertion: SUCCESS
 [records.assertion.1] line 11 assertion d.a = 1: SUCCESS
 [records.assertion.2] line 12 assertion d.b = 2: SUCCESS
 VERIFICATION SUCCESSFUL
