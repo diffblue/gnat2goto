@@ -16,6 +16,7 @@ package GOTO_Utils is
    function CProver_Nil return Irep;
 
    function CProver_True return Irep;
+   function CProver_False return Irep;
 
    --  TODO change this to Irep
    function Internal_Source_Location return Irep;
@@ -24,7 +25,7 @@ package GOTO_Utils is
    function Float64_T return Irep;
    function Int32_T return Irep;
    function Int64_T return Irep;
-   function Uint8_T return Irep;
+   function Int8_T return Irep;
    function Uint32_T return Irep;
    function Uint64_T return Irep;
    function Maybe_Double_Type_Width (Original_Type : Irep) return Irep;
@@ -41,6 +42,10 @@ package GOTO_Utils is
    function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep;
 
    function Make_Pointer_Type (Base : Irep) return Irep;
+   function Make_Array_String_Type (Size : Integer) return Irep;
+   function Make_Type_For_String (Text : String) return Irep;
+   function Make_String_Constant_Expr (Text : String; Source_Loc : Irep)
+                                       return Irep;
 
    function Make_Address_Of (Base : Irep) return Irep;
 
@@ -219,4 +224,8 @@ package GOTO_Utils is
                                   return Symbol;
 
    function File_Name_Without_Extension (N : Node_Id) return String;
+
+   function String_To_Char_Pointer (String_Irep : Irep;
+                                    A_Symbol_Table : Symbol_Table)
+                                    return Irep;
 end GOTO_Utils;
