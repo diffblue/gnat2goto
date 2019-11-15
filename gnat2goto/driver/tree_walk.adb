@@ -226,6 +226,9 @@ package body Tree_Walk is
    procedure Do_Package_Specification (N : Node_Id)
    with Pre => Nkind (N) = N_Package_Specification;
 
+   procedure Do_Exception_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Exception_Declaration;
+
    procedure Do_Private_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Private_Type_Declaration;
 
@@ -252,6 +255,9 @@ package body Tree_Walk is
    function Do_Simple_Return_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Simple_Return_Statement,
         Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
+
+   function Do_Raise_Statement (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Raise_Statement;
 
    procedure Do_Subprogram_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Subprogram_Declaration;
@@ -3979,6 +3985,12 @@ package body Tree_Walk is
       end if;
    end Do_Package_Specification;
 
+   procedure Do_Exception_Declaration (N : Node_Id) is
+   begin
+      null;
+      --  Ignored for now
+   end Do_Exception_Declaration;
+
    ---------------------------------
    -- Do_Private_Type_Declaration --
    ---------------------------------
@@ -4611,6 +4623,80 @@ package body Tree_Walk is
          Source_Location => Get_Source_Location (N));
    end Do_Simple_Return_Statement;
 
+   function Do_Raise_Statement (N : Node_Id) return Irep is
+      Source_Loc : constant Irep := Get_Source_Location (N);
+
+      Func_Params : constant Irep := Make_Parameter_List;
+      Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => CProver_Void_T,
+                           Inlined     => False,
+                           Knr         => False);
+      Function_Name : constant String := "__CPROVER_Ada_Raise_Exception";
+
+      Exception_Id_String : constant Irep :=
+        Make_String_Constant_Expr
+          (Text       => Unique_Name (Entity (Name (N))),
+           Source_Loc => Source_Loc);
+      Exception_Comment : constant Irep :=
+        (if Present (Expression (N)) then Do_String_Constant (Expression (N))
+         else Make_String_Constant_Expr (Text       => "",
+                                         Source_Loc => Source_Loc));
+      Exception_Call_Arguments : constant Irep := Make_Argument_List;
+      Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+      Function_Symbol : constant Symbol :=
+        New_Function_Symbol_Entry (Name           => Function_Name,
+                                   Symbol_Type    => Func_Type,
+                                   Value          => Body_Block,
+                                   A_Symbol_Table => Global_Symbol_Table);
+      Assert_Comment : constant Irep :=
+        Make_String_Constant_Expr (Text       => "Ada Exception",
+                                   Source_Loc => Source_Loc);
+      Assert_False : constant Irep :=
+        Make_Assert_Call (Assertion   => Get_Int32_T_Zero,
+                          Description => Assert_Comment,
+                          Source_Loc  => Source_Loc,
+                          A_Symbol_Table => Global_Symbol_Table);
+      Assume_False : constant Irep :=
+        Make_Assume_Call (Assumption   => Get_Int32_T_Zero,
+                          Source_Loc   => Source_Loc,
+                          A_Symbol_Table => Global_Symbol_Table);
+      Char_Pointer_Type : constant Irep := Make_Pointer_Type (Int8_T);
+   begin
+      Create_Fun_Parameter (Fun_Name        => Function_Name,
+                            Param_Name      => "name",
+                            Param_Type      => Char_Pointer_Type,
+                            Param_List      => Func_Params,
+                            A_Symbol_Table  => Global_Symbol_Table,
+                            Source_Location => Source_Loc);
+      Create_Fun_Parameter (Fun_Name        => Function_Name,
+                            Param_Name      => "comment",
+                            Param_Type      => Char_Pointer_Type,
+                            Param_List      => Func_Params,
+                            A_Symbol_Table  => Global_Symbol_Table,
+                            Source_Location => Source_Loc);
+
+      Append_Op (Body_Block, Assert_False);
+      Append_Op (Body_Block, Assume_False);
+
+      Append_Argument
+        (Exception_Call_Arguments,
+         String_To_Char_Pointer (String_Irep    => Exception_Id_String,
+                                 A_Symbol_Table => Global_Symbol_Table));
+      Append_Argument
+        (Exception_Call_Arguments,
+         String_To_Char_Pointer (String_Irep    => Exception_Comment,
+                                 A_Symbol_Table => Global_Symbol_Table));
+
+      return Make_Code_Function_Call
+        (Arguments       => Exception_Call_Arguments,
+         I_Function      => Symbol_Expr (Function_Symbol),
+         Lhs             => Make_Nil (Source_Loc),
+         Source_Location => Source_Loc,
+         I_Type          => CProver_Void_T);
+   end Do_Raise_Statement;
+
    ------------------------
    -- Do_Subprogram_Body --
    ------------------------
@@ -4675,6 +4761,8 @@ package body Tree_Walk is
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
       Reps : constant Irep := Make_Code_Block
         (Source_Location => Get_Source_Location (N));
+      All_Handlers : constant Irep := Make_Code_Block
+        (Source_Location => Get_Source_Location (N));
    begin
       if Present (Decls) then
          Process_Declarations (Decls, Reps);
@@ -4682,6 +4770,30 @@ package body Tree_Walk is
 
       if Present (HSS) then
          Process_Statement (HSS, Reps);
+      end if;
+
+      if Present (Exception_Handlers (HSS)) then
+         declare
+            A_Handler : Node_Id := First (Exception_Handlers (HSS));
+         begin
+            while Present (A_Handler) loop
+               Append_Op (All_Handlers,
+                          Process_Statements (Statements (A_Handler)));
+               Next (A_Handler);
+            end loop;
+         end;
+         Append_Op (Reps,
+                    Make_Code_Ifthenelse
+                      (Cond            => Typecast_If_Necessary
+                         (Expr           => Get_Int32_T_Zero,
+                          New_Type       => Make_Bool_Type,
+                          A_Symbol_Table => Global_Symbol_Table),
+                       Then_Case       => All_Handlers,
+                       Else_Case       => Make_Code_Block
+                         (Get_Source_Location (N)),
+                       Source_Location => Get_Source_Location (N),
+                       I_Type          => Make_Nil_Type,
+                       Range_Check     => False));
       end if;
 
       return Reps;
@@ -5273,9 +5385,7 @@ package body Tree_Walk is
             --  renaming declarations are handled by the gnat front-end;
             null;
 
-         when N_Exception_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Exception declaration");
+         when N_Exception_Declaration => Do_Exception_Declaration (N);
 
          when N_Generic_Declaration =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
@@ -5795,8 +5905,7 @@ package body Tree_Walk is
                                          "Abort statement");
 
          when N_Raise_Statement =>
-            Report_Unhandled_Node_Empty (N, "Process_Statement",
-                                         "Raise statement");
+            Append_Op (Block, Do_Raise_Statement (N));
 
          when N_Code_Statement =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
