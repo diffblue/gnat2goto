@@ -404,6 +404,8 @@ package body Tree_Walk is
      with Pre => Nkind (N) in N_Access_Function_Definition |
      N_Access_Procedure_Definition;
 
+   function Get_No_Return_Check return Irep;
+
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
                                             Element_Type_Size : Uint;
                                             Source_Loc : Irep)
@@ -4796,6 +4798,13 @@ package body Tree_Walk is
                        Range_Check     => False));
       end if;
 
+      if Nkind (N) = N_Subprogram_Body and then
+        Present (Corresponding_Spec (N)) and then
+        No_Return (Corresponding_Spec (N))
+      then
+         Append_Op (Reps, Get_No_Return_Check);
+      end if;
+
       return Reps;
    end Do_Subprogram_Or_Block;
 
@@ -5741,8 +5750,8 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Async readers");
          when Name_No_Return =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: No return");
+            --  Can be detected when processing the function body
+            null;
          when Name_Unreferenced =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Unreferenced");
@@ -5886,6 +5895,10 @@ package body Tree_Walk is
             Append_Op (Block, Do_Procedure_Call_Statement (N));
 
          when N_Simple_Return_Statement =>
+            if No_Return (Return_Applies_To (Return_Statement_Entity (N)))
+            then
+               Append_Op (Block, Get_No_Return_Check);
+            end if;
             Append_Op (Block, Do_Simple_Return_Statement (N));
 
          when N_Entry_Call_Statement =>
@@ -6128,4 +6141,21 @@ package body Tree_Walk is
                                                 Knr         => False));
    end Do_Access_Function_Definition;
 
+   function Get_No_Return_Check return Irep is
+      No_Return_Check_Symbol : constant Irep := Symbol_Expr
+        (Get_Ada_Check_Symbol
+           (Name           => "__CPROVER_Ada_Pragma_No_Return",
+            A_Symbol_Table => Global_Symbol_Table,
+            Source_Loc     => Internal_Source_Location));
+      No_Return_Check_Args : constant Irep := Make_Argument_List;
+      No_Return_Check_Call : constant Irep := Make_Code_Function_Call
+        (Arguments       => No_Return_Check_Args,
+         I_Function      => No_Return_Check_Symbol,
+         Lhs             => Make_Nil (Internal_Source_Location),
+         Source_Location => Internal_Source_Location,
+         I_Type          => Make_Void_Type);
+   begin
+      Append_Argument (No_Return_Check_Args, Get_Int32_T_Zero);
+      return No_Return_Check_Call;
+   end Get_No_Return_Check;
 end Tree_Walk;
