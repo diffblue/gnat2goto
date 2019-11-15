@@ -135,14 +135,14 @@ package body GOTO_Utils is
    end Int64_T;
 
    Char_T : Irep := Ireps.Empty;
-   function Uint8_T return Irep
+   function Int8_T return Irep
    is
    begin
       if Char_T = Ireps.Empty then
-         Char_T := Make_Unsignedbv_Type (8);
+         Char_T := Make_Signedbv_Type (8);
       end if;
       return Char_T;
-   end Uint8_T;
+   end Int8_T;
 
    Unsigned_T : Irep := Ireps.Empty;
    function Uint32_T return Irep
@@ -189,6 +189,19 @@ package body GOTO_Utils is
       return Original_Type;
    end Maybe_Double_Type_Width;
 
+   False_V : Irep := Ireps.Empty;
+   function CProver_False return Irep
+   is
+   begin
+      if False_V = Ireps.Empty then
+         False_V := Make_Constant_Expr
+           (Source_Location => Internal_Source_Location,
+            I_Type => CProver_Bool_T,
+            Value => "false");
+      end if;
+      return False_V;
+   end CProver_False;
+
    ---------------------
    -- Make_Address_Of --
    ---------------------
@@ -207,6 +220,34 @@ package body GOTO_Utils is
       (Make_Pointer_Type
          (I_Subtype => Base,
           Width => Pointer_Type_Width));
+
+   function Make_Array_String_Type (Size : Integer) return Irep is
+   begin
+      return Make_Array_Type
+        (I_Subtype => Int8_T,
+         Size      => Make_Constant_Expr
+           (Source_Location => Internal_Source_Location,
+            I_Type          => Uint32_T,
+            Range_Check     => False,
+            Value           => Convert_Uint_To_Hex
+              (UI_From_Int (Int (Size)),
+               32)));
+   end Make_Array_String_Type;
+
+   function Make_Type_For_String (Text : String) return Irep is
+   begin
+      return Make_Array_String_Type (Text'Length);
+   end Make_Type_For_String;
+
+   function Make_String_Constant_Expr (Text : String; Source_Loc : Irep)
+                                       return Irep is
+      String_Type : constant Irep := Make_Type_For_String (Text);
+   begin
+      return Make_String_Constant_Expr (Source_Location => Source_Loc,
+                                        I_Type          => String_Type,
+                                        Range_Check     => False,
+                                        Value           => Text);
+   end Make_String_Constant_Expr;
 
    --------------------
    -- Fresh_Var_Name --
@@ -363,23 +404,23 @@ package body GOTO_Utils is
                                        Value : Irep;
                                        A_Symbol_Table : in out Symbol_Table)
                                        return Symbol is
-      New_Symbol : constant Symbol :=
-        (Name | BaseName | PrettyName => Intern (Name),
-         Mode => Intern ("C"),
-         SymType => Symbol_Type,
-         Value => Value,
-         others => <>);
+      Fun_Name : constant Symbol_Id := Intern (Name);
    begin
-      if A_Symbol_Table.Contains (Key => Intern (Name)) then
-         Put_Line (Standard_Error,
-                   "----------At: New_Function_Symbol_Entry----------");
-         Put_Line (Standard_Error,
-                   "----------Trying to create known symbol.----------");
-         Put_Line (Standard_Error, "----------" & Name & "----------");
-      else
-         A_Symbol_Table.Insert (Intern (Name), New_Symbol);
+      if A_Symbol_Table.Contains (Fun_Name) then
+         return A_Symbol_Table.Element (Fun_Name);
       end if;
-      return New_Symbol;
+
+      declare
+         New_Symbol : constant Symbol :=
+           (Name | BaseName | PrettyName => Intern (Name),
+            Mode => Intern ("C"),
+            SymType => Symbol_Type,
+            Value => Value,
+            others => <>);
+      begin
+         A_Symbol_Table.Insert (Fun_Name, New_Symbol);
+         return New_Symbol;
+      end;
    end New_Function_Symbol_Entry;
 
    --------------------------
@@ -794,7 +835,7 @@ package body GOTO_Utils is
                             Source_Location => Source_Loc);
       Create_Fun_Parameter (Fun_Name        => Assert_Name,
                             Param_Name      => "comment",
-                            Param_Type      => Make_Pointer_Type (Uint8_T),
+                            Param_Type      => Make_Pointer_Type (Int8_T),
                             Param_List      => Assert_Param_List,
                             A_Symbol_Table  => A_Symbol_Table,
                             Source_Location => Source_Loc);
@@ -922,4 +963,28 @@ package body GOTO_Utils is
                                      Count  => Dot_Index);
    end File_Name_Without_Extension;
 
+   function String_To_Char_Pointer (String_Irep : Irep;
+                                    A_Symbol_Table : Symbol_Table)
+                                    return Irep
+   is
+      Source_Loc : constant Irep := Get_Source_Location (String_Irep);
+      Size_T_Zero : constant Irep :=
+        Integer_Constant_To_Expr (Value           => Uint_0,
+                                  Expr_Type       => Uint32_T,
+                                  Source_Location => Source_Loc);
+      Index_Expr : constant Irep :=
+        Make_Index_Expr (I_Array         => String_Irep,
+                         Index           => Size_T_Zero,
+                         Source_Location => Source_Loc,
+                         I_Type          => Int8_T);
+      Char_Pointer_Type : constant Irep := Make_Pointer_Type (Int8_T);
+      Address_Expr : constant Irep :=
+        Make_Address_Of_Expr (Object          => Index_Expr,
+                              Source_Location => Source_Loc,
+                              I_Type          => Char_Pointer_Type);
+   begin
+      return Typecast_If_Necessary (Expr           => Address_Expr,
+                                    New_Type       => Char_Pointer_Type,
+                                    A_Symbol_Table => A_Symbol_Table);
+   end String_To_Char_Pointer;
 end GOTO_Utils;

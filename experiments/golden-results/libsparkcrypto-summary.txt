@@ -103,11 +103,6 @@ Calling function: Process_Statement
 Error message: Object declaration statement unsupported.
 Nkind: N_Object_Declaration
 --
-Occurs: 1 times
-Calling function: Process_Declaration
-Error message: Exception declaration
-Nkind: N_Exception_Declaration
---
 Occurs: 32 times
 Redacted compiler error message:
 file "REDACTED" not found
@@ -360,7 +355,7 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:142|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -370,5 +365,5 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from goto_utils.ads:142
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from goto_utils.ads:147
 
