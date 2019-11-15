@@ -1,0 +1,4 @@
+[assertion.1] file <internal> Ada Check assertion: SUCCESS
+[assertion.2] file main.adb line 9 Ada Exception: SUCCESS
+[main.assertion.1] line 16 assertion Val = 5: SUCCESS
+VERIFICATION SUCCESSFUL

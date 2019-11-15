@@ -103,11 +103,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Elaborate Body
 Nkind: N_Pragma
 --
-Occurs: 9 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: No return
-Nkind: N_Pragma
---
 Occurs: 8 times
 Calling function: Process_Declaration
 Error message: Package body declaration
@@ -1835,7 +1830,7 @@ Error detected at REDACTED
 --
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:982                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:984                      |
 Error detected at REDACTED
 --
 Occurs: 2 times
