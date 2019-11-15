@@ -33,11 +33,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
-Occurs: 134 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Freeze_Generic_Entity
---
 Occurs: 107 times
 Calling function: Process_Declaration
 Error message: Generic declaration
@@ -57,11 +52,6 @@ Occurs: 56 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
---
-Occurs: 35 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: No strict aliasing
-Nkind: N_Pragma
 --
 Occurs: 31 times
 Calling function: Do_Withed_Unit_Spec
@@ -98,11 +88,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
-Occurs: 9 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Elaborate Body
-Nkind: N_Pragma
---
 Occurs: 8 times
 Calling function: Process_Declaration
 Error message: Package body declaration
@@ -123,11 +108,6 @@ Calling function: Do_Type_Reference
 Error message: Type of type not a type
 Nkind: N_Defining_Identifier
 --
-Occurs: 7 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Unreferenced
-Nkind: N_Pragma
---
 Occurs: 6 times
 Calling function: Process_Declaration
 Error message: Use type clause declaration
@@ -137,11 +117,6 @@ Occurs: 6 times
 Calling function: Process_Statement
 Error message: Object declaration statement unsupported.
 Nkind: N_Object_Declaration
---
-Occurs: 5 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Ada 05
-Nkind: N_Pragma
 --
 Occurs: 4 times
 Calling function: Process_Declaration
@@ -230,7 +205,7 @@ Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Do_Private_Type_Declaration
-Error message: Abstract type declaration unsupported
+Error message: Tagged type declaration unsupported
 Nkind: N_Private_Type_Declaration
 --
 Occurs: 1 times
@@ -242,11 +217,6 @@ Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Having component sizes be different from the size of their underlying type is currently not supported
 Nkind: N_Attribute_Definition_Clause
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Abstract state
-Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration

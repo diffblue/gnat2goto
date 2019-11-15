@@ -13,20 +13,10 @@ Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 66 times
-Calling function: Do_Private_Type_Declaration
-Error message: Abstract type declaration unsupported
-Nkind: N_Private_Type_Declaration
---
 Occurs: 56 times
 Calling function: Process_Declaration
 Error message: size clause not applied by the front-end
 Nkind: N_Attribute_Definition_Clause
---
-Occurs: 32 times
-Calling function: Process_Declaration
-Error message: Abstract subprogram declaration
-Nkind: N_Abstract_Subprogram_Declaration
 --
 Occurs: 13 times
 Calling function: Do_Derived_Type_Definition
@@ -37,11 +27,6 @@ Occurs: 13 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
---
-Occurs: 12 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Abstract state
-Nkind: N_Pragma
 --
 Occurs: 11 times
 Calling function: Process_Pragma_Declaration
@@ -73,11 +58,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 7 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Ada 05
-Nkind: N_Pragma
---
 Occurs: 6 times
 Calling function: Do_Type_Reference
 Error message: Type of type not a type
@@ -107,6 +87,11 @@ Occurs: 3 times
 Calling function: Do_Aggregate_Literal
 Error message: Unhandled aggregate kind
 Nkind: N_Aggregate
+--
+Occurs: 3 times
+Calling function: Do_Private_Type_Declaration
+Error message: Tagged type declaration unsupported
+Nkind: N_Private_Type_Declaration
 --
 Occurs: 2 times
 Calling function: Do_Expression
@@ -161,11 +146,6 @@ Nkind: N_Op_Expon
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Unreferenced
 Nkind: N_Pragma
 --
 Occurs: 291 times
