@@ -935,7 +935,7 @@ package body Tree_Walk is
       end Make_Case_If_Expression;
 
    begin
-      return Make_Let_Expr
+      return Make_Let_Binding_Expr
         (Symbol => Bound_Var,
          Value => Value,
          Where => Make_Case_If_Expression (First (Alternatives (N))),
@@ -1637,7 +1637,7 @@ package body Tree_Walk is
                Rhs => Sym_Nondet,
                Source_Location => Source_Location);
          begin
-            return Make_Let_Expr
+            return Make_Let_Binding_Expr
               (Symbol          => Sym_Nondet,
                Value           => Nondet_Expr,
                Where           => Assume_And_Yield,
