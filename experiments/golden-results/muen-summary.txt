@@ -8,11 +8,6 @@ Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
 --
-Occurs: 112 times
-Calling function: Process_Declaration
-Error message: Exception declaration
-Nkind: N_Exception_Declaration
---
 Occurs: 105 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
@@ -3030,207 +3025,207 @@ Error detected at REDACTED
 --
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:142|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
 Error detected at REDACTED
 --
 Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1749|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1750|
 Error detected at REDACTED
 --
 Occurs: 1 times
