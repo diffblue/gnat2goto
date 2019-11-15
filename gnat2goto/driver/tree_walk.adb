@@ -5476,6 +5476,14 @@ package body Tree_Walk is
             --  Ignore, nothing to generate
             null;
 
+         when N_Null_Statement =>
+            if Present (Original_Node (N)) then
+               --  is the result of rewritting -> can be ignored
+               null;
+            else
+               Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                            "Unsupported null statement");
+            end if;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");
