@@ -4015,12 +4015,16 @@ package body Tree_Walk is
          --  front-end checks that these constraints are maintained by
          --  the code being analysed.
          if Is_Abstract_Type (Entity) then
-            Report_Unhandled_Node_Empty (N, "Do_Private_Type_Declaration",
-                                      "Abstract type declaration unsupported");
+            --  Ignore : Support is not necessary to capture the executable
+            --  semantics of the program, because abstract state is not part of
+            --  the compiled program. Maybe, at some point in the future, we
+            --  might want to improve the tooling to use these but it is not
+            --  incorrect for us to just ignore them.
+            null;
             return;
          elsif Is_Tagged_Type (Entity) then
             Report_Unhandled_Node_Empty (N, "Do_Private_Type_Declaration",
-                                      "Abstract type declaration unsupported");
+                                      "Tagged type declaration unsupported");
             return;
          end if;
          --  The private_type_declaration is neither tagged or abstract.
@@ -5385,8 +5389,9 @@ package body Tree_Walk is
             Do_Subprogram_Declaration (N);
 
          when N_Abstract_Subprogram_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Abstract subprogram declaration");
+            --  Ignored : Support is not necessary to capture the executable
+            --  semantics of the program.
+            null;
          when N_Package_Declaration =>
             Do_Package_Declaration (N);
 
@@ -5472,8 +5477,10 @@ package body Tree_Walk is
          when N_Itype_Reference =>
             Do_Itype_Reference (N);
 
-         when N_Freeze_Entity =>
-            --  Ignore, nothing to generate
+         when N_Freeze_Entity |
+              N_Freeze_Generic_Entity =>
+            --  Ignore: not relevant to the kind of analysis we are doing or
+            --  the phase of compilation and building that we are working on.
             null;
 
          when N_Null_Statement =>
@@ -5669,12 +5676,6 @@ package body Tree_Walk is
             --  library_item. Same reason for future support as above.
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Elaborate All");
-         when Name_Elaborate_Body =>
-            --  Specifies that the body of the library unit is elaborated
-            --  immediately after its declaration. Same reason for future
-            --  support as above.
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Elaborate Body");
          when Name_Locking_Policy =>
             --  Specifies whether or not protected objects have priorities, and
             --  the relationships between these priorities and task priorities.
@@ -5760,18 +5761,7 @@ package body Tree_Walk is
          when Name_No_Return =>
             --  Can be detected when processing the function body
             null;
-         when Name_Unreferenced =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Unreferenced");
-         when Name_Ada_05 =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Ada 05");
-         when Name_Ada_2012 =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Ada 2012");
-         when Name_No_Strict_Aliasing =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                     "Unsupported pragma: No strict aliasing");
+
          when Name_Suppress_Initialization =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                 "Unsupported pragma: Suppress initialization");
@@ -5781,9 +5771,6 @@ package body Tree_Walk is
          when Name_Initializes =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Initializes");
-         when Name_Abstract_State =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Abstract state");
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
               Name_Assertion_Policy |
@@ -5854,8 +5841,17 @@ package body Tree_Walk is
             --  defined. -> Ignored
               Name_Preelaborable_Initialization |
             --  Same as the above preelaborations.
-              Name_Warnings =>
+              Name_Warnings |
             --  Ignoring pragma warnings means that all warnings are on.
+              Name_Abstract_State |
+              Name_Ada_05 |
+              Name_Ada_2012 |
+              Name_Elaborate_Body |
+              Name_No_Strict_Aliasing |
+              Name_Unreferenced =>
+            --  The above are ignored because they are not relevant to the kind
+            --  of analysis we are doing or the phase of compilation and
+            --  building that we are working on.
             null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",

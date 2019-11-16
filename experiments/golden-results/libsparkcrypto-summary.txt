@@ -63,11 +63,6 @@ Calling function: Do_Expression
 Error message: Quantified
 Nkind: N_Quantified_Expression
 --
-Occurs: 20 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Ada 05
-Nkind: N_Pragma
---
 Occurs: 8 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
