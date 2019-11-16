@@ -148,11 +148,6 @@ Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
-Occurs: 4 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Null_Statement
---
 Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Address representation clauses are not currently supported
