@@ -1,4 +1,4 @@
 {
-  "id": "let",
+  "id": "let_binding",
   "parent": "binary_expr"
 }

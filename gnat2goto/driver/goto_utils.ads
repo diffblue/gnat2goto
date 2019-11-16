@@ -228,4 +228,14 @@ package GOTO_Utils is
    function String_To_Char_Pointer (String_Irep : Irep;
                                     A_Symbol_Table : Symbol_Table)
                                     return Irep;
+
+   function Make_Let_Binding_Expr (
+      Symbol : Irep;
+      Value : Irep;
+      Where : Irep;
+      Source_Location : Irep;
+      Overflow_Check : Boolean := False;
+      I_Type : Irep := Ireps.Empty;
+      Range_Check : Boolean := False)
+   return Irep;
 end GOTO_Utils;

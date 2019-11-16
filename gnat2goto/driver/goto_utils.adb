@@ -987,4 +987,35 @@ package body GOTO_Utils is
                                     New_Type       => Char_Pointer_Type,
                                     A_Symbol_Table => A_Symbol_Table);
    end String_To_Char_Pointer;
+
+   function Make_Let_Binding_Expr (
+      Symbol : Irep;
+      Value : Irep;
+      Where : Irep;
+      Source_Location : Irep;
+      Overflow_Check : Boolean := False;
+      I_Type : Irep := Ireps.Empty;
+      Range_Check : Boolean := False
+   ) return Irep
+   is
+      Variable_Tuple : constant Irep := Make_Tuple_Expr (
+        I_Type => Make_Tuple_Type,
+        Source_Location => Source_Location);
+      Value_Tuple : constant Irep := Make_Tuple_Expr (
+        I_Type => Make_Tuple_Type,
+        Source_Location => Source_Location);
+   begin
+      Append_Op (Variable_Tuple, Symbol);
+      Append_Op (Value_Tuple, Value);
+      return Make_Let_Expr (Lhs => Make_Let_Binding (
+                                    Lhs => Variable_Tuple,
+                                    Rhs => Where,
+                                    Source_Location => Source_Location),
+                            Rhs => Value_Tuple,
+                            Source_Location => Source_Location,
+                            Overflow_Check => Overflow_Check,
+                            I_Type => I_Type,
+                            Range_Check => Range_Check);
+   end Make_Let_Binding_Expr;
+
 end GOTO_Utils;
