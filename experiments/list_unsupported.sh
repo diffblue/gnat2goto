@@ -80,17 +80,3 @@ include_path=""
 "${script_dir}/build.sh" ${build_opts} "${canonical_project_path}" > "${project_name}.stdout.txt" 2> "${project_name}.stderr.txt"
 "${script_dir}/list_unsupported_report.sh" ${report_opts} "${project_name}.stdout.txt" "${project_name}.stderr.txt"
 
-# Need to use ${spec_ext} and ${body_ext} inside some regex's here,
-# so add any quoting necessary
-quoted_spec_ext=$(printf "%s" "${spec_ext}" | sed 's/\./\\./g')
-quoted_body_ext=$(printf "%s" "${body_ext}" | sed 's/\./\\./g')
-# This redacting system is really pretty crude...
-cat "${project_name}.stdout.txt" "${project_name}.stderr.txt" > "${project_name}.txt"
-  sed '/^\[/ d' "${project_name}.txt" | \
-    sed 's/"[^"][^"]*"/"REDACTED"/g' | \
-      sed "s/[^ ][^ ]*\\.${quoted_body_ext}/REDACTED.${body_ext}/g" | \
-        sed "s/[^ ][^ ]*\\.${quoted_spec_ext}/REDACTED.${spec_ext}/g" | \
-          sed 's/at [-\_\.a-zA-Z0-9][-\_\.a-zA-Z0-9]*:[0-9][0-9]*/at REDACTED/g' | \
-            sed 's/[-\_\.a-zA-Z0-9][-\_\.a-zA-Z0-9]*:[0-9][0-9]*:[0-9][0-9]*/REDACTED/g' \
-   > "${project_name}_redacted.txt"
-
