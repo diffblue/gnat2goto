@@ -131,6 +131,7 @@ sed -n 's/^.*:[0-9]*:[0-9]*: error: //p' "$raw_input_file" | \
             redacted=raw; \
             gsub(/"[^"]+"/, "\"REDACTED\"", redacted); \
             gsub(/at ([a-zA-Z0-9\.\-_]+:[0-9]+)/, "at REDACTED", redacted); \
+            gsub(/at line ([0-9]+)/, "at line REDACTED", redacted); \
             print "--------------------------------------------------------------------------------"; \
             print "Occurs:", count, "times"; \
             print "Redacted compiler error message:"; \
