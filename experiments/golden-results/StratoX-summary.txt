@@ -165,7 +165,7 @@ Nkind: N_Real_Literal
 --
 Occurs: 1 times
 Calling function: Do_Compilation_Unit
-Error message: Unknown tree node
+Error message: Generic units are unsupported
 Nkind: N_Compilation_Unit
 --
 Occurs: 1 times
