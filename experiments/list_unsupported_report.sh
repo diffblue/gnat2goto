@@ -100,12 +100,6 @@ cat "${input_stdout}" "${input_stderr}" > "${raw_input_file}"
 # so add any quoting necessary
 quoted_spec_ext=$(printf "%s" "${spec_ext}" | sed 's/\./\\./g')
 quoted_body_ext=$(printf "%s" "${body_ext}" | sed 's/\./\\./g')
-# This redacting system is really pretty crude...
-sed '/^\[/ d' < "$raw_input_file" | \
-   sed 's/"[^"][^"]*"/"REDACTED"/g' | \
-      sed "s/[^ ][^ ]*\.${quoted_body_ext}/REDACTED.${body_ext}/g" | \
-         sed "s/[^ ][^ ]*\.${quoted_spec_ext}/REDACTED.${spec_ext}/g" \
-   > "${raw_input_file}_redacted"
 
 # Collate and summarise unsupported features
 LC_ALL=posix ./CollectUnsupported "$raw_input_file"
