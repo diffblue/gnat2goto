@@ -985,10 +985,18 @@ package body Tree_Walk is
                Unit_Symbol := Global_Symbol_Table (Unit_Name);
                Unit_Is_Subprogram := False;
             end;
-
+         when N_Subprogram_Declaration | N_Package_Declaration =>
+            --  Package and subprogram declarations are processed
+            --  when they appear in a with statement.
+            --  It might be possible to construct a package declaration
+            --  which has some features that are imported but not
+            --  directly used (which requires the declaration to be withed),
+            --  but I can't think of one without delving deeply, and I
+            --  think such uses would be unusual (TJJ 21/11/2019)
+            null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Do_Compilation_Unit",
-                                         "Unknown tree node");
+                                         "Generic units are unsupported");
       end case;
 
       return Unit_Symbol;
