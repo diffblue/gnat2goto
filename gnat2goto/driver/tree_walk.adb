@@ -986,7 +986,7 @@ package body Tree_Walk is
                Unit_Is_Subprogram := False;
             end;
          when N_Subprogram_Declaration | N_Package_Declaration =>
-            --  Pacakge and subprogram declarations are processed
+            --  Package and subprogram declarations are processed
             --  when they appear in a with statement.
             --  It might be possible to construct a package declaration
             --  which has some features that are imported but not
