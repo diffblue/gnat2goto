@@ -15,4 +15,8 @@ procedure Discriminated_Record is
 begin
    Inst1.A (5) := 1;
    Inst1.B (10) := 2;
+
+   pragma Assert (Inst1.A (5) = 1);
+   Inst1.B (6) := 3;
+   pragma Assert (Inst1.A (5) = 1);
 end Discriminated_Record;

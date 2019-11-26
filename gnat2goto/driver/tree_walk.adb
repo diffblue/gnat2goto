@@ -3123,7 +3123,16 @@ package body Tree_Walk is
                      Variant_Disc_Value := Disc_Actual;
                   end if;
 
-                  New_Expr := Do_Expression (Disc_Actual);
+                  if Present (Disc_Actual) then
+                     New_Expr := Do_Expression (Disc_Actual);
+                  else
+                     --  Default initialize to 0
+                     New_Expr := Make_Constant_Expr
+                       (Source_Location => Get_Source_Location (E),
+                        I_Type          => Do_Type_Reference (Etype (Iter)),
+                        Range_Check     => False,
+                        Value           => "0");
+                  end if;
                   Append_Struct_Member (Ret, New_Expr);
                   --  Substitute uses of the discriminant in the record
                   --  initialiser for its actual value:
@@ -3196,7 +3205,7 @@ package body Tree_Walk is
          elsif Ekind (E) in Record_Kind then
             return Make_Record_Default_Initialiser (E, DCs);
          else
-            return Report_Unhandled_Node_Irep (N, "Make_Default_Initialiser",
+            return Report_Unhandled_Node_Irep (E, "Make_Default_Initialiser",
                                                  "Unknown Ekind");
          end if;
       end Make_Default_Initialiser;
@@ -3214,7 +3223,10 @@ package body Tree_Walk is
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
          Init_Expr := Do_Expression (Expression (N));
-      elsif Needs_Default_Initialisation (Etype (Defined)) then
+      elsif Needs_Default_Initialisation (Etype (Defined)) or
+        (Present (Object_Definition (N)) and then
+         Nkind (Object_Definition (N)) = N_Subtype_Indication)
+      then
          declare
             Defn : constant Node_Id := Object_Definition (N);
             Discriminant_Constraint : constant Node_Id :=
@@ -4458,8 +4470,21 @@ package body Tree_Walk is
    function Do_Selected_Component (N : Node_Id) return Irep is
       Root           : constant Irep := Do_Expression (Prefix (N));
       Component      : constant Entity_Id := Entity (Selector_Name (N));
+
+      --  Example:
+      --  struct Foo { int a; };
+      --  struct Foo bar;
+      --  bar.a = 5;
+      --
+      --  The Unique_Name of the struct-component in declaration is Foo__a. But
+      --  when parsing the assignment the component is that of the entity bar,
+      --  thus it's unique-name is bar__a: which is not present in Foo. That's
+      --  why we have to use the component of the original-record to get the
+      --  right name.
+      Orig_Component : constant Entity_Id :=
+        Original_Record_Component (Component);
       Component_Type : constant Irep := Do_Type_Reference (Etype (Component));
-      Component_Name : constant String := Unique_Name (Component);
+      Component_Name : constant String := Unique_Name (Orig_Component);
       Source_Location : constant Irep := Get_Source_Location (N);
    begin
       if Do_Discriminant_Check (N) then
