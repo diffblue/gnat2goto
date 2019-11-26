@@ -38,6 +38,10 @@ package Range_Check is
    function Make_Div_Zero_Assert_Expr (N : Node_Id; Value : Irep;
                                        Divisor : Irep) return Irep;
 
+   function Make_Index_Assert_Expr (N : Node_Id; Index : Irep;
+                                    First_Index : Irep; Last_Index : Irep)
+                                    return Irep;
+
    function Make_Overflow_Assert_Expr (N : Node_Id; Value : Irep) return Irep;
 
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
