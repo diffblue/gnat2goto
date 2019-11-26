@@ -2972,7 +2972,10 @@ package body Tree_Walk is
       begin
          return Has_Defaulted_Discriminants (E)
            or else Has_Defaulted_Components (E)
-           or else Ekind (E) = E_Array_Subtype;
+           or else Ekind (E) = E_Array_Subtype
+           or else (Ekind (E) = E_Private_Type
+                    and then Present (Full_View (E))
+                    and then Ekind (Full_View (E)) = E_Array_Subtype);
       end Needs_Default_Initialisation;
 
       function Disc_Expr (N : Node_Id) return Node_Id is
@@ -3186,6 +3189,10 @@ package body Tree_Walk is
             return Make_Array_Default_Initialiser (E);
          elsif Ekind (E) in Record_Kind then
             return Make_Record_Default_Initialiser (E, DCs);
+         elsif Ekind (E) in Private_Kind and then Present (Full_View (E))
+           and then Ekind (Full_View (E)) in Array_Kind
+         then
+            return Make_Array_Default_Initialiser (Full_View (E));
          else
             return Report_Unhandled_Node_Irep (E, "Make_Default_Initialiser",
                                                  "Unknown Ekind");
