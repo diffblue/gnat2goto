@@ -23,15 +23,15 @@ Calling function: Do_Function_Call
 Error message: function entity not defining identifier
 Nkind: N_Function_Call
 --
-Occurs: 74 times
-Calling function: Do_Expression
-Error message: Unknown attribute
-Nkind: N_Attribute_Reference
---
 Occurs: 70 times
 Calling function: Do_Type_Reference
 Error message: Type of type not a type
 Nkind: N_Defining_Identifier
+--
+Occurs: 68 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_UNRESTRICTED_ACCESS unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 47 times
 Calling function: Do_Procedure_Call_Statement
@@ -82,6 +82,16 @@ Occurs: 6 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ASM_INPUT unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ASM_OUTPUT unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Withed_Unit_Spec

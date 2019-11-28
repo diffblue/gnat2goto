@@ -30,7 +30,7 @@ Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 3 times
 Calling function: Do_Expression
-Error message: Unknown attribute
+Error message: ATTRIBUTE_IMAGE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times

@@ -1355,8 +1355,11 @@ package body Tree_Walk is
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
                when others           =>
-                  return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                     "Unknown attribute");
+                  return Report_Unhandled_Node_Irep
+                    (N, "Do_Expression",
+                     Attribute_Id'Image
+                       (Get_Attribute_Id (Attribute_Name (N))) &
+                    " unsupported");
             end case;
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
