@@ -130,12 +130,12 @@ Nkind: N_Integer_Literal
 --
 Occurs: 1 times
 Calling function: Do_Expression
-Error message: Last of string unsupported
+Error message: ATTRIBUTE_SIZE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Expression
-Error message: Unknown attribute
+Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times

@@ -63,11 +63,6 @@ Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 24 times
-Calling function: Do_Expression
-Error message: Unknown attribute
-Nkind: N_Attribute_Reference
---
 Occurs: 22 times
 Calling function: Do_Expression
 Error message: Index of string unsupported
@@ -87,6 +82,11 @@ Occurs: 11 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
+--
+Occurs: 10 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MACHINE unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
 Calling function: Process_Declaration
@@ -118,10 +118,20 @@ Calling function: Process_Statement
 Error message: Object declaration statement unsupported.
 Nkind: N_Object_Declaration
 --
+Occurs: 5 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ADDRESS unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 4 times
 Calling function: Process_Declaration
 Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_FLOOR unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
 Calling function: Process_Declaration
@@ -142,6 +152,16 @@ Occurs: 2 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_IMAGE unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_TAG unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Function_Call
@@ -172,6 +192,16 @@ Occurs: 1 times
 Calling function: Do_Constant
 Error message: Constant Type not in Class_Bitvector_Type
 Nkind: N_Integer_Literal
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MACHINE_RADIX unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MIN unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Expression

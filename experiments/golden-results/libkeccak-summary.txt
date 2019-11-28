@@ -40,7 +40,7 @@ Nkind: N_Null
 --
 Occurs: 2 times
 Calling function: Do_Expression
-Error message: Unknown attribute
+Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
