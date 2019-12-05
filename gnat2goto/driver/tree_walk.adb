@@ -2667,7 +2667,9 @@ package body Tree_Walk is
                                          "Unsupported pragma: SPARK Mode");
          when Name_Global =>
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                         "Unsupported pragma: Global");
+                                         "pragma Global is unsupported " &
+                                           "in a sequence of statements");
+
          when Name_Variant =>
             --  Could as well be ignored but is another verification condition
             --  that should be checked
@@ -5655,8 +5657,16 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Refine");
          when Name_Global =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Global");
+            --  Global is used in SPARK 2014 to allow modular analysis.  It
+            --  is not required and can be safely ignored when performing
+            --  whole program analysis.
+            --  ASVAT essentially performs whole program analysis and the only
+            --  use of pragma Global is when the body of a called subprogram
+            --  is not included in the analysis.  In such cases, ASVAT obtains
+            --  the list of inputs and outputs, including any listed in a
+            --  pragma Global from the subprogram specification.
+            --  No action is required here.
+            null;
          when Name_Variant =>
             --  Could as well be ignored but is another verification condition
             --  that should be checked
@@ -5806,8 +5816,8 @@ package body Tree_Walk is
             --  allowing an Ada subprogram to be called from a foreign
             --  language, or an Ada object to be accessed from a foreign
             --  language. Need to be detected.
-            Put_Line (Standard_Error,
-                      "Warning: Multi-language analysis unsupported.");
+            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
+                     "pragma Export: Multi-language analysis unsupported");
          when Name_Linker_Options =>
             --  Used to specify the system linker parameters needed when a
             --  given compilation unit is included in a partition. We want to
