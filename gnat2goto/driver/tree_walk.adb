@@ -27,7 +27,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;
 with Sinput;
-
+with ASVAT_Modelling;
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
@@ -1343,6 +1343,20 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
+               when Attribute_Size =>
+                  --  Size attribute returns a Universal_Integer but
+                  --  for analysis its value is non-deterministic.
+                  return ASVAT_Modelling.Do_Nondet_Attribute
+                    (N, Unique_Name (Stand.Universal_Integer));
+               when Attribute_Address =>
+                  --  Address attribute returns a System.Address but
+                  --  for analysis its value is non-deterministic.
+                  return ASVAT_Modelling.Do_Nondet_Attribute
+                    (N, "system__address");
+               when Attribute_Valid =>
+                  --  Assume X'Valid is nondeterministic and set X to
+                  --  nondet if X'Valid is False otherwise X := X.
+                  return ASVAT_Modelling.Do_Nondet_Valid (N);
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
@@ -4813,9 +4827,32 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
+      E : constant Node_Id := Defining_Unit_Name (Specification (N));
+      ASVAT_Model : constant ASVAT_Modelling.Model_Sorts :=
+        ASVAT_Modelling.Get_Model_Sort (E);
    begin
+      pragma Assert (Ekind (E) in Subprogram_Kind);
       Register_Subprogram_Specification (Specification (N));
-      --  Todo Aspect specifications
+
+      if ASVAT_Modelling.Is_Model (ASVAT_Model) then
+         ASVAT_Modelling.Make_Model (E, ASVAT_Model);
+
+      elsif not Has_Completion (E) then
+         --  Here it would be possible to nondet outputs specified
+         --  in subprogram specification but at present nothing is done.
+         --  A missing body will be reported when it is "linked".
+         null;
+      else
+         --  It is a normal Ada subprogram.
+         --  Check whether it has a global pragma.
+         --  At present this is unsupported for normal Ada subprograms.
+         if Present (Get_Pragma (E, Pragma_Global)) then
+            Report_Unhandled_Node_Empty
+              (N, "Do_Subprogram_Declaration",
+               "pragma Global unsupported on completed subprograms");
+         end if;
+      end if;
+
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -5711,34 +5748,27 @@ package body Tree_Walk is
             --  However, if the calling convention is specified as "Intrinsic"
             --  then the subprogram is built into the compiler and gnat2goto
             --  can safely ignore the pragma.
+            --  If the convention is "Ada" then, in gnat2goto this is used
+            --  to represent an ASVAT model of a subprogram.
+            --  A pragma Import with the convention Ada is checked when the
+            --  subprogram to which it applies is translated.
+            --  The convention is always the first parameter and External_Name
+            --  (if present) the third parameter of pragma Import.
+            --  This is enforced by the gnat front-end.
             declare
-               --  If the pragma is specified with positional parameter
-               --  association, then the calling convention is the first
-               --  parameter. Check to see if it is Intrinsic.
-               Next_Ass : Node_Id := First (Pragma_Argument_Associations (N));
-               Is_Intrinsic : Boolean := Present (Next_Ass) and then
-                 Nkind (Expression (Next_Ass)) = N_Identifier and then
-                 Get_Name_String (Chars (Expression (Next_Ass))) = "intrinsic";
-            begin
-               --  If the first parameter is not Intrinsic, check named
-               --  parameters for calling convention
-               while not Is_Intrinsic and Present (Next_Ass) loop
-                  if Chars (Next_Ass) /= No_Name and then
-                    Get_Name_String (Chars (Next_Ass)) = "convention"
-                  then
-                     --  The named parameter is Convention, check to see if it
-                     --  is Intrinsic
-                     Is_Intrinsic :=
-                       Get_Name_String (Chars (Expression (Next_Ass))) =
-                       "intrinsic";
-                  end if;
-                     --  Get the next parameter association
-                  Next_Ass := Next (Next_Ass);
-               end loop;
+               Convention : constant String :=
+                 ASVAT_Modelling.Get_Import_Convention (N);
 
-               if not Is_Intrinsic then
-                  Put_Line (Standard_Error,
-                            "Warning: Multi-language analysis unsupported.");
+               Is_Intrinsic : constant Boolean :=
+                 Convention = "intrinsic";
+               Is_Ada : constant Boolean :=
+                 Convention = "ada";
+
+            begin
+               if not (Is_Intrinsic or Is_Ada) then
+                  Report_Unhandled_Node_Empty
+                    (N, "Process_Pragma_Declaration",
+                     "pragma Import: Multi-language analysis unsupported");
                end if;
             end;
 
@@ -5848,9 +5878,41 @@ package body Tree_Walk is
          when Name_Initializes =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Initializes");
-         when Name_Annotate |
-            --  Ignore here. Rather look for those when we process a node.
-              Name_Assertion_Policy |
+         when Name_Annotate =>
+            --  Annotate ASVAT is only supported as an aspect
+            if not From_Aspect_Specification (N) then
+               declare
+                  Args : constant List_Id :=
+                    Pragma_Argument_Associations (N);
+                  First_Arg : constant Node_Id :=
+                    (if Present (Args) then
+                          First (Args)
+                     else
+                        Types.Empty);
+                  First_Expr : constant Node_Id :=
+                    (if Present (First_Arg) then
+                          Expression (First_Arg)
+                     else
+                        Types.Empty);
+
+                  Anno_Id : constant String :=
+                    (if Present (First_Expr) and then
+                     Nkind (First_Expr) = N_Identifier
+                     then
+                        Get_Name_String (Chars (First_Expr))
+                     else
+                        "");
+               begin
+                  if Anno_Id = "asvat" then
+                     Report_Unhandled_Node_Empty
+                       (N, "Process_Pragma_Declaration",
+                        "pragma Annotate: " &
+                          "ASVAT Annotation only supported as an aspect");
+                  end if;
+               end;
+            end if;
+
+         when Name_Assertion_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
