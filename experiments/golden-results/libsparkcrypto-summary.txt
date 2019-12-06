@@ -21,7 +21,7 @@ Nkind: N_Pragma
 Occurs: 88 times
 Calling function: Do_Function_Call
 Error message: function entity not defining identifier
-Nkind: N_Function_Call
+Nkind: N_Defining_Operator_Symbol
 --
 Occurs: 70 times
 Calling function: Do_Type_Reference
@@ -75,11 +75,6 @@ Nkind: N_Aggregate
 --
 Occurs: 6 times
 Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 6 times
-Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
@@ -92,11 +87,6 @@ Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
---
-Occurs: 2 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Subprogram_Declaration
 --
 Occurs: 2 times
 Calling function: Process_Pragma_Declaration

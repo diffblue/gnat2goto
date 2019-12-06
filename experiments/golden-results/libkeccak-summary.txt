@@ -43,16 +43,6 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 1 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Package_Declaration
---
-Occurs: 1 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Subprogram_Declaration
---
 Occurs: 3 times
 Redacted compiler error message:
 generic parameter "REDACTED" is missing from input dependence list

@@ -33,16 +33,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Initializes
 Nkind: N_Pragma
 --
-Occurs: 10 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Subprogram_Declaration
---
-Occurs: 9 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Package_Declaration
---
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma
@@ -62,11 +52,6 @@ Occurs: 6 times
 Calling function: Do_Type_Reference
 Error message: Type of type not a type
 Nkind: N_Defining_Identifier
---
-Occurs: 6 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Procedure_Instantiation
 --
 Occurs: 4 times
 Calling function: Do_Expression
@@ -100,16 +85,6 @@ Nkind: N_Indexed_Component
 --
 Occurs: 2 times
 Calling function: Process_Declaration
-Error message: Generic declaration
-Nkind: N_Generic_Subprogram_Declaration
---
-Occurs: 2 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 2 times
-Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
@@ -130,7 +105,7 @@ Nkind: N_Integer_Literal
 --
 Occurs: 1 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_SIZE unsupported
+Error message: ATTRIBUTE_MIN unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times

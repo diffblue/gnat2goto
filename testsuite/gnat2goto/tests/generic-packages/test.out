@@ -1,0 +1,6 @@
+[generic_packages.assertion.1] line 28 assertion Int_Store.Retrieve = A: SUCCESS
+[generic_packages.assertion.2] line 30 assertion Int_Store.Retrieve = B: SUCCESS
+[generic_packages.assertion.3] line 33 assertion Float_Store.Retrieve = F1: SUCCESS
+[generic_packages.assertion.4] line 35 assertion Float_Store.Retrieve = F2: SUCCESS
+[generic_packages.assertion.5] line 36 assertion False: FAILURE
+VERIFICATION FAILED
