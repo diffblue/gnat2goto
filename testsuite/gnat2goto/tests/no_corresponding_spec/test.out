@@ -1,0 +1,13 @@
+Standard_Output from gnat2goto no_corresponding_spec:
+----------At: Process_Pragma_Declaration----------
+----------Unsupported pragma: Global----------
+N_Pragma (Node_Id=2444) (analyzed)
+ Sloc = 8446  no_corresponding_spec.adb:8:11
+ Pragma_Argument_Associations = List (List_Id=-99999945)
+ Corresponding_Aspect = N_Aspect_Specification (Node_Id=2279)
+ Pragma_Identifier = N_Identifier "global" (Node_Id=2443)
+ From_Aspect_Specification = True
+ Is_Analyzed_Pragma = True
+
+[assertion.1] file no_corresponding_spec.adb line 15 Ada Check assertion: SUCCESS
+VERIFICATION SUCCESSFUL

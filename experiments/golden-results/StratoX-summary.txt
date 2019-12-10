@@ -8,12 +8,7 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 242 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Function_Instantiation
---
-Occurs: 231 times
+Occurs: 232 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
@@ -33,32 +28,17 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
-Occurs: 107 times
-Calling function: Process_Declaration
-Error message: Generic declaration
-Nkind: N_Generic_Subprogram_Declaration
---
 Occurs: 73 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma
 Nkind: N_Pragma
 --
-Occurs: 62 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Subprogram_Declaration
---
-Occurs: 56 times
+Occurs: 57 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition
 --
-Occurs: 31 times
-Calling function: Do_Withed_Unit_Spec
-Error message: This type of library_unit is not yet handled
-Nkind: N_Generic_Package_Declaration
---
-Occurs: 26 times
+Occurs: 22 times
 Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
@@ -78,20 +58,15 @@ Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 11 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
-Nkind: N_Pragma
---
 Occurs: 10 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 8 times
-Calling function: Process_Declaration
-Error message: Package body declaration
-Nkind: N_Package_Body
+Occurs: 10 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -123,30 +98,15 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_ADDRESS unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 4 times
-Calling function: Process_Declaration
-Error message: Generic declaration
-Nkind: N_Generic_Package_Declaration
---
 Occurs: 3 times
 Calling function: Do_Constant
 Error message: Unsupported constant type
 Nkind: N_Integer_Literal
 --
 Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_FLOOR unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Address representation clauses are not currently supported
 Nkind: N_Attribute_Definition_Clause
---
-Occurs: 3 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Package_Instantiation
 --
 Occurs: 2 times
 Calling function: Do_Derived_Type_Definition
@@ -155,7 +115,7 @@ Nkind: N_Derived_Type_Definition
 --
 Occurs: 2 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_IMAGE unsupported
+Error message: ATTRIBUTE_FLOOR unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
@@ -166,17 +126,12 @@ Nkind: N_Attribute_Reference
 Occurs: 2 times
 Calling function: Do_Function_Call
 Error message: function entity not defining identifier
-Nkind: N_Function_Call
+Nkind: N_Defining_Operator_Symbol
 --
 Occurs: 2 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind
 Nkind: N_Defining_Identifier
---
-Occurs: 2 times
-Calling function: Process_Declaration
-Error message: Generic instantiation declaration
-Nkind: N_Procedure_Instantiation
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
@@ -184,18 +139,8 @@ Error message: unsupported lower range kind
 Nkind: N_Real_Literal
 --
 Occurs: 1 times
-Calling function: Do_Compilation_Unit
-Error message: Generic units are unsupported
-Nkind: N_Compilation_Unit
---
-Occurs: 1 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE_RADIX unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 1 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MIN unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
@@ -257,11 +202,6 @@ Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Refine
 Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Statement
-Error message: Extended return statement
-Nkind: N_Extended_Return_Statement
 --
 Occurs: 1 times
 Calling function: Process_Statement
@@ -1793,12 +1733,12 @@ Occurs: 10 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
-Occurs: 10 times
+Occurs: 9 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
 --
-Occurs: 9 times
+Occurs: 7 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
 Error detected at REDACTED
@@ -1831,11 +1771,6 @@ Error detected at REDACTED
 Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2293,19 +2228,19 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
 --
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
 Occurs: 25 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from goto_utils.ads:147
+
+--
+Occurs: 4 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
+
+--
+Occurs: 2 times
+<========================>
+raised CONSTRAINT_ERROR : Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map
 
 --
 Occurs: 2 times
@@ -2315,17 +2250,7 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
-
---
-Occurs: 2 times
-<========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:54
-
---
-Occurs: 1 times
-<========================>
-raised CONSTRAINT_ERROR : Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map
 
 --
 Occurs: 1 times

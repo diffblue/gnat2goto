@@ -994,6 +994,13 @@ package body Tree_Walk is
             --  but I can't think of one without delving deeply, and I
             --  think such uses would be unusual (TJJ 21/11/2019)
             null;
+         when N_Generic_Subprogram_Declaration
+           | N_Generic_Package_Declaration =>
+            --  Generic subprograms and packages
+            --  don't need to specially handled
+            --  because their instantiations appear as nodes
+            --  in the AST
+            null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Do_Compilation_Unit",
                                          "Generic units are unsupported");
@@ -1698,7 +1705,7 @@ package body Tree_Walk is
       --  For now, we only handle "nondet" prefixes here.
 
       if Nkind (Func_Ent) /= N_Defining_Identifier then
-         return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
+         return Report_Unhandled_Node_Irep (Func_Ent, "Do_Function_Call",
                                     "function entity not defining identifier");
       end if;
       if Name_Has_Prefix (N, "nondet") or else
@@ -4735,6 +4742,15 @@ package body Tree_Walk is
 
       Proc_Symbol : Symbol;
    begin
+      --  Corresponding_Spec is optional for subprograms
+      --  but it should always be present for generic subprograms,
+      --  so this check should be sufficient
+      if Present (Corresponding_Spec (N)) and then
+        Ekind (Corresponding_Spec (N))
+        in E_Generic_Function | E_Generic_Procedure
+      then
+         return;
+      end if;
       if not Global_Symbol_Table.Contains (Proc_Name) then
          --  A subprogram body does not have to have a separate declaration
          --  so it may not be in the symbol table.
@@ -4800,7 +4816,7 @@ package body Tree_Walk is
          Process_Statement (HSS, Reps);
       end if;
 
-      if Present (Exception_Handlers (HSS)) then
+      if Present (HSS) and then Present (Exception_Handlers (HSS)) then
          declare
             A_Handler : Node_Id := First (Exception_Handlers (HSS));
          begin
@@ -5078,6 +5094,11 @@ package body Tree_Walk is
             when N_Package_Declaration =>
                Do_Package_Declaration (N);
             when N_Package_Body =>
+               null;
+            when N_Generic_Subprogram_Declaration
+              | N_Generic_Package_Declaration =>
+               --  no special handling for generics is required
+               --  because their instantiations appear as nodes in the AST
                null;
             when others =>
                Report_Unhandled_Node_Empty
@@ -5424,12 +5445,10 @@ package body Tree_Walk is
          when N_Exception_Declaration => Do_Exception_Declaration (N);
 
          when N_Generic_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Generic declaration");
+            null;
 
          when N_Generic_Instantiation =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Generic instantiation declaration");
+            null;
 
             --  basic_declarative_items  --
 
@@ -5452,9 +5471,15 @@ package body Tree_Walk is
             Do_Subprogram_Body (N);
 
          when N_Package_Body =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Package body declaration");
-
+            --  XXX: Need to add instructions for initialisers of subpackage
+            if Ekind (Corresponding_Spec (N)) /= E_Generic_Package then
+               declare
+                  Unused_Node_Result : constant Irep
+                    := Do_Subprogram_Or_Block (N);
+               begin
+                  pragma Unreferenced (Unused_Node_Result);
+               end;
+            end if;
          when N_Task_Body =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Task body declaration");
@@ -6081,8 +6106,13 @@ package body Tree_Walk is
    procedure Register_Subprogram_Specification (N : Node_Id) is
       Subprog_Type : constant Irep :=
         Do_Subprogram_Specification (N);
+      Subprog_Defining_Unit_Name : constant Node_Id := Defining_Unit_Name (N);
+      Subprog_Defining_Entity : constant Node_Id := (
+        if Nkind (Subprog_Defining_Unit_Name) = N_Defining_Program_Unit_Name
+        then Defining_Identifier (Subprog_Defining_Unit_Name)
+        else Subprog_Defining_Unit_Name);
       Subprog_Name : constant Symbol_Id :=
-        Intern (Unique_Name (Defining_Unit_Name (N)));
+        Intern (Unique_Name (Subprog_Defining_Entity));
    begin
       New_Subprogram_Symbol_Entry (Subprog_Name   => Subprog_Name,
                                    Subprog_Type   => Subprog_Type,
