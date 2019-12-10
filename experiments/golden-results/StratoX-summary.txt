@@ -129,6 +129,11 @@ Error message: Generic declaration
 Nkind: N_Generic_Package_Declaration
 --
 Occurs: 3 times
+Calling function: Do_Constant
+Error message: Unsupported constant type
+Nkind: N_Integer_Literal
+--
+Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_FLOOR unsupported
 Nkind: N_Attribute_Reference
@@ -142,11 +147,6 @@ Occurs: 3 times
 Calling function: Process_Declaration
 Error message: Generic instantiation declaration
 Nkind: N_Package_Instantiation
---
-Occurs: 2 times
-Calling function: Do_Constant
-Error message: Constant Type not in symbol table
-Nkind: N_Integer_Literal
 --
 Occurs: 2 times
 Calling function: Do_Derived_Type_Definition
@@ -187,11 +187,6 @@ Occurs: 1 times
 Calling function: Do_Compilation_Unit
 Error message: Generic units are unsupported
 Nkind: N_Compilation_Unit
---
-Occurs: 1 times
-Calling function: Do_Constant
-Error message: Constant Type not in Class_Bitvector_Type
-Nkind: N_Integer_Literal
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -2205,47 +2200,47 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:50|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2325,7 +2320,7 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:50
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:54
 
 --
 Occurs: 1 times

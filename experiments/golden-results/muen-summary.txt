@@ -125,7 +125,7 @@ Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 1 times
 Calling function: Do_Constant
-Error message: Constant Type not in symbol table
+Error message: Unsupported constant type
 Nkind: N_Integer_Literal
 --
 Occurs: 1 times
