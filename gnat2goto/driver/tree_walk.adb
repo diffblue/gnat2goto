@@ -2853,12 +2853,27 @@ package body Tree_Walk is
               Name_Storage_Size |
             --  Specifies the amount of storage to be reserved for the
             --  execution of a task. -> Ignored
-              Name_Unsuppress =>
+              Name_Unsuppress |
+            --  enables or disables a set of compiler warnings based on
+            --  template
+            --  these come from the frontend, so they're not really relevant to
+            --  what we're doing here -> Ignored
+              Name_Warnings =>
             --  Voids the supressing request. -> Ignored
             null;
          when others =>
-            Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                         "Unknown pragma name");
+            declare
+               Name_Diagnostic : constant String :=
+                 (if  Pragma_Name (N) /= No_Name
+                  then Get_Name_String (Pragma_Name (N))
+                  else "<No Name>");
+            begin
+               Report_Unhandled_Node_Empty
+                 (N,
+                  "Do_Pragma",
+                  "Unknown pragma name: "
+                    & Name_Diagnostic);
+            end;
       end case;
    end Do_Pragma;
 
@@ -5901,8 +5916,17 @@ package body Tree_Walk is
             --  building that we are working on.
             null;
          when others =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unknown pragma");
+            declare
+               Unknown_Pragma_Diagnostic : constant String :=
+                 (if Pragma_Name (N) /= No_Name
+                  then Get_Name_String (Pragma_Name (N))
+                  else "<No Name>");
+            begin
+               Report_Unhandled_Node_Empty
+                 (N,
+                  "Process_Pragma_Declaration",
+                  "Unknown pragma: " & Unknown_Pragma_Diagnostic);
+            end;
       end case;
    end Process_Pragma_Declaration;
 

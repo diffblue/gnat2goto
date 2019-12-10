@@ -3,9 +3,9 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 284 times
+Occurs: 180 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma
+Error message: Unknown pragma: depends
 Nkind: N_Pragma
 --
 Occurs: 146 times
@@ -16,6 +16,11 @@ Nkind: N_Pragma
 Occurs: 105 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Global
+Nkind: N_Pragma
+--
+Occurs: 104 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: ghost
 Nkind: N_Pragma
 --
 Occurs: 88 times
@@ -37,11 +42,6 @@ Occurs: 47 times
 Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
---
-Occurs: 40 times
-Calling function: Do_Pragma
-Error message: Unknown pragma name
-Nkind: N_Pragma
 --
 Occurs: 26 times
 Calling function: Do_Itype_Integer_Subtype

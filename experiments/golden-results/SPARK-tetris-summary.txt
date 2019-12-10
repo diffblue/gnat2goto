@@ -1,6 +1,6 @@
 Occurs: 4 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma
+Error message: Unknown pragma: ghost
 Nkind: N_Pragma
 --
 Occurs: 1 times
