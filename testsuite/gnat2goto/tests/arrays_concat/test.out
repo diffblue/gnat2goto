@@ -10,5 +10,6 @@
 [precondition_instance.7] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.8] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.9] file <internal> memcpy destination region writeable: SUCCESS
+[assertion.1] file arrays_concat.adb line 7 Ada Check assertion: SUCCESS
 [arrays_concat.assertion.1] line 7 assertion Actual(2)=4: SUCCESS
 VERIFICATION SUCCESSFUL

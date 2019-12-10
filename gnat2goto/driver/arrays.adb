@@ -3,6 +3,7 @@ with Uintp;                 use Uintp;
 
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
+with Range_Check;           use Range_Check;
 
 package body Arrays is
 
@@ -841,37 +842,6 @@ package body Arrays is
       return First;
    end Make_Array_First_Expr;
 
-   -------------------------
-   -- Make_Array_Index_Op --
-   -------------------------
-
-   function Make_Array_Index_Op
-     (Base_Irep : Irep; Idx_Irep : Irep) return Irep
-   is
-      Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
-      First_Irep : constant Irep :=
-        Get_First_Index (Base_Irep);
-      Zero_Based_Index : constant Irep :=
-        Make_Op_Sub (Rhs             => First_Irep,
-                     Lhs             => Idx_Irep,
-                     Source_Location => Source_Loc,
-                     Overflow_Check  => False,
-                     I_Type          => Get_Type (Idx_Irep),
-                     Range_Check     => False);
-
-      Data_Irep : constant Irep :=
-        Get_Data_Member (Base_Irep, Global_Symbol_Table);
-      Data_Type : constant Irep := Get_Type (Data_Irep);
-      Indexed_Data : constant Irep :=
-        Offset_Array_Data (Base         => Base_Irep,
-                           Offset       => Zero_Based_Index);
-      Element_Type : constant Irep := Get_Subtype (Data_Type);
-   begin
-      return Make_Dereference_Expr (Object          => Indexed_Data,
-                                    Source_Location => Source_Loc,
-                                    I_Type          => Element_Type);
-   end Make_Array_Index_Op;
-
    --------------
    -- Do_Slice --
    --------------
@@ -984,10 +954,40 @@ package body Arrays is
 
    --  TODO: multi-dimensional arrays.
    function Do_Indexed_Component (N : Node_Id) return Irep is
-      (Make_Array_Index_Op
-         (Do_Expression (Prefix (N)),
-          Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
-                                 CProver_Size_T, Global_Symbol_Table)));
+      Base_Irep : constant Irep := Do_Expression (Prefix (N));
+      Idx_Irep : constant Irep :=
+        Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
+                               CProver_Size_T, Global_Symbol_Table);
+
+      Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
+      First_Irep : constant Irep := Get_First_Index (Base_Irep);
+      Last_Irep : constant Irep := Get_Last_Index (Base_Irep);
+      Checked_Index : constant Irep :=
+        Make_Index_Assert_Expr (N           => N,
+                                Index       => Idx_Irep,
+                                First_Index => First_Irep,
+                                Last_Index  => Last_Irep);
+      Zero_Based_Index : constant Irep :=
+        Make_Op_Sub (Rhs             => First_Irep,
+                     Lhs             => Checked_Index,
+                     Source_Location => Source_Loc,
+                     Overflow_Check  => False,
+                     I_Type          => Get_Type (Idx_Irep),
+                     Range_Check     => False);
+
+      Data_Irep : constant Irep :=
+        Get_Data_Member (Base_Irep, Global_Symbol_Table);
+      Data_Type : constant Irep := Get_Type (Data_Irep);
+      Indexed_Data : constant Irep :=
+        Offset_Array_Data (Base         => Base_Irep,
+                           Offset       => Zero_Based_Index);
+      Element_Type : constant Irep := Get_Subtype (Data_Type);
+   begin
+      return
+        Make_Dereference_Expr (Object          => Indexed_Data,
+                               Source_Location => Source_Loc,
+                               I_Type          => Element_Type);
+   end Do_Indexed_Component;
 
    function Get_First_Index_Component (Array_Struct : Irep)
                                        return Irep

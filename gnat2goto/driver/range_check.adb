@@ -259,6 +259,21 @@ package body Range_Check is
          I_Type          => Value_Type);
    end Make_Div_Zero_Assert_Expr;
 
+   function Make_Index_Assert_Expr (N : Node_Id; Index : Irep;
+                                    First_Index : Irep; Last_Index : Irep)
+                                    return Irep
+   is
+      Index_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Index), Global_Symbol_Table);
+   begin
+      return Make_Range_Assert_Expr (N                    => N,
+                                     Value                => Index,
+                                     Lower_Bound          => First_Index,
+                                     Upper_Bound          => Last_Index,
+                                     Expected_Return_Type => Index_Type,
+                          Check_Name           => "__CPROVER_Ada_Index_Check");
+   end Make_Index_Assert_Expr;
+
    function Make_Overflow_Assert_Expr (N : Node_Id; Value : Irep) return Irep
    is
       Value_Type : constant Irep :=
