@@ -64,14 +64,14 @@ Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
 Occurs: 3 times
-Calling function: Do_Aggregate_Literal
-Error message: Unhandled aggregate kind
-Nkind: N_Aggregate
---
-Occurs: 3 times
 Calling function: Do_Private_Type_Declaration
 Error message: Tagged type declaration unsupported
 Nkind: N_Private_Type_Declaration
+--
+Occurs: 2 times
+Calling function: Do_Aggregate_Literal
+Error message: Unhandled aggregate kind: E_PRIVATE_TYPE
+Nkind: N_Aggregate
 --
 Occurs: 2 times
 Calling function: Do_Expression
@@ -92,6 +92,11 @@ Occurs: 2 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
+--
+Occurs: 1 times
+Calling function: Do_Aggregate_Literal
+Error message: Unhandled aggregate kind: E_RECORD_TYPE_WITH_PRIVATE
+Nkind: N_Aggregate
 --
 Occurs: 1 times
 Calling function: Do_Constant

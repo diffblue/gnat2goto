@@ -10,7 +10,7 @@ Nkind: N_Op_Concat
 --
 Occurs: 24 times
 Calling function: Do_Aggregate_Literal
-Error message: Unhandled aggregate kind
+Error message: Unhandled aggregate kind: E_PRIVATE_TYPE
 Nkind: N_Aggregate
 --
 Occurs: 8 times
