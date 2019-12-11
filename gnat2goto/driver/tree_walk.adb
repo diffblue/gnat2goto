@@ -560,9 +560,11 @@ package body Tree_Walk is
          when E_Record_Type =>
             return Do_Aggregate_Literal_Record (N);
          when others =>
-            return Report_Unhandled_Node_Irep (N,
-                                               "Do_Aggregate_Literal",
-                                               "Unhandled aggregate kind");
+            return Report_Unhandled_Node_Irep
+              (N,
+               "Do_Aggregate_Literal",
+               "Unhandled aggregate kind: "
+                 & Entity_Kind'Image (Ekind (N_Type)));
       end case;
    end Do_Aggregate_Literal;
 
