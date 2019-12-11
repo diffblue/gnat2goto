@@ -9,11 +9,6 @@ Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
 Occurs: 1 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Null
---
-Occurs: 1 times
 Calling function: Do_Type_Definition
 Error message: Access type unsupported
 Nkind: N_Access_To_Object_Definition

@@ -33,11 +33,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
-Occurs: 9 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Null
---
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported

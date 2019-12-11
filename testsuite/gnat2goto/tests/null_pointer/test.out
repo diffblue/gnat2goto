@@ -1,0 +1,10 @@
+Standard_Output from gnat2goto null_pointer:
+----------At: Do_Type_Definition----------
+----------Access type unsupported----------
+N_Access_To_Object_Definition (Node_Id=2262) (source)
+Parent = N_Full_Type_Declaration (Node_Id=2263)
+Sloc = 8232  null_pointer.adb:2:15
+Subtype_Indication = N_Identifier "integer" (Node_Id=2261)
+
+[null_pointer.assertion.1] line 5 assertion X = null: SUCCESS
+VERIFICATION SUCCESSFUL
