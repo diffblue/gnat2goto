@@ -81,6 +81,9 @@ package body Tree_Walk is
         Post => Kind (Do_Modular_Type_Definition'Result)
                 in Class_Type;
 
+   function Do_Null_Expression (N : Node_Id) return Irep
+     with Pre => Nkind (N) = N_Null;
+
    function Do_Defining_Identifier (E : Entity_Id) return Irep
    with Pre  => Nkind (E) = N_Defining_Identifier,
         Post => Kind (Do_Defining_Identifier'Result) in
@@ -1370,6 +1373,8 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Quantified");
+         when N_Null =>
+            return Do_Null_Expression (N);
          when others                 =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Unknown expression kind");
@@ -6238,4 +6243,12 @@ package body Tree_Walk is
       Append_Argument (No_Return_Check_Args, Get_Int32_T_Zero);
       return No_Return_Check_Call;
    end Get_No_Return_Check;
+
+   function Do_Null_Expression (N : Node_Id) return Irep is
+      Pointer_Type : constant Irep := Do_Type_Reference (Etype (N));
+   begin
+      return Make_Null_Pointer
+        (I_Type => Pointer_Type,
+         Source_Location => Get_Source_Location (N));
+   end Do_Null_Expression;
 end Tree_Walk;
