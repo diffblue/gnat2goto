@@ -35,7 +35,7 @@ Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma
+Error message: Unknown pragma: depends
 Nkind: N_Pragma
 --
 Occurs: 8 times

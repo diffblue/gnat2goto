@@ -28,9 +28,9 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
-Occurs: 73 times
+Occurs: 67 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma
+Error message: Unknown pragma: volatile_full_access
 Nkind: N_Pragma
 --
 Occurs: 57 times
@@ -97,6 +97,11 @@ Occurs: 5 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ADDRESS unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 5 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: ghost
+Nkind: N_Pragma
 --
 Occurs: 3 times
 Calling function: Do_Constant
@@ -182,6 +187,11 @@ Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Having component sizes be different from the size of their underlying type is currently not supported
 Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: default_initial_condition
+Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
