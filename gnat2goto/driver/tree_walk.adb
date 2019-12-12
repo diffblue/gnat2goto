@@ -5904,7 +5904,7 @@ package body Tree_Walk is
                                          "Unsupported pragma: Initializes");
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
-              Name_Assertion_Policy |
+              Name_Assertion_Policy | Name_Check_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
