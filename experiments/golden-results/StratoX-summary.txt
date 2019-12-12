@@ -13,11 +13,6 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 203 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: alignment
-Nkind: N_Attribute_Definition_Clause
---
 Occurs: 202 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
@@ -94,11 +89,6 @@ Error message: Object declaration statement unsupported.
 Nkind: N_Object_Declaration
 --
 Occurs: 5 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_ADDRESS unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 5 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
 Nkind: N_Pragma
@@ -129,11 +119,6 @@ Error message: ATTRIBUTE_TAG unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
-Calling function: Do_Function_Call
-Error message: function entity not defining identifier
-Nkind: N_Defining_Operator_Symbol
---
-Occurs: 2 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind
 Nkind: N_Defining_Identifier
@@ -162,6 +147,11 @@ Occurs: 1 times
 Calling function: Do_Full_Type_Declaration
 Error message: type not in symbol table after declaration
 Nkind: N_Full_Type_Declaration
+--
+Occurs: 1 times
+Calling function: Do_Function_Call
+Error message: function entity not defining identifier
+Nkind: N_Defining_Operator_Symbol
 --
 Occurs: 1 times
 Calling function: Do_Itype_Integer_Subtype
@@ -1820,11 +1810,6 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1784|
 Error detected at REDACTED
 --
@@ -2206,6 +2191,16 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sem_util.adb:20815                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
