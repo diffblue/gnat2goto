@@ -1309,6 +1309,10 @@ package body Tree_Walk is
          when N_Attribute_Reference  =>
             case Get_Attribute_Id (Attribute_Name (N)) is
                when Attribute_Access => return Do_Address_Of (N);
+               when Attribute_Address =>
+                  --  The simplest way to model X'Address in ASVAT
+                  --  is as an access to the object.
+                  return Do_Address_Of (N);
                when Attribute_Length => return Do_Array_Length (N);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
@@ -5501,6 +5505,10 @@ package body Tree_Walk is
                   return;
                end if;
             end;
+         elsif Attr_Id = "alignment" then
+            --  ASVAT does not model alignment of objects in memory.
+            --  Nothing to be done.
+            return;
          end if;
 
          Report_Unhandled_Node_Empty
