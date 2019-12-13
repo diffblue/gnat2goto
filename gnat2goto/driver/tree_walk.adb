@@ -1352,6 +1352,7 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
+<<<<<<< HEAD
                when Attribute_Size =>
                   --  S'Size and X'Size are optimised into a simple literal
                   --  by the gnat frontend when the size of the subtype or
@@ -1416,6 +1417,8 @@ package body Tree_Walk is
                         I_Type => Constant_Type,
                         Source_Location => Get_Source_Location (N));
                   end;
+=======
+>>>>>>> Updated to asvat modelling to work with latest tree walk from diffblue/master
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
@@ -5921,47 +5924,9 @@ package body Tree_Walk is
          when Name_Initializes =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Initializes");
-<<<<<<< HEAD
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
               Name_Assertion_Policy | Name_Check_Policy |
-=======
-         when Name_Annotate =>
-            --  Annotate ASVAT is only supported as an aspect
-            if not From_Aspect_Specification (N) then
-               declare
-                  Args : constant List_Id :=
-                    Pragma_Argument_Associations (N);
-                  First_Arg : constant Node_Id :=
-                    (if Present (Args) then
-                          First (Args)
-                     else
-                        Types.Empty);
-                  First_Expr : constant Node_Id :=
-                    (if Present (First_Arg) then
-                          Expression (First_Arg)
-                     else
-                        Types.Empty);
-
-                  Anno_Id : constant String :=
-                    (if Present (First_Expr) and then
-                     Nkind (First_Expr) = N_Identifier
-                     then
-                        Get_Name_String (Chars (First_Expr))
-                     else
-                        "");
-               begin
-                  if Anno_Id = "asvat" then
-                     Report_Unhandled_Node_Empty
-                       (N, "Process_Pragma_Declaration",
-                        "pragma Annotate: " &
-                          "ASVAT Annotation only supported as an aspect");
-                  end if;
-               end;
-            end if;
-
-         when Name_Assertion_Policy |
->>>>>>> Add ASVAT modelling features to tree_walk
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
