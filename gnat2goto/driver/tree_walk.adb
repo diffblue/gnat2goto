@@ -1343,20 +1343,6 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
-               when Attribute_Size =>
-                  --  Size attribute returns a Universal_Integer but
-                  --  for analysis its value is non-deterministic.
-                  return ASVAT_Modelling.Do_Nondet_Attribute
-                    (N, Unique_Name (Stand.Universal_Integer));
-               when Attribute_Address =>
-                  --  Address attribute returns a System.Address but
-                  --  for analysis its value is non-deterministic.
-                  return ASVAT_Modelling.Do_Nondet_Attribute
-                    (N, "system__address");
-               when Attribute_Valid =>
-                  --  Assume X'Valid is nondeterministic and set X to
-                  --  nondet if X'Valid is False otherwise X := X.
-                  return ASVAT_Modelling.Do_Nondet_Valid (N);
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
