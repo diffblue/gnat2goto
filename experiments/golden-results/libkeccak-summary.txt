@@ -1,7 +1,7 @@
 Occurs: 423 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Global
-Nkind: N_Pragma
+Calling function: Do_Subprogram_Declaration
+Error message: pragma Global unsupported on completed subprograms
+Nkind: N_Subprogram_Declaration
 --
 Occurs: 423 times
 Calling function: Process_Pragma_Declaration
@@ -31,6 +31,11 @@ Nkind: N_Attribute_Definition_Clause
 Occurs: 18 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
+Occurs: 9 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
 Occurs: 2 times

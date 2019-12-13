@@ -40,11 +40,6 @@ Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Global
-Nkind: N_Pragma
---
-Occurs: 8 times
-Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
@@ -82,6 +77,11 @@ Occurs: 2 times
 Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
+--
+Occurs: 2 times
+Calling function: Do_Subprogram_Declaration
+Error message: pragma Global unsupported on completed subprograms
+Nkind: N_Subprogram_Declaration
 --
 Occurs: 2 times
 Calling function: Process_Declaration

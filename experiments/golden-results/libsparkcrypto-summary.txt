@@ -13,14 +13,19 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
-Occurs: 105 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Global
-Nkind: N_Pragma
---
 Occurs: 104 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
+Nkind: N_Pragma
+--
+Occurs: 99 times
+Calling function: Do_Subprogram_Declaration
+Error message: pragma Global unsupported on completed subprograms
+Nkind: N_Subprogram_Declaration
+--
+Occurs: 99 times
+Calling function: Get_Model_From_Import
+Error message: Import convention Ada must have a model sort
 Nkind: N_Pragma
 --
 Occurs: 88 times
@@ -47,6 +52,11 @@ Occurs: 26 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
+--
+Occurs: 26 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Import: Multi-language analysis unsupported
+Nkind: N_Pragma
 --
 Occurs: 24 times
 Calling function: Do_Type_Definition
