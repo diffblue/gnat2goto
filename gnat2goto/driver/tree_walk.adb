@@ -2507,25 +2507,6 @@ package body Tree_Walk is
          function Make_Assert_Comment return Irep;
          function Make_Assert_Comment return Irep
          is
-            --  return name of containing function or package
-            --  (whichever comes earlier)
-            function Get_Context_Name (Intermediate_Node : Node_Id)
-                                      return String;
-            function Get_Context_Name (Intermediate_Node : Node_Id)
-                                      return String is
-            begin
-               case Nkind (Intermediate_Node) is
-                  when N_Subprogram_Body | N_Package_Body =>
-                     return Get_Name_String
-                       (Chars
-                          (Defining_Unit_Name
-                             (Specification
-                                (Intermediate_Node))));
-                  when others =>
-                     return Get_Context_Name (Parent (Intermediate_Node));
-               end case;
-            end Get_Context_Name;
-
             Source_Loc : constant Irep := Get_Source_Location (N);
             Context_Name : constant String := Get_Context_Name (N);
             Comment_Prefix : constant String := "assertion ";

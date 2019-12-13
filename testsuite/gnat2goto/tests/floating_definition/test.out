@@ -1,5 +1,5 @@
-[assertion.1] file floating_definition.adb line 8 Ada Check assertion: SUCCESS
-[assertion.2] file floating_definition.adb line 9 Ada Check assertion: SUCCESS
-[floating_definition.assertion.1] line 10 assertion Small_Number > 0.9: SUCCESS
-[floating_definition.assertion.2] line 11 assertion Large_Number > 22.7: FAILURE
+[floating_definition.assertion.1] line 8 Ada Check assertion: SUCCESS
+[floating_definition.assertion.4] line 9 Ada Check assertion: SUCCESS
+[floating_definition.assertion.2] line 10 assertion Small_Number > 0.9: SUCCESS
+[floating_definition.assertion.3] line 11 assertion Large_Number > 22.7: FAILURE
 VERIFICATION FAILED

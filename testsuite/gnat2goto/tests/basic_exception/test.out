@@ -1,4 +1,4 @@
-[assertion.2] file test.adb line 6 Ada Exception: FAILURE
-[assertion.1] file test.adb line 16 Ada Check assertion: SUCCESS
-[test.assertion.1] line 25 assertion Error_Count = 1: SUCCESS
+[assertion.1] file test.adb line 6 Ada Exception: FAILURE
+[test.assertion.1] line 16 Ada Check assertion: SUCCESS
+[test.assertion.2] line 25 assertion Error_Count = 1: SUCCESS
 VERIFICATION FAILED
