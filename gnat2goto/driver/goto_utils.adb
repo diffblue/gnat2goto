@@ -762,52 +762,52 @@ package body GOTO_Utils is
           Inlined => False,
           Knr => False));
 
-      function Source_Ptr_To_Irep (Src : Source_Ptr) return Irep
-      is
-         use Ada.Strings;
-         use Ada.Strings.Fixed;
-         SFI : constant Source_File_Index := Get_Source_File_Index (Src);
-         FN : constant File_Name_Type := File_Name (SFI);
-      begin
-         if Src = No_Location or Src <= Standard_Location
-         then
-            return Internal_Source_Location;
-         else
-            return Make_Source_Location
-              (File => Get_Name_String (FN),
-               Line => Trim
-                 (Logical_Line_Number'Image
-                    (Get_Logical_Line_Number (Src)), Both),
-               Column => Trim
-                 (Column_Number'Image (Get_Column_Number (Src)), Both),
-               Comment => "");
-         end if;
-      end Source_Ptr_To_Irep;
+   function Source_Ptr_To_Irep (Src : Source_Ptr) return Irep
+   is
+      use Ada.Strings;
+      use Ada.Strings.Fixed;
+      SFI : constant Source_File_Index := Get_Source_File_Index (Src);
+      FN : constant File_Name_Type := File_Name (SFI);
+   begin
+      if Src = No_Location or Src <= Standard_Location
+      then
+         return Internal_Source_Location;
+      else
+         return Make_Source_Location
+           (File => Get_Name_String (FN),
+            Line => Trim
+              (Logical_Line_Number'Image
+                 (Get_Logical_Line_Number (Src)), Both),
+            Column => Trim
+              (Column_Number'Image (Get_Column_Number (Src)), Both),
+            Comment => "");
+      end if;
+   end Source_Ptr_To_Irep;
 
-      function Get_Source_Location (N : Node_Id) return Irep
-      is (Source_Ptr_To_Irep (Sloc (N)));
+   function Get_Source_Location (N : Node_Id) return Irep
+   is (Source_Ptr_To_Irep (Sloc (N)));
 
-      function Make_Source_Location
-        (Comment : String := "";
-         Working_Directory : String := "";
-         File : String := "";
-         Property_Id : String := "";
-         I_Function : String := "";
-         Property_Class : String := "";
-         Line : String := "";
-         Column : String := "")
-        return Irep
-      is
-         (Make_Source_Location
-            (Comment => Comment,
-             Working_Directory => Working_Directory,
-             File => File,
-             Property_Id => Property_Id,
-             Java_Bytecode_Index => "",
-             I_Function => I_Function,
-             Property_Class => Property_Class,
-             Line => Line,
-             Column => Column));
+   function Make_Source_Location
+     (Comment : String := "";
+      Working_Directory : String := "";
+      File : String := "";
+      Property_Id : String := "";
+      I_Function : String := "";
+      Property_Class : String := "";
+      Line : String := "";
+      Column : String := "")
+     return Irep
+   is
+      (Make_Source_Location
+         (Comment => Comment,
+          Working_Directory => Working_Directory,
+          File => File,
+          Property_Id => Property_Id,
+          Java_Bytecode_Index => "",
+          I_Function => I_Function,
+          Property_Class => Property_Class,
+          Line => Line,
+          Column => Column));
 
    function Make_Assert_Call (Assertion : Irep;
                               Description : Irep; Source_Loc : Irep;
