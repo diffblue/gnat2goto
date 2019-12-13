@@ -1,3 +1,3 @@
-[package_type.assertion.1] line 8 assertion Small_Number * 2 = 8: SUCCESS
-[assertion.1] line 8 Ada Check assertion: SUCCESS
+[package_type.assertion.2] line 8 assertion Small_Number * 2 = 8: SUCCESS
+[package_type.assertion.1] line 8 Ada Check assertion: SUCCESS
 VERIFICATION SUCCESSFUL

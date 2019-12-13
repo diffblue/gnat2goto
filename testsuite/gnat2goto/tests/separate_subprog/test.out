@@ -1,4 +1,4 @@
-[assertion.1] file p-inc.asu line 5 Ada Check assertion: FAILURE
-[inc.assertion.1] line 6 assertion N = Old_N + 1: SUCCESS
+[inc.assertion.1] line 5 Ada Check assertion: FAILURE
+[inc.assertion.2] line 6 assertion N = Old_N + 1: SUCCESS
 [p.assertion.1] line 16 assertion X = Old_X + 1: FAILURE
 VERIFICATION FAILED

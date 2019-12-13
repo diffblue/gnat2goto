@@ -1,4 +1,4 @@
-[assertion.1] file discriminated_record.adb line 16 Ada Check assertion: SUCCESS
-[discriminated_record.assertion.1] line 19 assertion Inst1.A (5) = 1: SUCCESS
-[discriminated_record.assertion.2] line 21 assertion Inst1.A (5) = 1: SUCCESS
+[discriminated_record.assertion.1] line 16 Ada Check assertion: SUCCESS
+[discriminated_record.assertion.2] line 19 assertion Inst1.A (5) = 1: SUCCESS
+[discriminated_record.assertion.3] line 21 assertion Inst1.A (5) = 1: SUCCESS
 VERIFICATION SUCCESSFUL

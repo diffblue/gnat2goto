@@ -1,5 +1,5 @@
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[assertion.1] file arrays_write_element.adb line 6 Ada Check assertion: SUCCESS
+[arrays_write_element.assertion.1] line 6 Ada Check assertion: SUCCESS
 VERIFICATION SUCCESSFUL

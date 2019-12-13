@@ -428,6 +428,7 @@ package body Range_Check is
          Source_Location => Get_Source_Location (N),
          I_Type => Expected_Return_Type);
    begin
+      Set_Function (Source_Loc, Get_Context_Name (N));
       pragma Assert (Underlying_Lower_Type = Underlying_Upper_Type);
 
       Append_Argument (Call_Args,

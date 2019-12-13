@@ -1018,4 +1018,26 @@ package body GOTO_Utils is
                             Range_Check => Range_Check);
    end Make_Let_Binding_Expr;
 
+   function Get_Context_Name (Intermediate_Node : Node_Id)
+                              return String is
+   begin
+      if not (Present (Intermediate_Node)) then
+         return "";
+      end if;
+      case Nkind (Intermediate_Node) is
+         when N_Subprogram_Body =>
+            return Get_Name_String
+              (Chars
+                 (Defining_Unit_Name
+                      (Specification
+                           (Intermediate_Node))));
+         when N_Package_Body =>
+            return Get_Name_String
+              (Chars
+                 (Defining_Unit_Name
+                      (Intermediate_Node)));
+         when others =>
+            return Get_Context_Name (Parent (Intermediate_Node));
+      end case;
+   end Get_Context_Name;
 end GOTO_Utils;

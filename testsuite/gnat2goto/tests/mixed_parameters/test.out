@@ -1,4 +1,4 @@
-[assertion.1] file mixed_parameters.adb line 5 Ada Check assertion: SUCCESS
+[subtract.assertion.1] line 5 Ada Check assertion: SUCCESS
 [mixed_parameters.assertion.1] line 10 assertion C = 1: SUCCESS
 [mixed_parameters.assertion.2] line 12 assertion C = 0: SUCCESS
 [mixed_parameters.assertion.3] line 14 assertion C = 5: SUCCESS
