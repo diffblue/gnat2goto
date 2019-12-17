@@ -1,5 +1,5 @@
-[symmetric_difference.assertion.1] line 3 Ada Check assertion: SUCCESS
 [absolute_float.assertion.1] line 7 assertion Symmetric_Difference (X, Y) = Symmetric_Difference (Y, X): SUCCESS
 [absolute_float.assertion.2] line 8 assertion Symmetric_Difference (X, Y) = 5.0: SUCCESS
 [absolute_float.assertion.3] line 10 assertion Symmetric_Difference (Y, X) /= 5.0: FAILURE
+[symmetric_difference.assertion.1] line 3 Ada Check assertion: SUCCESS
 VERIFICATION FAILED
