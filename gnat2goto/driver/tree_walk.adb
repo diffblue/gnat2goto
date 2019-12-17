@@ -1343,6 +1343,70 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
+               when Attribute_Size =>
+                  --  S'Size and X'Size are optimised into a simple literal
+                  --  by the gnat frontend when the size of the subtype or
+                  --  object is known by the frontend.
+                  --  In such cases this branch will not be entered.
+                  --  S'Size where S is a scalar subtype is nearly always
+                  --  known at compile time, it is implementation dependent
+                  --  for indefinite subtypes.
+                  --  The Ada RM only specifies the value of S'Size, when
+                  --  S is a packed record and S is a formal parameter of
+                  --  Unchecked conversion.
+                  --  The gnat frontend function RM_Size should be used to
+                  --  obtain the value of S'Size.  It has the value 0 if
+                  --  the size of the subtype is not known to the frontend.
+                  --
+                  --  To obtain X'Size the frontend function Esize is used.
+                  --  The function can be applied to the object or its subtype.
+                  --  It seems that when applied to the object it returns 0 if
+                  --  the object does not have an attribute definition clause
+                  --  specifying its size.
+                  --  In such cases gnat2goto uses the default size of the
+                  --  object obtained by applying Esize to its subtype.
+                  --  Unfortunately, this may also return 0 if the size of
+                  --  the subtype is not known by the frontend.
+                  declare
+                     Constant_Type : constant Irep :=
+                       Do_Type_Reference (Stand.Universal_Integer);
+                     The_Entity : constant Node_Id := Entity (Prefix (N));
+                     The_Size  : Uint;
+                  begin
+                     if Is_Object (The_Entity) then
+                        declare
+                           Object_Size : constant Uint := Esize (The_Entity);
+                           Default_Obj_Size : constant Uint :=
+                             Esize (Etype (The_Entity));
+                           The_Size_To_Use : constant Uint :=
+                             (if Integer (UI_To_Int (Object_Size)) /= 0 then
+                                 Object_Size
+                              else
+                                 Default_Obj_Size
+                             );
+                        begin
+                           The_Size := The_Size_To_Use;
+                        end;
+                     elsif Is_Type (The_Entity) then
+                        --  Since the attribute is applied to a subtype,
+                        --  S'Size, RM_Size should be used.
+                        The_Size := RM_Size (The_Entity);
+
+                        if not Is_Definite_Subtype (The_Entity) then
+                           Report_Unhandled_Node_Empty
+                             (The_Entity,
+                              "Do_Expression",
+                              "Size attribute applied to indefinite type " &
+                                "is implementation defined");
+                        end if;
+                     end if;
+
+                     return Make_Constant_Expr
+                       (Value =>
+                          UI_Image (Input  => The_Size, Format => Decimal),
+                        I_Type => Constant_Type,
+                        Source_Location => Get_Source_Location (N));
+                  end;
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
@@ -5840,7 +5904,7 @@ package body Tree_Walk is
                                          "Unsupported pragma: Initializes");
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
-              Name_Assertion_Policy |
+              Name_Assertion_Policy | Name_Check_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored

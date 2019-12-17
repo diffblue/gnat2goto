@@ -1,0 +1,29 @@
+Standard_Output from gnat2goto indefinite_size:
+----------At: Do_Expression----------
+----------Size attribute applied to indefinite type is implementation defined----------
+N_Defining_Identifier "a" (Entity_Id=2259) (source,analyzed)
+ Parent = N_Full_Type_Declaration (Node_Id=2270)
+ Sloc = 8308  indefinite_size.adb:5:9
+ Chars = "a" (Name_Id=300000099)
+ Next_Entity = N_Defining_Operator_Symbol "Oconcat" (Entity_Id=2290)
+ Scope = N_Defining_Identifier "indefinite_size" (Entity_Id=2245)
+ Ekind = E_Array_Type
+ Etype = N_Defining_Identifier "a" (Entity_Id=2259)
+ Freeze_Node = N_Freeze_Entity (Node_Id=2311)
+ Esize = 0 (Uint = 600032768)
+ RM_Size = 0 (Uint = 600032768)
+ Alignment = 0 (Uint = 600032768)
+ First_Index = N_Identifier "positive" (Node_Id=2266)
+ Component_Type = N_Defining_Identifier "integer" (Entity_Id=37s)
+ Component_Size = 32 (Uint = 600032800)
+ Component_Alignment = Calign_Default
+ Has_Delayed_Freeze = True
+ Has_Qualified_Name = True
+ Has_Xref_Entry = True
+ Is_First_Subtype = True
+ Is_Frozen = True
+ Needs_Debug_Info = True
+ Referenced = True
+
+[indefinite_size.assertion.1] line 8 assertion A'Size = 21: FAILURE
+VERIFICATION FAILED
