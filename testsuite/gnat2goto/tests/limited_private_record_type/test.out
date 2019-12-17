@@ -1,0 +1,4 @@
+[test.assertion.1] line 5 assertion Counter.Value_Equals (C, 0): SUCCESS
+[test.assertion.2] line 7 assertion Counter.Value_Equals (C, 1): SUCCESS
+[test.assertion.3] line 8 assertion False: FAILURE
+VERIFICATION FAILED
