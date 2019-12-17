@@ -238,4 +238,9 @@ package GOTO_Utils is
       I_Type : Irep := Ireps.Empty;
       Range_Check : Boolean := False)
    return Irep;
+
+   --  return name of containing function or package
+   --  (whichever comes earlier)
+   function Get_Context_Name (Intermediate_Node : Node_Id)
+                              return String;
 end GOTO_Utils;

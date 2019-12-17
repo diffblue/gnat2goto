@@ -1,7 +1,7 @@
-[floating_point_literals.assertion.1] line 8 assertion X > Z: FAILURE
-[floating_point_literals.assertion.2] line 10 assertion X < Z: SUCCESS
-[assertion.1] line 12 Ada Check assertion: SUCCESS
-[floating_point_literals.assertion.3] line 12 assertion X + Y = Z: FAILURE
-[floating_point_literals.assertion.4] line 14 assertion X + Y < Z: SUCCESS
-[floating_point_literals.assertion.5] line 16 assertion W < 1.2: SUCCESS
+[floating_point_literals.assertion.2] line 8 assertion X > Z: FAILURE
+[floating_point_literals.assertion.3] line 10 assertion X < Z: SUCCESS
+[floating_point_literals.assertion.1] line 12 Ada Check assertion: SUCCESS
+[floating_point_literals.assertion.4] line 12 assertion X + Y = Z: FAILURE
+[floating_point_literals.assertion.5] line 14 assertion X + Y < Z: SUCCESS
+[floating_point_literals.assertion.6] line 16 assertion W < 1.2: SUCCESS
 VERIFICATION FAILED

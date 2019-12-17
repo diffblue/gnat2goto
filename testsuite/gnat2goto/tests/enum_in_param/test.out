@@ -2,5 +2,5 @@
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
 [p_enum_in.assertion.1] line 19 assertion E in More_Than_Two: SUCCESS
-[assertion.1] line 23 Ada Check assertion: SUCCESS
+[enum_in.assertion.1] line 23 Ada Check assertion: SUCCESS
 VERIFICATION SUCCESSFUL

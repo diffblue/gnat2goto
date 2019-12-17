@@ -1,2 +1,2 @@
-[assertion.1] file int_overflow.adb line 5 Ada Check assertion: FAILURE
+[int_overflow.assertion.1] line 5 Ada Check assertion: FAILURE
 VERIFICATION FAILED

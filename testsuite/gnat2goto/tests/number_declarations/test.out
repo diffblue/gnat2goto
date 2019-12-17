@@ -1,2 +1,2 @@
-[assertion.1] file use_number_declarations.adb line 11 Ada Check assertion: FAILURE
+[use_number_declarations.assertion.1] line 11 Ada Check assertion: FAILURE
 VERIFICATION FAILED
