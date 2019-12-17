@@ -1,6 +1,6 @@
 [check.assertion.1] line 15 assertion X = 5: FAILURE
 [check2.assertion.1] line 20 assertion False or (X < 10 and X > 0): SUCCESS
-[plus.assertion.1] line 28 Ada Check assertion: SUCCESS
 [check3.assertion.1] line 32 assertion Plus (X, Plus (X, 1)) <= 15 and Plus (X => X, Y => -5) >= -5: FAILURE
 [check4.assertion.1] line 43 assertion X < 10: FAILURE
+[plus.assertion.1] line 28 Ada Check assertion: SUCCESS
 VERIFICATION FAILED

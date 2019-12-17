@@ -1,4 +1,4 @@
-[check_assoc_int_minusR.assertion.1] line 10 assertion (A + (B + C)) = ((A + B) + C): FAILURE
 [check_assoc_intR.assertion.1] line 10 Ada Check assertion: FAILURE
 [check_assoc_intR.assertion.2] line 10 assertion (A + (B + C)) = ((A + B) + C): SUCCESS
+[check_assoc_int_minusR.assertion.1] line 10 assertion (A + (B + C)) = ((A + B) + C): FAILURE
 VERIFICATION FAILED
