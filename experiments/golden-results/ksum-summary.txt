@@ -1,9 +1,4 @@
 Occurs: 3 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: alignment
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 3 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
