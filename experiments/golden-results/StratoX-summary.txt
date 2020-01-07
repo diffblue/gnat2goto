@@ -78,11 +78,6 @@ Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
 --
-Occurs: 6 times
-Calling function: Process_Statement
-Error message: Object declaration statement unsupported.
-Nkind: N_Object_Declaration
---
 Occurs: 5 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
