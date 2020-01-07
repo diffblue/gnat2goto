@@ -6117,8 +6117,7 @@ package body Tree_Walk is
 --            --  Ignore, nothing to generate
 --            null;
          when N_Object_Declaration =>
-            Report_Unhandled_Node_Empty (N, "Process_Statement",
-                                  "Object declaration statement unsupported.");
+            Do_Object_Declaration (N, Block);
 
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
