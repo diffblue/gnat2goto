@@ -33,11 +33,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_full_access
 Nkind: N_Pragma
 --
-Occurs: 56 times
-Calling function: Do_Type_Definition
-Error message: Access type unsupported
-Nkind: N_Access_To_Object_Definition
---
 Occurs: 22 times
 Calling function: Do_Expression
 Error message: First of string unsupported
@@ -1765,7 +1760,7 @@ Error detected at REDACTED
 --
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:989                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:992                      |
 Error detected at REDACTED
 --
 Occurs: 2 times
