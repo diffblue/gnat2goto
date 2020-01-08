@@ -407,6 +407,9 @@ package body Tree_Walk is
      with Pre => Nkind (N) in N_Access_Function_Definition |
      N_Access_Procedure_Definition;
 
+   function Do_Access_To_Object_Definition (N : Node_Id) return Irep
+     with Pre => Nkind (N) = N_Access_To_Object_Definition;
+
    function Get_No_Return_Check return Irep;
 
    function Make_Malloc_Function_Call_Expr (Num_Elem : Irep;
@@ -5099,8 +5102,7 @@ package body Tree_Walk is
          when N_Access_Procedure_Definition =>
             return Do_Access_Function_Definition (N);
          when N_Access_To_Object_Definition =>
-            return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
-                                               "Access type unsupported");
+            return Do_Access_To_Object_Definition (N);
          when others =>
             return Report_Unhandled_Node_Type (N, "Do_Type_Definition",
                                                "Unknown expression kind");
@@ -6280,6 +6282,17 @@ package body Tree_Walk is
                                                 Inlined     => False,
                                                 Knr         => False));
    end Do_Access_Function_Definition;
+
+   function Do_Access_To_Object_Definition (N : Node_Id) return Irep
+   is
+      Sub_Indication : constant Node_Id := Subtype_Indication (N);
+      Under_Type : constant Node_Id := Etype
+        (if Nkind (Sub_Indication) = N_Subtype_Indication
+         then Subtype_Mark (Sub_Indication)
+         else Sub_Indication);
+   begin
+      return Make_Pointer_Type (Do_Type_Reference (Under_Type));
+   end Do_Access_To_Object_Definition;
 
    function Get_No_Return_Check return Irep is
       No_Return_Check_Symbol : constant Irep := Symbol_Expr
