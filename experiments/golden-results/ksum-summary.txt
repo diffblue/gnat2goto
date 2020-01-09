@@ -3,11 +3,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
-Occurs: 1 times
-Calling function: Do_Type_Definition
-Error message: Access type unsupported
-Nkind: N_Access_To_Object_Definition
---
 Occurs: 41 times
 Redacted compiler error message:
 file "REDACTED" not found
