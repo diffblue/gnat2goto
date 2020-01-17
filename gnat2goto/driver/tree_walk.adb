@@ -1352,7 +1352,6 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
-<<<<<<< HEAD
                when Attribute_Size =>
                   --  S'Size and X'Size are optimised into a simple literal
                   --  by the gnat frontend when the size of the subtype or
@@ -1417,8 +1416,6 @@ package body Tree_Walk is
                         I_Type => Constant_Type,
                         Source_Location => Get_Source_Location (N));
                   end;
-=======
->>>>>>> Updated to asvat modelling to work with latest tree walk from diffblue/master
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
