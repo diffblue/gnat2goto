@@ -15,7 +15,10 @@ with GOTO_Utils;              use GOTO_Utils;
 with Ada.Text_IO;             use Ada.Text_IO;
 package body ASVAT_Modelling is
 
-   Print_Message : constant Boolean := False;
+   Print_Message : constant Boolean := True;
+
+   function Do_Nondet_Function_Call
+     (Fun_Name : String; N : Node_Id) return Irep;
 
    function Find_Model (Model : String) return Model_Sorts;
 
@@ -27,27 +30,6 @@ package body ASVAT_Modelling is
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
                Get_Model_Sort (E) = Represents;
-
-   -------------------------
-   -- Do_Nondet_Attribute --
-   -------------------------
-
---     function Do_Nondet_Attribute
---       (N : Node_Id; Type_Name : String) return Irep is
---        Fun_Name : constant String := To_Lower
---          (Get_Name_String (Attribute_Name (N))) & "___" &
---          Unique_Name (Entity (Prefix (N)));
---     begin
---        --  Create the nondet attribute function.
---        --  It is not recreated by Make_Nondet_Function if it already exists.
---        Make_Nondet_Function
---          (Fun_Name    => Fun_Name,
---           Result_Type => Type_Name,
---           Statements  => Ireps.Empty,
---           N           => N);
---        --  Return the Irep of the nondet attribute function
---        return Do_Nondet_Function_Call (Fun_Name, N);
---     end Do_Nondet_Attribute;
 
    -------------------------------
    -- Do_Nondet_Function_Call --
@@ -65,7 +47,7 @@ package body ASVAT_Modelling is
       return Make_Side_Effect_Expr_Function_Call
         (Source_Location => Get_Source_Location (N),
          I_Function      => Symbol_Expr (Fun_Symbol),
-         Arguments       => Make_Argument_List,  --  A parameterless function.
+         Arguments       => Make_Argument_List, --  Parameterless function.
          I_Type          => Get_Return_Type (Fun_Symbol.SymType));
    end Do_Nondet_Function_Call;
 

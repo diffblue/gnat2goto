@@ -8,9 +8,6 @@ package ASVAT_Modelling is
    type Model_Sorts is (Not_A_Model, Nondet, Nondet_In_Type, Represents);
    subtype Valid_Model is Model_Sorts range Nondet .. Model_Sorts'Last;
 
-   function Do_Nondet_Function_Call
-     (Fun_Name : String; N : Node_Id) return Irep;
-
    function Get_Annotation_Name (N : Node_Id) return String
    with Pre => Nkind (N) = N_Pragma and then
                Get_Pragma_Id (N) = Pragma_Annotate;
