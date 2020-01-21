@@ -88,11 +88,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Known but unsupported pragma: Linker Options
 Nkind: N_Pragma
 --
-Occurs: 2 times
-Calling function: Process_Statement
-Error message: Object declaration statement unsupported.
-Nkind: N_Object_Declaration
---
 Occurs: 32 times
 Redacted compiler error message:
 file "REDACTED" not found
