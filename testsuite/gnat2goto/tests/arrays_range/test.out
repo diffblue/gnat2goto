@@ -1,8 +1,8 @@
-[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
-[array_consumer.assertion.2] line 8 Ada Check assertion: FAILURE
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
 [array_consumer.assertion.1] line 8 Ada Check assertion: SUCCESS
+[array_consumer.assertion.2] line 8 Ada Check assertion: FAILURE
 [array_consumer.assertion.3] line 9 assertion An_Index = 2: SUCCESS
 [array_consumer.assertion.4] line 11 assertion An_Index = 4: SUCCESS
 [array_consumer.assertion.5] line 13 assertion An_Index = -1: SUCCESS

@@ -18,6 +18,6 @@ N_Attribute_Definition_Clause "address" (Node_Id=2295) (source,analyzed)
  Entity = N_Defining_Identifier "var_addr_2" (Entity_Id=2282)
  Check_Address_Alignment = True
 
-[address_clause.assertion.2] line 12 assertion Var_Addr_1 + Var_Addr_2 = 3: SUCCESS
 [address_clause.assertion.1] line 12 Ada Check assertion: SUCCESS
+[address_clause.assertion.2] line 12 assertion Var_Addr_1 + Var_Addr_2 = 3: SUCCESS
 VERIFICATION SUCCESSFUL

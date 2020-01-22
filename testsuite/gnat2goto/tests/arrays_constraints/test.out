@@ -1,6 +1,6 @@
 [array_constraints.assertion.1] line 109 Ada Check assertion: SUCCESS
-[array_constraints.assertion.8] line 117 Ada Check assertion: SUCCESS
 [array_constraints.assertion.2] line 117 assertion VUA1 (1) + VUA2 (2) + VUA3 (3) + VUA4 (4) + VUA5 (5) + VUA6 (6) + VUA7 (7) + VUA8 (8) = 36: SUCCESS
+[array_constraints.assertion.8] line 117 Ada Check assertion: SUCCESS
 [array_constraints.assertion.3] line 131 assertion VCA1 (VCA1'Last) + VCA2 (VCA2'Last - 1) + VCA3 (VCA3'Last - 2) + VCA4 (Constrained_Array_4'Last - 3) = 10: SUCCESS
 [array_constraints.assertion.4] line 143 assertion VEA1 (One) + VEA2 (Two) + VEA3 (Three) + VEA4 (Four) + VEA5 (Five) + VEA6 (Six) = 21: SUCCESS
 [array_constraints.assertion.5] line 154 assertion VBA1 (False) + VBA2 (True) + VBA3 (False) + VBA4 (True) + VBA5 (False) + VBA6 (True) = 7: SUCCESS
