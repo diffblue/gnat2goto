@@ -68,7 +68,7 @@ In addition to the unit tests, gnat2goto also includes end-to-end regression
 tests. These tests aim to test the full pipeline from Ada source code input
 through to final analysis by CBMC.
 
-Instructions for running the regression test suite are described in [testsuite/gnat2goto/README.md](testsuite/gnat2goto/README.md)
+Instructions for running the regression test suite are described in [testsuite/gnat2goto/README.md](../testsuite/gnat2goto/README.md)
 
 # Running and updating missing features tests
 
@@ -95,7 +95,7 @@ one file per project. Simply copy the '<project>-summary.txt' file from
 
 # Updating the CBMC submodule
 
-As described in [testsuite/gnat2goto/README.md](testsuite/gnat2goto/README.md)
+As described in [testsuite/gnat2goto/README.md](../testsuite/gnat2goto/README.md)
 gnat2goto includes a GIT submodule for CBMC. In most cases this should not need
 changing, but if you are developing gnat2goto features or fixes that require a
 different version of CBMC then you will need to update the CBMC submodule
