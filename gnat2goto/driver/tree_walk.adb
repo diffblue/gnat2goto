@@ -1231,7 +1231,6 @@ package body Tree_Walk is
                I_Type => Enum_Type_Symbol,
                Source_Location => Get_Source_Location (Member));
          begin
-            Append_Member (Enum_Body, Element);
             New_Enum_Member_Symbol_Entry (Member_Name    => Intern (Val_Name),
                                      Base_Name      => Intern (Base_Name),
                                      Enum_Type      => Enum_Type_Symbol,
@@ -4816,6 +4815,17 @@ package body Tree_Walk is
       Proc_Name   : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Entity (N)));
 
+      --  ASVAT models have a modelling body inserted rather than
+      --  the body declared in the program text.
+      --  The model body is inserted when the subprogram specification
+      --  is processed, either from the declaration or the subprogram body
+      --  if the subprogram does not have a declaration.
+      E : constant Node_Id := Defining_Unit_Name (Specification (N));
+      ASVAT_Model : constant ASVAT_Modelling.Model_Sorts :=
+        ASVAT_Modelling.Get_Model_Sort (E);
+      Is_ASVAT_Model : constant Boolean :=
+        ASVAT_Modelling.Is_Model (ASVAT_Model);
+
       Proc_Symbol : Symbol;
    begin
       --  Corresponding_Spec is optional for subprograms
@@ -4833,6 +4843,11 @@ package body Tree_Walk is
          --  The subprogram specification of the subprogram body is used to
          --  populate the symbol table instead.
          Register_Subprogram_Specification (Specification (N));
+
+         if Is_ASVAT_Model then
+            --  Generate the model body.
+            ASVAT_Modelling.Make_Model (E, ASVAT_Model);
+         end if;
       end if;
       --  Todo aspect_specification, i.e. pre/post-conditions
       --  Now the subprogram should registered in the symbol table
@@ -4841,11 +4856,15 @@ package body Tree_Walk is
          Report_Unhandled_Node_Empty (N, "Do_Subprogram_Body",
                                       "Proc name not in symbol table");
       end if;
-      Proc_Symbol := Global_Symbol_Table (Proc_Name);
+      if not Is_ASVAT_Model then
+         --  The actual body has to processed from the program text
+         Proc_Symbol := Global_Symbol_Table (Proc_Name);
 
-      --  Compile the subprogram body and update its entry in the symbol table.
-      Proc_Symbol.Value := Do_Subprogram_Or_Block (N);
-      Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
+         --  Compile the subprogram body and
+         --  update its entry in the symbol table.
+         Proc_Symbol.Value := Do_Subprogram_Or_Block (N);
+         Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
+      end if;
    end Do_Subprogram_Body;
 
    -----------------------------
@@ -4875,6 +4894,7 @@ package body Tree_Walk is
       Register_Subprogram_Specification (Specification (N));
 
       if ASVAT_Modelling.Is_Model (ASVAT_Model) then
+         Put_Line ("It is an ASVAT model");
          ASVAT_Modelling.Make_Model (E, ASVAT_Model);
 
       elsif not Has_Completion (E) then

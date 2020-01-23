@@ -12,13 +12,14 @@ with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
 --  with Symbol_Table_Info;       use Symbol_Table_Info;
+with Treepr;                  use Treepr;
 with Ada.Text_IO;             use Ada.Text_IO;
 package body ASVAT_Modelling is
 
    Print_Message : constant Boolean := True;
 
    function Do_Nondet_Function_Call
-     (Fun_Name : String; N : Node_Id) return Irep;
+     (Fun_Name : String; Loc : Source_Ptr) return Irep;
 
    function Find_Model (Model : String) return Model_Sorts;
 
@@ -36,16 +37,16 @@ package body ASVAT_Modelling is
    -------------------------------
 
    function Do_Nondet_Function_Call
-     (Fun_Name : String; N : Node_Id) return Irep
+     (Fun_Name : String; Loc : Source_Ptr) return Irep
    is
       Fun_Id     : constant Symbol_Id := Intern (Fun_Name);
       pragma Assert (Global_Symbol_Table.Contains (Fun_Id),
-                     "gnat2goto fatal error: Nondet_Attribute_Function " &
+                     "gnat2goto fatal error: Nondet_Function_Call " &
                     Fun_Name & " not in symbol table.");
       Fun_Symbol : constant Symbol    := Global_Symbol_Table (Fun_Id);
    begin
       return Make_Side_Effect_Expr_Function_Call
-        (Source_Location => Get_Source_Location (N),
+        (Source_Location => Source_Ptr_To_Irep (Loc),
          I_Function      => Symbol_Expr (Fun_Symbol),
          Arguments       => Make_Argument_List, --  Parameterless function.
          I_Type          => Get_Return_Type (Fun_Symbol.SymType));
@@ -341,6 +342,71 @@ package body ASVAT_Modelling is
       Subprog_Id : constant Symbol_Id := Intern (Unique_Name (E));
       Block : constant Irep := Make_Code_Block
         (Source_Location => Get_Source_Location (E));
+      Loc : constant Source_Ptr := Sloc (E);
+
+      procedure Do_Nondet_Var (Var_Name, Var_Type : String; Loc : Source_Ptr);
+
+      procedure Do_Nondet_Var (Var_Name, Var_Type : String; Loc : Source_Ptr)
+      is
+         Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
+         Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
+         Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
+                 "Do_Nondet_Var: Variable name is not in symbol table");
+         Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
+         Fun_Name : constant String := "Nondet___" & Var_Type;
+         Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
+      begin
+         --  First a nondet function is required to assign to the variable.
+         --  One for the type may already exist.
+         if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
+            Make_Nondet_Function (Fun_Name    => Fun_Name,
+                                  Result_Type => Var_Type,
+                                  Statements  => Ireps.Empty,
+                                  Loc         => Loc);
+         end if;
+
+         --  Now the nondet function is declared, the LHS and RHS of the
+         -- assignment can be declared.
+         declare
+            LHS : constant Irep :=
+              Make_Symbol_Expr
+                (Source_Location => Source_Location,
+                 Identifier      => Var_Name,
+                 I_Type          => Obj_Symbol.SymType);
+
+            RHS : constant Irep :=
+              Do_Nondet_Function_Call
+                (Fun_Name => Fun_Name,
+                 Loc      => Loc);
+         begin
+            Append_Op
+              (Block,
+               Make_Code_Assign
+                 (Lhs => LHS,
+                  Rhs => RHS,
+                  Source_Location => Source_Location));
+            Print_Modelling_Message ("Assign " &
+                                       Var_Name & " := " & Fun_Name,
+                                     Loc);
+         end;
+      end Do_Nondet_Var;
+
+      procedure Do_Var_In_Type (Var_Name : String);
+
+      procedure Do_Var_In_Type (Var_Name : String; Its_Type : Node_Id) is
+         Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
+         Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
+         Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
+                 "Do_Nondet_Var: Variable name is not in symbol table");
+         Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
+      begin
+
+
+
+
+
+
+
 
       procedure Make_Model_Section (Model : Model_Sorts;
                                     Outputs : Elist_Id);
@@ -350,8 +416,7 @@ package body ASVAT_Modelling is
          Iter      : Elmt_Id  := (if Present (Outputs)
                                   then First_Elmt (Outputs)
                                   else No_Elmt);
-         Type_List : constant Elist_Id := New_Elmt_List;
-         Print_Model : constant Boolean := False;
+         Print_Model : constant Boolean := True;
       begin
          while Present (Iter) loop
             if Nkind (Node (Iter)) in
@@ -409,9 +474,12 @@ package body ASVAT_Modelling is
                     Intern (Type_Name_String);
 
                   Fun_Name : constant String := "Nondet___" &
-                    Type_Name_String;
+                       Type_Name_String;
+
+                  Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
 
                begin
+                  Print_Node_Briefly (Curr_Entity);
                   if Replace_Object and then Obj_Name_String = "" then
                      --  Object replacement requested but no replacement
                      --  object specified.
@@ -473,12 +541,11 @@ package body ASVAT_Modelling is
                         end if;
                      end if;
 
-                     if not Contains (Type_List, Given_Type) then
-                        Append_Elmt (Given_Type, Type_List);
+                     if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
                         Make_Nondet_Function (Fun_Name    => Fun_Name,
                                               Result_Type => Type_Name_String,
                                               Statements  => Ireps.Empty,
-                                              N         => Curr_Entity);
+                                              Loc         => Sloc (E));
                      end if;
 
                      declare
@@ -494,7 +561,7 @@ package body ASVAT_Modelling is
                         RHS : constant Irep :=
                           Do_Nondet_Function_Call
                             (Fun_Name => Fun_Name,
-                             N        => E);
+                             Loc      => Sloc (E));
                      begin
                         Append_Op
                           (Block,
@@ -570,7 +637,7 @@ package body ASVAT_Modelling is
       Print_Modelling_Message
         ("Adding a " & To_Lower (Model_Sorts'Image (Model)) &
                   " body for modelling subprogram " &
-                  Unique_Name (E), Sloc (E));
+           Unique_Name (E), Sloc (E));
 
       Make_Model_Section (Model, Model_Outputs);
    end Make_Model;
@@ -581,10 +648,9 @@ package body ASVAT_Modelling is
 
    procedure Make_Nondet_Function (Fun_Name, Result_Type : String;
                                    Statements : Irep;
-                                   N : Node_Id) is
+                                   Loc : Source_Ptr) is
       Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
-      Loc           : constant Source_Ptr := Sloc (N);
-      Source_Loc    : constant Irep := Get_Source_Location (N);
+      Source_Loc    : constant Irep := Source_Ptr_To_Irep (Loc);
    begin
       if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
          declare
@@ -614,8 +680,7 @@ package body ASVAT_Modelling is
               (Symbol          => Obj_Sym,
                Source_Location => Source_Loc);
 
-            Fun_Body : constant Irep := Make_Code_Block
-              (Get_Source_Location (N));
+            Fun_Body : constant Irep := Make_Code_Block (Source_Loc);
 
             Return_Statement : constant Irep := Make_Code_Return
               (Return_Value    => Obj_Sym,
@@ -646,7 +711,7 @@ package body ASVAT_Modelling is
 
             if Statements /= Ireps.Empty then
                Report_Unhandled_Node_Empty
-                 (N,
+                 (Error,
                   "Make_Nondet_Function",
                   "Additional statements are currently unsupported");
                null;  --  Todo append the statements
