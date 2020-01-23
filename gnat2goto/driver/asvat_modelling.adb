@@ -30,6 +30,10 @@ package body ASVAT_Modelling is
 
    function Find_Model (Model : String) return Model_Sorts;
 
+   function Get_Actual_Obj_Name (Obj : Entity_Id) return String;
+
+   function Get_Actual_Type (Obj : Entity_Id) return String;
+
    procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
    function Replace_Dots (S : String) return String;
@@ -89,7 +93,7 @@ package body ASVAT_Modelling is
            Make_Symbol_Expr
              (Source_Location => Source_Location,
               Identifier      => Var_Name,
-              I_Type          => Obj_Symbol.SymType);
+              I_Type          => Var_Symbol.SymType);
 
          RHS : constant Irep :=
            Do_Nondet_Function_Call
@@ -179,6 +183,58 @@ package body ASVAT_Modelling is
       end loop;
       return Result;
    end Find_Model;
+
+   ----------------------------
+   -- Get_Actual_Object_Name --
+   ----------------------------
+
+   function Get_Actual_Obj_Name (Obj : Entity_Id) return String is
+      Loc_Obj_Unique_Name : constant String :=
+        Unique_Name (Obj);
+
+      Replace_Object : constant Boolean :=
+        Get_Model_Sort (Obj) = Represents;
+
+      Obj_Name_String : constant String :=
+        (if Replace_Object then
+            Replace_Local_With_Import
+           (Is_Type => False,
+            E       => Obj)
+         else
+            Loc_Obj_Unique_Name);
+   begin
+      return Obj_Name_String;
+   end Get_Actual_Obj_Name;
+
+   --------------------------
+   -- Get_Actual_Type_Name --
+   --------------------------
+
+   function Get_Actual_Type (Obj : Entity_Id) return String is
+      Given_Type  : constant Node_Id := Etype (Obj);
+
+      Replace_Object : constant Boolean :=
+        Get_Model_Sort (Obj) = Represents;
+
+      Optional_Type_Name : constant String :=
+        (if Replace_Object then
+            Replace_Local_With_Import
+           (Is_Type => True,
+            E       => Obj)
+         else
+            "");
+
+      Replace_Type : constant Boolean :=
+        Replace_Object and Optional_Type_Name /= "";
+
+      Type_Name_String : constant String :=
+        (if Replace_Type then
+            Optional_Type_Name
+         else
+            Unique_Name (Given_Type));
+   begin
+      return Type_Name_String;
+   end Get_Actual_Type;
 
    -------------------------
    -- Get_Annotation_Name --
