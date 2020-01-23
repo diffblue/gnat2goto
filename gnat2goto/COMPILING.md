@@ -12,7 +12,7 @@ Note: you will *not* be able to build using the debian/ubuntu gnat and gprbuild,
 For **Debian**, install the following debian packages:
   - build-essential
 
-For **Mac OSX**, you will need the XCode Command Line tools, which require XCode itself and then a 
+For **Mac OSX**, you will need the XCode Command Line tools, which require XCode itself and then a
 ```
 xcode-select --install
 ```
@@ -27,7 +27,7 @@ select your platform and then 2016 (in that order). Download
   * gnatcoll-gpl-2016
 
 
-Install the GNAT GPL Ada 2016 using the `doinstall` script inside the zip. The following instructions assume you picked `/opt/gnat` as the install destination. 
+Install the GNAT GPL Ada 2016 using the `doinstall` script inside the zip. The following instructions assume you picked `/opt/gnat` as the install destination.
 
 Install GNATCOLL GPL 2016:
   - `$ export PATH=/opt/gnat/bin:${PATH}`
@@ -38,7 +38,7 @@ Install GNATCOLL GPL 2016:
 
 # Building gnat2goto
 
-Assuming that you've built the dependencies as per the above instructions, do the following from within `gnat2goto`. 
+Assuming that you've built the dependencies as per the above instructions, do the following from within `gnat2goto`.
 
   - `$ export PATH=/opt/gnat/bin:${PATH}`
   - `$ export GPR_PROJECT_PATH=/opt/gnat/lib/gnat`
@@ -48,7 +48,7 @@ This should build into install/bin. You can test if it works by calling:
 
 ` $ install/bin/gnat2goto examples/foo.adb`
 
-If it has worked, you should have two files: `foo.ali` and `foo.json_symtab`. 
+If it has worked, you should have two files: `foo.ali` and `foo.json_symtab`.
 
 # Building and running gnat2goto unit tests
 
