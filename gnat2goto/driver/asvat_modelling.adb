@@ -11,6 +11,7 @@ with Einfo;                   use Einfo;
 with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
+with Arrays;                  use Arrays;
 --  with Symbol_Table_Info;       use Symbol_Table_Info;
 with Treepr;                  use Treepr;
 with Ada.Text_IO;             use Ada.Text_IO;
@@ -20,6 +21,12 @@ package body ASVAT_Modelling is
 
    function Do_Nondet_Function_Call
      (Fun_Name : String; Loc : Source_Ptr) return Irep;
+
+   function Do_Nondet_Var (Var_Name, Var_Type : String;
+                           Loc : Source_Ptr) return Irep;
+
+   function Do_Var_In_Type (Var_Name, Var_Type : String;
+                            Loc : Source_Ptr) return Irep;
 
    function Find_Model (Model : String) return Model_Sorts;
 
@@ -51,6 +58,110 @@ package body ASVAT_Modelling is
          Arguments       => Make_Argument_List, --  Parameterless function.
          I_Type          => Get_Return_Type (Fun_Symbol.SymType));
    end Do_Nondet_Function_Call;
+
+   -------------------
+   -- Do_Nondet_Var --
+   -------------------
+
+   function Do_Nondet_Var (Var_Name, Var_Type : String;
+                           Loc : Source_Ptr) return Irep is
+      Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
+      Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
+      pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
+                     "Do_Nondet_Var: Variable name is not in symbol table");
+      Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
+      Fun_Name : constant String := "Nondet___" & Var_Type;
+      Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
+   begin
+      --  First a nondet function is required to assign to the variable.
+      --  One for the type may already exist.
+      if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
+         Make_Nondet_Function (Fun_Name    => Fun_Name,
+                               Result_Type => Var_Type,
+                               Statements  => Ireps.Empty,
+                               Loc         => Loc);
+      end if;
+
+      --  Now the nondet function is declared, the LHS and RHS of the
+      --  assignment can be declared.
+      declare
+         LHS : constant Irep :=
+           Make_Symbol_Expr
+             (Source_Location => Source_Location,
+              Identifier      => Var_Name,
+              I_Type          => Obj_Symbol.SymType);
+
+         RHS : constant Irep :=
+           Do_Nondet_Function_Call
+             (Fun_Name => Fun_Name,
+              Loc      => Loc);
+      begin
+         Print_Modelling_Message ("Assign " &
+                                    Var_Name & " := " & Fun_Name,
+                                  Loc);
+         return
+           Make_Code_Assign
+             (Lhs => LHS,
+              Rhs => RHS,
+              Source_Location => Source_Location);
+      end;
+   end Do_Nondet_Var;
+
+   -------------------
+   -- Do_Nondet_Var --
+   -------------------
+
+   function Do_Var_In_Type (Var_Name, Var_Type : String;
+                            Loc : Source_Ptr) return Irep is
+      Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
+      Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
+      pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
+                     "Do_Nondet_Var: Variable name is not in symbol table");
+      Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
+      Var_Irep : constant Irep :=
+        Make_Symbol_Expr
+          (Source_Location => Source_Location,
+           I_Type          => Var_Symbol.SymType,
+           Range_Check     => False,
+           Identifier      => Var_Name);
+      Var_First : constant Irep := Get_First_Index (Var_Symbol.SymType);
+      Var_Last  : constant Irep := Get_Last_Index (Var_Symbol.SymType);
+      Geq_Var_First : constant Irep :=
+        Make_Op_Geq
+          (Rhs => Var_First,
+           Lhs             => Var_Irep,
+           Source_Location => Source_Location,
+           Overflow_Check  => False,
+           I_Type          => Make_Bool_Type,
+           Range_Check     => False);
+      Leq_Var_Last : constant Irep :=
+        Make_Op_Leq
+          (Rhs             => Var_Last,
+           Lhs             => Var_Irep,
+           Source_Location => Source_Location,
+           Overflow_Check  => False,
+           I_Type          => Make_Bool_Type,
+           Range_Check     => False);
+      Var_In_Type_Cond : constant Irep :=
+        Make_Op_And
+          (Source_Location => Source_Location,
+           I_Type          => CProver_Bool_T,
+           Range_Check     => False);
+   begin
+      --  Make the and condition:
+      --  Var_Irep >= Var_First and Var_Irep <= Var_Last
+      Append_Op (Var_In_Type_Cond, Geq_Var_First);
+      Append_Op (Var_In_Type_Cond, Leq_Var_Last);
+
+      Print_Modelling_Message ("Assume " &
+                                 Var_Name & " <= " & Var_Type & "'First and " &
+                                 Var_Name & " >= " & Var_Type & "'Last",
+                               Loc);
+      return
+        Make_Assume_Call (Assumption     => Var_In_Type_Cond,
+                          Source_Loc     => Source_Location,
+                          A_Symbol_Table => Global_Symbol_Table);
+   end Do_Var_In_Type;
 
    ----------------
    -- Find_Model --
@@ -340,73 +451,9 @@ package body ASVAT_Modelling is
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts) is
       Subprog_Id : constant Symbol_Id := Intern (Unique_Name (E));
-      Block : constant Irep := Make_Code_Block
+      Subprog_Body : constant Irep := Make_Code_Block
         (Source_Location => Get_Source_Location (E));
       Loc : constant Source_Ptr := Sloc (E);
-
-      procedure Do_Nondet_Var (Var_Name, Var_Type : String; Loc : Source_Ptr);
-
-      procedure Do_Nondet_Var (Var_Name, Var_Type : String; Loc : Source_Ptr)
-      is
-         Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
-         Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
-         Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
-                 "Do_Nondet_Var: Variable name is not in symbol table");
-         Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
-         Fun_Name : constant String := "Nondet___" & Var_Type;
-         Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
-      begin
-         --  First a nondet function is required to assign to the variable.
-         --  One for the type may already exist.
-         if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
-            Make_Nondet_Function (Fun_Name    => Fun_Name,
-                                  Result_Type => Var_Type,
-                                  Statements  => Ireps.Empty,
-                                  Loc         => Loc);
-         end if;
-
-         --  Now the nondet function is declared, the LHS and RHS of the
-         -- assignment can be declared.
-         declare
-            LHS : constant Irep :=
-              Make_Symbol_Expr
-                (Source_Location => Source_Location,
-                 Identifier      => Var_Name,
-                 I_Type          => Obj_Symbol.SymType);
-
-            RHS : constant Irep :=
-              Do_Nondet_Function_Call
-                (Fun_Name => Fun_Name,
-                 Loc      => Loc);
-         begin
-            Append_Op
-              (Block,
-               Make_Code_Assign
-                 (Lhs => LHS,
-                  Rhs => RHS,
-                  Source_Location => Source_Location));
-            Print_Modelling_Message ("Assign " &
-                                       Var_Name & " := " & Fun_Name,
-                                     Loc);
-         end;
-      end Do_Nondet_Var;
-
-      procedure Do_Var_In_Type (Var_Name : String);
-
-      procedure Do_Var_In_Type (Var_Name : String; Its_Type : Node_Id) is
-         Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
-         Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
-         Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
-                 "Do_Nondet_Var: Variable name is not in symbol table");
-         Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
-      begin
-
-
-
-
-
-
-
 
       procedure Make_Model_Section (Model : Model_Sorts;
                                     Outputs : Elist_Id);
@@ -416,7 +463,6 @@ package body ASVAT_Modelling is
          Iter      : Elmt_Id  := (if Present (Outputs)
                                   then First_Elmt (Outputs)
                                   else No_Elmt);
-         Print_Model : constant Boolean := True;
       begin
          while Present (Iter) loop
             if Nkind (Node (Iter)) in
