@@ -102,13 +102,20 @@ _Note for `make` users `/path/to/cbmc` will point to `lib/cbmc/src/cbmc`. For
 From within [gnat2goto/testsuite/gnat2goto](.) run:
 
 ```
-$ ./testsuite.py -j 4
+$ ./testsuite.py -j 4 --timeout 60 --enable-color
 ```
 where ```-j``` sets the number of tests to run in parallel (default is 1).
 
-This will output which tests pass and fail. If a test fails, you can inspect the output 
+`--timeout` will limit how long a test can run
+
+`--enable-color` will enable color printing in the output.
+
+This will output which tests pass and fail. If a test fails, you can inspect the output
 inside `out`. Each test will produce a file called `test_name.diff` which contains a git
 diff between the expected an actual output. 
+
+Alternatively, `--diffs` can be turned on to see the difference between the expected
+and actual outputs for all of `XFAIL`, `FAIL`, or `UPASS` results.
 
 For the gnat2goto test suite each test subdirectory has a file test.py.
   In this file is a call to a subprogram prove.  This subprogram has an
