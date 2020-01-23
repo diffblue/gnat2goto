@@ -93,8 +93,11 @@ Running tests
 Ensure that both gnat2goto and cbmc are on the path:
 
 ```
-export PATH=${PATH}:/path/to/gnat2goto/lib/cbmc/build/bin:/path/to/gnat2goto/gnat2goto/install
+export PATH=${PATH}:/path/to/gnat2goto/lib/cbmc/path/to/cbmc:/path/to/gnat2goto/gnat2goto/install
 ```
+
+_Note for `make` users `/path/to/cbmc` will point to `lib/cbmc/src/cbmc`. For
+`cmake` it will be something like `lib/cbmc/build/bin`._
 
 From within [gnat2goto/testsuite/gnat2goto](.) run:
 
