@@ -112,7 +112,7 @@ where ```-j``` sets the number of tests to run in parallel (default is 1).
 
 This will output which tests pass and fail. If a test fails, you can inspect the output
 inside `out`. Each test will produce a file called `test_name.diff` which contains a git
-diff between the expected an actual output. 
+diff between the expected an actual output.
 
 Alternatively, `--diffs` can be turned on to see the difference between the expected
 and actual outputs for all of `XFAIL`, `FAIL`, or `UPASS` results.
@@ -125,12 +125,12 @@ For the gnat2goto test suite each test subdirectory has a file test.py.
   <<< DEBUG *test file* >>> and <<< END DEBUG *test file*  >>>
   of course this will cause a DIFF to be reported between actual and
   expected output.  By default debug=False.
-  
+
 Updating Expected Results
 -------------------------
 
-Sometimes the tests will need to be updated for the new behaviour. This can be done 
-using [`./update-expected-outputs`](update-expected-outputs). 
+Sometimes the tests will need to be updated for the new behaviour. This can be done
+using [`./update-expected-outputs`](update-expected-outputs).
 
 WARNING running ./update-expected outputs will replace all test.out
 	(expected result) files with the actual results.
