@@ -13,7 +13,7 @@ with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
 with Arrays;                  use Arrays;
 --  with Symbol_Table_Info;       use Symbol_Table_Info;
-with Treepr;                  use Treepr;
+--  with Treepr;                  use Treepr;
 with Ada.Text_IO;             use Ada.Text_IO;
 package body ASVAT_Modelling is
 
@@ -30,15 +30,17 @@ package body ASVAT_Modelling is
 
    function Find_Model (Model : String) return Model_Sorts;
 
-   function Get_Actual_Obj_Name (Obj : Entity_Id) return String;
+   function Get_Actual_Obj_Name (Obj : Entity_Id;
+                                 Replace_Object : Boolean) return String;
 
-   function Get_Actual_Type (Obj : Entity_Id) return String;
+   function Get_Actual_Type (Obj : Entity_Id;
+                             Replace_Object : Boolean) return String;
 
    procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
    function Replace_Dots (S : String) return String;
 
-   function Replace_Local_With_Import
+   function Replace_Local_With_Non_Visible
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
                Get_Model_Sort (E) = Represents;
@@ -188,16 +190,14 @@ package body ASVAT_Modelling is
    -- Get_Actual_Object_Name --
    ----------------------------
 
-   function Get_Actual_Obj_Name (Obj : Entity_Id) return String is
+   function Get_Actual_Obj_Name (Obj : Entity_Id;
+                                 Replace_Object : Boolean) return String is
       Loc_Obj_Unique_Name : constant String :=
         Unique_Name (Obj);
 
-      Replace_Object : constant Boolean :=
-        Get_Model_Sort (Obj) = Represents;
-
       Obj_Name_String : constant String :=
         (if Replace_Object then
-            Replace_Local_With_Import
+            Replace_Local_With_Non_Visible
            (Is_Type => False,
             E       => Obj)
          else
@@ -210,15 +210,13 @@ package body ASVAT_Modelling is
    -- Get_Actual_Type_Name --
    --------------------------
 
-   function Get_Actual_Type (Obj : Entity_Id) return String is
+   function Get_Actual_Type (Obj : Entity_Id;
+                            Replace_Object : Boolean) return String is
       Given_Type  : constant Node_Id := Etype (Obj);
-
-      Replace_Object : constant Boolean :=
-        Get_Model_Sort (Obj) = Represents;
 
       Optional_Type_Name : constant String :=
         (if Replace_Object then
-            Replace_Local_With_Import
+            Replace_Local_With_Non_Visible
            (Is_Type => True,
             E       => Obj)
          else
@@ -506,211 +504,10 @@ package body ASVAT_Modelling is
    ----------------
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts) is
-      Subprog_Id : constant Symbol_Id := Intern (Unique_Name (E));
-      Subprog_Body : constant Irep := Make_Code_Block
-        (Source_Location => Get_Source_Location (E));
-      Loc : constant Source_Ptr := Sloc (E);
-
-      procedure Make_Model_Section (Model : Model_Sorts;
-                                    Outputs : Elist_Id);
-
-      procedure Make_Model_Section (Model : Model_Sorts;
-                                    Outputs : Elist_Id) is
-         Iter      : Elmt_Id  := (if Present (Outputs)
-                                  then First_Elmt (Outputs)
-                                  else No_Elmt);
-      begin
-         while Present (Iter) loop
-            if Nkind (Node (Iter)) in
-              N_Identifier | N_Expanded_Name | N_Defining_Identifier
-            then
-               declare
-                  Curr_Entity : constant Node_Id :=
-                    (if Nkind (Node (Iter)) = N_Defining_Identifier then
-                        Node (Iter)
-                     else
-                        Entity (Node (Iter)));
-
-                  Given_Type  : constant Node_Id := Etype (Curr_Entity);
-                  Loc_Type_Id : constant Symbol_Id :=
-                    Intern (Unique_Name (Given_Type));
-
-                  Loc_Obj_Unique_Name : constant String :=
-                    Unique_Name (Curr_Entity);
-
-                  Loc_Obj_Id : constant Symbol_Id :=
-                    Intern (Loc_Obj_Unique_Name);
-
-                  Replace_Object : constant Boolean :=
-                    Get_Model_Sort (Curr_Entity) = Represents;
-
-                  Obj_Name_String : constant String :=
-                    (if Replace_Object then
-                        Replace_Local_With_Import
-                       (Is_Type => False,
-                        E       => Curr_Entity)
-                     else
-                        Loc_Obj_Unique_Name);
-
-                  Obj_Name_Id : constant Symbol_Id :=
-                    Intern (Obj_Name_String);
-
-                  Optional_Type_Name : constant String :=
-                    (if Replace_Object then
-                        Replace_Local_With_Import
-                       (Is_Type => True,
-                        E       => Curr_Entity)
-                     else
-                        "");
-
-                  Replace_Type : constant Boolean :=
-                    Replace_Object and Optional_Type_Name /= "";
-
-                  Type_Name_String : constant String :=
-                    (if Replace_Type then
-                        Optional_Type_Name
-                     else
-                        Unique_Name (Given_Type));
-
-                  Type_Name_Id : constant Symbol_Id :=
-                    Intern (Type_Name_String);
-
-                  Fun_Name : constant String := "Nondet___" &
-                       Type_Name_String;
-
-                  Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
-
-               begin
-                  Print_Node_Briefly (Curr_Entity);
-                  if Replace_Object and then Obj_Name_String = "" then
-                     --  Object replacement requested but no replacement
-                     --  object specified.
-                     Report_Unhandled_Node_Empty
-                       (Curr_Entity, "Make_Model",
-                        "ASVAT_Modelling: replacement object missing from " &
-                        "Replace_With pragma Import.");
-                  elsif Ekind (Curr_Entity) /= E_Abstract_State then
-
-                     if Replace_Object then
-                        Print_Modelling_Message
-                          ("Replace local object '" &
-                                    Unique_Name (Curr_Entity) &
-                                    "' with '" &
-                                    Obj_Name_String &
-                                    " : " &
-                                    Type_Name_String &
-                                    "'", Sloc (Curr_Entity));
-
-                        if Replace_Type and then not
-                          Global_Symbol_Table.Contains (Type_Name_Id)
-                        then
-                           --  The type declaration has not been processed yet.
-                           --  A premature declaration which exactly matches
-                           --  the actual declaration has to be inserted into
-                           --  the global symbol table.
-                           --  The local type definition has to match the
-                           --  actual declaration so the local type definition
-                           --  can be used.
-                           declare
-                              Local_Type_Sym : constant Symbol :=
-                                Global_Symbol_Table (Loc_Type_Id);
-                              Actual_Type : constant Symbol :=
-                                Make_Type_Symbol
-                                  (Type_Name_Id, Local_Type_Sym.SymType);
-                           begin
-                              Global_Symbol_Table.Insert
-                                (Type_Name_Id, Actual_Type);
-                           end;
-                        end if;
-
-                        pragma Assert (Global_Symbol_Table.Contains
-                                       (Type_Name_Id), "Type not in Table");
-
-                        if not Global_Symbol_Table.Contains (Obj_Name_Id)
-                        then
-                           declare
-                              --  The symbol table must contain the local
-                              --  object as it has just been declared
-                              Loc_Obj_Symbol : constant Symbol :=
-                                Global_Symbol_Table (Loc_Obj_Id);
-                           begin
-                              New_Object_Symbol_Entry
-                                (Object_Name       => Obj_Name_Id,
-                                 Object_Type       => Loc_Obj_Symbol.SymType,
-                                 Object_Init_Value => Loc_Obj_Symbol.Value,
-                                 A_Symbol_Table    => Global_Symbol_Table);
-                           end;
-                        end if;
-                     end if;
-
-                     if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
-                        Make_Nondet_Function (Fun_Name    => Fun_Name,
-                                              Result_Type => Type_Name_String,
-                                              Statements  => Ireps.Empty,
-                                              Loc         => Sloc (E));
-                     end if;
-
-                     declare
-                        Obj_Symbol : constant Symbol :=
-                          Global_Symbol_Table (Obj_Name_Id);
-
-                        LHS : constant Irep :=
-                          Make_Symbol_Expr
-                            (Source_Location => Get_Source_Location (E),
-                             Identifier      => Obj_Name_String,
-                             I_Type          => Obj_Symbol.SymType);
-
-                        RHS : constant Irep :=
-                          Do_Nondet_Function_Call
-                            (Fun_Name => Fun_Name,
-                             Loc      => Sloc (E));
-                     begin
-                        Append_Op
-                          (Block,
-                           Make_Code_Assign
-                             (Lhs => LHS,
-                              Rhs => RHS,
-                              Source_Location => Get_Source_Location (E)));
-                     end;
-
-                     if Print_Model then
-                        Put_Line ("Assign " &
-                                 Obj_Name_String & " := " & Fun_Name);
-                     end if;
-
-                     if Model =  Nondet_In_Type and then
-                       Is_Scalar_Type (Given_Type)
-                     then
-                        if Print_Model then
-                           Put_Line ("pragma Assume (" & Obj_Name_String &
-                                       " in " & Type_Name_String &
-                                       "'Range)");
-                        end if;
-                     end if;
-                  else
-                     Report_Unhandled_Node_Empty
-                       (Curr_Entity, "Make_Model",
-                        "Abstract_State as a global output is unsupported");
-                  end if;
-               end;
-            else
-               Report_Unhandled_Node_Empty
-                 (Node (Iter), "Make_Model",
-                  "Unsupported Global output");
-            end if;
-
-            Next_Elmt (Iter);
-         end loop;
-
-         pragma Assert (Global_Symbol_Table.Contains (Subprog_Id),
-                        "Make_Model_Section: Subprogram not in symbol table.");
-         declare
-            Subprog_Sym : Symbol := Global_Symbol_Table (Subprog_Id);
-         begin
-            Subprog_Sym.Value := Block;
-            Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
-         end;
-      end Make_Model_Section;
+      Loc             : constant Source_Ptr := Sloc (E);
+      Source_Location : constant Irep := Get_Source_Location (E);
+      Subprog_Id      : constant Symbol_Id := Intern (Unique_Name (E));
+      Subprog_Body    : constant Irep := Make_Code_Block (Source_Location);
 
       --  Get lists of all the inputs and outputs of the model
       --  subprogram including all those listed in a pragma Global.
@@ -719,6 +516,7 @@ package body ASVAT_Modelling is
       Model_Inputs  : Elist_Id := No_Elist;
       Model_Outputs : Elist_Id := No_Elist;
       Global_Seen   : Boolean;
+      Iter          : Elmt_Id;
    begin
       Collect_Subprogram_Inputs_Outputs
         (Subp_Id      => E,
@@ -738,10 +536,232 @@ package body ASVAT_Modelling is
 
       Print_Modelling_Message
         ("Adding a " & To_Lower (Model_Sorts'Image (Model)) &
-                  " body for modelling subprogram " &
+           " body for modelling subprogram " &
            Unique_Name (E), Sloc (E));
 
-      Make_Model_Section (Model, Model_Outputs);
+      --  Process all of the potential output parameters and globals.
+      --  They will be set to nondet.
+      Iter := First_Elmt (Model_Outputs);
+      while Present (Iter) loop
+         if Nkind (Node (Iter)) in
+           N_Identifier | N_Expanded_Name | N_Defining_Identifier
+         then
+            declare
+               Curr_Entity : constant Node_Id :=
+                 (if Nkind (Node (Iter)) = N_Defining_Identifier then
+                     Node (Iter)
+                  else
+                     Entity (Node (Iter)));
+
+               --  Determine whether the local object declaration represents
+               --  a non-visible object and possibly (sub)type declaration.
+               Replace_Object : constant Boolean :=
+                 Get_Model_Sort (Curr_Entity) = Represents;
+
+               --  The local object may be replaced by a non-visible variable
+               --  if the "Represents" ASVAT model is applied to the
+               --  local object declaration.
+               Unique_Object_Name : constant String :=
+                 Get_Actual_Obj_Name (Curr_Entity, Replace_Object);
+
+               --  The local object's type  may be replaced by a non-visible
+               --  type if the "Represents" ASVAT model is applied to the
+               --  local object declaration.
+               Unique_Type_Name : constant String :=
+                 Get_Actual_Type (Curr_Entity, Replace_Object);
+
+               Object_Id : constant Symbol_Id := Intern (Unique_Object_Name);
+               Type_Id   : constant Symbol_Id := Intern (Unique_Type_Name);
+
+            begin
+               if Replace_Object and then Unique_Object_Name = "" then
+                  --  Object replacement requested but no replacement
+                  --  object specified.
+                  Report_Unhandled_Node_Empty
+                    (Curr_Entity, "Make_Model",
+                     "ASVAT_Modelling: replacement object missing after " &
+                       "Represents in model definition.");
+               elsif Ekind (Curr_Entity) /= E_Abstract_State then
+
+                  if Replace_Object then
+                     Print_Modelling_Message
+                       ("Replace local object '" &
+                          Unique_Name (Curr_Entity) &
+                          "' with '" &
+                          Unique_Object_Name &
+                          " : " &
+                          Unique_Type_Name &
+                          "'", Sloc (Curr_Entity));
+
+                     if not Global_Symbol_Table.Contains (Type_Id)
+                     then
+                        --  The non-visible type declaration has not been
+                        --  processed yet.
+                        --  A premature declaration which exactly matches
+                        --  the actual declaration has to be inserted into
+                        --  the global symbol table.
+                        --  The local type definition has to match the
+                        --  actual declaration so the local type definition
+                        --  can be used.
+                        declare
+                           Local_Type_Id : constant Symbol_Id :=
+                             Intern (Unique_Name (Etype (Curr_Entity)));
+                           Local_Type_Sym : constant Symbol :=
+                             Global_Symbol_Table (Local_Type_Id);
+                           Actual_Type : constant Symbol :=
+                             Make_Type_Symbol
+                               (Type_Id, Local_Type_Sym.SymType);
+                        begin
+                           Global_Symbol_Table.Insert
+                             (Type_Id, Actual_Type);
+                        end;
+                     end if;
+
+                     pragma Assert (Global_Symbol_Table.Contains
+                                    (Type_Id), "Type not in Table");
+
+                     if not Global_Symbol_Table.Contains (Object_Id)
+                     then
+                        declare
+                           --  Similarly to the non-visible object
+                           --  declaration has not been processed yet.
+                           --  The local object declaration can be used to
+                           --  enter a premature declaration of the actual
+                           --  object.
+                           --  The symbol table must contain the local
+                           --  object as it has just been declared
+                           Local_Object_Id     : constant Symbol_Id :=
+                             Intern (Unique_Name (Curr_Entity));
+                           Local_Object_Symbol : constant Symbol :=
+                             Global_Symbol_Table (Local_Object_Id);
+                        begin
+                           New_Object_Symbol_Entry
+                             (Object_Name       => Object_Id,
+                              Object_Type       => Local_Object_Symbol.SymType,
+                              Object_Init_Value => Local_Object_Symbol.Value,
+                              A_Symbol_Table    => Global_Symbol_Table);
+                        end;
+                     end if;
+                  end if;
+
+                  --  The symbol table will have the declaration of the
+                  --  object to be made nondet.
+
+                  --  Add a nondet assignment to the model subprogram body.
+                  Append_Op (Subprog_Body,
+                             Do_Nondet_Var (Var_Name => Unique_Object_Name,
+                                            Var_Type => Unique_Type_Name,
+                                            Loc      => Loc));
+
+                  --  If the subprogram ASVAT model is "Nondet_In_Type",
+                  --  an assume statment is appended to the subprogram body
+                  if Model =  Nondet_In_Type and then
+                  --  At the moment we are only supporting scalar types.
+                  --  The local declaration will be used to determine this
+                  --  as it will be identical to the hidden declaration
+                    Is_Scalar_Type (Etype (Curr_Entity))
+                  then
+                     Append_Op (Subprog_Body,
+                                Do_Var_In_Type (Var_Name => Unique_Object_Name,
+                                                Var_Type => Unique_Type_Name,
+                                                Loc      => Loc));
+                  else
+                     Report_Unhandled_Node_Empty
+                       (Curr_Entity, "Make_Model",
+                        "ASVAT_Modelling: Nondet of a composite object " &
+                          "not yet supported.");
+                  end if;
+               else
+                  Report_Unhandled_Node_Empty
+                    (Curr_Entity, "Make_Model",
+                     "Abstract_State as a global output is unsupported");
+               end if;
+            end;
+         else
+            Report_Unhandled_Node_Empty
+              (Node (Iter), "Make_Model",
+               "Unsupported Global output");
+         end if;
+
+         Next_Elmt (Iter);
+      end loop;
+
+      --  If the subprogram is a function, the result must be made nondet too.
+      if Nkind (Specification (E)) = N_Function_Specification then
+         declare
+            --  Create a variable to contain the nondet result.
+            Result_Var    : constant String :=  "result__" & Unique_Name (E);
+            Result_Var_Id : constant Symbol_Id := Intern (Result_Var);
+
+            Result_Type     : constant String :=
+              Unique_Name (Defining_Identifier (Result_Definition (E)));
+            Result_Type_Id  : constant Symbol_Id := Intern (Result_Type);
+            pragma Assert (Global_Symbol_Table.Contains (Result_Type_Id),
+                           "Make_Model: Symbol table does not contain" &
+                             "function " & Unique_Name (E) & " result type.");
+            Result_Type_Sym : constant Symbol :=
+              Global_Symbol_Table (Result_Type_Id);
+
+            Result_Var_Irep   : constant Irep := Make_Symbol_Expr
+              (Source_Location => Source_Location,
+               Identifier      => Result_Var,
+               I_Type          => Result_Type_Sym.SymType);
+
+            Var_Decl          : constant Irep := Make_Code_Decl
+              (Symbol          => Result_Var_Irep,
+               Source_Location => Source_Location);
+
+            Return_Statement : constant Irep := Make_Code_Return
+              (Return_Value    => Result_Var_Irep,
+               Source_Location => Source_Location);
+
+            --  Create a new block for the Result_Var declaration
+            Return_Block : constant Irep := Make_Code_Block (Source_Location);
+         begin
+            --  Insert the Result_Var into the symbol table.
+            --  It should not already exist.
+            pragma Assert (not Global_Symbol_Table.Contains (Result_Var_Id),
+                           "Symbol table already contains " & Result_Var);
+            New_Object_Symbol_Entry
+              (Object_Name       => Result_Var_Id,
+               Object_Type       => Result_Type_Sym.SymType,
+               Object_Init_Value => Ireps.Empty,
+               A_Symbol_Table    => Global_Symbol_Table);
+
+            --  Add the declaration of the result varible to the return block.
+            Append_Op (Return_Block, Var_Decl);
+
+            --  Set the result variable to nondet.
+            Append_Op (Return_Block,
+                       Do_Nondet_Var
+                         (Var_Name => Result_Var,
+                          Var_Type => Result_Type,
+                          Loc      => Loc));
+            --  if the ASVAT model is "Nondet_In_Type" an in type assumption.
+            if Model = Nondet_In_Type then
+               Append_Op (Return_Block,
+                          Do_Var_In_Type
+                            (Var_Name => Result_Var,
+                             Var_Type => Result_Type,
+                             Loc      => Loc));
+            end if;
+            --  The funtion needs a return statement.
+            Append_Op (Return_Block, Return_Statement);
+
+            --  Add the return block to the function body.
+            Append_Op (Subprog_Body, Return_Block);
+         end;
+      end if;
+
+      pragma Assert (Global_Symbol_Table.Contains (Subprog_Id),
+                     "Make_Model: Subprogram not in symbol table.");
+      --  The model body is now made the body of the subprogram.
+      declare
+         Subprog_Sym : Symbol := Global_Symbol_Table (Subprog_Id);
+      begin
+         Subprog_Sym.Value := Subprog_Body;
+         Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
+      end;
    end Make_Model;
 
    ---------------------------
@@ -771,7 +791,7 @@ package body ASVAT_Modelling is
                Inlined     => False,
                Knr         => False);
 
-            Obj_Name  : constant String := "Res___" & Fun_Name;
+            Obj_Name  : constant String := "Result___" & Fun_Name;
             Obj_Id    : constant Symbol_Id := Intern (Obj_Name);
             Obj_Sym   : constant Irep := Make_Symbol_Expr
               (Source_Location => Source_Loc,
@@ -844,11 +864,11 @@ package body ASVAT_Modelling is
       end if;
    end Print_Modelling_Message;
 
-   -------------------------------
-   -- Replace_Local_With_Import --
-   -------------------------------
+   ------------------------------------
+   -- Replace_Local_With_Non_Visible --
+   ------------------------------------
 
-   function Replace_Local_With_Import
+   function Replace_Local_With_Non_Visible
      (Is_Type : Boolean; E : Entity_Id) return String
    is
       function Get_Object_From_Anno (N : Node_Id;
@@ -952,7 +972,7 @@ package body ASVAT_Modelling is
                  Replacement_Type_Name
               else
                  Replacement_Obj_Name);
-   end Replace_Local_With_Import;
+   end Replace_Local_With_Non_Visible;
 
    function Replace_Dots (S : String) return String is
       function Replace_Dots_Rec (So_Far : String;
