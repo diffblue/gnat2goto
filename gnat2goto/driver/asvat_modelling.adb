@@ -11,7 +11,8 @@ with Einfo;                   use Einfo;
 with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
-with Arrays;                  use Arrays;
+with Range_Check;             use Range_Check;
+with Follow;                  use Follow;
 --  with Symbol_Table_Info;       use Symbol_Table_Info;
 --  with Treepr;                  use Treepr;
 with Ada.Text_IO;             use Ada.Text_IO;
@@ -19,14 +20,14 @@ package body ASVAT_Modelling is
 
    Print_Message : constant Boolean := True;
 
-   function Do_Nondet_Function_Call
-     (Fun_Name : String; Loc : Source_Ptr) return Irep;
-
    function Do_Nondet_Var (Var_Name, Var_Type : String;
-                           Loc : Source_Ptr) return Irep;
+                           E : Entity_Id) return Irep;
 
    function Do_Var_In_Type (Var_Name, Var_Type : String;
-                            Loc : Source_Ptr) return Irep;
+                            E : Entity_Id) return Irep;
+
+   function Do_Parameterless_Function_Call
+     (Fun_Name : String; E : Entity_Id) return Irep;
 
    function Find_Model (Model : String) return Model_Sorts;
 
@@ -45,33 +46,13 @@ package body ASVAT_Modelling is
    with Pre => Ekind (E) in E_Variable | E_Constant and then
                Get_Model_Sort (E) = Represents;
 
-   -------------------------------
-   -- Do_Nondet_Function_Call --
-   -------------------------------
-
-   function Do_Nondet_Function_Call
-     (Fun_Name : String; Loc : Source_Ptr) return Irep
-   is
-      Fun_Id     : constant Symbol_Id := Intern (Fun_Name);
-      pragma Assert (Global_Symbol_Table.Contains (Fun_Id),
-                     "gnat2goto fatal error: Nondet_Function_Call " &
-                    Fun_Name & " not in symbol table.");
-      Fun_Symbol : constant Symbol    := Global_Symbol_Table (Fun_Id);
-   begin
-      return Make_Side_Effect_Expr_Function_Call
-        (Source_Location => Source_Ptr_To_Irep (Loc),
-         I_Function      => Symbol_Expr (Fun_Symbol),
-         Arguments       => Make_Argument_List, --  Parameterless function.
-         I_Type          => Get_Return_Type (Fun_Symbol.SymType));
-   end Do_Nondet_Function_Call;
-
    -------------------
    -- Do_Nondet_Var --
    -------------------
 
    function Do_Nondet_Var (Var_Name, Var_Type : String;
-                           Loc : Source_Ptr) return Irep is
-      Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
+                           E : Entity_Id) return Irep is
+      Source_Location : constant Irep := Get_Source_Location (E);
       Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
       pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
                      "Do_Nondet_Var: Variable name is not in symbol table");
@@ -85,7 +66,7 @@ package body ASVAT_Modelling is
          Make_Nondet_Function (Fun_Name    => Fun_Name,
                                Result_Type => Var_Type,
                                Statements  => Ireps.Empty,
-                               Loc         => Loc);
+                               E           => E);
       end if;
 
       --  Now the nondet function is declared, the LHS and RHS of the
@@ -98,13 +79,13 @@ package body ASVAT_Modelling is
               I_Type          => Var_Symbol.SymType);
 
          RHS : constant Irep :=
-           Do_Nondet_Function_Call
+           Do_Parameterless_Function_Call
              (Fun_Name => Fun_Name,
-              Loc      => Loc);
+              E        => E);
       begin
          Print_Modelling_Message ("Assign " &
                                     Var_Name & " := " & Fun_Name,
-                                  Loc);
+                                  Sloc (E));
          return
            Make_Code_Assign
              (Lhs => LHS,
@@ -113,13 +94,13 @@ package body ASVAT_Modelling is
       end;
    end Do_Nondet_Var;
 
-   -------------------
-   -- Do_Nondet_Var --
-   -------------------
+   --------------------
+   -- Do_Var_In_Type --
+   --------------------
 
    function Do_Var_In_Type (Var_Name, Var_Type : String;
-                            Loc : Source_Ptr) return Irep is
-      Source_Location : constant Irep := Source_Ptr_To_Irep (Loc);
+                            E : Entity_Id) return Irep is
+      Source_Location : constant Irep := Get_Source_Location (E);
       Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
       pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
                      "Do_Nondet_Var: Variable name is not in symbol table");
@@ -130,44 +111,89 @@ package body ASVAT_Modelling is
            I_Type          => Var_Symbol.SymType,
            Range_Check     => False,
            Identifier      => Var_Name);
-      Var_First : constant Irep := Get_First_Index (Var_Symbol.SymType);
-      Var_Last  : constant Irep := Get_Last_Index (Var_Symbol.SymType);
-      Geq_Var_First : constant Irep :=
-        Make_Op_Geq
-          (Rhs => Var_First,
-           Lhs             => Var_Irep,
-           Source_Location => Source_Location,
-           Overflow_Check  => False,
-           I_Type          => Make_Bool_Type,
-           Range_Check     => False);
-      Leq_Var_Last : constant Irep :=
-        Make_Op_Leq
-          (Rhs             => Var_Last,
-           Lhs             => Var_Irep,
-           Source_Location => Source_Location,
-           Overflow_Check  => False,
-           I_Type          => Make_Bool_Type,
-           Range_Check     => False);
-      Var_In_Type_Cond : constant Irep :=
-        Make_Op_And
-          (Source_Location => Source_Location,
-           I_Type          => CProver_Bool_T,
-           Range_Check     => False);
+      Followed_Type : constant Irep :=
+        Follow_Symbol_Type (Var_Symbol.SymType, Global_Symbol_Table);
    begin
-      --  Make the and condition:
-      --  Var_Irep >= Var_First and Var_Irep <= Var_Last
-      Append_Op (Var_In_Type_Cond, Geq_Var_First);
-      Append_Op (Var_In_Type_Cond, Leq_Var_Last);
+      Put_Line ("The followed type is: " &
+                  Irep_Kind'Image (Kind (Followed_Type)));
 
-      Print_Modelling_Message ("Assume " &
-                                 Var_Name & " <= " & Var_Type & "'First and " &
-                                 Var_Name & " >= " & Var_Type & "'Last",
-                               Loc);
-      return
-        Make_Assume_Call (Assumption     => Var_In_Type_Cond,
-                          Source_Loc     => Source_Location,
-                          A_Symbol_Table => Global_Symbol_Table);
+      if Kind (Followed_Type) in
+        I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
+          | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
+            | I_Floatbv_Type
+      then
+         --  At the moment Enumeration types cannot be be assumed in type
+         declare
+            Var_First : constant Irep :=
+              Get_Bound (E, Followed_Type, Bound_Low);
+            Var_Last  : constant Irep :=
+              Get_Bound (E, Followed_Type, Bound_High);
+
+            Geq_Var_First : constant Irep :=
+              Make_Op_Geq
+                (Rhs => Var_First,
+                 Lhs             => Var_Irep,
+                 Source_Location => Source_Location,
+                 Overflow_Check  => False,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
+            Leq_Var_Last : constant Irep :=
+              Make_Op_Leq
+                (Rhs             => Var_Last,
+                 Lhs             => Var_Irep,
+                 Source_Location => Source_Location,
+                 Overflow_Check  => False,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
+            Var_In_Type_Cond : constant Irep :=
+              Make_Op_And
+                (Source_Location => Source_Location,
+                 I_Type          => CProver_Bool_T,
+                 Range_Check     => False);
+         begin
+            --  Make the and condition:
+            --  Var_Irep >= Var_First and Var_Irep <= Var_Last
+            Append_Op (Var_In_Type_Cond, Geq_Var_First);
+            Append_Op (Var_In_Type_Cond, Leq_Var_Last);
+
+            Print_Modelling_Message
+              ("Assume " &
+                 Var_Name & " <= " & Var_Type & "'First and " &
+                 Var_Name & " >= " & Var_Type & "'Last",
+               Sloc (E));
+            return
+              Make_Assume_Call (Assumption     => Var_In_Type_Cond,
+                                Source_Loc     => Source_Location,
+                                A_Symbol_Table => Global_Symbol_Table);
+         end;
+      else
+         return Report_Unhandled_Node_Irep
+           (E,
+            "Do_Var_In_Type",
+            "Enumeration object not supported");
+      end if;
+
    end Do_Var_In_Type;
+
+   ------------------------------------
+   -- Do_Parameterless_Function_Call --
+   ------------------------------------
+
+   function Do_Parameterless_Function_Call
+     (Fun_Name : String; E : Entity_Id) return Irep
+   is
+      Fun_Id     : constant Symbol_Id := Intern (Fun_Name);
+      pragma Assert (Global_Symbol_Table.Contains (Fun_Id),
+                     "gnat2goto fatal error: Nondet_Function_Call " &
+                    Fun_Name & " not in symbol table.");
+      Fun_Symbol : constant Symbol    := Global_Symbol_Table (Fun_Id);
+   begin
+      return Make_Side_Effect_Expr_Function_Call
+        (Source_Location => Get_Source_Location (E),
+         I_Function      => Symbol_Expr (Fun_Symbol),
+         Arguments       => Make_Argument_List, --  Parameterless function.
+         I_Type          => Get_Return_Type (Fun_Symbol.SymType));
+   end Do_Parameterless_Function_Call;
 
    ----------------
    -- Find_Model --
@@ -486,17 +512,10 @@ package body ASVAT_Modelling is
             Not_A_Model);
 
    begin
-      if Anno_Model /= Not_A_Model then
-         if Import_Model /= Not_A_Model then
-            Report_Unhandled_Node_Empty
-              (E,
-               "Get_Model_Sort",
-               "Using model from Annotation, not Import pragma");
-         end if;
-         return Anno_Model;
-      else
-         return Import_Model;
-      end if;
+      return (if Anno_Model /= Not_A_Model then
+                 Anno_Model
+              else
+                 Import_Model);
    end Get_Model_Sort;
 
    ----------------
@@ -504,7 +523,6 @@ package body ASVAT_Modelling is
    ----------------
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts) is
-      Loc             : constant Source_Ptr := Sloc (E);
       Source_Location : constant Irep := Get_Source_Location (E);
       Subprog_Id      : constant Symbol_Id := Intern (Unique_Name (E));
       Subprog_Body    : constant Irep := Make_Code_Block (Source_Location);
@@ -651,25 +669,26 @@ package body ASVAT_Modelling is
                   Append_Op (Subprog_Body,
                              Do_Nondet_Var (Var_Name => Unique_Object_Name,
                                             Var_Type => Unique_Type_Name,
-                                            Loc      => Loc));
+                                            E        => E));
 
                   --  If the subprogram ASVAT model is "Nondet_In_Type",
                   --  an assume statment is appended to the subprogram body
-                  if Model =  Nondet_In_Type and then
-                  --  At the moment we are only supporting scalar types.
-                  --  The local declaration will be used to determine this
-                  --  as it will be identical to the hidden declaration
-                    Is_Scalar_Type (Etype (Curr_Entity))
-                  then
-                     Append_Op (Subprog_Body,
-                                Do_Var_In_Type (Var_Name => Unique_Object_Name,
-                                                Var_Type => Unique_Type_Name,
-                                                Loc      => Loc));
-                  else
-                     Report_Unhandled_Node_Empty
-                       (Curr_Entity, "Make_Model",
-                        "ASVAT_Modelling: Nondet of a composite object " &
-                          "not yet supported.");
+                  if Model =  Nondet_In_Type then
+                     --  At the moment we are only supporting scalar types.
+                     --  The local declaration will be used to determine this
+                     --  as it will be identical to the hidden declaration
+                     if Is_Scalar_Type (Etype (Curr_Entity)) then
+                        Append_Op (Subprog_Body,
+                                   Do_Var_In_Type
+                                     (Var_Name => Unique_Object_Name,
+                                      Var_Type => Unique_Type_Name,
+                                      E        => E));
+                     else
+                        Report_Unhandled_Node_Empty
+                          (Curr_Entity, "Make_Model",
+                           "ASVAT_Modelling: Nondet of a composite object " &
+                             "not yet supported.");
+                     end if;
                   end if;
                else
                   Report_Unhandled_Node_Empty
@@ -686,8 +705,10 @@ package body ASVAT_Modelling is
          Next_Elmt (Iter);
       end loop;
 
+      Put_Line ("Finished processing outputs");
+
       --  If the subprogram is a function, the result must be made nondet too.
-      if Nkind (Specification (E)) = N_Function_Specification then
+      if Ekind (E) = E_Function then
          declare
             --  Create a variable to contain the nondet result.
             Result_Var    : constant String :=  "result__" & Unique_Name (E);
@@ -736,14 +757,14 @@ package body ASVAT_Modelling is
                        Do_Nondet_Var
                          (Var_Name => Result_Var,
                           Var_Type => Result_Type,
-                          Loc      => Loc));
+                          E        => E));
             --  if the ASVAT model is "Nondet_In_Type" an in type assumption.
             if Model = Nondet_In_Type then
                Append_Op (Return_Block,
                           Do_Var_In_Type
                             (Var_Name => Result_Var,
                              Var_Type => Result_Type,
-                             Loc      => Loc));
+                             E        => E));
             end if;
             --  The funtion needs a return statement.
             Append_Op (Return_Block, Return_Statement);
@@ -770,9 +791,9 @@ package body ASVAT_Modelling is
 
    procedure Make_Nondet_Function (Fun_Name, Result_Type : String;
                                    Statements : Irep;
-                                   Loc : Source_Ptr) is
+                                   E          : Entity_Id) is
       Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
-      Source_Loc    : constant Irep := Source_Ptr_To_Irep (Loc);
+      Source_Loc    : constant Irep := Get_Source_Location (E);
    begin
       if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
          declare
@@ -813,7 +834,7 @@ package body ASVAT_Modelling is
          begin
             Print_Modelling_Message
               ("Making nondet function " & Fun_Name &
-                 " : " & Result_Type, Loc);
+                 " : " & Result_Type, Sloc (E));
 
             New_Subprogram_Symbol_Entry
               (Subprog_Name   => Fun_Symbol_Id,

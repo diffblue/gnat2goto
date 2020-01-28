@@ -41,6 +41,6 @@ package ASVAT_Modelling is
 
    procedure Make_Nondet_Function (Fun_Name, Result_Type : String;
                                    Statements : Irep;
-                                   Loc : Source_Ptr);
+                                   E : Entity_Id);
    --  The Result_Type must be the "Unique_Name" of a declared type.
 end ASVAT_Modelling;

@@ -1231,6 +1231,7 @@ package body Tree_Walk is
                I_Type => Enum_Type_Symbol,
                Source_Location => Get_Source_Location (Member));
          begin
+            Append_Member (Enum_Body, Element);
             New_Enum_Member_Symbol_Entry (Member_Name    => Intern (Val_Name),
                                      Base_Name      => Intern (Base_Name),
                                      Enum_Type      => Enum_Type_Symbol,
