@@ -12,7 +12,7 @@ Note: you will *not* be able to build using the debian/ubuntu gnat and gprbuild,
 For **Debian**, install the following debian packages:
   - build-essential
 
-For **Mac OSX**, you will need the XCode Command Line tools, which require XCode itself and then a 
+For **Mac OSX**, you will need the XCode Command Line tools, which require XCode itself and then a
 ```
 xcode-select --install
 ```
@@ -27,7 +27,7 @@ select your platform and then 2016 (in that order). Download
   * gnatcoll-gpl-2016
 
 
-The following assumes you installed GNAT GPL 2016 into /opt/gnat using the doinstall script.
+Install the GNAT GPL Ada 2016 using the `doinstall` script inside the zip. The following instructions assume you picked `/opt/gnat` as the install destination.
 
 Install GNATCOLL GPL 2016:
   - `$ export PATH=/opt/gnat/bin:${PATH}`
@@ -38,7 +38,7 @@ Install GNATCOLL GPL 2016:
 
 # Building gnat2goto
 
-Assuming that you've built the dependencies as per the above instructions
+Assuming that you've built the dependencies as per the above instructions, do the following from within `gnat2goto`.
 
   - `$ export PATH=/opt/gnat/bin:${PATH}`
   - `$ export GPR_PROJECT_PATH=/opt/gnat/lib/gnat`
@@ -47,6 +47,8 @@ Assuming that you've built the dependencies as per the above instructions
 This should build into install/bin. You can test if it works by calling:
 
 ` $ install/bin/gnat2goto examples/foo.adb`
+
+If it has worked, you should have two files: `foo.ali` and `foo.json_symtab`.
 
 # Building and running gnat2goto unit tests
 
@@ -66,7 +68,7 @@ In addition to the unit tests, gnat2goto also includes end-to-end regression
 tests. These tests aim to test the full pipeline from Ada source code input
 through to final analysis by CBMC.
 
-Instructions for running the regression test suite are described in [testsuite/gnat2goto/README.md](testsuite/gnat2goto/README.md)
+Instructions for running the regression test suite are described in [testsuite/gnat2goto/README.md](../testsuite/gnat2goto/README.md)
 
 # Running and updating missing features tests
 
@@ -93,7 +95,7 @@ one file per project. Simply copy the '<project>-summary.txt' file from
 
 # Updating the CBMC submodule
 
-As described in [testsuite/gnat2goto/README.md](testsuite/gnat2goto/README.md)
+As described in [testsuite/gnat2goto/README.md](../testsuite/gnat2goto/README.md)
 gnat2goto includes a GIT submodule for CBMC. In most cases this should not need
 changing, but if you are developing gnat2goto features or fixes that require a
 different version of CBMC then you will need to update the CBMC submodule
