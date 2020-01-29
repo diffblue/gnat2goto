@@ -17,8 +17,7 @@ procedure Declaration_Rename is
    --  (this operator is required for the 'pragma Assert'
    function "=" (Left, Right: ET.New_Integer) return Boolean renames ET."=";
 
-   --  currently unsupported --
-   --  Var : ET.New_Integer renames ET.External_Var;
+   Var : ET.New_Integer renames ET.External_Var;
 
    C : ET.New_Integer := 4;
 begin
@@ -29,8 +28,7 @@ begin
    pragma Assert (Simply_Named_Int=11);
    pragma Assert (My_Plus(A,B)=5);
    pragma Assert (C=4);
-   
-   --  currently unsupported --
-   --  Var := 5;
-   --  pragma Assert (Var=5);
+
+   Var := 5;
+   pragma Assert (Var=5);
 end Declaration_Rename;

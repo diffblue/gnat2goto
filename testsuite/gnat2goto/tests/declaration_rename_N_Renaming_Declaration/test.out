@@ -1,6 +1,7 @@
-[declaration_rename.assertion.1] line 25 Ada Check assertion: SUCCESS
-[declaration_rename.assertion.2] line 28 assertion B=3: SUCCESS
-[declaration_rename.assertion.3] line 29 assertion Simply_Named_Int=11: SUCCESS
-[declaration_rename.assertion.4] line 30 assertion My_Plus(A,B)=5: SUCCESS
-[declaration_rename.assertion.5] line 31 assertion C=4: SUCCESS
+[declaration_rename.assertion.1] line 24 Ada Check assertion: SUCCESS
+[declaration_rename.assertion.2] line 27 assertion B=3: SUCCESS
+[declaration_rename.assertion.3] line 28 assertion Simply_Named_Int=11: SUCCESS
+[declaration_rename.assertion.4] line 29 assertion My_Plus(A,B)=5: SUCCESS
+[declaration_rename.assertion.5] line 30 assertion C=4: SUCCESS
+[declaration_rename.assertion.6] line 33 assertion Var=5: SUCCESS
 VERIFICATION SUCCESSFUL
