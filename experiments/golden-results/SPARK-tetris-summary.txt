@@ -15,5 +15,5 @@ Raw compiler error message:
 --
 Occurs: 5 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads:52|
 Error detected at REDACTED

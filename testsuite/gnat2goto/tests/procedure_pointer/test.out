@@ -1,3 +1,26 @@
+Standard_Output from gnat2goto test:
+----------At: Do_Itype_Definition----------
+----------Unknown Ekind----------
+N_Defining_Identifier "T4b" (Entity_Id=2491)
+ Parent = <empty>
+ Sloc = 8525  test.adb:14:4
+ Chars = "T4b" (Name_Id=300001462)
+ Next_Entity = N_Defining_Identifier "assert_modify" (Entity_Id=2476)
+ Scope = N_Defining_Identifier "test" (Entity_Id=2245)
+ Ekind = E_Access_Subtype
+ Etype = N_Defining_Identifier "modifier" (Entity_Id=2315)
+ Associated_Node_For_Itype = N_Procedure_Specification (Node_Id=2473)
+ Esize = 64 (Uint = 600032832)
+ RM_Size = 64 (Uint = 600032832)
+ Alignment = 4 (Uint = 600032772)
+ Directly_Designated_Type = N_Defining_Identifier "T1b" (Entity_Id=2451)
+ Can_Never_Be_Null = True
+ Has_Qualified_Name = True
+ Is_Frozen = True
+ Is_Internal = True
+ Is_Itype = True
+ Size_Known_At_Compile_Time = True
+
 [assert_modify.assertion.1] line 17 assertion Global_Number = 5: FAILURE
 [increment_by.assertion.1] line 5 Ada Check assertion: SUCCESS
 VERIFICATION FAILED

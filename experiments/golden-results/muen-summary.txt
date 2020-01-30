@@ -1,4 +1,4 @@
-Occurs: 160 times
+Occurs: 161 times
 Calling function: Process_Declaration
 Error message: Use type clause declaration
 Nkind: N_Use_Type_Clause
@@ -38,10 +38,20 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 6 times
+Occurs: 7 times
 Calling function: Do_Type_Reference
 Error message: Type of type not a type
 Nkind: N_Defining_Identifier
+--
+Occurs: 5 times
+Calling function: Do_Itype_Integer_Subtype
+Error message: Non-literal bound unsupported
+Nkind: N_Defining_Identifier
+--
+Occurs: 5 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Postcondition
+Nkind: N_Pragma
 --
 Occurs: 4 times
 Calling function: Do_Expression
@@ -53,15 +63,15 @@ Calling function: Do_Full_Type_Declaration
 Error message: type not in symbol table after declaration
 Nkind: N_Full_Type_Declaration
 --
-Occurs: 4 times
-Calling function: Do_Itype_Integer_Subtype
-Error message: Non-literal bound unsupported
-Nkind: N_Defining_Identifier
---
 Occurs: 3 times
 Calling function: Do_Private_Type_Declaration
 Error message: Tagged type declaration unsupported
 Nkind: N_Private_Type_Declaration
+--
+Occurs: 3 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 2 times
 Calling function: Do_Aggregate_Literal
@@ -82,11 +92,6 @@ Occurs: 2 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
---
-Occurs: 2 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 1 times
 Calling function: Do_Aggregate_Literal
@@ -112,11 +117,6 @@ Occurs: 1 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
 --
 Occurs: 291 times
 Redacted compiler error message:
@@ -2968,19 +2968,24 @@ Occurs: 12 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
-Occurs: 6 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
 Error detected at REDACTED
 --
+Occurs: 3 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+Error detected at REDACTED
+--
 Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1784|
+Error detected at REDACTED
+--
+Occurs: 2 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:2534                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -3185,17 +3190,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:2534                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:2534                         |
 Error detected at REDACTED
 --
 Occurs: 1 times

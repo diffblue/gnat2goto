@@ -7,6 +7,7 @@ with Range_Check;           use Range_Check;
 with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
+with Arrays;                use Arrays;
 
 package body Gnat2goto_Itypes is
 
@@ -84,6 +85,7 @@ package body Gnat2goto_Itypes is
       --  might become the only way to get a type definition.
       return (case Ekind (N) is
          when E_Array_Subtype => Do_Itype_Array_Subtype (N),
+         when E_Array_Type => Do_Itype_Array_Type (N),
          when E_String_Literal_Subtype => Do_Itype_String_Literal_Subtype (N),
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
@@ -99,12 +101,35 @@ package body Gnat2goto_Itypes is
    end Do_Itype_Definition;
 
    ----------------------------
+   -- Do_Itype_Array_Type --
+   ----------------------------
+
+   function Do_Itype_Array_Type (E : Entity_Id) return Irep is
+      Var : constant Node_Id :=
+         Object_Definition (Associated_Node_For_Itype (E));
+   begin
+      case Nkind (Var) is
+      when N_Constrained_Array_Definition =>
+         return Do_Constrained_Array_Definition (Var);
+      when N_Unconstrained_Array_Definition =>
+         return Do_Unconstrained_Array_Definition (Var);
+      when others =>
+         return Report_Unhandled_Node_Irep
+           (E, "Do_Itype_Array_Type",
+            "Unknown array type " & Node_Kind'Image (Nkind (Var)));
+      end case;
+   end Do_Itype_Array_Type;
+
+   ----------------------------
    -- Do_Itype_Array_Subtype --
    ----------------------------
 
    function Do_Itype_Array_Subtype (N : Node_Id) return Irep is
-      (Make_Symbol_Type
-        (Identifier => Unique_Name (Etype (N))));
+   begin
+      Declare_Itype (Etype (N));
+      return Make_Symbol_Type
+        (Identifier => Unique_Name (Etype (N)));
+   end Do_Itype_Array_Subtype;
 
    -------------------------------------
    -- Do_Itype_String_Literal_Subtype --

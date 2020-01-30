@@ -5118,6 +5118,7 @@ package body Tree_Walk is
         (if Ekind (E) = E_Access_Subtype then Etype (E) else E);
       Type_Id : constant Symbol_Id := Intern (Type_Name);
    begin
+      Declare_Itype (E);
       if Global_Symbol_Table.Contains (Type_Id) then
          if Kind (Global_Symbol_Table.Element (Type_Id).SymType) in Class_Type
          then

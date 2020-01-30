@@ -33,4 +33,7 @@ private
    function Do_Modular_Integer_Subtype (N : Entity_Id) return Irep
      with Pre => Is_Itype (N) and then Ekind (N) = E_Modular_Integer_Subtype;
 
+   function Do_Itype_Array_Type (E : Entity_Id) return Irep
+    with Pre => Is_Itype (E) and Ekind (E) = E_Array_Type;
+
 end Gnat2goto_Itypes;
