@@ -92,8 +92,10 @@ package body Gnat2goto_Itypes is
          when E_Anonymous_Access_Type => Make_Pointer_Type
                 (Base => Do_Type_Reference (Designated_Type (Etype (N)))),
          when E_Modular_Integer_Subtype => Do_Modular_Integer_Subtype (N),
-         when others => Report_Unhandled_Node_Irep (N, "Do_Itype_Definition",
-                                                    "Unknown Ekind"));
+         when others => Report_Unhandled_Node_Irep
+          (N,
+           "Do_Itype_Definition",
+           "Unknown Ekind " & Entity_Kind'Image (Ekind (N))));
    end Do_Itype_Definition;
 
    ----------------------------
