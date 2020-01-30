@@ -105,7 +105,7 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Itype_Definition
-Error message: Unknown Ekind
+Error message: Unknown Ekind E_ENUMERATION_SUBTYPE
 Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
