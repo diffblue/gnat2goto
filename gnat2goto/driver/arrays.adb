@@ -4,7 +4,6 @@ with Uintp;                 use Uintp;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Range_Check;           use Range_Check;
-with Gnat2goto_Itypes;      use Gnat2goto_Itypes;
 
 package body Arrays is
 
@@ -445,7 +444,6 @@ package body Arrays is
         Make_Pointer_Type (I_Subtype => Component_Type,
                            Width     => Pointer_Type_Width);
    begin
-      Declare_Itype (E);
       Append_Struct_Member (Ret, Lbound);
       Append_Struct_Member (Ret, Hbound);
       Append_Struct_Member (Ret,

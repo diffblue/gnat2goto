@@ -1,1 +1,1 @@
-ALL XFAIL gnat2goto fails with "GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map"
+ALL XFAIL GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads

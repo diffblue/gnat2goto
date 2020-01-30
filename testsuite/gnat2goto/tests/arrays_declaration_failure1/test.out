@@ -1,0 +1,9 @@
+[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
+[arrays_declaration_failure1.assertion.1] line 7 Ada Check assertion: SUCCESS
+[arrays_declaration_failure1.assertion.2] line 8 assertion A1 (1) = 1: SUCCESS
+[arrays_declaration_failure1.assertion.3] line 9 assertion A1 (1) = 10: FAILURE
+[arrays_declaration_failure1.assertion.4] line 10 assertion A2 (1) = 1: SUCCESS
+[arrays_declaration_failure1.assertion.5] line 11 assertion A2 (1) = 2: FAILURE
+VERIFICATION FAILED
