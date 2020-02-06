@@ -39,12 +39,19 @@ package body ASVAT_Modelling is
 
    procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
+   procedure Recurse_Through_Components (Model        : Model_Sorts;
+                                         Entity       : Entity_Id;
+                                         Obj_Name     : String;
+                                         Obj_Type     : String;
+                                         Subprog_Body : Irep;
+                                         Base_Entity  : Entity_Id);
+
    function Replace_Dots (S : String) return String;
 
    function Replace_Local_With_Non_Visible
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
-               Get_Model_Sort (E) = Represents;
+     Get_Model_Sort (E) = Represents;
 
    -------------------
    -- Do_Nondet_Var --
@@ -98,26 +105,15 @@ package body ASVAT_Modelling is
    -- Do_Var_In_Type --
    --------------------
 
-   function Do_Var_In_Type (Var_Name, Var_Type : String;
-                            E : Entity_Id) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (E);
-      Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
-      pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
-                     "Do_Nondet_Var: Variable name is not in symbol table");
-      Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
-      Var_Irep : constant Irep :=
-        Make_Symbol_Expr
-          (Source_Location => Source_Location,
-           I_Type          => Var_Symbol.SymType,
-           Range_Check     => False,
-           Identifier      => Var_Name);
-      Followed_Type : constant Irep :=
-        Follow_Symbol_Type (Var_Symbol.SymType, Global_Symbol_Table);
-   begin
-      Put_Line ("The followed type is: " &
-                  Irep_Kind'Image (Kind (Followed_Type)));
+   function Do_Var_In_Type (Var_Name, Var_Type  : String;
+                            Obj_Irep, Type_Irep : Irep;
+                            Report_Node         : Entity_Id) return Irep is
+      Source_Location : constant Irep := Get_Source_Location (Report_Node);
+    begin
+      Put_Line ("The type is: " &
+                  Irep_Kind'Image (Kind (Type_Irep)));
 
-      if Kind (Followed_Type) in
+      if Kind (Type_Irep) in
         I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
           | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
             | I_Floatbv_Type
@@ -125,14 +121,14 @@ package body ASVAT_Modelling is
          --  At the moment Enumeration types cannot be be assumed in type
          declare
             Var_First : constant Irep :=
-              Get_Bound (E, Followed_Type, Bound_Low);
+              Get_Bound (Report_Node, Type_Irep, Bound_Low);
             Var_Last  : constant Irep :=
-              Get_Bound (E, Followed_Type, Bound_High);
+              Get_Bound (Report_Node, Type_Irep, Bound_High);
 
             Geq_Var_First : constant Irep :=
               Make_Op_Geq
                 (Rhs => Var_First,
-                 Lhs             => Var_Irep,
+                 Lhs             => Obj_Irep,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
                  I_Type          => Make_Bool_Type,
@@ -140,7 +136,7 @@ package body ASVAT_Modelling is
             Leq_Var_Last : constant Irep :=
               Make_Op_Leq
                 (Rhs             => Var_Last,
-                 Lhs             => Var_Irep,
+                 Lhs             => Obj_Irep,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
                  I_Type          => Make_Bool_Type,
@@ -665,7 +661,15 @@ package body ASVAT_Modelling is
                   --  The symbol table will have the declaration of the
                   --  object to be made nondet.
 
-                  --  Add a nondet assignment to the model subprogram body.
+                  --  Recurse through all the components of the object
+                  --  setting each scalar component to nondet and if
+                  --  "Nondet_In_Type" model is specified, assume that
+                  --  each scalar component is in type.
+                  Recurse_Through_Components (Curr_Entity,
+                                              Unique_Type_Name,
+                                              Unique_Type_Name,
+                                              Subprog_Body,
+                                              E);
                   Append_Op (Subprog_Body,
                              Do_Nondet_Var (Var_Name => Unique_Object_Name,
                                             Var_Type => Unique_Type_Name,
@@ -885,7 +889,40 @@ package body ASVAT_Modelling is
       end if;
    end Print_Modelling_Message;
 
-   ------------------------------------
+   --------------------------------
+   -- Recurse_Through_Components --
+   --------------------------------
+
+   procedure Assume_Components_In_Type (Obj_Name       : String;
+                                        Obj_Irep       : Irep;
+                                        Component_Type : Node_Id;
+                                        Subprog_Body   : Irep;
+                                        Report_Node    : Entity_Id)
+   is
+      E_Type : constant Entity_Id := Etype (Component_Type);
+   begin
+      if Is_Scalar_Type (E_Type) then
+         Append_Op (Subprog_Body,
+                    Do_Var_In_Type
+                      (Var_Name    => Obj_Name,
+                       Var_Type    => Unique_Name (Etype (Component_Type)),
+                       Obj_Irep    => Obj_Irep,
+                       Type_Irep   =>
+                         Follow_Symbol_Type (E_Type, Global_Symbol_Table),
+                       Report_Node => Report_Node));
+      else
+         --  The object is composite recurse down through its components
+         --  until a scalar component is found.
+         if Is_Record_Type (E_Type) then
+            declare
+               Curr_Comp : Node_Id := First (Component_Items (Component_Type));
+            begin
+               while not Empty (Curr_Comp) loop
+                  declare
+
+
+                  end if;
+    ------------------------------------
    -- Replace_Local_With_Non_Visible --
    ------------------------------------
 
