@@ -14,16 +14,24 @@ with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
 with Follow;                  use Follow;
 --  with Symbol_Table_Info;       use Symbol_Table_Info;
---  with Treepr;                  use Treepr;
+with Treepr;                  use Treepr;
 with Ada.Text_IO;             use Ada.Text_IO;
 package body ASVAT_Modelling is
+
+   procedure Make_Selector_Names (Root : String;
+                                  Root_Irep : Irep;
+                                  Block : Irep;
+                                  Root_Type : Node_Id;
+                                  E : Entity_Id;
+                                  Loc : Irep);
 
    Print_Message : constant Boolean := True;
 
    function Do_Nondet_Var (Var_Name, Var_Type : String;
                            E : Entity_Id) return Irep;
 
-   function Do_Var_In_Type (Var_Name, Var_Type : String;
+   function Do_Var_In_Type (Var_Name, Var_Type  : String;
+                            Var_Irep, Type_Irep : Irep;
                             E : Entity_Id) return Irep;
 
    function Do_Parameterless_Function_Call
@@ -39,12 +47,12 @@ package body ASVAT_Modelling is
 
    procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
-   procedure Recurse_Through_Components (Model        : Model_Sorts;
-                                         Entity       : Entity_Id;
-                                         Obj_Name     : String;
-                                         Obj_Type     : String;
-                                         Subprog_Body : Irep;
-                                         Base_Entity  : Entity_Id);
+--     procedure Recurse_Through_Components (Model        : Model_Sorts;
+--                                           Entity       : Entity_Id;
+--                                           Obj_Name     : String;
+--                                           Obj_Type     : String;
+--                                           Subprog_Body : Irep;
+--                                           Base_Entity  : Entity_Id);
 
    function Replace_Dots (S : String) return String;
 
@@ -52,6 +60,67 @@ package body ASVAT_Modelling is
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
      Get_Model_Sort (E) = Represents;
+
+   procedure Make_Selector_Names (Root : String;
+                                  Root_Irep : Irep;
+                                  Block : Irep;
+                                  Root_Type : Node_Id;
+                                  E : Entity_Id;
+                                  Loc : Irep) is
+      Type_Irep : constant Irep := Do_Type_Reference (Root_Type);
+   begin
+      Print_Node_Briefly (Root_Type);
+      Print_Irep (Root_Irep);
+      Print_Irep (Type_Irep);
+      if Is_Scalar_Type (Root_Type) then
+         Put_Line ("Scalar: " & Unique_Name (Root_Type));
+         Put_Line ("Root: " & Root);
+         Append_Op (Block,
+                    Do_Var_In_Type (Var_Name  => Root,
+                                    Var_Type  => Unique_Name (Root_Type),
+                                    Var_Irep  => Root_Irep,
+                                    Type_Irep => Do_Type_Reference (Root_Type),
+                                    E         => E));
+      elsif Is_Record_Type (Root_Type) then
+         Put_Line ("Record: " & Unique_Name (Root_Type));
+         Print_Irep (Get_Components (Type_Irep));
+         Ireps.Print_Irep (List_Element
+                           (Get_Component
+                              (Get_Components (Type_Irep)),
+                              List_First
+                                (Get_Component
+                                   (Get_Components (Type_Irep)))));
+         declare
+            Comp : Node_Id :=
+              First_Component (Root_Type);
+         begin
+            while Present (Comp) loop
+               declare
+                  Comp_Name : constant String :=
+                    Root & "__" & Get_Name_String (Chars (Comp));
+                  Comp_Unique : constant String := Unique_Name (Comp);
+                  Comp_Type : constant Node_Id :=
+                    Etype (Comp);
+               begin
+                  Make_Selector_Names
+                    (Comp_Name & " == " & Comp_Unique,
+                     Make_Member_Expr (Compound         => Root_Irep,
+                                       Source_Location  => Loc,
+                                       I_Type           => Do_Type_Reference
+                                         (Comp_Type),
+                                       Component_Name   => Comp_Unique),
+                     Block,
+                     Comp_Type,
+                     E,
+                     Loc);
+               end;
+               Comp := Next_Component (Comp);
+            end loop;
+         end;
+      else
+         Put_Line ("Expected Scalar or record");
+      end if;
+   end Make_Selector_Names;
 
    -------------------
    -- Do_Nondet_Var --
@@ -106,14 +175,16 @@ package body ASVAT_Modelling is
    --------------------
 
    function Do_Var_In_Type (Var_Name, Var_Type  : String;
-                            Obj_Irep, Type_Irep : Irep;
-                            Report_Node         : Entity_Id) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (Report_Node);
-    begin
+                            Var_Irep, Type_Irep : Irep;
+                            E                   : Entity_Id) return Irep is
+      Source_Location : constant Irep := Get_Source_Location (E);
+      Followed_Type : constant Irep :=
+        Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
+   begin
       Put_Line ("The type is: " &
-                  Irep_Kind'Image (Kind (Type_Irep)));
+                  Irep_Kind'Image (Kind (Followed_Type)));
 
-      if Kind (Type_Irep) in
+      if Kind (Followed_Type) in
         I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
           | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
             | I_Floatbv_Type
@@ -121,14 +192,14 @@ package body ASVAT_Modelling is
          --  At the moment Enumeration types cannot be be assumed in type
          declare
             Var_First : constant Irep :=
-              Get_Bound (Report_Node, Type_Irep, Bound_Low);
+              Get_Bound (E, Followed_Type, Bound_Low);
             Var_Last  : constant Irep :=
-              Get_Bound (Report_Node, Type_Irep, Bound_High);
+              Get_Bound (E, Followed_Type, Bound_High);
 
             Geq_Var_First : constant Irep :=
               Make_Op_Geq
                 (Rhs => Var_First,
-                 Lhs             => Obj_Irep,
+                 Lhs             => Var_Irep,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
                  I_Type          => Make_Bool_Type,
@@ -136,7 +207,7 @@ package body ASVAT_Modelling is
             Leq_Var_Last : constant Irep :=
               Make_Op_Leq
                 (Rhs             => Var_Last,
-                 Lhs             => Obj_Irep,
+                 Lhs             => Var_Irep,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
                  I_Type          => Make_Bool_Type,
@@ -661,39 +732,47 @@ package body ASVAT_Modelling is
                   --  The symbol table will have the declaration of the
                   --  object to be made nondet.
 
-                  --  Recurse through all the components of the object
-                  --  setting each scalar component to nondet and if
-                  --  "Nondet_In_Type" model is specified, assume that
-                  --  each scalar component is in type.
-                  Recurse_Through_Components (Curr_Entity,
-                                              Unique_Type_Name,
-                                              Unique_Type_Name,
-                                              Subprog_Body,
-                                              E);
-                  Append_Op (Subprog_Body,
-                             Do_Nondet_Var (Var_Name => Unique_Object_Name,
-                                            Var_Type => Unique_Type_Name,
-                                            E        => E));
+                  declare
+                     Var_Sym_Id : constant Symbol_Id :=
+                       Intern (Unique_Object_Name);
+                     Var_Symbol : constant Symbol :=
+                       Global_Symbol_Table (Var_Sym_Id);
+                  begin
+                     --  Nondet the variable.
+                     Append_Op (Subprog_Body,
+                                Do_Nondet_Var (Var_Name => Unique_Object_Name,
+                                               Var_Type => Unique_Type_Name,
+                                               E        => E));
 
-                  --  If the subprogram ASVAT model is "Nondet_In_Type",
-                  --  an assume statment is appended to the subprogram body
-                  if Model =  Nondet_In_Type then
-                     --  At the moment we are only supporting scalar types.
-                     --  The local declaration will be used to determine this
-                     --  as it will be identical to the hidden declaration
-                     if Is_Scalar_Type (Etype (Curr_Entity)) then
-                        Append_Op (Subprog_Body,
-                                   Do_Var_In_Type
-                                     (Var_Name => Unique_Object_Name,
-                                      Var_Type => Unique_Type_Name,
-                                      E        => E));
-                     else
-                        Report_Unhandled_Node_Empty
-                          (Curr_Entity, "Make_Model",
-                           "ASVAT_Modelling: Nondet of a composite object " &
-                             "not yet supported.");
+                     --  If the subprogram ASVAT model is "Nondet_In_Type",
+                     --  an assume statment is appended to the subprogram body
+                     if Model =  Nondet_In_Type then
+                        --  If the object declaration is not visible
+                        --  The local declaration will be used as the
+                        --  modelling rules state that it must be
+                        --  identical to the hidden declaration.
+                        declare
+                           Var_Irep   : constant Irep := Make_Symbol_Expr
+                             (Source_Location => Source_Location,
+                              I_Type          => Var_Symbol.SymType,
+                              Range_Check     => False,
+                              Identifier      => Unique_Object_Name);
+                        begin
+                           Put_Line ("Calling Make_Selector_Names");
+                           Make_Selector_Names
+                             (Unique_Object_Name,
+                              Var_Irep,
+                              Subprog_Body,
+                              Etype (Curr_Entity),
+                              E,
+                              Get_Source_Location (E));
+--                          Report_Unhandled_Node_Empty
+--                            (Curr_Entity, "Make_Model",
+--                         "ASVAT_Modelling: Nondet of a composite object " &
+--                               "not yet supported.");
+                        end;
                      end if;
-                  end if;
+                  end;
                else
                   Report_Unhandled_Node_Empty
                     (Curr_Entity, "Make_Model",
@@ -768,6 +847,8 @@ package body ASVAT_Modelling is
                           Do_Var_In_Type
                             (Var_Name => Result_Var,
                              Var_Type => Result_Type,
+                             Var_Irep => Result_Var_Irep,
+                             Type_Irep => Result_Type_Sym.SymType,
                              E        => E));
             end if;
             --  The funtion needs a return statement.
@@ -889,40 +970,42 @@ package body ASVAT_Modelling is
       end if;
    end Print_Modelling_Message;
 
-   --------------------------------
-   -- Recurse_Through_Components --
-   --------------------------------
+--     --------------------------------
+--     -- Recurse_Through_Components --
+--     --------------------------------
+--
+--     procedure Assume_Components_In_Type (Obj_Name       : String;
+--                                          Obj_Irep       : Irep;
+--                                          Component_Type : Node_Id;
+--                                          Subprog_Body   : Irep;
+--                                          Report_Node    : Entity_Id)
+--     is
+--        E_Type : constant Entity_Id := Etype (Component_Type);
+--     begin
+--        if Is_Scalar_Type (E_Type) then
+--           Append_Op (Subprog_Body,
+--                      Do_Var_In_Type
+--                        (Var_Name    => Obj_Name,
+--                         Var_Type    => Unique_Name (Etype (Component_Type)),
+--                         Obj_Irep    => Obj_Irep,
+--                         Type_Irep   =>
+--                           Follow_Symbol_Type (E_Type, Global_Symbol_Table),
+--                         Report_Node => Report_Node));
+--        else
+--           --  The object is composite recurse down through its components
+--           --  until a scalar component is found.
+--           if Is_Record_Type (E_Type) then
+--              declare
+--                 Curr_Comp : Node_Id :=
+--                     First (Component_Items (Component_Type));
+--              begin
+--                 while not Empty (Curr_Comp) loop
+--                    declare
+--
+--
+--                    end if;
 
-   procedure Assume_Components_In_Type (Obj_Name       : String;
-                                        Obj_Irep       : Irep;
-                                        Component_Type : Node_Id;
-                                        Subprog_Body   : Irep;
-                                        Report_Node    : Entity_Id)
-   is
-      E_Type : constant Entity_Id := Etype (Component_Type);
-   begin
-      if Is_Scalar_Type (E_Type) then
-         Append_Op (Subprog_Body,
-                    Do_Var_In_Type
-                      (Var_Name    => Obj_Name,
-                       Var_Type    => Unique_Name (Etype (Component_Type)),
-                       Obj_Irep    => Obj_Irep,
-                       Type_Irep   =>
-                         Follow_Symbol_Type (E_Type, Global_Symbol_Table),
-                       Report_Node => Report_Node));
-      else
-         --  The object is composite recurse down through its components
-         --  until a scalar component is found.
-         if Is_Record_Type (E_Type) then
-            declare
-               Curr_Comp : Node_Id := First (Component_Items (Component_Type));
-            begin
-               while not Empty (Curr_Comp) loop
-                  declare
-
-
-                  end if;
-    ------------------------------------
+   ------------------------------------
    -- Replace_Local_With_Non_Visible --
    ------------------------------------
 

@@ -4559,6 +4559,8 @@ package body Tree_Walk is
       Component_Name : constant String := Unique_Name (Orig_Component);
       Source_Location : constant Irep := Get_Source_Location (N);
    begin
+      Put_Line ("Original component name: " & Component_Name);
+      Put_Line ("Given component name: " & Unique_Name (Component));
       if Do_Discriminant_Check (N) then
          --  ??? Can this even happen
          if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
@@ -4654,6 +4656,10 @@ package body Tree_Walk is
                Source_Location => Source_Location);
          end;
       else
+         Put_Line ("Make_Member_Expr");
+         Put_Line ("  Itype    => " & Irep_Kind'Image (Kind (Component_Type)));
+         Put_Line ("  Compound => " & Irep_Kind'Image (Kind (Root)));
+         Put_Line ("  Component_Name => " & Component_Name);
          return Make_Member_Expr
            (I_Type => Component_Type,
             Compound => Root,
