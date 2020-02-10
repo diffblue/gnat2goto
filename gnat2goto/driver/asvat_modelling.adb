@@ -12,7 +12,7 @@ with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
-with Follow;                  use Follow;
+--  with Follow;                  use Follow;
 --  with Symbol_Table_Info;       use Symbol_Table_Info;
 with Treepr;                  use Treepr;
 with Ada.Text_IO;             use Ada.Text_IO;
@@ -178,8 +178,8 @@ package body ASVAT_Modelling is
                             Var_Irep, Type_Irep : Irep;
                             E                   : Entity_Id) return Irep is
       Source_Location : constant Irep := Get_Source_Location (E);
-      Followed_Type : constant Irep :=
-        Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
+      Followed_Type : constant Irep := Type_Irep;
+      --  Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
    begin
       Put_Line ("The type is: " &
                   Irep_Kind'Image (Kind (Followed_Type)));
@@ -198,7 +198,11 @@ package body ASVAT_Modelling is
 
             Geq_Var_First : constant Irep :=
               Make_Op_Geq
-                (Rhs => Var_First,
+                (Rhs =>
+                   Typecast_If_Necessary
+                     (Var_First,
+                      Followed_Type,
+                      Global_Symbol_Table),
                  Lhs             => Var_Irep,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
@@ -206,7 +210,11 @@ package body ASVAT_Modelling is
                  Range_Check     => False);
             Leq_Var_Last : constant Irep :=
               Make_Op_Leq
-                (Rhs             => Var_Last,
+                (Rhs             =>
+                   Typecast_If_Necessary
+                     (Var_Last,
+                      Followed_Type,
+                      Global_Symbol_Table),
                  Lhs             => Var_Irep,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
