@@ -12,18 +12,9 @@ with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
---  with Follow;                  use Follow;
---  with Symbol_Table_Info;       use Symbol_Table_Info;
-with Treepr;                  use Treepr;
+with Follow;                  use Follow;
 with Ada.Text_IO;             use Ada.Text_IO;
 package body ASVAT_Modelling is
-
-   procedure Make_Selector_Names (Root : String;
-                                  Root_Irep : Irep;
-                                  Block : Irep;
-                                  Root_Type : Node_Id;
-                                  E : Entity_Id;
-                                  Loc : Irep);
 
    Print_Message : constant Boolean := True;
 
@@ -45,14 +36,14 @@ package body ASVAT_Modelling is
    function Get_Actual_Type (Obj : Entity_Id;
                              Replace_Object : Boolean) return String;
 
-   procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
+   procedure Make_Selector_Names (Root : String;
+                                  Root_Irep : Irep;
+                                  Block : Irep;
+                                  Root_Type : Node_Id;
+                                  E : Entity_Id;
+                                  Loc : Irep);
 
---     procedure Recurse_Through_Components (Model        : Model_Sorts;
---                                           Entity       : Entity_Id;
---                                           Obj_Name     : String;
---                                           Obj_Type     : String;
---                                           Subprog_Body : Irep;
---                                           Base_Entity  : Entity_Id);
+   procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
    function Replace_Dots (S : String) return String;
 
@@ -60,67 +51,6 @@ package body ASVAT_Modelling is
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
      Get_Model_Sort (E) = Represents;
-
-   procedure Make_Selector_Names (Root : String;
-                                  Root_Irep : Irep;
-                                  Block : Irep;
-                                  Root_Type : Node_Id;
-                                  E : Entity_Id;
-                                  Loc : Irep) is
-      Type_Irep : constant Irep := Do_Type_Reference (Root_Type);
-   begin
-      Print_Node_Briefly (Root_Type);
-      Print_Irep (Root_Irep);
-      Print_Irep (Type_Irep);
-      if Is_Scalar_Type (Root_Type) then
-         Put_Line ("Scalar: " & Unique_Name (Root_Type));
-         Put_Line ("Root: " & Root);
-         Append_Op (Block,
-                    Do_Var_In_Type (Var_Name  => Root,
-                                    Var_Type  => Unique_Name (Root_Type),
-                                    Var_Irep  => Root_Irep,
-                                    Type_Irep => Do_Type_Reference (Root_Type),
-                                    E         => E));
-      elsif Is_Record_Type (Root_Type) then
-         Put_Line ("Record: " & Unique_Name (Root_Type));
-         Print_Irep (Get_Components (Type_Irep));
-         Ireps.Print_Irep (List_Element
-                           (Get_Component
-                              (Get_Components (Type_Irep)),
-                              List_First
-                                (Get_Component
-                                   (Get_Components (Type_Irep)))));
-         declare
-            Comp : Node_Id :=
-              First_Component (Root_Type);
-         begin
-            while Present (Comp) loop
-               declare
-                  Comp_Name : constant String :=
-                    Root & "__" & Get_Name_String (Chars (Comp));
-                  Comp_Unique : constant String := Unique_Name (Comp);
-                  Comp_Type : constant Node_Id :=
-                    Etype (Comp);
-               begin
-                  Make_Selector_Names
-                    (Comp_Name & " == " & Comp_Unique,
-                     Make_Member_Expr (Compound         => Root_Irep,
-                                       Source_Location  => Loc,
-                                       I_Type           => Do_Type_Reference
-                                         (Comp_Type),
-                                       Component_Name   => Comp_Unique),
-                     Block,
-                     Comp_Type,
-                     E,
-                     Loc);
-               end;
-               Comp := Next_Component (Comp);
-            end loop;
-         end;
-      else
-         Put_Line ("Expected Scalar or record");
-      end if;
-   end Make_Selector_Names;
 
    -------------------
    -- Do_Nondet_Var --
@@ -178,32 +108,38 @@ package body ASVAT_Modelling is
                             Var_Irep, Type_Irep : Irep;
                             E                   : Entity_Id) return Irep is
       Source_Location : constant Irep := Get_Source_Location (E);
-      Followed_Type : constant Irep := Type_Irep;
-      --  Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
+      Followed_Type : constant Irep :=
+        Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
+      Resolved_Var : constant Irep :=
+        Cast_Enum (Var_Irep, Global_Symbol_Table);
    begin
-      Put_Line ("The type is: " &
-                  Irep_Kind'Image (Kind (Followed_Type)));
-
       if Kind (Followed_Type) in
         I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
           | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
-            | I_Floatbv_Type
+            | I_Floatbv_Type | I_C_Enum_Type
       then
-         --  At the moment Enumeration types cannot be be assumed in type
          declare
+            Resolved_Type : constant Irep :=
+              (if Kind (Followed_Type) = I_C_Enum_Type then
+                    Get_Subtype (Followed_Type)
+               else
+                  Followed_Type);
+
             Var_First : constant Irep :=
-              Get_Bound (E, Followed_Type, Bound_Low);
+              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
+                         Global_Symbol_Table);
             Var_Last  : constant Irep :=
-              Get_Bound (E, Followed_Type, Bound_High);
+              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
+                        Global_Symbol_Table);
 
             Geq_Var_First : constant Irep :=
               Make_Op_Geq
                 (Rhs =>
                    Typecast_If_Necessary
                      (Var_First,
-                      Followed_Type,
+                      Get_Type (Resolved_Var),
                       Global_Symbol_Table),
-                 Lhs             => Var_Irep,
+                 Lhs             => Resolved_Var,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
                  I_Type          => Make_Bool_Type,
@@ -213,9 +149,9 @@ package body ASVAT_Modelling is
                 (Rhs             =>
                    Typecast_If_Necessary
                      (Var_Last,
-                      Followed_Type,
+                      Get_Type (Resolved_Var),
                       Global_Symbol_Table),
-                 Lhs             => Var_Irep,
+                 Lhs             => Resolved_Var,
                  Source_Location => Source_Location,
                  Overflow_Check  => False,
                  I_Type          => Make_Bool_Type,
@@ -766,7 +702,6 @@ package body ASVAT_Modelling is
                               Range_Check     => False,
                               Identifier      => Unique_Object_Name);
                         begin
-                           Put_Line ("Calling Make_Selector_Names");
                            Make_Selector_Names
                              (Unique_Object_Name,
                               Var_Irep,
@@ -774,10 +709,6 @@ package body ASVAT_Modelling is
                               Etype (Curr_Entity),
                               E,
                               Get_Source_Location (E));
---                          Report_Unhandled_Node_Empty
---                            (Curr_Entity, "Make_Model",
---                         "ASVAT_Modelling: Nondet of a composite object " &
---                               "not yet supported.");
                         end;
                      end if;
                   end;
@@ -795,8 +726,6 @@ package body ASVAT_Modelling is
 
          Next_Elmt (Iter);
       end loop;
-
-      Put_Line ("Finished processing outputs");
 
       --  If the subprogram is a function, the result must be made nondet too.
       if Ekind (E) = E_Function then
@@ -851,13 +780,13 @@ package body ASVAT_Modelling is
                           E        => E));
             --  if the ASVAT model is "Nondet_In_Type" an in type assumption.
             if Model = Nondet_In_Type then
-               Append_Op (Return_Block,
-                          Do_Var_In_Type
-                            (Var_Name => Result_Var,
-                             Var_Type => Result_Type,
-                             Var_Irep => Result_Var_Irep,
-                             Type_Irep => Result_Type_Sym.SymType,
-                             E        => E));
+               Make_Selector_Names
+                 (Result_Var,
+                  Result_Var_Irep,
+                  Return_Block,
+                  Etype (Result_Definition (E)),
+                  E,
+                  Get_Source_Location (E));
             end if;
             --  The funtion needs a return statement.
             Append_Op (Return_Block, Return_Statement);
@@ -966,6 +895,68 @@ package body ASVAT_Modelling is
       end if;
    end Make_Nondet_Function;
 
+   -------------------------
+   -- Make_Selector_Names --
+   -------------------------
+
+   procedure Make_Selector_Names (Root : String;
+                                  Root_Irep : Irep;
+                                  Block : Irep;
+                                  Root_Type : Node_Id;
+                                  E : Entity_Id;
+                                  Loc : Irep) is
+      Type_Irep : constant Irep := Do_Type_Reference (Root_Type);
+   begin
+      if Is_Scalar_Type (Root_Type) then
+         Append_Op (Block,
+                    Do_Var_In_Type (Var_Name  => Root,
+                                    Var_Type  => Unique_Name (Root_Type),
+                                    Var_Irep  => Root_Irep,
+                                    Type_Irep => Type_Irep,
+                                    E         => E));
+      elsif Is_Record_Type (Root_Type) then
+         if not Has_Discriminants (E) then
+            declare
+               Comp : Node_Id :=
+                 First_Component (Root_Type);
+            begin
+               while Present (Comp) loop
+                  declare
+                     Comp_Name : constant String :=
+                       Root & "__" & Get_Name_String (Chars (Comp));
+                     Comp_Unique : constant String := Unique_Name (Comp);
+                     Comp_Type : constant Node_Id :=
+                       Etype (Comp);
+                  begin
+                     Make_Selector_Names
+                       (Comp_Name & " == " & Comp_Unique,
+                        Make_Member_Expr (Compound         => Root_Irep,
+                                          Source_Location  => Loc,
+                                          I_Type           => Do_Type_Reference
+                                            (Comp_Type),
+                                          Component_Name   => Comp_Unique),
+                        Block,
+                        Comp_Type,
+                        E,
+                        Loc);
+                  end;
+                  Comp := Next_Component (Comp);
+               end loop;
+            end;
+         else
+            Report_Unhandled_Node_Empty
+              (E,
+               "Make_Selector_Names",
+               "Discrimiminated records are currently unsupported");
+         end if;
+      else
+         Report_Unhandled_Node_Empty
+           (E,
+            "Make_Selector_Names",
+           "Only scalar and record subtypes are currently supported");
+      end if;
+   end Make_Selector_Names;
+
    -----------------------------
    -- Print_Modelling_Message --
    -----------------------------
@@ -977,41 +968,6 @@ package body ASVAT_Modelling is
          Put_Line (Mess);
       end if;
    end Print_Modelling_Message;
-
---     --------------------------------
---     -- Recurse_Through_Components --
---     --------------------------------
---
---     procedure Assume_Components_In_Type (Obj_Name       : String;
---                                          Obj_Irep       : Irep;
---                                          Component_Type : Node_Id;
---                                          Subprog_Body   : Irep;
---                                          Report_Node    : Entity_Id)
---     is
---        E_Type : constant Entity_Id := Etype (Component_Type);
---     begin
---        if Is_Scalar_Type (E_Type) then
---           Append_Op (Subprog_Body,
---                      Do_Var_In_Type
---                        (Var_Name    => Obj_Name,
---                         Var_Type    => Unique_Name (Etype (Component_Type)),
---                         Obj_Irep    => Obj_Irep,
---                         Type_Irep   =>
---                           Follow_Symbol_Type (E_Type, Global_Symbol_Table),
---                         Report_Node => Report_Node));
---        else
---           --  The object is composite recurse down through its components
---           --  until a scalar component is found.
---           if Is_Record_Type (E_Type) then
---              declare
---                 Curr_Comp : Node_Id :=
---                     First (Component_Items (Component_Type));
---              begin
---                 while not Empty (Curr_Comp) loop
---                    declare
---
---
---                    end if;
 
    ------------------------------------
    -- Replace_Local_With_Non_Visible --

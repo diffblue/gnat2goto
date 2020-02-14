@@ -76,7 +76,8 @@ package body Range_Check is
       case Kind (Bound_Type) is
          when I_Bounded_Signedbv_Type
             | I_Bounded_Unsignedbv_Type
-            | I_Bounded_Floatbv_Type =>
+            | I_Bounded_Floatbv_Type
+            | I_C_Enum_Type =>
             return Get_Bound_Of_Bounded_Type (Bound_Type, Pos);
          when I_Unsignedbv_Type =>
             --  this case is probably unnecessary:

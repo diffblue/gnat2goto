@@ -47,7 +47,6 @@ with GOTO_Utils;            use GOTO_Utils;
 
 with GNAT2GOTO.Options;
 
-with Treepr;                use Treepr;
 package body Driver is
 
    procedure Translate_Standard_Types;
@@ -592,12 +591,8 @@ package body Driver is
 
       function Translate_Signed_Type (Type_Node : Node_Id)
                                      return Irep
-      is
-      begin
-         Print_Node_Briefly (Type_Node);
-         return (Make_Signedbv_Type
-                   (Width => Get_Bv_Width (Type_Node)));
-      end Translate_Signed_Type;
+      is (Make_Signedbv_Type
+          (Width => Get_Bv_Width (Type_Node)));
 
       function Translate_Enum_Type (Type_Node : Node_Id)
                                    return Irep

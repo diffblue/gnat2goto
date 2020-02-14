@@ -1208,12 +1208,14 @@ package body Tree_Walk is
       Enum_Body : constant Irep := Make_C_Enum_Members;
       Enum_Type_Symbol : constant Irep := Make_Symbol_Type
         (Identifier => Unique_Name (Defining_Identifier (Parent (N))));
-      Member : Node_Id := First (Literals (N));
+      First_Member : constant Node_Id := First (Literals (N));
+      Member : Node_Id := First_Member;
+      Last_Member : Node_Id := First_Member;
    begin
       loop
          declare
             Val_String : constant String :=
-              UI_Image (Enumeration_Rep (Member));
+              UI_Image (Enumeration_Pos (Member));
             Val_Name : constant String := Unique_Name (Member);
             Base_Name : constant String := Get_Name_String (Chars (Member));
             Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
@@ -1224,7 +1226,7 @@ package body Tree_Walk is
             Member_Symbol_Init : constant Irep := Make_Constant_Expr
               (I_Type => Make_Signedbv_Type (Integer (Member_Size)),
                Value => Convert_Uint_To_Hex
-                 (Enumeration_Rep (Member), Member_Size),
+                 (Enumeration_Pos (Member), Member_Size),
                Source_Location => Get_Source_Location (Member));
             Typecast_Expr : constant Irep := Make_Op_Typecast
               (Op0 => Member_Symbol_Init,
@@ -1238,11 +1240,19 @@ package body Tree_Walk is
                                      Value_Expr     => Typecast_Expr,
                                      A_Symbol_Table => Global_Symbol_Table);
          end;
+         Last_Member := Member;
          Next (Member);
          exit when not Present (Member);
       end loop;
+
       return Make_C_Enum_Type
-        (I_Subtype => Make_Signedbv_Type (32), -- FIXME why 32?
+        (I_Subtype =>
+           Make_Bounded_Signedbv_Type
+             (Width       => 32, -- FIXME why 32?
+              Lower_Bound => Store_Symbol_Bound
+                (Bound_Type_Symbol (Do_Defining_Identifier (First_Member))),
+              Upper_Bound => Store_Symbol_Bound
+                (Bound_Type_Symbol (Do_Defining_Identifier (Last_Member)))),
          I_Body => Enum_Body);
    end Do_Enumeration_Definition;
 
@@ -3864,7 +3874,7 @@ package body Tree_Walk is
               when N_Op_Ne => Make_Op_Notequal'Access,
               when N_Op_Ge => Make_Op_Geq'Access,
               when N_Op_Gt => Make_Op_Gt'Access,
-              when N_Op_Le => Make_Op_Leq'Access,
+               when N_Op_Le => Make_Op_Leq'Access,
               when N_Op_Lt => Make_Op_Lt'Access,
               when others => Make_Unsupported_Op'Access);
 
@@ -4313,7 +4323,7 @@ package body Tree_Walk is
          Set_Bound_Value (Upper_Bound, Upper_Bound_Value, Ok);
          if not Ok then
             return Report_Unhandled_Node_Type
-              (Lower_Bound,
+              (Upper_Bound,
                "Do_Range_Constraint",
                "unsupported upper range kind");
          end if;
@@ -4343,7 +4353,8 @@ package body Tree_Walk is
              else Get_Width (Resolved_Underlying));
       begin
          return
-           (if Kind (Resolved_Underlying) in I_Ada_Mod_Type | I_Unsignedbv_Type
+           (if Kind (Resolved_Underlying) in
+                I_Ada_Mod_Type | I_Unsignedbv_Type --  | I_C_Enum_Type
             then Make_Bounded_Unsignedbv_Type
               (Width => Width,
                Lower_Bound => Lower_Bound_Value,
@@ -4559,8 +4570,6 @@ package body Tree_Walk is
       Component_Name : constant String := Unique_Name (Orig_Component);
       Source_Location : constant Irep := Get_Source_Location (N);
    begin
-      Put_Line ("Original component name: " & Component_Name);
-      Put_Line ("Given component name: " & Unique_Name (Component));
       if Do_Discriminant_Check (N) then
          --  ??? Can this even happen
          if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
@@ -4656,10 +4665,6 @@ package body Tree_Walk is
                Source_Location => Source_Location);
          end;
       else
-         Put_Line ("Make_Member_Expr");
-         Put_Line ("  Itype    => " & Irep_Kind'Image (Kind (Component_Type)));
-         Put_Line ("  Compound => " & Irep_Kind'Image (Kind (Root)));
-         Put_Line ("  Component_Name => " & Component_Name);
          return Make_Member_Expr
            (I_Type => Component_Type,
             Compound => Root,
@@ -4901,7 +4906,6 @@ package body Tree_Walk is
       Register_Subprogram_Specification (Specification (N));
 
       if ASVAT_Modelling.Is_Model (ASVAT_Model) then
-         Put_Line ("It is an ASVAT model");
          ASVAT_Modelling.Make_Model (E, ASVAT_Model);
 
       elsif not Has_Completion (E) then
