@@ -42,13 +42,74 @@
 --  Using the ASVAT annotation:
 --  type My_Int is range 1 .. 100;
 --
---  I : Integer
+--  X : Integer;  --  A normal, visible variable.
+--
+--  I : Integer   --  Represents a variable that is not visible.
 --  with Annotate => (ASVAT, Represents, "Hidden_Vars.I");
---  J : My_Int
+--
+--  J : My_Int    --  Represents a non-visible variable whose type is also
+--                -- not visible.
 --  with Annotate => (ASVAT, Represents,
---                           "Hidden_Vars.J",     --  The non-visible variable
---                           "Hidden_Type.My_Int  --  Its non-visible type
+--                           "Hidden_Vars.J",      --  The non-visible variable
+--                           "Hidden_Type.My_Int"  --  Its non-visible type
 --                   );
+--
+--  The name of a modelling subprogram can be any legal Ada subprogram name
+--  except operator names.
+--
+--  procedure Update
+--  with Global   => (In_Out => (I, J, X)),
+--       Annotate => (ASVAT, Nondet_In_Type),
+--       Import   => True;
+--
+--  procedure Read
+--  with Global   => (Out => I),
+--       Annotate => (ASVAT, Nondet),
+--       Import   => True;
+--
+--  function Nondet_Integer return Integer
+--  with Global   => null,
+--       Annotate => (ASVAT, Nondet);
+--
+--  Using pragma Import - the convention Ada indicates it is an ASVAT model:
+--  type My_Int is range 1 .. 100;
+--
+--  X : Integer;  --  A normal, visible variable
+--
+--  I : Integer;  --  Represents a variable that is not visible.
+--  pragma Import (Ada, I, "Represents", "Hidden_Vars.I");
+--
+--  J : My_Int;   --  Represents a non-visible variable whose type is also
+--                -- not visible.
+--  pragma Import (Convention    => Ada,
+--                 Entity        => J,
+--                 External_Name => "Represents",
+--                 Link_Name     => "Hidden_Vars.J:Hidden_Type.My_Int");
+--  --  Notice the hidden type follows the colon. No spaces allowed.
+--  with Annotate => (ASVAT, Represents,
+--                           "Hidden_Vars.J",      --  The non-visible variable
+--                           "Hidden_Type.My_Int"  --  Its non-visible type
+--                   );
+--
+--  The name of a modelling subprogram can be any legal Ada subprogram name
+--  except operator names.
+--
+--  procedure Update
+--  pragma Global ((In_Out => (I, J, X));
+--  pragma Import (Ada, Update, "Nondet_In_Type");
+--
+--  procedure Read
+--  pragma Global (Out => I);
+--  pragma Import (Ada, Read, "Nondet");
+--
+--  function Nondet_Integer return Integer
+--  pragma Global (null);
+--  pragma Import (Ada, Non_Det_Integer, "Nondet");
+--
+--  Current limitations:
+--  Can only mark as "In_Type" discrete variables and non-discriminated
+--  records. Real variables and arrays are not handled.
+--
 
 with Types;                   use Types;
 with Atree;                   use Atree;

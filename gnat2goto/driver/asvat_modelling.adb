@@ -20,10 +20,12 @@ package body ASVAT_Modelling is
 
    function Do_Nondet_Var (Var_Name, Var_Type : String;
                            E : Entity_Id) return Irep;
+   --  Nondets the given variable.
 
    function Do_Var_In_Type (Var_Name, Var_Type  : String;
                             Var_Irep, Type_Irep : Irep;
                             E : Entity_Id) return Irep;
+   --  Marks as in type the given discrete variable.
 
    function Do_Parameterless_Function_Call
      (Fun_Name : String; E : Entity_Id) return Irep;
@@ -42,6 +44,10 @@ package body ASVAT_Modelling is
                                   Root_Type : Node_Id;
                                   E : Entity_Id;
                                   Loc : Irep);
+   --  A provisional subprogram which recurses any non-discriminated record
+   --  and marks its discrete components in type.
+   --  The procedure will be replaced with a more general one which
+   --  handles discriminated records and arrays.
 
    procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
