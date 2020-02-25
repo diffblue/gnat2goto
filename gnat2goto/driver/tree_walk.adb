@@ -826,7 +826,7 @@ package body Tree_Walk is
          end if;
          Actual_Irep := Wrap_Argument (
           Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
-                          Formal_Type, Global_Symbol_Table), Is_Out);
+                                 Formal_Type, Global_Symbol_Table), Is_Out);
          Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
@@ -4224,6 +4224,8 @@ package body Tree_Walk is
             Function_Type : constant Irep := Global_Symbol_Table
               (Sym_Id).SymType;
          begin
+            Put_Line ("Calling " & To_String (Callee));
+
             return Make_Code_Function_Call
               (I_Function => Make_Symbol_Expr
                  (Identifier => To_String (Callee),
@@ -4840,6 +4842,7 @@ package body Tree_Walk is
 
       Proc_Symbol : Symbol;
    begin
+      Put_Line ("declaring proc body " & Unique_Name (Defining_Entity (N)));
       --  Corresponding_Spec is optional for subprograms
       --  but it should always be present for generic subprograms,
       --  so this check should be sufficient
@@ -5208,7 +5211,8 @@ package body Tree_Walk is
                   --  compiled and it has no separate declaration.
                   --  Obtain the subprogram specification from the body
                   --  and insert it into the symbol table.
-                  Register_Subprogram_Specification (Specification (N));
+                  --  Register_Subprogram_Specification (Specification (N));
+                  Do_Subprogram_Body (N);
                else
                   null;
                end if;

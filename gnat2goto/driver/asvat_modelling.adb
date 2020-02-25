@@ -14,6 +14,8 @@ with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
 with Follow;                  use Follow;
 with Ada.Text_IO;             use Ada.Text_IO;
+with Treepr;                  use Treepr;
+--  with System;
 package body ASVAT_Modelling is
 
    Print_Message : constant Boolean := True;
@@ -37,6 +39,8 @@ package body ASVAT_Modelling is
 
    function Get_Actual_Type (Obj : Entity_Id;
                              Replace_Object : Boolean) return String;
+
+   procedure Make_Memcpy_Procedure (E : Entity_Id);
 
    procedure Make_Selector_Names (Root : String;
                                   Root_Irep : Irep;
@@ -69,7 +73,7 @@ package body ASVAT_Modelling is
       pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
                      "Do_Nondet_Var: Variable name is not in symbol table");
       Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
-      Fun_Name : constant String := "Nondet___" & Var_Type;
+      Fun_Name : constant String := "nondet___" & Var_Type;
       Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
    begin
       --  First a nondet function is required to assign to the variable.
@@ -175,8 +179,8 @@ package body ASVAT_Modelling is
 
             Print_Modelling_Message
               ("Assume " &
-                 Var_Name & " <= " & Var_Type & "'First and " &
-                 Var_Name & " >= " & Var_Type & "'Last",
+                 Var_Name & " >= " & Var_Type & "'First and " &
+                 Var_Name & " <= " & Var_Type & "'Last",
                Sloc (E));
             return
               Make_Assume_Call (Assumption     => Var_In_Type_Cond,
@@ -535,6 +539,95 @@ package body ASVAT_Modelling is
                  Import_Model);
    end Get_Model_Sort;
 
+--  procedure Mem_Copy (E : Entity_Id; S, D : System.Address; Size : Natural);
+--  procedure Mem_Copy (E : Entity_Id; S, D : System.Address; Size : Natural)
+--     is
+--        S_Irep : constant Irep :=
+--          Make_Symbol_Expr (Source_Location => Get_Source_Location (E),
+--                            I_Type          => Make_Pointer_Type
+--                              (I_Subtype => Ireps.Empty,
+--                               Width     => 64),
+--                            Range_Check     => False,
+--                            Identifier      =>
+--                              Unique_Name (Defining_Identifier (S)));
+--        D_Irep : constant Irep :=
+--          Make_Symbol_Expr (Source_Location => Get_Source_Location (E),
+--                            I_Type          => Make_Pointer_Type
+--                              (I_Subtype => Ireps.Empty,
+--                               Width     => 64),
+--                            Range_Check     => False,
+--                            Identifier      =>
+--                              Unique_Name (Defining_Identifier (D)));
+--        Size_Irep : constant Irep :=
+--          Make_Symbol_Expr (Source_Location => Get_Source_Location (E),
+--                         I_Type          => Do_Type_Reference (Etype (Size)),
+--                            Range_Check     => False,
+--                            Identifier      =>
+--                              Unique_Name (Defining_Identifier (Size)));
+--   begin
+--        Print_Irep (S_Irep);
+--        Print_Irep (D);
+--        Print_Irep (Size);
+--      null;
+--   end Mem_Copy;
+
+   procedure Make_Memcpy_Procedure (E : Entity_Id) is
+      Param_Iter : Node_Id :=
+        First (Parameter_Specifications (Declaration_Node (E)));
+      Model_Inputs  : Elist_Id := No_Elist;
+      Model_Outputs : Elist_Id := No_Elist;
+      Global_Seen   : Boolean;
+      Iter          : Elmt_Id;
+   begin
+      while Present (Param_Iter) loop
+         Put_Line (Unique_Name (Defining_Identifier (Param_Iter)));
+         Next (Param_Iter);
+      end loop;
+      Collect_Subprogram_Inputs_Outputs
+        (Subp_Id      => E,
+         Synthesize   => False,
+         Subp_Inputs  => Model_Inputs,
+         Subp_Outputs => Model_Outputs,
+         Global_Seen  => Global_Seen);
+      Iter := (if Model_Inputs /= No_Elist then
+                  First_Elmt (Model_Inputs)
+               else
+                  No_Elmt);
+      while Present (Iter) loop
+         if Nkind (Node (Iter)) in
+           N_Identifier | N_Expanded_Name | N_Defining_Identifier
+         then
+            declare
+               Curr_Entity : constant Node_Id :=
+                 (if Nkind (Node (Iter)) = N_Defining_Identifier then
+                     Node (Iter)
+                  else
+                     Entity (Node (Iter)));
+
+               Unique_Object_Name : constant String :=
+                 Unique_Name (Curr_Entity);
+
+               Unique_Type_Name : constant String :=
+                 Unique_Name (Etype (Curr_Entity));
+
+               Object_Id : constant Symbol_Id := Intern (Unique_Object_Name);
+               Type_Id   : constant Symbol_Id := Intern (Unique_Type_Name);
+               Obj_Sym   : constant Symbol := Global_Symbol_Table (Object_Id);
+               Type_Sym  : constant Symbol := Global_Symbol_Table (Type_Id);
+            begin
+               Put_Line (Unintern (Obj_Sym.Name));
+               Print_Irep (Obj_Sym.SymType);
+               Print_Irep (Obj_Sym.Value);
+               Put_Line (Unintern (Type_Sym.Name));
+               Print_Irep (Type_Sym.SymType);
+               Print_Irep (Type_Sym.Value);
+            end;
+         end if;
+         Iter := Next_Elmt (Iter);
+      end loop;
+
+   end Make_Memcpy_Procedure;
+
    ----------------
    -- Make_Model --
    ----------------
@@ -553,6 +646,13 @@ package body ASVAT_Modelling is
       Global_Seen   : Boolean;
       Iter          : Elmt_Id;
    begin
+      if Model = Memcpy then
+         Print_Node_Briefly (E);
+         Print_Node_Briefly (Declaration_Node (E));
+         Make_Memcpy_Procedure (E);
+         return;
+      end if;
+
       Collect_Subprogram_Inputs_Outputs
         (Subp_Id      => E,
          Synthesize   => False,
@@ -576,7 +676,10 @@ package body ASVAT_Modelling is
 
       --  Process all of the potential output parameters and globals.
       --  They will be set to nondet.
-      Iter := First_Elmt (Model_Outputs);
+      Iter := (if Model_Outputs /= No_Elist then
+                  First_Elmt (Model_Outputs)
+               else
+                  No_Elmt);
       while Present (Iter) loop
          if Nkind (Node (Iter)) in
            N_Identifier | N_Expanded_Name | N_Defining_Identifier
@@ -737,11 +840,10 @@ package body ASVAT_Modelling is
       if Ekind (E) = E_Function then
          declare
             --  Create a variable to contain the nondet result.
-            Result_Var    : constant String :=  "result__" & Unique_Name (E);
+            Result_Var    : constant String :=  "result___" & Unique_Name (E);
             Result_Var_Id : constant Symbol_Id := Intern (Result_Var);
 
-            Result_Type     : constant String :=
-              Unique_Name (Defining_Identifier (Result_Definition (E)));
+            Result_Type     : constant String := Unique_Name (Etype (E));
             Result_Type_Id  : constant Symbol_Id := Intern (Result_Type);
             pragma Assert (Global_Symbol_Table.Contains (Result_Type_Id),
                            "Make_Model: Symbol table does not contain" &
@@ -762,9 +864,9 @@ package body ASVAT_Modelling is
               (Return_Value    => Result_Var_Irep,
                Source_Location => Source_Location);
 
-            --  Create a new block for the Result_Var declaration
-            Return_Block : constant Irep := Make_Code_Block (Source_Location);
          begin
+            Put_Line ("The unique namme of the result type is " &
+                        Unique_Name (Etype (E)));
             --  Insert the Result_Var into the symbol table.
             --  It should not already exist.
             pragma Assert (not Global_Symbol_Table.Contains (Result_Var_Id),
@@ -775,30 +877,29 @@ package body ASVAT_Modelling is
                Object_Init_Value => Ireps.Empty,
                A_Symbol_Table    => Global_Symbol_Table);
 
-            --  Add the declaration of the result varible to the return block.
-            Append_Op (Return_Block, Var_Decl);
+            --  Add a new block to the function for the Result_Var declaration
+            Append_Op (Subprog_Body, Make_Code_Block (Source_Location));
+            --  Add the declaration of the result varible to the new block
+            Append_Op (Subprog_Body, Var_Decl);
 
             --  Set the result variable to nondet.
-            Append_Op (Return_Block,
+            Append_Op (Subprog_Body,
                        Do_Nondet_Var
                          (Var_Name => Result_Var,
                           Var_Type => Result_Type,
                           E        => E));
-            --  if the ASVAT model is "Nondet_In_Type" an in type assumption.
+            --  if ASVAT model is "Nondet_In_Type", do an in type assumption.
             if Model = Nondet_In_Type then
                Make_Selector_Names
                  (Result_Var,
                   Result_Var_Irep,
-                  Return_Block,
-                  Etype (Result_Definition (E)),
+                  Subprog_Body,
+                  Etype (E),
                   E,
                   Get_Source_Location (E));
             end if;
-            --  The funtion needs a return statement.
-            Append_Op (Return_Block, Return_Statement);
-
-            --  Add the return block to the function body.
-            Append_Op (Subprog_Body, Return_Block);
+            --  The function needs a return statement.
+            Append_Op (Subprog_Body, Return_Statement);
          end;
       end if;
 
@@ -840,7 +941,7 @@ package body ASVAT_Modelling is
                Inlined     => False,
                Knr         => False);
 
-            Obj_Name  : constant String := "Result___" & Fun_Name;
+            Obj_Name  : constant String := "result___" & Fun_Name;
             Obj_Id    : constant Symbol_Id := Intern (Obj_Name);
             Obj_Sym   : constant Irep := Make_Symbol_Expr
               (Source_Location => Source_Loc,
@@ -892,8 +993,6 @@ package body ASVAT_Modelling is
 
             Fun_Symbol := Global_Symbol_Table (Fun_Symbol_Id);
             Fun_Symbol.Value := Fun_Body;
-            --  Mark that this is a nondet function.
-            Fun_Symbol.IsAuxiliary := True;
             Global_Symbol_Table.Replace (Fun_Symbol_Id, Fun_Symbol);
          end;
       else

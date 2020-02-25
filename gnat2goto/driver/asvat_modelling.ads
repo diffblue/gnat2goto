@@ -118,7 +118,8 @@ with Sem_Util;                use Sem_Util;
 with Snames;                  use Snames;
 with Ireps;                   use Ireps;
 package ASVAT_Modelling is
-   type Model_Sorts is (Not_A_Model, Nondet, Nondet_In_Type, Represents);
+   type Model_Sorts is
+     (Not_A_Model, Nondet, Nondet_In_Type, Represents, Memcpy);
    subtype Valid_Model is Model_Sorts range Nondet .. Model_Sorts'Last;
 
    function Get_Annotation_Name (N : Node_Id) return String
