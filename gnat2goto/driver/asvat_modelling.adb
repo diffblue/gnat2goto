@@ -572,63 +572,85 @@ package body ASVAT_Modelling is
 --   end Mem_Copy;
 
    procedure Make_Memcpy_Procedure (E : Entity_Id) is
-      Param_Iter : Node_Id :=
+      Source_Location : constant Irep := Get_Source_Location (E);
+      First_Param : constant Node_Id :=
         First (Parameter_Specifications (Declaration_Node (E)));
-      Model_Inputs  : Elist_Id := No_Elist;
-      Model_Outputs : Elist_Id := No_Elist;
-      Global_Seen   : Boolean;
-      Iter          : Elmt_Id;
+      Second_Param : constant Node_Id :=
+        (if Present (First_Param) then Next (First_Param) else Types.Empty);
+      Third_Param : constant Node_Id :=
+        (if Present (Second_Param) then Next (Second_Param) else Types.Empty);
+      Only_3_Param : constant Boolean  :=
+        Present (Third_Param) and not Present (Next (Third_Param));
+
+      Destination_Loc_Name : constant String :=
+        (if Present (First_Param) then
+              Get_Name_String (Chars (Defining_Identifier (First_Param)))
+         else
+            "");
+      Destination : constant String :=
+        (if Present (First_Param) then
+              Unique_Name (Defining_Identifier (First_Param))
+         else
+            "");
+      Source_Loc_Name : constant String :=
+        (if Present (Second_Param) then
+              Get_Name_String (Chars (Defining_Identifier (Second_Param)))
+         else
+            "");
+      Source : constant String :=
+        (if Present (Second_Param) then
+              Unique_Name (Defining_Identifier (Second_Param))
+         else
+            "");
+
+      Count_Loc_Name : constant String :=
+        (if Present (Third_Param) then
+              Get_Name_String (Chars (Defining_Identifier (Third_Param)))
+         else
+            "");
+      Count : constant String :=
+        (if Present (Third_Param) then
+              Unique_Name (Defining_Identifier (Third_Param))
+         else
+            "");
    begin
-      while Present (Param_Iter) loop
-         Put_Line (Unique_Name (Defining_Identifier (Param_Iter)));
-         Next (Param_Iter);
-      end loop;
-      Collect_Subprogram_Inputs_Outputs
-        (Subp_Id      => E,
-         Synthesize   => False,
-         Subp_Inputs  => Model_Inputs,
-         Subp_Outputs => Model_Outputs,
-         Global_Seen  => Global_Seen);
-      Iter := (if Model_Inputs /= No_Elist then
-                  First_Elmt (Model_Inputs)
-               else
-                  No_Elmt);
-      while Present (Iter) loop
-         if Nkind (Node (Iter)) in
-           N_Identifier | N_Expanded_Name | N_Defining_Identifier
-         then
-            declare
-               Curr_Entity : constant Node_Id :=
-                 (if Nkind (Node (Iter)) = N_Defining_Identifier then
-                     Node (Iter)
-                  else
-                     Entity (Node (Iter)));
+      if Only_3_Param and then
+        Destination_Loc_Name = "destination" and then
+        Source_Loc_Name = "source" and then
+        Count_Loc_Name = "no_of_bytes"
+      then
+         declare
+            Dest_Sym_Id : constant Symbol_Id := Intern (Destination);
+            Src_Sym_Id  : constant Symbol_Id := Intern (Source);
+            Cnt_Sym_Id  : constant Symbol_Id := Intern (Count);
 
-               Unique_Object_Name : constant String :=
-                 Unique_Name (Curr_Entity);
+            Dest_Sym : constant Symbol :=
+              Global_Symbol_Table (Dest_Sym_Id);
+            Src_Sym  : constant Symbol :=
+              Global_Symbol_Table (Src_Sym_Id);
+            Cnt_Sym  : constant Symbol :=
+              Global_Symbol_Table (Cnt_Sym_Id);
 
-               Unique_Type_Name : constant String :=
-                 Unique_Name (Etype (Curr_Entity));
+            Subprog_Body : constant Irep := Make_Code_Block (Source_Location);
+            Memcpy_Args : constant Irep := Make_Argument_List;
 
-               Object_Id : constant Symbol_Id := Intern (Unique_Object_Name);
-               Type_Id   : constant Symbol_Id := Intern (Unique_Type_Name);
-               Obj_Sym   : constant Symbol := Global_Symbol_Table (Object_Id);
-               Type_Sym  : constant Symbol := Global_Symbol_Table (Type_Id);
-            begin
-               Put_Line (Unintern (Obj_Sym.Name));
-               Print_Irep (Obj_Sym.SymType);
-               Print_Irep (Obj_Sym.Value);
-               Put_Line (Unintern (Type_Sym.Name));
-               Print_Irep (Type_Sym.SymType);
-               Print_Irep (Type_Sym.Value);
-            end;
-         end if;
-         Iter := Next_Elmt (Iter);
-      end loop;
 
+         begin
+            Put_Line (Unintern (Dest_Sym.Name));
+            Print_Irep (Dest_Sym.SymType);
+            Put_Line (Unintern (Src_Sym.Name));
+            Print_Irep (Src_Sym.SymType);
+            Put_Line (Unintern (Cnt_Sym.Name));
+            Print_Irep (Cnt_Sym.SymType);
+         end;
+      else
+         Report_Unhandled_Node_Empty (E,
+                                      "Make_Memcpy_Procedure",
+                                      "Invalid parameters");
+      end if;
    end Make_Memcpy_Procedure;
 
-   ----------------
+      ----------------
    -- Make_Model --
    ----------------
 
