@@ -13,6 +13,8 @@ with Symbol_Table_Info;       use Symbol_Table_Info;
 with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
 with Follow;                  use Follow;
+with Binary_To_Hex;           use Binary_To_Hex;
+with Uintp;                   use Uintp;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Treepr;                  use Treepr;
 --  with System;
@@ -617,9 +619,13 @@ package body ASVAT_Modelling is
       if Only_3_Param and then
         Destination_Loc_Name = "destination" and then
         Source_Loc_Name = "source" and then
-        Count_Loc_Name = "no_of_bytes"
+        Count_Loc_Name = "no_of_bits"
       then
          declare
+            Subprog_Id  : constant Symbol_Id := Intern (Unique_Name (E));
+            Subprog_Sym : constant Symbol    :=
+                Global_Symbol_Table (Subprog_Id);
+
             Dest_Sym_Id : constant Symbol_Id := Intern (Destination);
             Src_Sym_Id  : constant Symbol_Id := Intern (Source);
             Cnt_Sym_Id  : constant Symbol_Id := Intern (Count);
@@ -631,9 +637,64 @@ package body ASVAT_Modelling is
             Cnt_Sym  : constant Symbol :=
               Global_Symbol_Table (Cnt_Sym_Id);
 
-            Subprog_Body : constant Irep := Make_Code_Block (Source_Location);
-            Memcpy_Args : constant Irep := Make_Argument_List;
+            Dest_Irep : constant Irep :=
+              Typecast_If_Necessary
+                (Symbol_Expr (Sym => Dest_Sym),
+                 New_Type => Make_Pointer_Type (Make_Void_Type),
+                 A_Symbol_Table => Global_Symbol_Table);
 
+            Src_Irep : constant Irep :=
+              Typecast_If_Necessary
+                (Symbol_Expr (Sym => Src_Sym),
+                 New_Type => Make_Pointer_Type (Make_Void_Type),
+                 A_Symbol_Table => Global_Symbol_Table);
+
+            Cnt_Irep : constant Irep :=
+--              Typecast_If_Necessary
+                Symbol_Expr (Sym => Cnt_Sym);
+--                 New_Type => Make_Signedbv_Type (64),
+--                 A_Symbol_Table => Global_Symbol_Table);
+
+            Bits_To_Bytes : constant Irep :=
+              Make_Constant_Expr (Source_Location => Source_Location,
+                                  I_Type          => CProver_Size_T,
+                                  Range_Check     => False,
+                                  Value           =>
+                                  --  bits to bytes (div by 8)
+                                    Convert_Uint_To_Hex
+                                      (Value     => UI_From_Int (8),
+                                       Bit_Width => 32));
+
+            Byte_Cnt_Irep : constant Irep :=
+              Make_Op_Div (Rhs               => Bits_To_Bytes,
+                           Lhs               => Cnt_Irep,
+                           Div_By_Zero_Check => False,
+                           Source_Location   => Source_Location,
+                           Overflow_Check    => False,
+                           I_Type            => CProver_Size_T,
+                           Range_Check       => False);
+
+            Memcpy_Args  : constant Irep := Make_Argument_List;
+            Memcpy_Name  : constant String := "memcpy";
+            Memcpy_Sym   : constant Symbol :=
+              Global_Symbol_Table (Intern (Memcpy_Name));
+            Memcpy_Func  : constant Irep :=
+              Symbol_Expr (Sym => Memcpy_Sym);
+
+            Memcpy_Proc_Call : constant Irep :=
+             Make_Code_Function_Call
+              (Arguments       => Memcpy_Args,
+               I_Function      => Memcpy_Func,
+               Lhs             => CProver_Nil,
+               Source_Location => Source_Location,
+               I_Type          => CProver_Void_T,
+               Range_Check     => False);
+
+            Subprog_Body : constant Irep :=
+              Make_Code_Block (Source_Location => Source_Location,
+                               I_Type          => CProver_Nil_T);
+
+            Updated_Subprog_Sym : Symbol;
 
          begin
             Put_Line (Unintern (Dest_Sym.Name));
@@ -642,6 +703,36 @@ package body ASVAT_Modelling is
             Print_Irep (Src_Sym.SymType);
             Put_Line (Unintern (Cnt_Sym.Name));
             Print_Irep (Cnt_Sym.SymType);
+
+            Print_Irep (Memcpy_Func);
+
+            Print_Irep (Dest_Irep);
+            Print_Irep (Src_Irep);
+            Print_Irep (Cnt_Irep);
+            Print_Irep (Bits_To_Bytes);
+            Print_Irep (Byte_Cnt_Irep);
+
+            Append_Argument (I     => Memcpy_Args,
+                             Value => Dest_Irep);
+            Append_Argument (I     => Memcpy_Args,
+                             Value => Src_Irep);
+            Append_Argument (I     => Memcpy_Args,
+                             Value => Byte_Cnt_Irep);
+
+            Print_Irep (Memcpy_Args);
+
+            Print_Irep (Memcpy_Proc_Call);
+
+            Append_Op (Subprog_Body, Memcpy_Proc_Call);
+
+            Print_Irep (Subprog_Body);
+
+            Put_Line (Unintern (Subprog_Id));
+            Put_Line (Unintern (Subprog_Sym.Name));
+
+            Updated_Subprog_Sym := Subprog_Sym;
+            Updated_Subprog_Sym.Value := Subprog_Body;
+            Global_Symbol_Table.Replace (Subprog_Id, Updated_Subprog_Sym);
          end;
       else
          Report_Unhandled_Node_Empty (E,
