@@ -7,6 +7,7 @@ with Stringt;                 use Stringt;
 with Sinput;                  use Sinput;
 with Namet;                   use Namet;
 with Tree_Walk;               use Tree_Walk;
+with Arrays;                  use Arrays;
 with Einfo;                   use Einfo;
 with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
@@ -44,7 +45,7 @@ package body ASVAT_Modelling is
 
    procedure Make_Memcpy_Procedure (E : Entity_Id);
 
-   procedure Make_Selector_Names (Root : String;
+   procedure Make_Selector_Names (Unique_Object_Name : String;
                                   Root_Irep : Irep;
                                   Block : Irep;
                                   Root_Type : Node_Id;
@@ -1170,45 +1171,135 @@ package body ASVAT_Modelling is
          end if;
       elsif Is_Array_Type (Root_Type) then
          --  For the moment only tackle 1 dimensional arrays
+         Put_Line ("In_Type an array");
+         Print_Node_Briefly (Root_Type);
+         Print_Node_Briefly (First_Index (Root_Type));
+         Print_Node_Briefly (Etype (First_Index (Root_Type)));
+         Print_Node_Briefly (Next_Index (First_Index (Root_Type)));
+
          declare
-            Dims : Node_Id := First
-              (if Nkind (Root_Type) = N_Unconstrained_Array_Definition then
-                    Subtype_Marks (Root_Type)
-               else
-                  Discrete_Subtype_Definitions (Root_Type));
+            Dims : constant Node_Id := First_Index (Root_Type);
          begin
-            if Present (Dims) and not Present (Next (Dims)) then
+            Put_Line ("Have dims");
+            Print_Irep (Root_Irep);
+
+            if Present (Dims) and not Present (Next_Index (Dims)) then
                --  The array has only one dimension
+               Put_Line ("The array only has one dimension");
+               Print_Node_Briefly (Dims);
+               Print_Node_Briefly (Component_Type (Root_Type));
+               Put_Line (Unique_Name (Component_Type (Root_Type)));
                declare
+                  The_Array_Sym : constant Symbol :=
+                    Global_Symbol_Table (Intern (Unique_Object_Name));
                   The_Array : constant Irep :=
-                    Global_Symbol_Table (Intern (Unique_Object_Name)).Symtype;
-                  Component_Type : constant Irep :=
+                    Make_Symbol_Expr
+                      (Source_Location => Loc,
+                       Identifier => Unique_Object_Name,
+                       I_Type => Do_Type_Reference (Root_Type));
+
+                  Component_Sym : constant Symbol :=
                     Global_Symbol_Table
-                      (Intern (Unique_Name
-                       (Etype (Subtype_Indication
-                          (Component_Definition (Root_Type)));
+                      (Intern
+                         (Unique_Name (Component_Type (Root_Type))));
+                  Component_Sort : constant Irep := Component_Sym.SymType;
+
                   Int_Type : constant Irep :=
-                    Global_Symbol_Table (Intern ("standard__integer")).Symtype;
+                    Global_Symbol_Table (Intern ("standard__integer")).SymType;
 
-                  Index : constant_Irep :=
-                    Fresh_Var_Symbol_Expr (Int_Type, "index");
+                  Indexer : constant Irep :=
+                    Fresh_Var_Symbol_Expr (Int_Type, "indexer");
 
-                  One : constant Irep :=
-                    Build_Index_Constant (Value      => 1,
-                                          Source_Loc => Loc);
+                  First_Idx : constant Irep :=
+                    Get_First_Index (The_Array);
 
-                  Arr_Length : constant Irep :=
-                    Build_Array_Size (Get
+                  Last_Idx : constant Irep :=
+                    Get_Last_Index (The_Array);
 
-                  --  goto arrays have a lower bound of 0
-                  Upper_Bound : constant Irep :=
-                    Make_Op_Sub (Rhs => One,
-                                 Lhs => Build_Array_Size (
+                  --  Goto arrays are normalised to a zero based index.
+                  --  The lower bound is 0 and the upper bound is
+                  --  Last_Idx - First_Idx.
 
+                  Zero_Based_Last : constant Irep :=
+                    Make_Op_Sub (Rhs             => First_Idx,
+                                 Lhs             => Last_Idx,
+                                 Source_Location => Loc,
+                                 Overflow_Check  => False,
+                                 I_Type          =>
+                                   Do_Type_Reference (Root_Type));
+
+                  Loop_Init : constant Irep :=
+                    Make_Code_Assign
+                      (Rhs             =>
+                         Build_Index_Constant (0,
+                           Get_Source_Location (E)),
+                       Lhs             => Indexer,
+                       Source_Location => Loc,
+                       I_Type          =>
+                          Do_Type_Reference (Root_Type),
+                       Range_Check     => False);
+
+                  Inc_1 : constant Irep :=
+                    Make_Op_Add
+                      (Rhs             =>
+                         Build_Index_Constant (1,
+                           Get_Source_Location (E)),
+                       Lhs             => Indexer,
+                       Source_Location => Loc,
+                       Overflow_Check  => False,
+                       I_Type          => Get_Type (Indexer),
+                       Range_Check     => False);
+
+                  Loop_Cond : constant Irep :=
+                    Make_Op_Leq
+                      (Rhs             => Zero_Based_Last,
+                       Lhs             => Indexer,
+                       Source_Location => Loc,
+                       Overflow_Check  => False,
+                       I_Type          => Get_Type (Indexer),
+                       Range_Check     => False);
+
+                  Indexed_Component : constant Irep :=
+                    Offset_Array_Data (Base         => The_Array,
+                                       Offset       => Indexer);
+--                 Loop_Body : constant Irep := Make_Code_Block (Loc);
+
+               begin
+                  if Kind (The_Array) in Class_Expr then
+                     Put_Line ("The array in expr");
+                     Print_Irep (Get_Type (The_Array));
+                  else
+                     Put_Line ("The array not in expr");
+                  end if;
+
+                  Put_Line ("Array obj:");
+                  Put_Line (Unintern (The_Array_Sym.Name));
+                  Print_Irep (The_Array_Sym.Value);
+                  Print_Irep (The_Array);
+                  Put_Line (Unintern (Component_Sym.Name));
+                  Print_Irep (Component_Sort);
+                  Print_Irep (Int_Type);
+                  Print_Irep (Indexer);
+                  Print_Irep (First_Idx);
+                  Print_Irep (Last_Idx);
+                  Print_Irep (Zero_Based_Last);
+                  Print_Irep (Loop_Init);
+                  Print_Irep (Inc_1);
+                  Print_Irep (Loop_Cond);
+                  Print_Irep (Indexed_Component);
+                  null;
+               end;
+            else
+               Report_Unhandled_Node_Empty (E,
+                                            "Make_Selector_Names",
+                                            "Only one dimensional arrays");
+            end if;
+         end;
+      else
          Report_Unhandled_Node_Empty
            (E,
             "Make_Selector_Names",
-           "Only scalar and record subtypes are currently supported");
+            "Unknown object type");
       end if;
    end Make_Selector_Names;
 
