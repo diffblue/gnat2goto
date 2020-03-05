@@ -741,7 +741,7 @@ package body ASVAT_Modelling is
       end if;
    end Make_Memcpy_Procedure;
 
-      ----------------
+   ----------------
    -- Make_Model --
    ----------------
 
@@ -1117,7 +1117,7 @@ package body ASVAT_Modelling is
    -- Make_Selector_Names --
    -------------------------
 
-   procedure Make_Selector_Names (Root : String;
+   procedure Make_Selector_Names (Unique_Object_Name : String;
                                   Root_Irep : Irep;
                                   Block : Irep;
                                   Root_Type : Node_Id;
@@ -1127,13 +1127,13 @@ package body ASVAT_Modelling is
    begin
       if Is_Scalar_Type (Root_Type) then
          Append_Op (Block,
-                    Do_Var_In_Type (Var_Name  => Root,
+                    Do_Var_In_Type (Var_Name  => Unique_Object_Name,
                                     Var_Type  => Unique_Name (Root_Type),
                                     Var_Irep  => Root_Irep,
                                     Type_Irep => Type_Irep,
                                     E         => E));
       elsif Is_Record_Type (Root_Type) then
-         if not Has_Discriminants (E) then
+         if not Has_Discriminants (Root_Type) then
             declare
                Comp : Node_Id :=
                  First_Component (Root_Type);
@@ -1141,7 +1141,8 @@ package body ASVAT_Modelling is
                while Present (Comp) loop
                   declare
                      Comp_Name : constant String :=
-                       Root & "__" & Get_Name_String (Chars (Comp));
+                       Unique_Object_Name & "__" &
+                       Get_Name_String (Chars (Comp));
                      Comp_Unique : constant String := Unique_Name (Comp);
                      Comp_Type : constant Node_Id :=
                        Etype (Comp);
@@ -1167,7 +1168,43 @@ package body ASVAT_Modelling is
                "Make_Selector_Names",
                "Discrimiminated records are currently unsupported");
          end if;
-      else
+      elsif Is_Array_Type (Root_Type) then
+         --  For the moment only tackle 1 dimensional arrays
+         declare
+            Dims : Node_Id := First
+              (if Nkind (Root_Type) = N_Unconstrained_Array_Definition then
+                    Subtype_Marks (Root_Type)
+               else
+                  Discrete_Subtype_Definitions (Root_Type));
+         begin
+            if Present (Dims) and not Present (Next (Dims)) then
+               --  The array has only one dimension
+               declare
+                  The_Array : constant Irep :=
+                    Global_Symbol_Table (Intern (Unique_Object_Name)).Symtype;
+                  Component_Type : constant Irep :=
+                    Global_Symbol_Table
+                      (Intern (Unique_Name
+                       (Etype (Subtype_Indication
+                          (Component_Definition (Root_Type)));
+                  Int_Type : constant Irep :=
+                    Global_Symbol_Table (Intern ("standard__integer")).Symtype;
+
+                  Index : constant_Irep :=
+                    Fresh_Var_Symbol_Expr (Int_Type, "index");
+
+                  One : constant Irep :=
+                    Build_Index_Constant (Value      => 1,
+                                          Source_Loc => Loc);
+
+                  Arr_Length : constant Irep :=
+                    Build_Array_Size (Get
+
+                  --  goto arrays have a lower bound of 0
+                  Upper_Bound : constant Irep :=
+                    Make_Op_Sub (Rhs => One,
+                                 Lhs => Build_Array_Size (
+
          Report_Unhandled_Node_Empty
            (E,
             "Make_Selector_Names",
