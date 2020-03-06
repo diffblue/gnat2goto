@@ -1126,6 +1126,8 @@ package body ASVAT_Modelling is
                                   Loc : Irep) is
       Type_Irep : constant Irep := Do_Type_Reference (Root_Type);
    begin
+      Put_Line ("*****The root irep is: ");
+      Print_Irep (Root_Irep);
       if Is_Scalar_Type (Root_Type) then
          Append_Op (Block,
                     Do_Var_In_Type (Var_Name  => Unique_Object_Name,
