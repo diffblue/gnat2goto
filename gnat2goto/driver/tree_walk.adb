@@ -771,6 +771,34 @@ package body Tree_Walk is
    is
       Args : constant Irep := Make_Argument_List;
 
+      procedure Process_Irep (I : Irep);
+      procedure Process_Irep (I : Irep) is
+      begin
+         Put_Line ("^^^Process_Irep");
+         Print_Irep (I);
+         case Kind (Get_Type (I)) is
+            when I_Signedbv_Type | I_Unsignedbv_Type =>
+               Put_Line (Get_Identifier (I));
+               Put_Line (Irep_Kind'Image (Kind (I)));
+               Put_Line ("True");
+            when I_Bounded_Signedbv_Type | I_Bounded_Unsignedbv_Type =>
+               if Kind (I) = I_Op_Typecast then
+                  Put_Line (Get_Identifier (Get_Op0 (I)));
+               else
+                  Put_Line (Get_Identifier (I));
+               end if;
+
+               Put_Line (Irep_Kind'Image (Kind (I)));
+               Put_Line ("Lower bound index " &
+                           Integer'Image (Get_Lower_Bound (Get_Type (I))));
+               Put_Line ("Upper bound index " &
+                           Integer'Image (Get_Upper_Bound (Get_Type (I))));
+            when others =>
+               null;
+         end case;
+
+      end Process_Irep;
+
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
          (if Is_Out
          then Make_Address_Of (Base)
@@ -783,6 +811,9 @@ package body Tree_Walk is
          Followed_Type_Symbol : constant Irep :=
             Follow_Symbol_Type (Get_Type (Mem), Global_Symbol_Table);
       begin
+         Put_Line ("***Call parameter");
+         Put_Line (Irep_Kind'Image (Kind (Mem)));
+         Print_Irep (Mem);
          if Kind (Followed_Type_Symbol) = I_C_Enum_Type and
            Kind (Mem) = I_Symbol_Expr
          then
@@ -817,6 +848,10 @@ package body Tree_Walk is
          Actual_Irep   : Irep;
          Expression    : constant Irep := Do_Expression (Actual);
       begin
+         Put_Line ("****Formal - Actual");
+         Print_Node_Briefly (Formal);
+         Print_Irep (Formal_Type);
+         Print_Node_Briefly (Actual);
          if Is_Out and then
            not (Kind (Get_Type (Expression)) in Class_Type)
          then
@@ -828,6 +863,12 @@ package body Tree_Walk is
           Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
                                  Formal_Type, Global_Symbol_Table), Is_Out);
          Append_Argument (Args, Actual_Irep);
+         Put_Line ("Actual Irep");
+         Put_Line (Irep_Kind'Image (Kind (Actual_Irep)));
+         Print_Irep (Actual_Irep);
+         Process_Irep (Actual_Irep);
+         Process_Irep (Expression);
+
       end Handle_Parameter;
 
       procedure Handle_Parameters is new
