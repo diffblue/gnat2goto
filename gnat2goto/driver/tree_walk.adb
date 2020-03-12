@@ -753,6 +753,8 @@ package body Tree_Walk is
                else Bare_RHS);
          end RHS;
       begin
+         Put_Line ("Assign LHS");
+         Print_Irep (LHS);
          return Make_Code_Assign
            (Lhs => LHS,
             Rhs => Typecast_If_Necessary
@@ -771,34 +773,6 @@ package body Tree_Walk is
    is
       Args : constant Irep := Make_Argument_List;
 
-      procedure Process_Irep (I : Irep);
-      procedure Process_Irep (I : Irep) is
-      begin
-         Put_Line ("^^^Process_Irep");
-         Print_Irep (I);
-         case Kind (Get_Type (I)) is
-            when I_Signedbv_Type | I_Unsignedbv_Type =>
-               Put_Line (Get_Identifier (I));
-               Put_Line (Irep_Kind'Image (Kind (I)));
-               Put_Line ("True");
-            when I_Bounded_Signedbv_Type | I_Bounded_Unsignedbv_Type =>
-               if Kind (I) = I_Op_Typecast then
-                  Put_Line (Get_Identifier (Get_Op0 (I)));
-               else
-                  Put_Line (Get_Identifier (I));
-               end if;
-
-               Put_Line (Irep_Kind'Image (Kind (I)));
-               Put_Line ("Lower bound index " &
-                           Integer'Image (Get_Lower_Bound (Get_Type (I))));
-               Put_Line ("Upper bound index " &
-                           Integer'Image (Get_Upper_Bound (Get_Type (I))));
-            when others =>
-               null;
-         end case;
-
-      end Process_Irep;
-
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
          (if Is_Out
          then Make_Address_Of (Base)
@@ -811,9 +785,6 @@ package body Tree_Walk is
          Followed_Type_Symbol : constant Irep :=
             Follow_Symbol_Type (Get_Type (Mem), Global_Symbol_Table);
       begin
-         Put_Line ("***Call parameter");
-         Put_Line (Irep_Kind'Image (Kind (Mem)));
-         Print_Irep (Mem);
          if Kind (Followed_Type_Symbol) = I_C_Enum_Type and
            Kind (Mem) = I_Symbol_Expr
          then
@@ -848,10 +819,6 @@ package body Tree_Walk is
          Actual_Irep   : Irep;
          Expression    : constant Irep := Do_Expression (Actual);
       begin
-         Put_Line ("****Formal - Actual");
-         Print_Node_Briefly (Formal);
-         Print_Irep (Formal_Type);
-         Print_Node_Briefly (Actual);
          if Is_Out and then
            not (Kind (Get_Type (Expression)) in Class_Type)
          then
@@ -859,15 +826,22 @@ package body Tree_Walk is
                                          "Kind of actual not in class type");
             return;
          end if;
+
          Actual_Irep := Wrap_Argument (
           Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
                                  Formal_Type, Global_Symbol_Table), Is_Out);
          Append_Argument (Args, Actual_Irep);
-         Put_Line ("Actual Irep");
-         Put_Line (Irep_Kind'Image (Kind (Actual_Irep)));
-         Print_Irep (Actual_Irep);
-         Process_Irep (Actual_Irep);
-         Process_Irep (Expression);
+
+         if Is_Array_Type (Etype (Actual)) then
+            ASVAT_Modelling.Make_Selector_Names
+              (Unique_Object_Name => Unique_Name (Entity (Actual)),
+               Root_Irep          => Actual_Irep,
+               Block              => Make_Code_Block
+                 (Get_Source_Location (Entity (Actual))),
+               Root_Type          => Etype (Actual),
+               E                  => Entity (Actual),
+               Loc                => Get_Source_Location (Entity (Actual)));
+         end if;
 
       end Handle_Parameter;
 
@@ -1009,17 +983,35 @@ package body Tree_Walk is
 
       case Nkind (U) is
          when N_Subprogram_Body =>
-            --  The specification of the subprogram body has already
-            --  been inserted into the symbol table by the call to
-            --  Do_Withed_Unit_Specs.
+            --  The specification of a subprogram body will already have been
+            --  processed and entered into the global symbol table while
+            --  processing withed unit specs.
+            --  If the subprogram has a separate declaration, than only
+            --  its specification has been processed and its body must be
+            --  compiled.
+            --  If the subprogram does not have a separate declaration, then
+            --  its body will have been used to obtain its specification and
+            --  at the same time its body is also compiled.
             pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
             Unit_Symbol := Global_Symbol_Table (Unit_Name);
 
-            --  Now compile the body of the subprogram
-            Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
+            if not Acts_As_Spec (U) then
+               --  The specification of the subprogram body has already
+               --  been inserted into the symbol table by the call to
+               --  Do_Withed_Unit_Specs.
 
-            --  and update the symbol table entry for this subprogram.
-            Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+               --  Now compile the body of the subprogram
+               Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
+
+               --  and update the symbol table entry for this subprogram.
+               Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+            else
+               --  The subprogram specification was obtained from the
+               --  subprogram body and in doing so the subprogram body
+               --  has already been compiled;
+               null;
+            end if;
+
             Unit_Is_Subprogram := True;
 
          when N_Package_Body =>
@@ -4251,6 +4243,7 @@ package body Tree_Walk is
            := To_Unbounded_String (Unique_Name (Entity (Name (N))));
          Sym_Id : constant Symbol_Id := Intern (To_String (Callee));
       begin
+         Put_Line ("Callee " & To_String (Callee));
          if not Global_Symbol_Table.Contains (Sym_Id) then
             return Report_Unhandled_Node_Irep
               (N,
@@ -4265,8 +4258,6 @@ package body Tree_Walk is
             Function_Type : constant Irep := Global_Symbol_Table
               (Sym_Id).SymType;
          begin
-            Put_Line ("Calling " & To_String (Callee));
-
             return Make_Code_Function_Call
               (I_Function => Make_Symbol_Expr
                  (Identifier => To_String (Callee),
@@ -4883,7 +4874,7 @@ package body Tree_Walk is
 
       Proc_Symbol : Symbol;
    begin
-      Put_Line ("declaring proc body " & Unique_Name (Defining_Entity (N)));
+      Put_Line ("Doing body of " & Unique_Name (Defining_Entity (N)));
       --  Corresponding_Spec is optional for subprograms
       --  but it should always be present for generic subprograms,
       --  so this check should be sufficient
@@ -4898,6 +4889,7 @@ package body Tree_Walk is
          --  so it may not be in the symbol table.
          --  The subprogram specification of the subprogram body is used to
          --  populate the symbol table instead.
+         Put_Line ("Registering Body");
          Register_Subprogram_Specification (Specification (N));
 
          if Is_ASVAT_Model then
@@ -4913,7 +4905,8 @@ package body Tree_Walk is
                                       "Proc name not in symbol table");
       end if;
       if not Is_ASVAT_Model then
-         --  The actual body has to processed from the program text
+         --  The actual body has to be processed from the program text
+         Put_Line ("Generating body from program text");
          Proc_Symbol := Global_Symbol_Table (Proc_Name);
 
          --  Compile the subprogram body and
@@ -4950,7 +4943,9 @@ package body Tree_Walk is
       Register_Subprogram_Specification (Specification (N));
 
       if ASVAT_Modelling.Is_Model (ASVAT_Model) then
+         Put_Line ("Its an ASVAY model");
          ASVAT_Modelling.Make_Model (E, ASVAT_Model);
+         Put_Line ("ASVAT_Model done");
 
       elsif not Has_Completion (E) then
          --  Here it would be possible to nondet outputs specified
@@ -5236,13 +5231,16 @@ package body Tree_Walk is
    -------------------------
 
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
+      Unit : constant String := Unique_Name (Defining_Entity (N));
    begin
+      Put_Line (Unit);
       if Defining_Entity (N) = Stand.Standard_Standard then
          --  TODO: github issue #252
          --  At the moment Standard is not processed
          null;
       else
          --  Handle all other withed library unit declarations
+
          case Nkind (N) is
             when N_Subprogram_Body =>
                if Acts_As_Spec (N) then
@@ -6164,6 +6162,7 @@ package body Tree_Walk is
 
          when N_Procedure_Call_Statement =>
             Append_Op (Block, Do_Procedure_Call_Statement (N));
+            Put_Line ("Return from call");
 
          when N_Simple_Return_Statement =>
             if No_Return (Return_Applies_To (Return_Statement_Entity (N)))

@@ -18,10 +18,11 @@ with Binary_To_Hex;           use Binary_To_Hex;
 with Uintp;                   use Uintp;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Treepr;                  use Treepr;
+with Sem_Eval;                use Sem_Eval;
 --  with System;
 package body ASVAT_Modelling is
 
-   Print_Message : constant Boolean := True;
+   Print_Message : constant Boolean := False;
 
    function Do_Nondet_Var (Var_Name, Var_Type : String;
                            E : Entity_Id) return Irep;
@@ -44,17 +45,6 @@ package body ASVAT_Modelling is
                              Replace_Object : Boolean) return String;
 
    procedure Make_Memcpy_Procedure (E : Entity_Id);
-
-   procedure Make_Selector_Names (Unique_Object_Name : String;
-                                  Root_Irep : Irep;
-                                  Block : Irep;
-                                  Root_Type : Node_Id;
-                                  E : Entity_Id;
-                                  Loc : Irep);
-   --  A provisional subprogram which recurses any non-discriminated record
-   --  and marks its discrete components in type.
-   --  The procedure will be replaced with a more general one which
-   --  handles discriminated records and arrays.
 
    procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
 
@@ -79,6 +69,8 @@ package body ASVAT_Modelling is
       Fun_Name : constant String := "nondet___" & Var_Type;
       Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
    begin
+      Put_Line ("Nondetting " & Var_Name);
+      Print_Irep (Var_Symbol.SymType);
       --  First a nondet function is required to assign to the variable.
       --  One for the type may already exist.
       if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
@@ -91,11 +83,25 @@ package body ASVAT_Modelling is
       --  Now the nondet function is declared, the LHS and RHS of the
       --  assignment can be declared.
       declare
-         LHS : constant Irep :=
+         --  If the variable is a formal out parameter it wll be a pointer
+         --  and it needs to be dereferenced.
+         Given_Type : constant Irep := Var_Symbol.SymType;
+
+         Sym : constant Irep :=
            Make_Symbol_Expr
              (Source_Location => Source_Location,
               Identifier      => Var_Name,
-              I_Type          => Var_Symbol.SymType);
+              I_Type          => Given_Type);
+
+         LHS : constant Irep :=
+           (if Kind (Given_Type) = I_Pointer_Type then
+                 Make_Dereference_Expr
+              (Object          => Sym,
+               Source_Location => Source_Location,
+               I_Type          => Get_Subtype (Given_Type),
+               Range_Check     => False)
+            else
+               Sym);
 
          RHS : constant Irep :=
            Do_Parameterless_Function_Call
@@ -194,7 +200,7 @@ package body ASVAT_Modelling is
          return Report_Unhandled_Node_Irep
            (E,
             "Do_Var_In_Type",
-            "Enumeration object not supported");
+            Irep_Kind'Image (Kind (Followed_Type)) & " objects not supported");
       end if;
 
    end Do_Var_In_Type;
@@ -826,6 +832,8 @@ package body ASVAT_Modelling is
                Type_Id   : constant Symbol_Id := Intern (Unique_Type_Name);
 
             begin
+               Put_Line ("Curr_Entity " & Unique_Object_Name);
+               Print_Node_Briefly (Curr_Entity);
                if Replace_Object and then Unique_Object_Name = "" then
                   --  Object replacement requested but no replacement
                   --  object specified.
@@ -950,6 +958,7 @@ package body ASVAT_Modelling is
          Next_Elmt (Iter);
       end loop;
 
+      Put_Line ("The parameters are done");
       --  If the subprogram is a function, the result must be made nondet too.
       if Ekind (E) = E_Function then
          declare
@@ -1017,6 +1026,7 @@ package body ASVAT_Modelling is
          end;
       end if;
 
+      Put_Line ("Updating symbol table");
       pragma Assert (Global_Symbol_Table.Contains (Subprog_Id),
                      "Make_Model: Subprogram not in symbol table.");
       --  The model body is now made the body of the subprogram.
@@ -1026,6 +1036,8 @@ package body ASVAT_Modelling is
          Subprog_Sym.Value := Subprog_Body;
          Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
       end;
+
+      Put_Line ("Symbol_Table_Updated");
    end Make_Model;
 
    ---------------------------
@@ -1126,15 +1138,16 @@ package body ASVAT_Modelling is
                                   Loc : Irep) is
       Type_Irep : constant Irep := Do_Type_Reference (Root_Type);
    begin
-      Put_Line ("*****The root irep is: ");
-      Print_Irep (Root_Irep);
+      Put_Line ("In Make_Selector_Names");
       if Is_Scalar_Type (Root_Type) then
+         Put_Line ("A scalar");
          Append_Op (Block,
                     Do_Var_In_Type (Var_Name  => Unique_Object_Name,
                                     Var_Type  => Unique_Name (Root_Type),
                                     Var_Irep  => Root_Irep,
                                     Type_Irep => Type_Irep,
                                     E         => E));
+         Put_Line ("Appended");
       elsif Is_Record_Type (Root_Type) then
          if not Has_Discriminants (Root_Type) then
             declare
@@ -1173,130 +1186,110 @@ package body ASVAT_Modelling is
          end if;
       elsif Is_Array_Type (Root_Type) then
          --  For the moment only tackle 1 dimensional arrays
-         Put_Line ("In_Type an array");
-         Print_Node_Briefly (Root_Type);
-         Print_Node_Briefly (First_Index (Root_Type));
-         Print_Node_Briefly (Etype (First_Index (Root_Type)));
-         Print_Node_Briefly (Next_Index (First_Index (Root_Type)));
-
-         declare
-            Dims : constant Node_Id := First_Index (Root_Type);
-         begin
-            Put_Line ("Have dims");
-            Print_Irep (Root_Irep);
-
-            if Present (Dims) and not Present (Next_Index (Dims)) then
-               --  The array has only one dimension
-               Put_Line ("The array only has one dimension");
-               Print_Node_Briefly (Dims);
-               Print_Node_Briefly (Component_Type (Root_Type));
-               Put_Line (Unique_Name (Component_Type (Root_Type)));
+         if Number_Dimensions (Root_Type) = 1 then
+            --  Currently gnatogoto only handles bounds of arrays
+            --  which are known at compile time
+            if Compile_Time_Known_Bounds (Root_Type) then
                declare
-                  The_Array_Sym : constant Symbol :=
-                    Global_Symbol_Table (Intern (Unique_Object_Name));
-                  The_Array : constant Irep :=
-                    Make_Symbol_Expr
-                      (Source_Location => Loc,
-                       Identifier => Unique_Object_Name,
-                       I_Type => Do_Type_Reference (Root_Type));
+                  function Get_Range (N : Node_Id) return Node_Id;
 
-                  Component_Sym : constant Symbol :=
-                    Global_Symbol_Table
-                      (Intern
-                         (Unique_Name (Component_Type (Root_Type))));
-                  Component_Sort : constant Irep := Component_Sym.SymType;
+                  function  Get_Range (N : Node_Id) return Node_Id is
+                     Scalar_Range_Node : constant Node_Id :=
+                       Scalar_Range (N);
+                  begin
+                     case Nkind (Scalar_Range_Node) is
+                        when N_Range => return Scalar_Range_Node;
+                        when N_Subtype_Indication =>
+                           return Get_Range
+                             (Constraint
+                                (Range_Expression (Scalar_Range_Node)));
+                        when N_Attribute_Reference =>
+                           return
+                             Get_Range
+                               (First (Expressions (Scalar_Range_Node)));
+                        when others => return Types.Empty;
+                     end case;
+                  end Get_Range;
 
-                  Int_Type : constant Irep :=
-                    Global_Symbol_Table (Intern ("standard__integer")).SymType;
+                  Index_1 : constant Node_Id := First_Index (Root_Type);
+                  Array_Range : constant Node_Id :=
+                    Get_Range (Etype (Index_1));
 
-                  Indexer : constant Irep :=
-                    Fresh_Var_Symbol_Expr (Int_Type, "indexer");
+                  --  The bounds are known at compile time.
+                  --  If the index subtype is an enumeration type, Eval_Value
+                  --  will return the position number of the bound.
+                  Low_Index : constant Integer :=
+                    Integer (UI_To_Int
+                             (Expr_Value (Low_Bound (Array_Range))));
 
-                  First_Idx : constant Irep :=
-                    Get_First_Index (The_Array);
+                  High_Index : constant Integer :=
+                    Integer (UI_To_Int
+                             (Expr_Value (High_Bound (Array_Range))));
 
-                  Last_Idx : constant Irep :=
-                    Get_Last_Index (The_Array);
+                  --  All goto arrays are based at 0, just subtracting
+                  --  low bound from high bound gives the last index of an
+                  --  equivalent length array base at 0.
 
-                  --  Goto arrays are normalised to a zero based index.
-                  --  The lower bound is 0 and the upper bound is
-                  --  Last_Idx - First_Idx.
+                  Zero_Based_Last : constant Integer  :=
+                    High_Index - Low_Index;
 
-                  Zero_Based_Last : constant Irep :=
-                    Make_Op_Sub (Rhs             => First_Idx,
-                                 Lhs             => Last_Idx,
-                                 Source_Location => Loc,
-                                 Overflow_Check  => False,
-                                 I_Type          =>
-                                   Do_Type_Reference (Root_Type));
-
-                  Loop_Init : constant Irep :=
-                    Make_Code_Assign
-                      (Rhs             =>
-                         Build_Index_Constant (0,
-                           Get_Source_Location (E)),
-                       Lhs             => Indexer,
-                       Source_Location => Loc,
-                       I_Type          =>
-                          Do_Type_Reference (Root_Type),
-                       Range_Check     => False);
-
-                  Inc_1 : constant Irep :=
-                    Make_Op_Add
-                      (Rhs             =>
-                         Build_Index_Constant (1,
-                           Get_Source_Location (E)),
-                       Lhs             => Indexer,
-                       Source_Location => Loc,
-                       Overflow_Check  => False,
-                       I_Type          => Get_Type (Indexer),
-                       Range_Check     => False);
-
-                  Loop_Cond : constant Irep :=
-                    Make_Op_Leq
-                      (Rhs             => Zero_Based_Last,
-                       Lhs             => Indexer,
-                       Source_Location => Loc,
-                       Overflow_Check  => False,
-                       I_Type          => Get_Type (Indexer),
-                       Range_Check     => False);
-
-                  Indexed_Component : constant Irep :=
-                    Offset_Array_Data (Base         => The_Array,
-                                       Offset       => Indexer);
---                 Loop_Body : constant Irep := Make_Code_Block (Loc);
+                  Comp_Type : constant Node_Id := Component_Type (Root_Type);
 
                begin
-                  if Kind (The_Array) in Class_Expr then
-                     Put_Line ("The array in expr");
-                     Print_Irep (Get_Type (The_Array));
-                  else
-                     Put_Line ("The array not in expr");
-                  end if;
+                  for I in 0 .. Zero_Based_Last loop
+                     declare
+                        Given_Type : constant Irep := Get_Type (Root_Irep);
+                        Actual_Type : constant Irep :=
+                          (if Kind (Given_Type) = I_Pointer_Type then
+                                Get_Subtype (Given_Type)
+                           else
+                              Given_Type);
 
-                  Put_Line ("Array obj:");
-                  Put_Line (Unintern (The_Array_Sym.Name));
-                  Print_Irep (The_Array_Sym.Value);
-                  Print_Irep (The_Array);
-                  Put_Line (Unintern (Component_Sym.Name));
-                  Print_Irep (Component_Sort);
-                  Print_Irep (Int_Type);
-                  Print_Irep (Indexer);
-                  Print_Irep (First_Idx);
-                  Print_Irep (Last_Idx);
-                  Print_Irep (Zero_Based_Last);
-                  Print_Irep (Loop_Init);
-                  Print_Irep (Inc_1);
-                  Print_Irep (Loop_Cond);
-                  Print_Irep (Indexed_Component);
-                  null;
+                        Array_Irep : constant Irep :=
+                          Make_Symbol_Expr
+                            (Source_Location => Loc,
+                             I_Type          => Actual_Type,
+                             Range_Check     => False,
+                             Identifier      => Unique_Object_Name);
+
+                        Indexed_Data : constant Irep :=
+                          Offset_Array_Data
+                            (Base => Array_Irep,
+                             Offset =>
+                               Build_Index_Constant
+                                 (Value      => Int (I),
+                                  Source_Loc => Loc));
+
+                        Index_Expr : constant Irep :=
+                          Make_Dereference_Expr
+                            (Object          => Indexed_Data,
+                             Source_Location => Loc,
+                             I_Type          => Do_Type_Reference (Comp_Type),
+                             Range_Check     => False);
+                     begin
+                        Make_Selector_Names
+                          (Unique_Object_Name =>
+                           "element (" & Unique_Object_Name & ", " &
+                             Integer'Image (I) & ")",
+                           Root_Irep          => Index_Expr,
+                           Block              => Block,
+                           Root_Type          => Comp_Type,
+                           E                  => E,
+                           Loc                => Loc);
+                     end;
+                  end loop;
                end;
             else
-               Report_Unhandled_Node_Empty (E,
-                                            "Make_Selector_Names",
-                                            "Only one dimensional arrays");
+               Report_Unhandled_Node_Empty
+                 (E,
+                  "Make_Selector_Names",
+                  "Only bounds known at compile time");
             end if;
-         end;
+         else
+            Report_Unhandled_Node_Empty (E,
+                                         "Make_Selector_Names",
+                                         "Only one dimensional arrays");
+         end if;
       else
          Report_Unhandled_Node_Empty
            (E,

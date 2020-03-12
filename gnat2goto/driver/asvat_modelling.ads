@@ -122,6 +122,17 @@ package ASVAT_Modelling is
      (Not_A_Model, Nondet, Nondet_In_Type, Represents, Memcpy);
    subtype Valid_Model is Model_Sorts range Nondet .. Model_Sorts'Last;
 
+   procedure Make_Selector_Names (Unique_Object_Name : String;
+                                  Root_Irep : Irep;
+                                  Block : Irep;
+                                  Root_Type : Node_Id;
+                                  E : Entity_Id;
+                                  Loc : Irep);
+   --  A provisional subprogram which recurses any non-discriminated record
+   --  and marks its discrete components in type.
+   --  The procedure will be replaced with a more general one which
+   --  handles discriminated records and arrays.
+
    function Get_Annotation_Name (N : Node_Id) return String
    with Pre => Nkind (N) = N_Pragma and then
                Get_Pragma_Id (N) = Pragma_Annotate;
