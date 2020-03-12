@@ -22,7 +22,7 @@ with Sem_Eval;                use Sem_Eval;
 --  with System;
 package body ASVAT_Modelling is
 
-   Print_Message : constant Boolean := False;
+   Print_Message : constant Boolean := True;
 
    function Do_Nondet_Var (Var_Name, Var_Type : String;
                            E : Entity_Id) return Irep;
@@ -111,6 +111,7 @@ package body ASVAT_Modelling is
          Print_Modelling_Message ("Assign " &
                                     Var_Name & " := " & Fun_Name,
                                   Sloc (E));
+         Print_Irep (LHS);
          return
            Make_Code_Assign
              (Lhs => LHS,
@@ -180,21 +181,52 @@ package body ASVAT_Modelling is
                 (Source_Location => Source_Location,
                  I_Type          => CProver_Bool_T,
                  Range_Check     => False);
+
+            Ret : Irep;
          begin
+            Put_Line ("Followed_Type");
+            Print_Irep (Followed_Type);
+            Put_Line ("Resolved_Var");
+            Print_Irep (Resolved_Var);
+            if Kind (Resolved_Var) = I_Dereference_Expr then
+               Print_Irep (Get_Object (Resolved_Var));
+               if Kind (Get_Object (Resolved_Var)) = I_Op_Add then
+                  Print_Irep (Get_Lhs (Get_Object (Resolved_Var)));
+               else
+                  Put_Line ("Not an Add");
+               end if;
+
+            else
+               Put_Line ("Not a dereference");
+            end if;
+
+            Put_Line ("Var_First");
+            Print_Irep (Var_First);
+            Put_Line ("Var_Last");
+            Print_Irep (Var_Last);
+            Put_Line ("GEQ");
+            Print_Irep (Geq_Var_First);
+            Put_Line ("LEQ");
+            Print_Irep (Leq_Var_Last);
             --  Make the and condition:
             --  Var_Irep >= Var_First and Var_Irep <= Var_Last
             Append_Op (Var_In_Type_Cond, Geq_Var_First);
             Append_Op (Var_In_Type_Cond, Leq_Var_Last);
+
+            Put_Line ("Type_Cond");
+            Print_Irep (Var_In_Type_Cond);
 
             Print_Modelling_Message
               ("Assume " &
                  Var_Name & " >= " & Var_Type & "'First and " &
                  Var_Name & " <= " & Var_Type & "'Last",
                Sloc (E));
-            return
+            Ret :=
               Make_Assume_Call (Assumption     => Var_In_Type_Cond,
                                 Source_Loc     => Source_Location,
                                 A_Symbol_Table => Global_Symbol_Table);
+            Print_Irep (Ret);
+            return Ret;
          end;
       else
          return Report_Unhandled_Node_Irep
@@ -927,12 +959,29 @@ package body ASVAT_Modelling is
                         --  modelling rules state that it must be
                         --  identical to the hidden declaration.
                         declare
-                           Var_Irep   : constant Irep := Make_Symbol_Expr
-                             (Source_Location => Source_Location,
-                              I_Type          => Var_Symbol.SymType,
-                              Range_Check     => False,
-                              Identifier      => Unique_Object_Name);
+                           --  If the object is an in out or out parameter
+                           --  it must be derefereced.
+                           Given_Type : constant Irep := Var_Symbol.SymType;
+
+                           Sym : constant Irep :=
+                             Make_Symbol_Expr
+                               (Source_Location => Source_Location,
+                                Identifier      => Unique_Object_Name,
+                                I_Type          => Given_Type);
+
+                           Var_Irep : constant Irep :=
+                             (if Kind (Given_Type) = I_Pointer_Type then
+                                   Make_Dereference_Expr
+                                (Object          => Sym,
+                                 Source_Location => Source_Location,
+                                 I_Type          => Get_Subtype (Given_Type),
+                                 Range_Check     => False)
+                              else
+                                 Sym);
+
                         begin
+                           Put_Line ("Doing in type");
+                           Print_Irep (Var_Irep);
                            Make_Selector_Names
                              (Unique_Object_Name,
                               Var_Irep,
@@ -959,6 +1008,7 @@ package body ASVAT_Modelling is
       end loop;
 
       Put_Line ("The parameters are done");
+      Print_Irep (Subprog_Body);
       --  If the subprogram is a function, the result must be made nondet too.
       if Ekind (E) = E_Function then
          declare
@@ -1267,6 +1317,8 @@ package body ASVAT_Modelling is
                              I_Type          => Do_Type_Reference (Comp_Type),
                              Range_Check     => False);
                      begin
+                        Put_Line ("Compnent type");
+                        Print_Irep (Do_Type_Reference (Comp_Type));
                         Make_Selector_Names
                           (Unique_Object_Name =>
                            "element (" & Unique_Object_Name & ", " &
