@@ -4,7 +4,6 @@ with Uintp;                 use Uintp;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Range_Check;           use Range_Check;
-with Text_IO;               use Text_IO;
 
 package body Arrays is
 
@@ -1069,9 +1068,6 @@ package body Arrays is
       Data_Member : constant Irep :=
         Get_Data_Component (Array_Struct, A_Symbol_Table);
    begin
-      Put_Line ("Get_Data_Member");
-      Print_Irep (Data_Member);
-      Print_Irep (Get_Type (Data_Member));
       return Make_Member_Expr (Compound         => Array_Struct,
                                Source_Location  => Internal_Source_Location,
                                Component_Number => 2,
@@ -1107,8 +1103,6 @@ package body Arrays is
       Data_Member : constant Irep :=
         Get_Data_Member (Base, Global_Symbol_Table);
    begin
-      Put_Line ("Data_Member");
-      Print_Irep  (Data_Member);
       return Make_Op_Add (Rhs             => Offset,
                           Lhs             => Data_Member,
                           Source_Location => Get_Source_Location (Base),

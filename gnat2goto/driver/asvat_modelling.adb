@@ -1024,6 +1024,9 @@ package body ASVAT_Modelling is
             Result_Type_Sym : constant Symbol :=
               Global_Symbol_Table (Result_Type_Id);
 
+            --  Add a new block to the function for the Result_Var declaration
+            Return_Block : constant Irep := Make_Code_Block (Source_Location);
+
             Result_Var_Irep   : constant Irep := Make_Symbol_Expr
               (Source_Location => Source_Location,
                Identifier      => Result_Var,
@@ -1037,9 +1040,12 @@ package body ASVAT_Modelling is
               (Return_Value    => Result_Var_Irep,
                Source_Location => Source_Location);
 
+            El_List : List_Cursor;
+
          begin
             Put_Line ("The unique namme of the result type is " &
                         Unique_Name (Etype (E)));
+            Print_Irep (Result_Var_Irep);
             --  Insert the Result_Var into the symbol table.
             --  It should not already exist.
             pragma Assert (not Global_Symbol_Table.Contains (Result_Var_Id),
@@ -1050,13 +1056,11 @@ package body ASVAT_Modelling is
                Object_Init_Value => Ireps.Empty,
                A_Symbol_Table    => Global_Symbol_Table);
 
-            --  Add a new block to the function for the Result_Var declaration
-            Append_Op (Subprog_Body, Make_Code_Block (Source_Location));
             --  Add the declaration of the result varible to the new block
-            Append_Op (Subprog_Body, Var_Decl);
+            Append_Op (Return_Block, Var_Decl);
 
             --  Set the result variable to nondet.
-            Append_Op (Subprog_Body,
+            Append_Op (Return_Block,
                        Do_Nondet_Var
                          (Var_Name => Result_Var,
                           Var_Type => Result_Type,
@@ -1066,13 +1070,24 @@ package body ASVAT_Modelling is
                Make_Selector_Names
                  (Result_Var,
                   Result_Var_Irep,
-                  Subprog_Body,
+                  Return_Block,
                   Etype (E),
                   E,
                   Get_Source_Location (E));
             end if;
             --  The function needs a return statement.
-            Append_Op (Subprog_Body, Return_Statement);
+            Append_Op (Return_Block, Return_Statement);
+            Print_Irep (Return_Block);
+            Append_Op (Subprog_Body, Return_Block);
+            El_List := List_First (Get_Op (Subprog_Body));
+
+            Print_Irep (Subprog_Body);
+            while List_Has_Element (Get_Op (Subprog_Body), El_List) loop
+               Ireps.Print_Irep
+                 (List_Element (Get_Op (Subprog_Body), El_List));
+               El_List := List_Next (Get_Op (Subprog_Body), El_List);
+            end loop;
+
          end;
       end if;
 
@@ -1083,6 +1098,8 @@ package body ASVAT_Modelling is
       declare
          Subprog_Sym : Symbol := Global_Symbol_Table (Subprog_Id);
       begin
+         Put_Line ("The Subprogram body");
+         Print_Irep (Subprog_Body);
          Subprog_Sym.Value := Subprog_Body;
          Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
       end;
@@ -1310,15 +1327,26 @@ package body ASVAT_Modelling is
                                  (Value      => Int (I),
                                   Source_Loc => Loc));
 
+                        Data_Irep : constant Irep :=
+                          Get_Data_Member (Array_Irep, Global_Symbol_Table);
+                        Data_Type : constant Irep := Get_Type (Data_Irep);
+                        Element_Type : constant Irep :=
+                          Get_Subtype (Data_Type);
+
                         Index_Expr : constant Irep :=
                           Make_Dereference_Expr
                             (Object          => Indexed_Data,
                              Source_Location => Loc,
-                             I_Type          => Do_Type_Reference (Comp_Type),
+                             I_Type          => Element_Type,
                              Range_Check     => False);
+
                      begin
                         Put_Line ("Compnent type");
                         Print_Irep (Do_Type_Reference (Comp_Type));
+                        Put_Line ("Data_Irep");
+                        Print_Irep (Data_Irep);
+                        Put_Line ("Element_Irep");
+                        Print_Irep (Element_Type);
                         Make_Selector_Names
                           (Unique_Object_Name =>
                            "element (" & Unique_Object_Name & ", " &
