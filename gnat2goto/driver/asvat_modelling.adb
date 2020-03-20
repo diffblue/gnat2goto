@@ -24,13 +24,16 @@ package body ASVAT_Modelling is
 
    Print_Message : constant Boolean := True;
 
+   type Bound_Sort is (Lower, Highier);
+
    function Do_Nondet_Var (Var_Name, Var_Type : String;
                            E : Entity_Id) return Irep;
    --  Nondets the given variable.
 
    function Do_Var_In_Type (Var_Name, Var_Type  : String;
                             Var_Irep, Type_Irep : Irep;
-                            E : Entity_Id) return Irep;
+                            E : Entity_Id;
+                            Bound : Bound_Sort) return Irep;
    --  Marks as in type the given discrete variable.
 
    function Do_Parameterless_Function_Call
@@ -126,7 +129,8 @@ package body ASVAT_Modelling is
 
    function Do_Var_In_Type (Var_Name, Var_Type  : String;
                             Var_Irep, Type_Irep : Irep;
-                            E                   : Entity_Id) return Irep is
+                            E                   : Entity_Id;
+                            Bound               : Bound_Sort) return Irep is
       Source_Location : constant Irep := Get_Source_Location (E);
       Followed_Type : constant Irep :=
         Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
@@ -145,42 +149,39 @@ package body ASVAT_Modelling is
                else
                   Followed_Type);
 
-            Var_First : constant Irep :=
-              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
-                         Global_Symbol_Table);
-            Var_Last  : constant Irep :=
-              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
-                        Global_Symbol_Table);
+            Bound_Irep : constant Irep :=
+              (if Bound = Lower then
+                  Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
+                 Global_Symbol_Table)
+               else
+                  Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
+                 Global_Symbol_Table));
 
-            Geq_Var_First : constant Irep :=
-              Make_Op_Geq
-                (Rhs =>
-                   Typecast_If_Necessary
-                     (Var_First,
-                      Get_Type (Resolved_Var),
-                      Global_Symbol_Table),
-                 Lhs             => Resolved_Var,
-                 Source_Location => Source_Location,
-                 Overflow_Check  => False,
-                 I_Type          => Make_Bool_Type,
-                 Range_Check     => False);
-            Leq_Var_Last : constant Irep :=
-              Make_Op_Leq
-                (Rhs             =>
-                   Typecast_If_Necessary
-                     (Var_Last,
-                      Get_Type (Resolved_Var),
-                      Global_Symbol_Table),
-                 Lhs             => Resolved_Var,
-                 Source_Location => Source_Location,
-                 Overflow_Check  => False,
-                 I_Type          => Make_Bool_Type,
-                 Range_Check     => False);
-            Var_In_Type_Cond : constant Irep :=
-              Make_Op_And
-                (Source_Location => Source_Location,
-                 I_Type          => CProver_Bool_T,
-                 Range_Check     => False);
+            Bound_Condition : constant Irep :=
+              (if Bound = Lower then
+                  Make_Op_Geq
+                 (Rhs =>
+                      Typecast_If_Necessary
+                    (Bound_Irep,
+                     Get_Type (Resolved_Var),
+                     Global_Symbol_Table),
+                  Lhs             => Resolved_Var,
+                  Source_Location => Source_Location,
+                  Overflow_Check  => False,
+                  I_Type          => Make_Bool_Type,
+                  Range_Check     => False)
+               else
+                  Make_Op_Leq
+                 (Rhs             =>
+                      Typecast_If_Necessary
+                    (Bound_Irep,
+                     Get_Type (Resolved_Var),
+                     Global_Symbol_Table),
+                  Lhs             => Resolved_Var,
+                  Source_Location => Source_Location,
+                  Overflow_Check  => False,
+                  I_Type          => Make_Bool_Type,
+                  Range_Check     => False));
 
             Ret : Irep;
          begin
@@ -200,29 +201,20 @@ package body ASVAT_Modelling is
                Put_Line ("Not a dereference");
             end if;
 
-            Put_Line ("Var_First");
-            Print_Irep (Var_First);
-            Put_Line ("Var_Last");
-            Print_Irep (Var_Last);
-            Put_Line ("GEQ");
-            Print_Irep (Geq_Var_First);
-            Put_Line ("LEQ");
-            Print_Irep (Leq_Var_Last);
-            --  Make the and condition:
-            --  Var_Irep >= Var_First and Var_Irep <= Var_Last
-            Append_Op (Var_In_Type_Cond, Geq_Var_First);
-            Append_Op (Var_In_Type_Cond, Leq_Var_Last);
-
-            Put_Line ("Type_Cond");
-            Print_Irep (Var_In_Type_Cond);
+            Put_Line ("Bound_Irep");
+            Print_Irep (Bound_Irep);
+            Put_Line ("Condition");
+            Print_Irep (Bound_Condition);
 
             Print_Modelling_Message
-              ("Assume " &
-                 Var_Name & " >= " & Var_Type & "'First and " &
-                 Var_Name & " <= " & Var_Type & "'Last",
+              ("Assume (" &
+               (if Bound = Lower then
+                       Var_Name & " >= " & Var_Type & "'First);"
+                  else
+                     Var_Name & " <= " & Var_Type & "'Last);"),
                Sloc (E));
             Ret :=
-              Make_Assume_Call (Assumption     => Var_In_Type_Cond,
+              Make_Assume_Call (Assumption     => Bound_Condition,
                                 Source_Loc     => Source_Location,
                                 A_Symbol_Table => Global_Symbol_Table);
             Print_Irep (Ret);
@@ -1213,7 +1205,15 @@ package body ASVAT_Modelling is
                                     Var_Type  => Unique_Name (Root_Type),
                                     Var_Irep  => Root_Irep,
                                     Type_Irep => Type_Irep,
-                                    E         => E));
+                                    E         => E,
+                                    Bound     => Lower));
+         Append_Op (Block,
+                    Do_Var_In_Type (Var_Name  => Unique_Object_Name,
+                                    Var_Type  => Unique_Name (Root_Type),
+                                    Var_Irep  => Root_Irep,
+                                    Type_Irep => Type_Irep,
+                                    E         => E,
+                                    Bound     => Highier));
          Put_Line ("Appended");
       elsif Is_Record_Type (Root_Type) then
          if not Has_Discriminants (Root_Type) then
