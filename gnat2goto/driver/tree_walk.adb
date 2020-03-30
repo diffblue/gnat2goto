@@ -108,12 +108,6 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Function_Call,
         Post => Kind (Do_Function_Call'Result) in Class_Expr;
 
-   function Make_Assume_Expr (N : Node_Id; Assumption : Irep) return Irep;
-
-   function Do_Nondet_Function_Call (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Function_Call,
-        Post => Kind (Do_Nondet_Function_Call'Result) in Class_Expr;
-
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
         Post => Kind (Do_Handled_Sequence_Of_Statements'Result) = I_Code_Block;
@@ -719,6 +713,7 @@ package body Tree_Walk is
 
    function Do_Assignment_Statement (N : Node_Id) return Irep
    is
+      Res : Irep;
    begin
       if Ekind (Etype (Name (N))) in Array_Kind then
          declare
@@ -743,25 +738,37 @@ package body Tree_Walk is
          function RHS return Irep is
             N_RHS : constant Node_Id := Expression (N);
             Bare_RHS : constant Irep := Do_Expression (N_RHS);
+            Res : Irep;
          begin
-            return
+            Put_Line ("In RHS");
+            if Do_Range_Check (N_RHS) then
+               Put_Line ("Range_Check");
+            else
+               Put_Line ("No Range_Check");
+            end if;
+
+            Res :=
               (if Do_Range_Check (N_RHS)
                then Make_Range_Assert_Expr
                  (N => N,
                   Value => Bare_RHS,
                   Bounds_Type => Get_Type (LHS))
                else Bare_RHS);
+            Put_Line ("Leaving RHS");
+            return Res;
          end RHS;
       begin
          Put_Line ("Assign LHS");
          Print_Irep (LHS);
-         return Make_Code_Assign
+         Res := Make_Code_Assign
            (Lhs => LHS,
             Rhs => Typecast_If_Necessary
               (Expr => RHS,
                New_Type => Get_Type (LHS),
                A_Symbol_Table => Global_Symbol_Table),
             Source_Location => Get_Source_Location (N));
+         Put_Line ("Assign statement done");
+         return Res;
       end;
    end Do_Assignment_Statement;
 
@@ -831,17 +838,6 @@ package body Tree_Walk is
           Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
                                  Formal_Type, Global_Symbol_Table), Is_Out);
          Append_Argument (Args, Actual_Irep);
-
-         if Is_Array_Type (Etype (Actual)) then
-            ASVAT_Modelling.Make_Selector_Names
-              (Unique_Object_Name => Unique_Name (Entity (Actual)),
-               Root_Irep          => Actual_Irep,
-               Block              => Make_Code_Block
-                 (Get_Source_Location (Entity (Actual))),
-               Root_Type          => Etype (Actual),
-               E                  => Entity (Actual),
-               Loc                => Get_Source_Location (Entity (Actual)));
-         end if;
 
       end Handle_Parameter;
 
@@ -1377,6 +1373,7 @@ package body Tree_Walk is
                      return Do_Array_First (N);
                   end if;
                when Attribute_Last   =>
+                  Put_Line ("???????????We have a last");
                   if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
                     and then
                       Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
@@ -1625,46 +1622,6 @@ package body Tree_Walk is
       end if;
    end Do_Full_Type_Declaration;
 
-   ----------------------
-   -- Make_Assume_Expr --
-   ----------------------
-
-   function Make_Assume_Expr (N : Node_Id; Assumption : Irep) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (N);
-      Assume_Params : constant Irep := Make_Parameter_List;
-      Assume_Type : constant Irep := Make_Code_Type
-        (Parameters => Assume_Params,
-         Ellipsis => False,
-         Return_Type => CProver_Void_T,
-         Inlined => False,
-         Knr => False);
-      Assume_Function_Name : constant String := "__CPROVER_assume";
-      Sym_Assume : constant Irep := Make_Symbol_Expr (
-                                     Source_Location => Source_Location,
-                                     I_Type          => Assume_Type,
-                                     Range_Check     => False,
-                                     Identifier      => Assume_Function_Name);
-      Assume_Args  : constant Irep := Make_Argument_List;
-      SEE_Fun_Call : constant Irep := Make_Side_Effect_Expr_Function_Call
-        (Source_Location => Source_Location,
-         I_Function => Sym_Assume,
-         Arguments => Assume_Args,
-         I_Type => CProver_Void_T);
-   begin
-      Append_Parameter
-        (Assume_Params,
-         Make_Code_Parameter
-           (Source_Location => Source_Location,
-            Default_Value => Ireps.Empty,
-            --  arbitrary, should be replaced with a CProver_Int_T
-            I_Type => Make_Signedbv_Type (32),
-            Base_Name => Assume_Function_Name,
-            This => False,
-            Identifier => Assume_Function_Name & "::assumption"));
-      Append_Argument (Assume_Args, Assumption);
-      return SEE_Fun_Call;
-   end Make_Assume_Expr;
-
    -----------------------------
    -- Do_Qualified_Expression --
    -----------------------------
@@ -1695,78 +1652,78 @@ package body Tree_Walk is
       end case;
    end Do_Qualified_Expression;
 
-   -----------------------------
-   -- Do_Nondet_Function_Call --
-   -----------------------------
-
-   function Do_Nondet_Function_Call (N : Node_Id) return Irep is
-      Func_Str     : constant String := Unique_Name (Entity (Name (N)));
-      Func_Name    : constant Symbol_Id := Intern (Func_Str);
-      Source_Location   : constant Irep := Get_Source_Location (N);
-   begin
-      if Global_Symbol_Table.Contains (Func_Name) then
-         --  ??? why not get this from the entity
-
-         --  Two implementation options here:
-         --  1. Trickery: Use LET expression to create a tmp variable and
-         --     assign nondet with ranges (side effect with function call
-         --     to assume). However, cannot use I_Code_Assume directly,
-         --     because cbmc considers this a statement.
-         --  2. Future: Just place I_Nondet_Expr, set type, let cbmc
-         --     place the assume on ranges.
-         --  Due to lack of insight into cbmc, we implement 1.
-         declare
-            Func_Symbol : constant Symbol := Global_Symbol_Table (Func_Name);
-
-            Type_Irep    : constant Irep :=
-              Get_Return_Type (Func_Symbol.SymType);
-            Sym_Nondet   : constant Irep :=
-              Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
-            Followed_Type : constant Irep :=
-              Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
-            Nondet_Expr  : constant Irep := Make_Side_Effect_Expr_Nondet
-              (Source_Location => Source_Location,
-               I_Type => Type_Irep);
-
-            function Assume_And_Yield_Lhs return Irep;
-            function Assume_And_Yield_Lhs return Irep is
-            begin
-               if Kind (Followed_Type) in
-                 I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
-               then
-                  return Make_Assume_Expr
-                    (N,
-                     Make_Range_Expression
-                       (Sym_Nondet,
-                        Get_Bound (N, Followed_Type, Bound_Low),
-                        Get_Bound (N, Followed_Type, Bound_High)));
-               else
-                  return Make_Assume_Expr
-                    (N,
-                     Make_Constant_Expr
-                       (Source_Location => Source_Location,
-                        I_Type          => CProver_Bool_T,
-                        Range_Check     => False,
-                        Value           => "true"));
-               end if;
-            end Assume_And_Yield_Lhs;
-            Assume_And_Yield : constant Irep := Make_Op_Comma
-              (Lhs => Assume_And_Yield_Lhs,
-               Rhs => Sym_Nondet,
-               Source_Location => Source_Location);
-         begin
-            return Make_Let_Binding_Expr
-              (Symbol          => Sym_Nondet,
-               Value           => Nondet_Expr,
-               Where           => Assume_And_Yield,
-               Source_Location => Source_Location,
-               I_Type          => Type_Irep);
-         end;
-      else -- How did that happen (GNAT should reject)?
-         return Report_Unhandled_Node_Irep (N, "Do_Nondet_Function_Call",
-                                            "func name not in symbol table");
-      end if;
-   end Do_Nondet_Function_Call;
+--     -----------------------------
+--     -- Do_Nondet_Function_Call --
+--     -----------------------------
+--
+--     function Do_Nondet_Function_Call (N : Node_Id) return Irep is
+--        Func_Str     : constant String := Unique_Name (Entity (Name (N)));
+--        Func_Name    : constant Symbol_Id := Intern (Func_Str);
+--        Source_Location   : constant Irep := Get_Source_Location (N);
+--     begin
+--        if Global_Symbol_Table.Contains (Func_Name) then
+--           --  ??? why not get this from the entity
+--
+--           --  Two implementation options here:
+--           --  1. Trickery: Use LET expression to create a tmp variable and
+--           --     assign nondet with ranges (side effect with function call
+--           --     to assume). However, cannot use I_Code_Assume directly,
+--           --     because cbmc considers this a statement.
+--           --  2. Future: Just place I_Nondet_Expr, set type, let cbmc
+--           --     place the assume on ranges.
+--           --  Due to lack of insight into cbmc, we implement 1.
+--           declare
+--           Func_Symbol : constant Symbol := Global_Symbol_Table (Func_Name);
+--
+--              Type_Irep    : constant Irep :=
+--                Get_Return_Type (Func_Symbol.SymType);
+--              Sym_Nondet   : constant Irep :=
+--                Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
+--              Followed_Type : constant Irep :=
+--                Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
+--              Nondet_Expr  : constant Irep := Make_Side_Effect_Expr_Nondet
+--                (Source_Location => Source_Location,
+--                 I_Type => Type_Irep);
+--
+--              function Assume_And_Yield_Lhs return Irep;
+--              function Assume_And_Yield_Lhs return Irep is
+--              begin
+--                 if Kind (Followed_Type) in
+--                   I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+--                 then
+--                    return Make_Assume_Expr
+--                      (N,
+--                       Make_Range_Expression
+--                         (Sym_Nondet,
+--                          Get_Bound (N, Followed_Type, Bound_Low),
+--                          Get_Bound (N, Followed_Type, Bound_High)));
+--                 else
+--                    return Make_Assume_Expr
+--                      (N,
+--                       Make_Constant_Expr
+--                         (Source_Location => Source_Location,
+--                          I_Type          => CProver_Bool_T,
+--                          Range_Check     => False,
+--                          Value           => "true"));
+--                 end if;
+--              end Assume_And_Yield_Lhs;
+--              Assume_And_Yield : constant Irep := Make_Op_Comma
+--                (Lhs => Assume_And_Yield_Lhs,
+--                 Rhs => Sym_Nondet,
+--                 Source_Location => Source_Location);
+--           begin
+--              return Make_Let_Binding_Expr
+--                (Symbol          => Sym_Nondet,
+--                 Value           => Nondet_Expr,
+--                 Where           => Assume_And_Yield,
+--                 Source_Location => Source_Location,
+--                 I_Type          => Type_Irep);
+--           end;
+--        else -- How did that happen (GNAT should reject)?
+--           return Report_Unhandled_Node_Irep (N, "Do_Nondet_Function_Call",
+--                                           "func name not in symbol table");
+--        end if;
+--     end Do_Nondet_Function_Call;
 
    ----------------------
    -- Do_Function_Call --
@@ -1812,43 +1769,25 @@ package body Tree_Walk is
       Func_Ent := Entity (Name (N));
       Func_Name := Intern (Unique_Name (Func_Ent));
 
-      --  TODO: in general, the Ada program must be able to
-      --  use cbm's built-in functions, like "__cprover_assume".
-      --  However, there are several problems:
-      --   1. without no function bodies, GNAT rejects the program
-      --   2. GNAT turns identifiers to lower case, thus "__CPROVER_assume"
-      --      et.al. won't be recognized by cbmc anymore.
-      --   3. Identifiers cannot start with underline in Ada.
-      --   4. cbmc will ignore the Ada type ranges when assigning nondets,
-      --      whereas we would expect that "nondet_natural return Natural"
-      --      will not introduce negative numbers.
-
-      --  For now, we only handle "nondet" prefixes here.
-
       if Nkind (Func_Ent) /= N_Defining_Identifier then
          return Report_Unhandled_Node_Irep (Func_Ent, "Do_Function_Call",
                                     "function entity not defining identifier");
       end if;
-      if Name_Has_Prefix (N, "nondet") or else
-        Has_GNAT2goto_Annotation (Func_Ent, "nondet")
-      then
-         return Do_Nondet_Function_Call (N);
-      else
-         if Global_Symbol_Table.Contains (Func_Name) then
-            Func_Symbol  := Global_Symbol_Table (Func_Name);
-            --  ??? why not get this from the entity
 
-            return Make_Side_Effect_Expr_Function_Call
-              (Source_Location => Get_Source_Location (N),
-               I_Function => Symbol_Expr (Func_Symbol),
-               Arguments => Do_Call_Parameters (N),
-               I_Type => Get_Return_Type (Func_Symbol.SymType));
-         else
-            --  This can happen for RTS functions (body not parsed by us)
-            --  TODO: handle RTS functions in a sane way
-            return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
-                                              "func name not in symbol table");
-         end if;
+      if Global_Symbol_Table.Contains (Func_Name) then
+         Func_Symbol  := Global_Symbol_Table (Func_Name);
+         --  ??? why not get this from the entity
+
+         return Make_Side_Effect_Expr_Function_Call
+           (Source_Location => Get_Source_Location (N),
+            I_Function => Symbol_Expr (Func_Symbol),
+            Arguments => Do_Call_Parameters (N),
+            I_Type => Get_Return_Type (Func_Symbol.SymType));
+      else
+         --  This can happen for RTS functions (body not parsed by us)
+         --  TODO: handle RTS functions in a sane way
+         return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
+                                            "func name not in symbol table");
       end if;
    end Do_Function_Call;
 
@@ -2598,7 +2537,10 @@ package body Tree_Walk is
             if Arg_Name = Name_Check
               or else (Arg_Name = No_Name and then Arg_Pos = 1)
             then
+               Put_Line ("AAAAAAAAAAAA in Assert_Or_Assume");
+               Print_Node_Briefly (Expr);
                Check := Do_Expression (Expr);
+               Put_Line ("AAAAAAAAAAAA Expression done");
             elsif Arg_Name = Name_Message
               or else (Arg_Name = No_Name and then Arg_Pos = 2)
             then
@@ -2626,6 +2568,7 @@ package body Tree_Walk is
          Append_Op
            (Block, Make_Assert_Or_Assume
               (Condition => Check));
+         Put_Line ("AAAAAAAAAAA leaving Assert_Or_Assume");
       end Do_Pragma_Assert_or_Assume;
 
       procedure Do_Pragma_Suppress
@@ -3480,6 +3423,7 @@ package body Tree_Walk is
         Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
 
    begin
+      Put_Line ("BBBBBBBB in Do_Bit_Op");
       if Kind (Followed_Type) = I_Ada_Mod_Type then
          declare
             Mod_Max_String : constant String :=
@@ -3509,6 +3453,9 @@ package body Tree_Walk is
             end if;
          end;
       else
+         Put_Line ("It is mot a mod type");
+         Print_Node_Briefly (Left_Opnd (N));
+         Print_Node_Briefly (Right_Opnd (N));
          declare
             Cast_LHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => LHS_Value,
@@ -3930,6 +3877,18 @@ package body Tree_Walk is
          Maybe_Division_Check : Irep := Unchecked_Result;
 
       begin
+         Put_Line ("CCCCCCC Do_Operator_Simple");
+         Print_Node_Briefly (N);
+         Print_Node_Briefly (Left_Opnd (N));
+         Print_Node_Briefly (Right_Opnd (N));
+         if Nkind (Left_Opnd (N)) = N_Integer_Literal then
+            Put_Line ("Left = " &
+                        Int'Image (UI_To_Int (Expr_Value (Left_Opnd (N)))));
+         elsif Nkind (Right_Opnd (N)) = N_Integer_Literal then
+            Put_Line ("Right = " &
+                        Int'Image (UI_To_Int (Expr_Value (Right_Opnd (N)))));
+         end if;
+
          if Do_Overflow_Check (N) then
             Maybe_Overflow_Check := Make_Overflow_Assert_Expr
               (N     => N,
@@ -4338,6 +4297,7 @@ package body Tree_Walk is
 
       Ok : Boolean;
    begin
+      Put_Line ("In Do_Range_Constraint");
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
       then
@@ -4380,12 +4340,15 @@ package body Tree_Walk is
             "only static ranges are supported");
       end if;
 
+      Put_Line ("Do_Range_Constraint");
+      Put_Line ("About to calculate width");
       declare
          Width : constant Integer :=
            (if Kind (Resolved_Underlying) = I_C_Enum_Type
              then Get_Width (Get_Subtype (Resolved_Underlying))
              else Get_Width (Resolved_Underlying));
       begin
+         Put_Line ("Width calculated");
          return
            (if Kind (Resolved_Underlying) in
                 I_Ada_Mod_Type | I_Unsignedbv_Type --  | I_C_Enum_Type
@@ -4943,7 +4906,7 @@ package body Tree_Walk is
       Register_Subprogram_Specification (Specification (N));
 
       if ASVAT_Modelling.Is_Model (ASVAT_Model) then
-         Put_Line ("Its an ASVAY model");
+         Put_Line ("Its an ASVAT model");
          ASVAT_Modelling.Make_Model (E, ASVAT_Model);
          Put_Line ("ASVAT_Model done");
 
@@ -5093,6 +5056,7 @@ package body Tree_Walk is
       Underlying : Irep;
       Constr : Node_Id;
    begin
+      Put_Line ("In Do_Subtype_Indication");
       case Nkind (N) is
          when N_Subtype_Indication =>
             Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));

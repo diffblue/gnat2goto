@@ -119,19 +119,10 @@ with Snames;                  use Snames;
 with Ireps;                   use Ireps;
 package ASVAT_Modelling is
    type Model_Sorts is
-     (Not_A_Model, Nondet, Nondet_In_Type, Represents, Memcpy);
-   subtype Valid_Model is Model_Sorts range Nondet .. Model_Sorts'Last;
-
-   procedure Make_Selector_Names (Unique_Object_Name : String;
-                                  Root_Irep : Irep;
-                                  Block : Irep;
-                                  Root_Type : Node_Id;
-                                  E : Entity_Id;
-                                  Loc : Irep);
-   --  A provisional subprogram which recurses any non-discriminated record
-   --  and marks its discrete components in type.
-   --  The procedure will be replaced with a more general one which
-   --  handles discriminated records and arrays.
+     (Not_A_Model, Nondet_Function, In_Type_Function,
+      Nondet_Vars, Nondet_In_Type_Vars, Represents, Memcpy);
+   subtype Valid_Model is Model_Sorts range
+     Nondet_Function .. Model_Sorts'Last;
 
    function Get_Annotation_Name (N : Node_Id) return String
    with Pre => Nkind (N) = N_Pragma and then
@@ -164,8 +155,18 @@ package ASVAT_Modelling is
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts);
 
-   procedure Make_Nondet_Function (Fun_Name, Result_Type : String;
-                                   Statements : Irep;
-                                   E : Entity_Id);
-   --  The Result_Type must be the "Unique_Name" of a declared type.
+private
+   Print_Message : constant Boolean := True;
+
+   function Get_Actual_Obj_Name (Obj : Entity_Id;
+                                 Replace_Object : Boolean) return String;
+
+   function Get_Actual_Type (Obj : Entity_Id;
+                             Replace_Object : Boolean) return String;
+
+   function Do_Parameterless_Function_Call
+     (Fun_Name : String; E : Entity_Id) return Irep;
+
+   procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
+
 end ASVAT_Modelling;

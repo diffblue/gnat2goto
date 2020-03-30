@@ -412,14 +412,15 @@ package body GOTO_Utils is
 
       declare
          New_Symbol : constant Symbol :=
-           (Name | BaseName | PrettyName => Intern (Name),
+           (Name | BaseName | PrettyName => Fun_Name,
             Mode => Intern ("C"),
             SymType => Symbol_Type,
             Value => Value,
             others => <>);
       begin
          A_Symbol_Table.Insert (Fun_Name, New_Symbol);
-         return New_Symbol;
+         pragma Assert (A_Symbol_Table.Contains (Fun_Name));
+         return A_Symbol_Table.Element (Fun_Name);  --  New_Symbol;
       end;
    end New_Function_Symbol_Entry;
 

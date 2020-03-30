@@ -451,14 +451,18 @@ package body Range_Check is
                                     Bounds_Type : Irep)
                                     return Irep
    is
-      Followed_Bound_Type : constant Irep := Follow_Symbol_Type (Bounds_Type,
-                                                         Global_Symbol_Table);
-
+      Followed_Bound_Type : constant Irep :=
+        Follow_Symbol_Type (Bounds_Type,
+                            Global_Symbol_Table);
+      Lower_Bound : constant Irep :=
+        Get_Bound (N, Followed_Bound_Type, Bound_Low);
+      Upper_Bound : constant Irep :=
+        Get_Bound (N, Followed_Bound_Type, Bound_High);
    begin
       return Make_Range_Assert_Expr (N           => N,
                  Value       => Value,
-                 Lower_Bound => Get_Bound (N, Followed_Bound_Type, Bound_Low),
-                 Upper_Bound => Get_Bound (N, Followed_Bound_Type, Bound_High),
+                 Lower_Bound => Lower_Bound,
+                 Upper_Bound => Upper_Bound,
                  Expected_Return_Type => Get_Type (Value),
                  Check_Name  => "__CPROVER_Ada_Range_Check");
 
@@ -473,67 +477,82 @@ package body Range_Check is
                                    Upper_Bound : Irep)
                                    return Irep
    is
-      Bound_Type : constant Irep :=
+      --  The bounds and or the value may be enumeration types.
+      --  If so, they are converted to a bitvector type.
+      --  When the enumeration is declared each literal s given the
+      --  value of its position (starting from 0).
+      Bound_Type_Raw      : constant Irep :=
         Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
-      Value_Expr_Type : constant Irep :=
+      Value_Expr_Type_Raw : constant Irep :=
         Follow_Symbol_Type (Get_Type (Value_Expr), Global_Symbol_Table);
 
+      Bound_Type : constant Irep :=
+        (if Kind (Bound_Type_Raw) = I_C_Enum_Type then
+              Int32_T
+         else
+            Bound_Type_Raw);
+
+      Value_Expr_Type : constant Irep :=
+        (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
+              Int32_T
+         else
+            Value_Expr_Type_Raw);
       type Adjusted_Value_And_Bounds_T is
-        record
-           Value_Expr : Irep;
-           Upper_Bound : Irep;
-           Lower_Bound : Irep;
-        end record;
+         record
+            Value_Expr : Irep;
+            Upper_Bound : Irep;
+            Lower_Bound : Irep;
+         end record;
 
       function Get_Adjusted_Value_And_Bounds
-         return Adjusted_Value_And_Bounds_T;
+        return Adjusted_Value_And_Bounds_T;
       function Get_Adjusted_Value_And_Bounds
-         return Adjusted_Value_And_Bounds_T
+        return Adjusted_Value_And_Bounds_T
       is
          Greater_Width : constant Boolean :=
-          Get_Width (Bound_Type) > Get_Width (Value_Expr_Type);
+           Get_Width (Bound_Type) > Get_Width (Value_Expr_Type);
       begin
          if Greater_Width then
             return (
-             Value_Expr => Typecast_If_Necessary
-               (Value_Expr, Bound_Type, Global_Symbol_Table),
-             Upper_Bound => Upper_Bound,
-             Lower_Bound => Lower_Bound);
+                    Value_Expr => Typecast_If_Necessary
+                      (Value_Expr, Bound_Type, Global_Symbol_Table),
+                    Upper_Bound => Upper_Bound,
+                    Lower_Bound => Lower_Bound);
          else
             return (
-             Value_Expr => Value_Expr,
-             Upper_Bound => Typecast_If_Necessary
-               (Upper_Bound, Value_Expr_Type, Global_Symbol_Table),
-             Lower_Bound => Typecast_If_Necessary
-               (Lower_Bound, Value_Expr_Type, Global_Symbol_Table));
+                    Value_Expr => Value_Expr,
+                    Upper_Bound => Typecast_If_Necessary
+                      (Upper_Bound, Value_Expr_Type, Global_Symbol_Table),
+                    Lower_Bound => Typecast_If_Necessary
+                      (Lower_Bound, Value_Expr_Type, Global_Symbol_Table));
          end if;
       end Get_Adjusted_Value_And_Bounds;
 
       Values_Adjusted : constant Adjusted_Value_And_Bounds_T :=
-       Get_Adjusted_Value_And_Bounds;
+        Get_Adjusted_Value_And_Bounds;
 
-      Op_Geq : constant Irep := Make_Op_Geq (
-        Lhs => Values_Adjusted.Value_Expr,
-        Rhs => Values_Adjusted.Lower_Bound,
-        I_Type => Make_Bool_Type,
-        Source_Location => Get_Source_Location (Value_Expr));
-      Op_Leq : constant Irep := Make_Op_Leq (
-        Lhs => Values_Adjusted.Value_Expr,
-        Rhs => Values_Adjusted.Upper_Bound,
-        I_Type => Make_Bool_Type,
-        Source_Location => Get_Source_Location (Value_Expr));
+      Op_Geq : constant Irep := Make_Op_Geq
+        (Lhs => Values_Adjusted.Value_Expr,
+         Rhs => Values_Adjusted.Lower_Bound,
+         I_Type => Make_Bool_Type,
+         Source_Location => Get_Source_Location (Value_Expr));
+      Op_Leq : constant Irep := Make_Op_Leq
+        (Lhs => Values_Adjusted.Value_Expr,
+         Rhs => Values_Adjusted.Upper_Bound,
+         I_Type => Make_Bool_Type,
+         Source_Location => Get_Source_Location (Value_Expr));
 
       Source_Location : constant Irep := Get_Source_Location
         (Value_Expr);
    begin
       pragma Assert (Kind (Bound_Type) in
                        I_Bounded_Unsignedbv_Type
-                       | I_Bounded_Signedbv_Type
-                       | I_Bounded_Floatbv_Type
-                       | I_Unsignedbv_Type
-                       | I_Signedbv_Type
-                       | I_Floatbv_Type
-                       | I_Ada_Mod_Type);
+                         | I_Bounded_Signedbv_Type
+                           | I_Bounded_Floatbv_Type
+                             | I_Unsignedbv_Type
+                               | I_Signedbv_Type
+                                 | I_Floatbv_Type
+                                   | I_Ada_Mod_Type);
       return R : constant Irep := Make_Op_And
         (Source_Location => Source_Location,
          I_Type => Make_Bool_Type)

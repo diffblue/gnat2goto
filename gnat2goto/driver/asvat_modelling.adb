@@ -1,55 +1,30 @@
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Aspects;                 use Aspects;
-with Elists;                  use Elists;
 with Nlists;                  use Nlists;
 with Stringt;                 use Stringt;
 with Sinput;                  use Sinput;
 with Namet;                   use Namet;
 with Tree_Walk;               use Tree_Walk;
-with Arrays;                  use Arrays;
 with Einfo;                   use Einfo;
-with Sem_Prag;                use Sem_Prag;
 with Symbol_Table_Info;       use Symbol_Table_Info;
+with Follow;                  use Follow;
 with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
-with Follow;                  use Follow;
-with Binary_To_Hex;           use Binary_To_Hex;
-with Uintp;                   use Uintp;
 with Ada.Text_IO;             use Ada.Text_IO;
-with Treepr;                  use Treepr;
-with Sem_Eval;                use Sem_Eval;
+--  with Treepr;                  use Treepr;
 --  with System;
 package body ASVAT_Modelling is
 
-   Print_Message : constant Boolean := True;
-
-   type Bound_Sort is (Lower, Highier);
-
-   function Do_Nondet_Var (Var_Name, Var_Type : String;
-                           E : Entity_Id) return Irep;
-   --  Nondets the given variable.
-
-   function Do_Var_In_Type (Var_Name, Var_Type  : String;
-                            Var_Irep, Type_Irep : Irep;
-                            E : Entity_Id;
-                            Bound : Bound_Sort) return Irep;
-   --  Marks as in type the given discrete variable.
-
-   function Do_Parameterless_Function_Call
-     (Fun_Name : String; E : Entity_Id) return Irep;
-
    function Find_Model (Model : String) return Model_Sorts;
 
-   function Get_Actual_Obj_Name (Obj : Entity_Id;
-                                 Replace_Object : Boolean) return String;
+   function Make_In_Type_Function (E : Entity_Id) return Irep;
+   --  The In_Type_Function model must have a single svcalar parameter
+   --  of mode in, the object to be tested, and have a Boolean return type
 
-   function Get_Actual_Type (Obj : Entity_Id;
-                             Replace_Object : Boolean) return String;
-
-   procedure Make_Memcpy_Procedure (E : Entity_Id);
-
-   procedure Print_Modelling_Message (Mess : String; Loc : Source_Ptr);
+   function Make_Nondet_Function (E : Entity_Id) return Irep;
+   --  The Nondet_Function model must be a parameterless function with
+   --  a scalar result subtype.
 
    function Replace_Dots (S : String) return String;
 
@@ -57,177 +32,6 @@ package body ASVAT_Modelling is
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
      Get_Model_Sort (E) = Represents;
-
-   -------------------
-   -- Do_Nondet_Var --
-   -------------------
-
-   function Do_Nondet_Var (Var_Name, Var_Type : String;
-                           E : Entity_Id) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (E);
-      Var_Symbol_Id : constant Symbol_Id := Intern (Var_Name);
-      pragma Assert (Global_Symbol_Table.Contains (Var_Symbol_Id),
-                     "Do_Nondet_Var: Variable name is not in symbol table");
-      Var_Symbol : constant Symbol := Global_Symbol_Table (Var_Symbol_Id);
-      Fun_Name : constant String := "nondet___" & Var_Type;
-      Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
-   begin
-      Put_Line ("Nondetting " & Var_Name);
-      Print_Irep (Var_Symbol.SymType);
-      --  First a nondet function is required to assign to the variable.
-      --  One for the type may already exist.
-      if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
-         Make_Nondet_Function (Fun_Name    => Fun_Name,
-                               Result_Type => Var_Type,
-                               Statements  => Ireps.Empty,
-                               E           => E);
-      end if;
-
-      --  Now the nondet function is declared, the LHS and RHS of the
-      --  assignment can be declared.
-      declare
-         --  If the variable is a formal out parameter it wll be a pointer
-         --  and it needs to be dereferenced.
-         Given_Type : constant Irep := Var_Symbol.SymType;
-
-         Sym : constant Irep :=
-           Make_Symbol_Expr
-             (Source_Location => Source_Location,
-              Identifier      => Var_Name,
-              I_Type          => Given_Type);
-
-         LHS : constant Irep :=
-           (if Kind (Given_Type) = I_Pointer_Type then
-                 Make_Dereference_Expr
-              (Object          => Sym,
-               Source_Location => Source_Location,
-               I_Type          => Get_Subtype (Given_Type),
-               Range_Check     => False)
-            else
-               Sym);
-
-         RHS : constant Irep :=
-           Do_Parameterless_Function_Call
-             (Fun_Name => Fun_Name,
-              E        => E);
-      begin
-         Print_Modelling_Message ("Assign " &
-                                    Var_Name & " := " & Fun_Name,
-                                  Sloc (E));
-         Print_Irep (LHS);
-         return
-           Make_Code_Assign
-             (Lhs => LHS,
-              Rhs => RHS,
-              Source_Location => Source_Location);
-      end;
-   end Do_Nondet_Var;
-
-   --------------------
-   -- Do_Var_In_Type --
-   --------------------
-
-   function Do_Var_In_Type (Var_Name, Var_Type  : String;
-                            Var_Irep, Type_Irep : Irep;
-                            E                   : Entity_Id;
-                            Bound               : Bound_Sort) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (E);
-      Followed_Type : constant Irep :=
-        Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
-      Resolved_Var : constant Irep :=
-        Cast_Enum (Var_Irep, Global_Symbol_Table);
-   begin
-      if Kind (Followed_Type) in
-        I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
-          | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
-            | I_Floatbv_Type | I_C_Enum_Type
-      then
-         declare
-            Resolved_Type : constant Irep :=
-              (if Kind (Followed_Type) = I_C_Enum_Type then
-                    Get_Subtype (Followed_Type)
-               else
-                  Followed_Type);
-
-            Bound_Irep : constant Irep :=
-              (if Bound = Lower then
-                  Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
-                 Global_Symbol_Table)
-               else
-                  Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
-                 Global_Symbol_Table));
-
-            Bound_Condition : constant Irep :=
-              (if Bound = Lower then
-                  Make_Op_Geq
-                 (Rhs =>
-                      Typecast_If_Necessary
-                    (Bound_Irep,
-                     Get_Type (Resolved_Var),
-                     Global_Symbol_Table),
-                  Lhs             => Resolved_Var,
-                  Source_Location => Source_Location,
-                  Overflow_Check  => False,
-                  I_Type          => Make_Bool_Type,
-                  Range_Check     => False)
-               else
-                  Make_Op_Leq
-                 (Rhs             =>
-                      Typecast_If_Necessary
-                    (Bound_Irep,
-                     Get_Type (Resolved_Var),
-                     Global_Symbol_Table),
-                  Lhs             => Resolved_Var,
-                  Source_Location => Source_Location,
-                  Overflow_Check  => False,
-                  I_Type          => Make_Bool_Type,
-                  Range_Check     => False));
-
-            Ret : Irep;
-         begin
-            Put_Line ("Followed_Type");
-            Print_Irep (Followed_Type);
-            Put_Line ("Resolved_Var");
-            Print_Irep (Resolved_Var);
-            if Kind (Resolved_Var) = I_Dereference_Expr then
-               Print_Irep (Get_Object (Resolved_Var));
-               if Kind (Get_Object (Resolved_Var)) = I_Op_Add then
-                  Print_Irep (Get_Lhs (Get_Object (Resolved_Var)));
-               else
-                  Put_Line ("Not an Add");
-               end if;
-
-            else
-               Put_Line ("Not a dereference");
-            end if;
-
-            Put_Line ("Bound_Irep");
-            Print_Irep (Bound_Irep);
-            Put_Line ("Condition");
-            Print_Irep (Bound_Condition);
-
-            Print_Modelling_Message
-              ("Assume (" &
-               (if Bound = Lower then
-                       Var_Name & " >= " & Var_Type & "'First);"
-                  else
-                     Var_Name & " <= " & Var_Type & "'Last);"),
-               Sloc (E));
-            Ret :=
-              Make_Assume_Call (Assumption     => Bound_Condition,
-                                Source_Loc     => Source_Location,
-                                A_Symbol_Table => Global_Symbol_Table);
-            Print_Irep (Ret);
-            return Ret;
-         end;
-      else
-         return Report_Unhandled_Node_Irep
-           (E,
-            "Do_Var_In_Type",
-            Irep_Kind'Image (Kind (Followed_Type)) & " objects not supported");
-      end if;
-
-   end Do_Var_In_Type;
 
    ------------------------------------
    -- Do_Parameterless_Function_Call --
@@ -572,811 +376,247 @@ package body ASVAT_Modelling is
                  Import_Model);
    end Get_Model_Sort;
 
---  procedure Mem_Copy (E : Entity_Id; S, D : System.Address; Size : Natural);
---  procedure Mem_Copy (E : Entity_Id; S, D : System.Address; Size : Natural)
---     is
---        S_Irep : constant Irep :=
---          Make_Symbol_Expr (Source_Location => Get_Source_Location (E),
---                            I_Type          => Make_Pointer_Type
---                              (I_Subtype => Ireps.Empty,
---                               Width     => 64),
---                            Range_Check     => False,
---                            Identifier      =>
---                              Unique_Name (Defining_Identifier (S)));
---        D_Irep : constant Irep :=
---          Make_Symbol_Expr (Source_Location => Get_Source_Location (E),
---                            I_Type          => Make_Pointer_Type
---                              (I_Subtype => Ireps.Empty,
---                               Width     => 64),
---                            Range_Check     => False,
---                            Identifier      =>
---                              Unique_Name (Defining_Identifier (D)));
---        Size_Irep : constant Irep :=
---          Make_Symbol_Expr (Source_Location => Get_Source_Location (E),
---                         I_Type          => Do_Type_Reference (Etype (Size)),
---                            Range_Check     => False,
---                            Identifier      =>
---                              Unique_Name (Defining_Identifier (Size)));
---   begin
---        Print_Irep (S_Irep);
---        Print_Irep (D);
---        Print_Irep (Size);
---      null;
---   end Mem_Copy;
+   --------------------------
+   -- Make_In_Type_Function --
+   --------------------------
 
-   procedure Make_Memcpy_Procedure (E : Entity_Id) is
+   function Make_In_Type_Function (E : Entity_Id) return Irep is
       Source_Location : constant Irep := Get_Source_Location (E);
-      First_Param : constant Node_Id :=
+      Function_Name   : constant String := Unique_Name (E);
+      Function_Id     : constant Symbol_Id := Intern (Function_Name);
+      Parameter       : constant Node_Id :=
         First (Parameter_Specifications (Declaration_Node (E)));
-      Second_Param : constant Node_Id :=
-        (if Present (First_Param) then Next (First_Param) else Types.Empty);
-      Third_Param : constant Node_Id :=
-        (if Present (Second_Param) then Next (Second_Param) else Types.Empty);
-      Only_3_Param : constant Boolean  :=
-        Present (Third_Param) and not Present (Next (Third_Param));
+      Param_Entity    : constant Node_Id := Defining_Identifier (Parameter);
 
-      Destination_Loc_Name : constant String :=
-        (if Present (First_Param) then
-              Get_Name_String (Chars (Defining_Identifier (First_Param)))
-         else
-            "");
-      Destination : constant String :=
-        (if Present (First_Param) then
-              Unique_Name (Defining_Identifier (First_Param))
-         else
-            "");
-      Source_Loc_Name : constant String :=
-        (if Present (Second_Param) then
-              Get_Name_String (Chars (Defining_Identifier (Second_Param)))
-         else
-            "");
-      Source : constant String :=
-        (if Present (Second_Param) then
-              Unique_Name (Defining_Identifier (Second_Param))
-         else
-            "");
+      pragma Assert
+        ((Ekind (E) = E_Function and
+           Present (Parameter)) and then
+           (not (Out_Present (Parameter) or Present (Next (Parameter))) and
+                Is_Scalar_Type (Etype (Param_Entity)) and
+              Is_Boolean_Type (Etype (E))),
+         "In_Type_Function model must have a single scalar " &
+           "mode in parameter and a Boolean return subtype");
 
-      Count_Loc_Name : constant String :=
-        (if Present (Third_Param) then
-              Get_Name_String (Chars (Defining_Identifier (Third_Param)))
-         else
-            "");
-      Count : constant String :=
-        (if Present (Third_Param) then
-              Unique_Name (Defining_Identifier (Third_Param))
-         else
-            "");
+      --  The subprogram is declared from the source text.
+      pragma Assert (Global_Symbol_Table.Contains (Function_Id));
+
+      --  Make a function body which is just a return statement with
+      --  an and expression which is the in type condition
+      Function_Body     : constant Irep :=
+        Make_Code_Block (Source_Location);
+      Param_Name : constant String :=
+        Unique_Name (Defining_Identifier (Parameter));
+      Param_Type        : constant Node_Id := Etype (Param_Entity);
+      Followed_Type     : constant Irep :=
+        Follow_Symbol_Type (Do_Type_Reference (Param_Type),
+                            Global_Symbol_Table);
+      Param_Irep        : constant Irep :=
+        Make_Symbol_Expr
+          (Source_Location => Source_Location,
+           I_Type          => Followed_Type,
+           Range_Check     => False,
+           Identifier      => Param_Name);
+      Resolved_Var : constant Irep :=
+        Cast_Enum (Param_Irep, Global_Symbol_Table);
    begin
-      if Only_3_Param and then
-        Destination_Loc_Name = "destination" and then
-        Source_Loc_Name = "source" and then
-        Count_Loc_Name = "no_of_bits"
+      if Kind (Followed_Type) in
+        I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
+          | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
+            | I_Floatbv_Type | I_C_Enum_Type
       then
          declare
-            Subprog_Id  : constant Symbol_Id := Intern (Unique_Name (E));
-            Subprog_Sym : constant Symbol    :=
-                Global_Symbol_Table (Subprog_Id);
+            Resolved_Type : constant Irep :=
+              (if Kind (Followed_Type) = I_C_Enum_Type then
+                    Get_Subtype (Followed_Type)
+               else
+                  Followed_Type);
 
-            Dest_Sym_Id : constant Symbol_Id := Intern (Destination);
-            Src_Sym_Id  : constant Symbol_Id := Intern (Source);
-            Cnt_Sym_Id  : constant Symbol_Id := Intern (Count);
+            Low_Bound_Irep : constant Irep :=
+              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
+                         Global_Symbol_Table);
 
-            Dest_Sym : constant Symbol :=
-              Global_Symbol_Table (Dest_Sym_Id);
-            Src_Sym  : constant Symbol :=
-              Global_Symbol_Table (Src_Sym_Id);
-            Cnt_Sym  : constant Symbol :=
-              Global_Symbol_Table (Cnt_Sym_Id);
+            High_Bound_Irep : constant Irep :=
+              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
+                         Global_Symbol_Table);
 
-            Dest_Irep : constant Irep :=
-              Typecast_If_Necessary
-                (Symbol_Expr (Sym => Dest_Sym),
-                 New_Type => Make_Pointer_Type (Make_Void_Type),
-                 A_Symbol_Table => Global_Symbol_Table);
+            Low_Bound_Condition : constant Irep :=
+              Make_Op_Geq
+                (Rhs =>
+                   Typecast_If_Necessary
+                     (Low_Bound_Irep,
+                      Get_Type (Resolved_Var),
+                      Global_Symbol_Table),
+                 Lhs             => Resolved_Var,
+                 Source_Location => Source_Location,
+                 Overflow_Check  => False,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
 
-            Src_Irep : constant Irep :=
-              Typecast_If_Necessary
-                (Symbol_Expr (Sym => Src_Sym),
-                 New_Type => Make_Pointer_Type (Make_Void_Type),
-                 A_Symbol_Table => Global_Symbol_Table);
+            High_Bound_Condition : constant Irep :=
+              Make_Op_Leq
+                (Rhs             =>
+                   Typecast_If_Necessary
+                     (High_Bound_Irep,
+                      Get_Type (Resolved_Var),
+                      Global_Symbol_Table),
+                 Lhs             => Resolved_Var,
+                 Source_Location => Source_Location,
+                 Overflow_Check  => False,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
 
-            Cnt_Irep : constant Irep :=
---              Typecast_If_Necessary
-                Symbol_Expr (Sym => Cnt_Sym);
---                 New_Type => Make_Signedbv_Type (64),
---                 A_Symbol_Table => Global_Symbol_Table);
+            And_Conditions : constant Irep :=
+              Make_Op_And
+                (Source_Location => Source_Location,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
 
-            Bits_To_Bytes : constant Irep :=
-              Make_Constant_Expr (Source_Location => Source_Location,
-                                  I_Type          => CProver_Size_T,
-                                  Range_Check     => False,
-                                  Value           =>
-                                  --  bits to bytes (div by 8)
-                                    Convert_Uint_To_Hex
-                                      (Value     => UI_From_Int (8),
-                                       Bit_Width => 32));
-
-            Byte_Cnt_Irep : constant Irep :=
-              Make_Op_Div (Rhs               => Bits_To_Bytes,
-                           Lhs               => Cnt_Irep,
-                           Div_By_Zero_Check => False,
-                           Source_Location   => Source_Location,
-                           Overflow_Check    => False,
-                           I_Type            => CProver_Size_T,
-                           Range_Check       => False);
-
-            Memcpy_Args  : constant Irep := Make_Argument_List;
-            Memcpy_Name  : constant String := "memcpy";
-            Memcpy_Sym   : constant Symbol :=
-              Global_Symbol_Table (Intern (Memcpy_Name));
-            Memcpy_Func  : constant Irep :=
-              Symbol_Expr (Sym => Memcpy_Sym);
-
-            Memcpy_Proc_Call : constant Irep :=
-             Make_Code_Function_Call
-              (Arguments       => Memcpy_Args,
-               I_Function      => Memcpy_Func,
-               Lhs             => CProver_Nil,
-               Source_Location => Source_Location,
-               I_Type          => CProver_Void_T,
-               Range_Check     => False);
-
-            Subprog_Body : constant Irep :=
-              Make_Code_Block (Source_Location => Source_Location,
-                               I_Type          => CProver_Nil_T);
-
-            Updated_Subprog_Sym : Symbol;
-
+            Return_Statement : constant Irep :=
+              Make_Code_Return
+                (Return_Value    => And_Conditions,
+                 Source_Location => Source_Location,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
          begin
-            Put_Line (Unintern (Dest_Sym.Name));
-            Print_Irep (Dest_Sym.SymType);
-            Put_Line (Unintern (Src_Sym.Name));
-            Print_Irep (Src_Sym.SymType);
-            Put_Line (Unintern (Cnt_Sym.Name));
-            Print_Irep (Cnt_Sym.SymType);
+            Put_Line ("Followed_Type");
+            Print_Irep (Followed_Type);
+            Put_Line ("Resolved_Var");
+            Print_Irep (Resolved_Var);
+            Put_Line ("Low_Bound_Irep");
+            Print_Irep (Low_Bound_Irep);
+            Put_Line ("High_Bound_Irep");
+            Print_Irep (High_Bound_Irep);
+            Put_Line ("Low_Bound_Condition");
+            Print_Irep (Low_Bound_Condition);
+            Put_Line ("Hogh_Bound_Condition");
+            Print_Irep (High_Bound_Condition);
 
-            Print_Irep (Memcpy_Func);
+            Print_Modelling_Message
+              ("Check (" &
+                 Param_Name & " >= " & Unique_Name (Param_Type)
+               & "'First and " &
+                 Param_Name & " <= " & Unique_Name (Param_Type) & "'Last);",
+               Sloc (E));
 
-            Print_Irep (Dest_Irep);
-            Print_Irep (Src_Irep);
-            Print_Irep (Cnt_Irep);
-            Print_Irep (Bits_To_Bytes);
-            Print_Irep (Byte_Cnt_Irep);
-
-            Append_Argument (I     => Memcpy_Args,
-                             Value => Dest_Irep);
-            Append_Argument (I     => Memcpy_Args,
-                             Value => Src_Irep);
-            Append_Argument (I     => Memcpy_Args,
-                             Value => Byte_Cnt_Irep);
-
-            Print_Irep (Memcpy_Args);
-
-            Print_Irep (Memcpy_Proc_Call);
-
-            Append_Op (Subprog_Body, Memcpy_Proc_Call);
-
-            Print_Irep (Subprog_Body);
-
-            Put_Line (Unintern (Subprog_Id));
-            Put_Line (Unintern (Subprog_Sym.Name));
-
-            Updated_Subprog_Sym := Subprog_Sym;
-            Updated_Subprog_Sym.Value := Subprog_Body;
-            Global_Symbol_Table.Replace (Subprog_Id, Updated_Subprog_Sym);
+            Append_Op (And_Conditions, Low_Bound_Condition);
+            Append_Op (And_Conditions, High_Bound_Condition);
+            Append_Op (Function_Body, Return_Statement);
+            Put_Line ("Conditions");
+            Print_Irep (And_Conditions);
+            Put_Line ("Return Statement");
+            Print_Irep (Return_Statement);
+            Put_Line ("Body");
+            Print_Irep (Function_Body);
+            return Function_Body;
          end;
       else
-         Report_Unhandled_Node_Empty (E,
-                                      "Make_Memcpy_Procedure",
-                                      "Invalid parameters");
+         return Report_Unhandled_Node_Irep
+           (E,
+            "Do_Var_In_Type",
+            Irep_Kind'Image (Kind (Followed_Type)) &
+              " objects not supported");
       end if;
-   end Make_Memcpy_Procedure;
+   end Make_In_Type_Function;
 
    ----------------
    -- Make_Model --
    ----------------
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts) is
-      Source_Location : constant Irep := Get_Source_Location (E);
       Subprog_Id      : constant Symbol_Id := Intern (Unique_Name (E));
-      Subprog_Body    : constant Irep := Make_Code_Block (Source_Location);
 
-      --  Get lists of all the inputs and outputs of the model
-      --  subprogram including all those listed in a pragma Global.
-      --  Presently the list of inputs is not used.
+      --  The subprogram must be in the symbol table as it has been declared
+      --  in the subprogram text.
+      --  Make an appropriate body for the model subprogram.
+      Subprog_Body : constant Irep :=
+      (case Model is
+         when Nondet_Function  => Make_Nondet_Function (E),
+         when In_Type_Function => Make_In_Type_Function (E),
+         when Memcpy =>
+--            Subprog_Sym.Value := Make_Memcpy_Procedure (E);
+            Report_Unhandled_Node_Irep
+              (N        => E,
+               Fun_Name => "Make_Model",
+               Message  => "ASVAT model Memcpy" &
+                 " is currently unsupported"),
+         when others =>
+            Report_Unhandled_Node_Irep
+              (N        => E,
+               Fun_Name => "Make_Model",
+               Message  => "ASVAT model " & Model_Sorts'Image (Model) &
+                 " is currently unsupported"));
 
-      Model_Inputs  : Elist_Id := No_Elist;
-      Model_Outputs : Elist_Id := No_Elist;
-      Global_Seen   : Boolean;
-      Iter          : Elmt_Id;
+      Subprog_Sym : Symbol := Global_Symbol_Table (Subprog_Id);
    begin
-      if Model = Memcpy then
-         Print_Node_Briefly (E);
-         Print_Node_Briefly (Declaration_Node (E));
-         Make_Memcpy_Procedure (E);
-         return;
-      end if;
-
-      Collect_Subprogram_Inputs_Outputs
-        (Subp_Id      => E,
-         Synthesize   => False,
-         Subp_Inputs  => Model_Inputs,
-         Subp_Outputs => Model_Outputs,
-         Global_Seen  => Global_Seen);
-      if not Global_Seen then
-         Put_Line
-           (Standard_Error,
-            "Global aspect or pragma expected for ASVAT model.");
-         Put_Line
-           (Standard_Error,
-            "Specify 'Global => null' if the model has no " &
-              "global variables");
-      end if;
-
-      Print_Modelling_Message
-        ("Adding a " & To_Lower (Model_Sorts'Image (Model)) &
-           " body for modelling subprogram " &
-           Unique_Name (E), Sloc (E));
-
-      --  Process all of the potential output parameters and globals.
-      --  They will be set to nondet.
-      Iter := (if Model_Outputs /= No_Elist then
-                  First_Elmt (Model_Outputs)
-               else
-                  No_Elmt);
-      while Present (Iter) loop
-         if Nkind (Node (Iter)) in
-           N_Identifier | N_Expanded_Name | N_Defining_Identifier
-         then
-            declare
-               Curr_Entity : constant Node_Id :=
-                 (if Nkind (Node (Iter)) = N_Defining_Identifier then
-                     Node (Iter)
-                  else
-                     Entity (Node (Iter)));
-
-               --  Determine whether the local object declaration represents
-               --  a non-visible object and possibly (sub)type declaration.
-               Replace_Object : constant Boolean :=
-                 Get_Model_Sort (Curr_Entity) = Represents;
-
-               --  The local object may be replaced by a non-visible variable
-               --  if the "Represents" ASVAT model is applied to the
-               --  local object declaration.
-               Unique_Object_Name : constant String :=
-                 Get_Actual_Obj_Name (Curr_Entity, Replace_Object);
-
-               --  The local object's type  may be replaced by a non-visible
-               --  type if the "Represents" ASVAT model is applied to the
-               --  local object declaration.
-               Unique_Type_Name : constant String :=
-                 Get_Actual_Type (Curr_Entity, Replace_Object);
-
-               Object_Id : constant Symbol_Id := Intern (Unique_Object_Name);
-               Type_Id   : constant Symbol_Id := Intern (Unique_Type_Name);
-
-            begin
-               Put_Line ("Curr_Entity " & Unique_Object_Name);
-               Print_Node_Briefly (Curr_Entity);
-               if Replace_Object and then Unique_Object_Name = "" then
-                  --  Object replacement requested but no replacement
-                  --  object specified.
-                  Report_Unhandled_Node_Empty
-                    (Curr_Entity, "Make_Model",
-                     "ASVAT_Modelling: replacement object missing after " &
-                       "Represents in model definition.");
-               elsif Ekind (Curr_Entity) /= E_Abstract_State then
-
-                  if Replace_Object then
-                     Print_Modelling_Message
-                       ("Replace local object '" &
-                          Unique_Name (Curr_Entity) &
-                          "' with '" &
-                          Unique_Object_Name &
-                          " : " &
-                          Unique_Type_Name &
-                          "'", Sloc (Curr_Entity));
-
-                     if not Global_Symbol_Table.Contains (Type_Id)
-                     then
-                        --  The non-visible type declaration has not been
-                        --  processed yet.
-                        --  A premature declaration which exactly matches
-                        --  the actual declaration has to be inserted into
-                        --  the global symbol table.
-                        --  The local type definition has to match the
-                        --  actual declaration so the local type definition
-                        --  can be used.
-                        declare
-                           Local_Type_Id : constant Symbol_Id :=
-                             Intern (Unique_Name (Etype (Curr_Entity)));
-                           Local_Type_Sym : constant Symbol :=
-                             Global_Symbol_Table (Local_Type_Id);
-                           Actual_Type : constant Symbol :=
-                             Make_Type_Symbol
-                               (Type_Id, Local_Type_Sym.SymType);
-                        begin
-                           Global_Symbol_Table.Insert
-                             (Type_Id, Actual_Type);
-                        end;
-                     end if;
-
-                     pragma Assert (Global_Symbol_Table.Contains
-                                    (Type_Id), "Type not in Table");
-
-                     if not Global_Symbol_Table.Contains (Object_Id)
-                     then
-                        declare
-                           --  Similarly to the non-visible object
-                           --  declaration has not been processed yet.
-                           --  The local object declaration can be used to
-                           --  enter a premature declaration of the actual
-                           --  object.
-                           --  The symbol table must contain the local
-                           --  object as it has just been declared
-                           Local_Object_Id     : constant Symbol_Id :=
-                             Intern (Unique_Name (Curr_Entity));
-                           Local_Object_Symbol : constant Symbol :=
-                             Global_Symbol_Table (Local_Object_Id);
-                        begin
-                           New_Object_Symbol_Entry
-                             (Object_Name       => Object_Id,
-                              Object_Type       => Local_Object_Symbol.SymType,
-                              Object_Init_Value => Local_Object_Symbol.Value,
-                              A_Symbol_Table    => Global_Symbol_Table);
-                        end;
-                     end if;
-                  end if;
-
-                  --  The symbol table will have the declaration of the
-                  --  object to be made nondet.
-
-                  declare
-                     Var_Sym_Id : constant Symbol_Id :=
-                       Intern (Unique_Object_Name);
-                     Var_Symbol : constant Symbol :=
-                       Global_Symbol_Table (Var_Sym_Id);
-                  begin
-                     --  Nondet the variable.
-                     Append_Op (Subprog_Body,
-                                Do_Nondet_Var (Var_Name => Unique_Object_Name,
-                                               Var_Type => Unique_Type_Name,
-                                               E        => E));
-
-                     --  If the subprogram ASVAT model is "Nondet_In_Type",
-                     --  an assume statment is appended to the subprogram body
-                     if Model =  Nondet_In_Type then
-                        --  If the object declaration is not visible
-                        --  The local declaration will be used as the
-                        --  modelling rules state that it must be
-                        --  identical to the hidden declaration.
-                        declare
-                           --  If the object is an in out or out parameter
-                           --  it must be derefereced.
-                           Given_Type : constant Irep := Var_Symbol.SymType;
-
-                           Sym : constant Irep :=
-                             Make_Symbol_Expr
-                               (Source_Location => Source_Location,
-                                Identifier      => Unique_Object_Name,
-                                I_Type          => Given_Type);
-
-                           Var_Irep : constant Irep :=
-                             (if Kind (Given_Type) = I_Pointer_Type then
-                                   Make_Dereference_Expr
-                                (Object          => Sym,
-                                 Source_Location => Source_Location,
-                                 I_Type          => Get_Subtype (Given_Type),
-                                 Range_Check     => False)
-                              else
-                                 Sym);
-
-                        begin
-                           Put_Line ("Doing in type");
-                           Print_Irep (Var_Irep);
-                           Make_Selector_Names
-                             (Unique_Object_Name,
-                              Var_Irep,
-                              Subprog_Body,
-                              Etype (Curr_Entity),
-                              E,
-                              Get_Source_Location (E));
-                        end;
-                     end if;
-                  end;
-               else
-                  Report_Unhandled_Node_Empty
-                    (Curr_Entity, "Make_Model",
-                     "Abstract_State as a global output is unsupported");
-               end if;
-            end;
-         else
-            Report_Unhandled_Node_Empty
-              (Node (Iter), "Make_Model",
-               "Unsupported Global output");
-         end if;
-
-         Next_Elmt (Iter);
-      end loop;
-
-      Put_Line ("The parameters are done");
-      Print_Irep (Subprog_Body);
-      --  If the subprogram is a function, the result must be made nondet too.
-      if Ekind (E) = E_Function then
-         declare
-            --  Create a variable to contain the nondet result.
-            Result_Var    : constant String :=  "result___" & Unique_Name (E);
-            Result_Var_Id : constant Symbol_Id := Intern (Result_Var);
-
-            Result_Type     : constant String := Unique_Name (Etype (E));
-            Result_Type_Id  : constant Symbol_Id := Intern (Result_Type);
-            pragma Assert (Global_Symbol_Table.Contains (Result_Type_Id),
-                           "Make_Model: Symbol table does not contain" &
-                             "function " & Unique_Name (E) & " result type.");
-            Result_Type_Sym : constant Symbol :=
-              Global_Symbol_Table (Result_Type_Id);
-
-            --  Add a new block to the function for the Result_Var declaration
-            Return_Block : constant Irep := Make_Code_Block (Source_Location);
-
-            Result_Var_Irep   : constant Irep := Make_Symbol_Expr
-              (Source_Location => Source_Location,
-               Identifier      => Result_Var,
-               I_Type          => Result_Type_Sym.SymType);
-
-            Var_Decl          : constant Irep := Make_Code_Decl
-              (Symbol          => Result_Var_Irep,
-               Source_Location => Source_Location);
-
-            Return_Statement : constant Irep := Make_Code_Return
-              (Return_Value    => Result_Var_Irep,
-               Source_Location => Source_Location);
-
-            El_List : List_Cursor;
-
-         begin
-            Put_Line ("The unique namme of the result type is " &
-                        Unique_Name (Etype (E)));
-            Print_Irep (Result_Var_Irep);
-            --  Insert the Result_Var into the symbol table.
-            --  It should not already exist.
-            pragma Assert (not Global_Symbol_Table.Contains (Result_Var_Id),
-                           "Symbol table already contains " & Result_Var);
-            New_Object_Symbol_Entry
-              (Object_Name       => Result_Var_Id,
-               Object_Type       => Result_Type_Sym.SymType,
-               Object_Init_Value => Ireps.Empty,
-               A_Symbol_Table    => Global_Symbol_Table);
-
-            --  Add the declaration of the result varible to the new block
-            Append_Op (Return_Block, Var_Decl);
-
-            --  Set the result variable to nondet.
-            Append_Op (Return_Block,
-                       Do_Nondet_Var
-                         (Var_Name => Result_Var,
-                          Var_Type => Result_Type,
-                          E        => E));
-            --  if ASVAT model is "Nondet_In_Type", do an in type assumption.
-            if Model = Nondet_In_Type then
-               Make_Selector_Names
-                 (Result_Var,
-                  Result_Var_Irep,
-                  Return_Block,
-                  Etype (E),
-                  E,
-                  Get_Source_Location (E));
-            end if;
-            --  The function needs a return statement.
-            Append_Op (Return_Block, Return_Statement);
-            Print_Irep (Return_Block);
-            Append_Op (Subprog_Body, Return_Block);
-            El_List := List_First (Get_Op (Subprog_Body));
-
-            Print_Irep (Subprog_Body);
-            while List_Has_Element (Get_Op (Subprog_Body), El_List) loop
-               Ireps.Print_Irep
-                 (List_Element (Get_Op (Subprog_Body), El_List));
-               El_List := List_Next (Get_Op (Subprog_Body), El_List);
-            end loop;
-
-         end;
-      end if;
-
+      Subprog_Sym.Value := Subprog_Body;
       Put_Line ("Updating symbol table");
-      pragma Assert (Global_Symbol_Table.Contains (Subprog_Id),
-                     "Make_Model: Subprogram not in symbol table.");
       --  The model body is now made the body of the subprogram.
-      declare
-         Subprog_Sym : Symbol := Global_Symbol_Table (Subprog_Id);
-      begin
-         Put_Line ("The Subprogram body");
-         Print_Irep (Subprog_Body);
-         Subprog_Sym.Value := Subprog_Body;
-         Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
-      end;
-
+      Put_Line ("The Subprogram body");
+      Print_Irep (Subprog_Body);
+      Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
       Put_Line ("Symbol_Table_Updated");
    end Make_Model;
 
-   ---------------------------
+   --------------------------
    -- Make_Nondet_Function --
-   ---------------------------
+   --------------------------
 
-   procedure Make_Nondet_Function (Fun_Name, Result_Type : String;
-                                   Statements : Irep;
-                                   E          : Entity_Id) is
-      Fun_Symbol_Id : constant Symbol_Id := Intern (Fun_Name);
-      Source_Loc    : constant Irep := Get_Source_Location (E);
+   function Make_Nondet_Function (E : Entity_Id) return Irep is
+      Source_Location : constant Irep := Get_Source_Location (E);
+      Function_Name   : constant String := Unique_Name (E);
+      Function_Id      : constant Symbol_Id := Intern (Function_Name);
+
+      pragma Assert (Ekind (E) = E_Function and
+                       (not Present
+                         (First
+                            (Parameter_Specifications
+                               (Declaration_Node (E))))
+                     and then Is_Scalar_Type (Etype (E))),
+                     "Nondet_Function model must be a parameterless " &
+                       "function with a scalar return subtype");
+      --  The subprogram is declared from the source text.
+      pragma Assert (Global_Symbol_Table.Contains (Function_Id));
+
+      --  Make a function body which declares an unitialised variable
+      --  (and therefore nondet) of the function return type.
+      Function_Symbol   : constant Symbol := Global_Symbol_Table (Function_Id);
+      Function_Body     : constant Irep := Make_Code_Block (Source_Location);
+      Return_Type_Irep  : constant Irep :=
+        Get_Return_Type (Function_Symbol.SymType);
+      Uninitialised_Var : constant String := "result___" & Function_Name;
+      Var_Id            : constant Symbol_Id := Intern (Uninitialised_Var);
+      Var_Expr          : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier      => Uninitialised_Var,
+         I_Type          => Return_Type_Irep);
+      Declaration       : constant Irep := Make_Code_Decl
+        (Symbol          => Var_Expr,
+         Source_Location => Source_Location);
+      Return_Statement  : constant Irep := Make_Code_Return
+        (Return_Value    => Var_Expr,
+         Source_Location => Source_Location);
    begin
-      if not Global_Symbol_Table.Contains (Fun_Symbol_Id) then
-         declare
-            Type_Id : constant Symbol_Id := Intern (Result_Type);
-            pragma Assert (Global_Symbol_Table.Contains (Type_Id),
-                           Result_Type & " is not in symbol table");
-            Result_Type_Irep : constant Irep :=
-              Global_Symbol_Table (Type_Id).SymType;
+      Print_Modelling_Message
+        ("Making nondet function " & Function_Name &
+           " : " & Unique_Name (Etype (E)), Sloc (E));
+      Print_Irep (Return_Type_Irep);
 
-            Param_List : constant Irep := Make_Parameter_List;
-            --  For a nondet funcition the Param_List is always empty.
-            Fun_Type : constant Irep := Make_Code_Type
-              (Parameters  => Param_List,
-               Ellipsis    => False,
-               Return_Type => Result_Type_Irep,
-               Inlined     => False,
-               Knr         => False);
+      Append_Op (Function_Body, Declaration);
 
-            Obj_Name  : constant String := "result___" & Fun_Name;
-            Obj_Id    : constant Symbol_Id := Intern (Obj_Name);
-            Obj_Sym   : constant Irep := Make_Symbol_Expr
-              (Source_Location => Source_Loc,
-               Identifier      => Obj_Name,
-               I_Type          => Result_Type_Irep);
+      --  Enter the uninitialised variable into the symbol table.
+      pragma Assert (not Global_Symbol_Table.Contains (Var_Id),
+                     "Symbol table already contains " & Uninitialised_Var);
+      New_Object_Symbol_Entry (Object_Name       => Var_Id,
+                               Object_Type       => Return_Type_Irep,
+                               Object_Init_Value => Ireps.Empty,
+                               A_Symbol_Table    => Global_Symbol_Table);
 
-            Decl      : constant Irep := Make_Code_Decl
-              (Symbol          => Obj_Sym,
-               Source_Location => Source_Loc);
+      --  Make the function body
+      Append_Op (Function_Body, Return_Statement);
 
-            Fun_Body : constant Irep := Make_Code_Block (Source_Loc);
+      return Function_Body;
 
-            Return_Statement : constant Irep := Make_Code_Return
-              (Return_Value    => Obj_Sym,
-               Source_Location => Source_Loc);
-
-            Fun_Symbol : Symbol;
-
-         begin
-            Print_Modelling_Message
-              ("Making nondet function " & Fun_Name &
-                 " : " & Result_Type, Sloc (E));
-
-            New_Subprogram_Symbol_Entry
-              (Subprog_Name   => Fun_Symbol_Id,
-               Subprog_Type   => Fun_Type,
-               A_Symbol_Table => Global_Symbol_Table);
-
-            pragma Assert (Global_Symbol_Table.Contains (Fun_Symbol_Id));
-
-            Append_Op (Fun_Body, Decl);
-
-            pragma Assert (not Global_Symbol_Table.Contains (Obj_Id),
-                           "Symbol table already contains " & Obj_Name);
-            New_Object_Symbol_Entry (Object_Name       => Obj_Id,
-                                     Object_Type       => Result_Type_Irep,
-                                     Object_Init_Value => Ireps.Empty,
-                                     A_Symbol_Table    => Global_Symbol_Table);
-
-            if Statements /= Ireps.Empty then
-               Report_Unhandled_Node_Empty
-                 (Error,
-                  "Make_Nondet_Function",
-                  "Additional statements are currently unsupported");
-               null;  --  Todo append the statements
-            end if;
-
-            Append_Op (Fun_Body, Return_Statement);
-
-            Fun_Symbol := Global_Symbol_Table (Fun_Symbol_Id);
-            Fun_Symbol.Value := Fun_Body;
-            Global_Symbol_Table.Replace (Fun_Symbol_Id, Fun_Symbol);
-         end;
-      else
-         null;  --  The function has already been created previously.
-      end if;
    end Make_Nondet_Function;
-
-   -------------------------
-   -- Make_Selector_Names --
-   -------------------------
-
-   procedure Make_Selector_Names (Unique_Object_Name : String;
-                                  Root_Irep : Irep;
-                                  Block : Irep;
-                                  Root_Type : Node_Id;
-                                  E : Entity_Id;
-                                  Loc : Irep) is
-      Type_Irep : constant Irep := Do_Type_Reference (Root_Type);
-   begin
-      Put_Line ("In Make_Selector_Names");
-      if Is_Scalar_Type (Root_Type) then
-         Put_Line ("A scalar");
-         Append_Op (Block,
-                    Do_Var_In_Type (Var_Name  => Unique_Object_Name,
-                                    Var_Type  => Unique_Name (Root_Type),
-                                    Var_Irep  => Root_Irep,
-                                    Type_Irep => Type_Irep,
-                                    E         => E,
-                                    Bound     => Lower));
-         Append_Op (Block,
-                    Do_Var_In_Type (Var_Name  => Unique_Object_Name,
-                                    Var_Type  => Unique_Name (Root_Type),
-                                    Var_Irep  => Root_Irep,
-                                    Type_Irep => Type_Irep,
-                                    E         => E,
-                                    Bound     => Highier));
-         Put_Line ("Appended");
-      elsif Is_Record_Type (Root_Type) then
-         if not Has_Discriminants (Root_Type) then
-            declare
-               Comp : Node_Id :=
-                 First_Component (Root_Type);
-            begin
-               while Present (Comp) loop
-                  declare
-                     Comp_Name : constant String :=
-                       Unique_Object_Name & "__" &
-                       Get_Name_String (Chars (Comp));
-                     Comp_Unique : constant String := Unique_Name (Comp);
-                     Comp_Type : constant Node_Id :=
-                       Etype (Comp);
-                  begin
-                     Make_Selector_Names
-                       (Comp_Name & " == " & Comp_Unique,
-                        Make_Member_Expr (Compound         => Root_Irep,
-                                          Source_Location  => Loc,
-                                          I_Type           => Do_Type_Reference
-                                            (Comp_Type),
-                                          Component_Name   => Comp_Unique),
-                        Block,
-                        Comp_Type,
-                        E,
-                        Loc);
-                  end;
-                  Comp := Next_Component (Comp);
-               end loop;
-            end;
-         else
-            Report_Unhandled_Node_Empty
-              (E,
-               "Make_Selector_Names",
-               "Discrimiminated records are currently unsupported");
-         end if;
-      elsif Is_Array_Type (Root_Type) then
-         --  For the moment only tackle 1 dimensional arrays
-         if Number_Dimensions (Root_Type) = 1 then
-            --  Currently gnatogoto only handles bounds of arrays
-            --  which are known at compile time
-            if Compile_Time_Known_Bounds (Root_Type) then
-               declare
-                  function Get_Range (N : Node_Id) return Node_Id;
-
-                  function  Get_Range (N : Node_Id) return Node_Id is
-                     Scalar_Range_Node : constant Node_Id :=
-                       Scalar_Range (N);
-                  begin
-                     case Nkind (Scalar_Range_Node) is
-                        when N_Range => return Scalar_Range_Node;
-                        when N_Subtype_Indication =>
-                           return Get_Range
-                             (Constraint
-                                (Range_Expression (Scalar_Range_Node)));
-                        when N_Attribute_Reference =>
-                           return
-                             Get_Range
-                               (First (Expressions (Scalar_Range_Node)));
-                        when others => return Types.Empty;
-                     end case;
-                  end Get_Range;
-
-                  Index_1 : constant Node_Id := First_Index (Root_Type);
-                  Array_Range : constant Node_Id :=
-                    Get_Range (Etype (Index_1));
-
-                  --  The bounds are known at compile time.
-                  --  If the index subtype is an enumeration type, Eval_Value
-                  --  will return the position number of the bound.
-                  Low_Index : constant Integer :=
-                    Integer (UI_To_Int
-                             (Expr_Value (Low_Bound (Array_Range))));
-
-                  High_Index : constant Integer :=
-                    Integer (UI_To_Int
-                             (Expr_Value (High_Bound (Array_Range))));
-
-                  --  All goto arrays are based at 0, just subtracting
-                  --  low bound from high bound gives the last index of an
-                  --  equivalent length array base at 0.
-
-                  Zero_Based_Last : constant Integer  :=
-                    High_Index - Low_Index;
-
-                  Comp_Type : constant Node_Id := Component_Type (Root_Type);
-
-               begin
-                  for I in 0 .. Zero_Based_Last loop
-                     declare
-                        Given_Type : constant Irep := Get_Type (Root_Irep);
-                        Actual_Type : constant Irep :=
-                          (if Kind (Given_Type) = I_Pointer_Type then
-                                Get_Subtype (Given_Type)
-                           else
-                              Given_Type);
-
-                        Array_Irep : constant Irep :=
-                          Make_Symbol_Expr
-                            (Source_Location => Loc,
-                             I_Type          => Actual_Type,
-                             Range_Check     => False,
-                             Identifier      => Unique_Object_Name);
-
-                        Indexed_Data : constant Irep :=
-                          Offset_Array_Data
-                            (Base => Array_Irep,
-                             Offset =>
-                               Build_Index_Constant
-                                 (Value      => Int (I),
-                                  Source_Loc => Loc));
-
-                        Data_Irep : constant Irep :=
-                          Get_Data_Member (Array_Irep, Global_Symbol_Table);
-                        Data_Type : constant Irep := Get_Type (Data_Irep);
-                        Element_Type : constant Irep :=
-                          Get_Subtype (Data_Type);
-
-                        Index_Expr : constant Irep :=
-                          Make_Dereference_Expr
-                            (Object          => Indexed_Data,
-                             Source_Location => Loc,
-                             I_Type          => Element_Type,
-                             Range_Check     => False);
-
-                     begin
-                        Put_Line ("Compnent type");
-                        Print_Irep (Do_Type_Reference (Comp_Type));
-                        Put_Line ("Data_Irep");
-                        Print_Irep (Data_Irep);
-                        Put_Line ("Element_Irep");
-                        Print_Irep (Element_Type);
-                        Make_Selector_Names
-                          (Unique_Object_Name =>
-                           "element (" & Unique_Object_Name & ", " &
-                             Integer'Image (I) & ")",
-                           Root_Irep          => Index_Expr,
-                           Block              => Block,
-                           Root_Type          => Comp_Type,
-                           E                  => E,
-                           Loc                => Loc);
-                     end;
-                  end loop;
-               end;
-            else
-               Report_Unhandled_Node_Empty
-                 (E,
-                  "Make_Selector_Names",
-                  "Only bounds known at compile time");
-            end if;
-         else
-            Report_Unhandled_Node_Empty (E,
-                                         "Make_Selector_Names",
-                                         "Only one dimensional arrays");
-         end if;
-      else
-         Report_Unhandled_Node_Empty
-           (E,
-            "Make_Selector_Names",
-            "Unknown object type");
-      end if;
-   end Make_Selector_Names;
 
    -----------------------------
    -- Print_Modelling_Message --
