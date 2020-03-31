@@ -738,28 +738,16 @@ package body Tree_Walk is
          function RHS return Irep is
             N_RHS : constant Node_Id := Expression (N);
             Bare_RHS : constant Irep := Do_Expression (N_RHS);
-            Res : Irep;
          begin
-            Put_Line ("In RHS");
-            if Do_Range_Check (N_RHS) then
-               Put_Line ("Range_Check");
-            else
-               Put_Line ("No Range_Check");
-            end if;
-
-            Res :=
+            return
               (if Do_Range_Check (N_RHS)
                then Make_Range_Assert_Expr
                  (N => N,
                   Value => Bare_RHS,
                   Bounds_Type => Get_Type (LHS))
                else Bare_RHS);
-            Put_Line ("Leaving RHS");
-            return Res;
          end RHS;
       begin
-         Put_Line ("Assign LHS");
-         Print_Irep (LHS);
          Res := Make_Code_Assign
            (Lhs => LHS,
             Rhs => Typecast_If_Necessary
@@ -767,7 +755,6 @@ package body Tree_Walk is
                New_Type => Get_Type (LHS),
                A_Symbol_Table => Global_Symbol_Table),
             Source_Location => Get_Source_Location (N));
-         Put_Line ("Assign statement done");
          return Res;
       end;
    end Do_Assignment_Statement;
@@ -1373,7 +1360,6 @@ package body Tree_Walk is
                      return Do_Array_First (N);
                   end if;
                when Attribute_Last   =>
-                  Put_Line ("???????????We have a last");
                   if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
                     and then
                       Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
@@ -2537,10 +2523,7 @@ package body Tree_Walk is
             if Arg_Name = Name_Check
               or else (Arg_Name = No_Name and then Arg_Pos = 1)
             then
-               Put_Line ("AAAAAAAAAAAA in Assert_Or_Assume");
-               Print_Node_Briefly (Expr);
                Check := Do_Expression (Expr);
-               Put_Line ("AAAAAAAAAAAA Expression done");
             elsif Arg_Name = Name_Message
               or else (Arg_Name = No_Name and then Arg_Pos = 2)
             then
@@ -2568,7 +2551,6 @@ package body Tree_Walk is
          Append_Op
            (Block, Make_Assert_Or_Assume
               (Condition => Check));
-         Put_Line ("AAAAAAAAAAA leaving Assert_Or_Assume");
       end Do_Pragma_Assert_or_Assume;
 
       procedure Do_Pragma_Suppress
@@ -3423,7 +3405,6 @@ package body Tree_Walk is
         Follow_Symbol_Type (Ret_Type, Global_Symbol_Table);
 
    begin
-      Put_Line ("BBBBBBBB in Do_Bit_Op");
       if Kind (Followed_Type) = I_Ada_Mod_Type then
          declare
             Mod_Max_String : constant String :=
@@ -3453,9 +3434,6 @@ package body Tree_Walk is
             end if;
          end;
       else
-         Put_Line ("It is mot a mod type");
-         Print_Node_Briefly (Left_Opnd (N));
-         Print_Node_Briefly (Right_Opnd (N));
          declare
             Cast_LHS_To_Integer : constant Irep :=
               Make_Op_Typecast (Op0 => LHS_Value,
@@ -3877,18 +3855,6 @@ package body Tree_Walk is
          Maybe_Division_Check : Irep := Unchecked_Result;
 
       begin
-         Put_Line ("CCCCCCC Do_Operator_Simple");
-         Print_Node_Briefly (N);
-         Print_Node_Briefly (Left_Opnd (N));
-         Print_Node_Briefly (Right_Opnd (N));
-         if Nkind (Left_Opnd (N)) = N_Integer_Literal then
-            Put_Line ("Left = " &
-                        Int'Image (UI_To_Int (Expr_Value (Left_Opnd (N)))));
-         elsif Nkind (Right_Opnd (N)) = N_Integer_Literal then
-            Put_Line ("Right = " &
-                        Int'Image (UI_To_Int (Expr_Value (Right_Opnd (N)))));
-         end if;
-
          if Do_Overflow_Check (N) then
             Maybe_Overflow_Check := Make_Overflow_Assert_Expr
               (N     => N,
@@ -4202,7 +4168,6 @@ package body Tree_Walk is
            := To_Unbounded_String (Unique_Name (Entity (Name (N))));
          Sym_Id : constant Symbol_Id := Intern (To_String (Callee));
       begin
-         Put_Line ("Callee " & To_String (Callee));
          if not Global_Symbol_Table.Contains (Sym_Id) then
             return Report_Unhandled_Node_Irep
               (N,
@@ -4297,7 +4262,6 @@ package body Tree_Walk is
 
       Ok : Boolean;
    begin
-      Put_Line ("In Do_Range_Constraint");
       if not (Kind (Resolved_Underlying) in Class_Bitvector_Type or
               Kind (Resolved_Underlying) = I_C_Enum_Type)
       then
@@ -4340,15 +4304,12 @@ package body Tree_Walk is
             "only static ranges are supported");
       end if;
 
-      Put_Line ("Do_Range_Constraint");
-      Put_Line ("About to calculate width");
       declare
          Width : constant Integer :=
            (if Kind (Resolved_Underlying) = I_C_Enum_Type
              then Get_Width (Get_Subtype (Resolved_Underlying))
              else Get_Width (Resolved_Underlying));
       begin
-         Put_Line ("Width calculated");
          return
            (if Kind (Resolved_Underlying) in
                 I_Ada_Mod_Type | I_Unsignedbv_Type --  | I_C_Enum_Type
@@ -4837,7 +4798,6 @@ package body Tree_Walk is
 
       Proc_Symbol : Symbol;
    begin
-      Put_Line ("Doing body of " & Unique_Name (Defining_Entity (N)));
       --  Corresponding_Spec is optional for subprograms
       --  but it should always be present for generic subprograms,
       --  so this check should be sufficient
@@ -4852,7 +4812,6 @@ package body Tree_Walk is
          --  so it may not be in the symbol table.
          --  The subprogram specification of the subprogram body is used to
          --  populate the symbol table instead.
-         Put_Line ("Registering Body");
          Register_Subprogram_Specification (Specification (N));
 
          if Is_ASVAT_Model then
@@ -4869,7 +4828,6 @@ package body Tree_Walk is
       end if;
       if not Is_ASVAT_Model then
          --  The actual body has to be processed from the program text
-         Put_Line ("Generating body from program text");
          Proc_Symbol := Global_Symbol_Table (Proc_Name);
 
          --  Compile the subprogram body and
@@ -4906,9 +4864,7 @@ package body Tree_Walk is
       Register_Subprogram_Specification (Specification (N));
 
       if ASVAT_Modelling.Is_Model (ASVAT_Model) then
-         Put_Line ("Its an ASVAT model");
          ASVAT_Modelling.Make_Model (E, ASVAT_Model);
-         Put_Line ("ASVAT_Model done");
 
       elsif not Has_Completion (E) then
          --  Here it would be possible to nondet outputs specified
@@ -5056,7 +5012,6 @@ package body Tree_Walk is
       Underlying : Irep;
       Constr : Node_Id;
    begin
-      Put_Line ("In Do_Subtype_Indication");
       case Nkind (N) is
          when N_Subtype_Indication =>
             Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
@@ -5195,9 +5150,7 @@ package body Tree_Walk is
    -------------------------
 
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
-      Unit : constant String := Unique_Name (Defining_Entity (N));
    begin
-      Put_Line (Unit);
       if Defining_Entity (N) = Stand.Standard_Standard then
          --  TODO: github issue #252
          --  At the moment Standard is not processed
@@ -6126,7 +6079,6 @@ package body Tree_Walk is
 
          when N_Procedure_Call_Statement =>
             Append_Op (Block, Do_Procedure_Call_Statement (N));
-            Put_Line ("Return from call");
 
          when N_Simple_Return_Statement =>
             if No_Return (Return_Applies_To (Return_Statement_Entity (N)))

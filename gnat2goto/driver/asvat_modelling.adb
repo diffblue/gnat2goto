@@ -478,19 +478,12 @@ package body ASVAT_Modelling is
                  I_Type          => Make_Bool_Type,
                  Range_Check     => False);
          begin
-            Put_Line ("Followed_Type");
-            Print_Irep (Followed_Type);
-            Put_Line ("Resolved_Var");
-            Print_Irep (Resolved_Var);
-            Put_Line ("Low_Bound_Irep");
-            Print_Irep (Low_Bound_Irep);
-            Put_Line ("High_Bound_Irep");
-            Print_Irep (High_Bound_Irep);
-            Put_Line ("Low_Bound_Condition");
-            Print_Irep (Low_Bound_Condition);
-            Put_Line ("Hogh_Bound_Condition");
-            Print_Irep (High_Bound_Condition);
-
+            Print_Modelling_Message
+              ("Making in type function " & Function_Name &
+                 " (" & Get_Name_String
+                 (Chars (Defining_Identifier (Parameter))) &
+                 " : " & Unique_Name (Param_Type) &
+                 ") return Boolean)", Sloc (E));
             Print_Modelling_Message
               ("Check (" &
                  Param_Name & " >= " & Unique_Name (Param_Type)
@@ -501,12 +494,6 @@ package body ASVAT_Modelling is
             Append_Op (And_Conditions, Low_Bound_Condition);
             Append_Op (And_Conditions, High_Bound_Condition);
             Append_Op (Function_Body, Return_Statement);
-            Put_Line ("Conditions");
-            Print_Irep (And_Conditions);
-            Put_Line ("Return Statement");
-            Print_Irep (Return_Statement);
-            Put_Line ("Body");
-            Print_Irep (Function_Body);
             return Function_Body;
          end;
       else
@@ -549,12 +536,8 @@ package body ASVAT_Modelling is
       Subprog_Sym : Symbol := Global_Symbol_Table (Subprog_Id);
    begin
       Subprog_Sym.Value := Subprog_Body;
-      Put_Line ("Updating symbol table");
       --  The model body is now made the body of the subprogram.
-      Put_Line ("The Subprogram body");
-      Print_Irep (Subprog_Body);
       Global_Symbol_Table.Replace (Subprog_Id, Subprog_Sym);
-      Put_Line ("Symbol_Table_Updated");
    end Make_Model;
 
    --------------------------
@@ -599,7 +582,6 @@ package body ASVAT_Modelling is
       Print_Modelling_Message
         ("Making nondet function " & Function_Name &
            " : " & Unique_Name (Etype (E)), Sloc (E));
-      Print_Irep (Return_Type_Irep);
 
       Append_Op (Function_Body, Declaration);
 
