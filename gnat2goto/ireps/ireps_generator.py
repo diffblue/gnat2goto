@@ -1549,8 +1549,8 @@ class IrepsGenerator(object):
         write(b, "")
 
 
-        write(b, "function New_Irep (Kind : Valid_Irep_Kind) return Irep;")
-        write(b, "")
+        write(s, "function New_Irep (Kind : Valid_Irep_Kind) return Irep;")
+        write(s, "")
 
         write_comment_block(b, "New_Irep")
         write(b, "function New_Irep (Kind : Valid_Irep_Kind) return Irep")

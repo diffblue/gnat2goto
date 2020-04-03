@@ -835,6 +835,15 @@ package body Tree_Walk is
 
    begin
       Handle_Parameters (N);
+      declare
+         Arg_List : constant Irep_List := Get_Argument (Args);
+         Cursor : constant List_Cursor :=
+           List_First (Arg_List);
+         El : constant Irep := List_Element (Arg_List, Cursor);
+      begin
+         Print_Irep (El);
+      end;
+
       return Args;
    end Do_Call_Parameters;
 
