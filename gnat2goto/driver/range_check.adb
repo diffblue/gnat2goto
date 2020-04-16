@@ -497,6 +497,16 @@ package body Range_Check is
               Int32_T
          else
             Value_Expr_Type_Raw);
+
+      Resolved_Value_Expr : constant Irep :=
+        (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
+              Typecast_If_Necessary
+           (Expr           => Value_Expr,
+            New_Type       => Int32_T,
+            A_Symbol_Table => Global_Symbol_Table)
+         else
+            Value_Expr);
+
       type Adjusted_Value_And_Bounds_T is
          record
             Value_Expr : Irep;
@@ -515,12 +525,12 @@ package body Range_Check is
          if Greater_Width then
             return (
                     Value_Expr => Typecast_If_Necessary
-                      (Value_Expr, Bound_Type, Global_Symbol_Table),
+                      (Resolved_Value_Expr, Bound_Type, Global_Symbol_Table),
                     Upper_Bound => Upper_Bound,
                     Lower_Bound => Lower_Bound);
          else
             return (
-                    Value_Expr => Value_Expr,
+                    Value_Expr => Resolved_Value_Expr,
                     Upper_Bound => Typecast_If_Necessary
                       (Upper_Bound, Value_Expr_Type, Global_Symbol_Table),
                     Lower_Bound => Typecast_If_Necessary
