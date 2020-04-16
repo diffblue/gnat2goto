@@ -962,7 +962,7 @@ package body Tree_Walk is
         Intern (Unique_Name (Unique_Defining_Entity (U)));
       Unit_Symbol : Symbol;
    begin
-      --  Insert all all specifications of all withed units including the
+      --  Insert specifications of all withed units including the
       --  specification of the given compilation unit into the symbol table.
       Do_Withed_Units_Specs;
 
@@ -1208,12 +1208,14 @@ package body Tree_Walk is
       Enum_Body : constant Irep := Make_C_Enum_Members;
       Enum_Type_Symbol : constant Irep := Make_Symbol_Type
         (Identifier => Unique_Name (Defining_Identifier (Parent (N))));
-      Member : Node_Id := First (Literals (N));
+      First_Member : constant Node_Id := First (Literals (N));
+      Member : Node_Id := First_Member;
+      Last_Member : Node_Id := First_Member;
    begin
       loop
          declare
             Val_String : constant String :=
-              UI_Image (Enumeration_Rep (Member));
+              UI_Image (Enumeration_Pos (Member));
             Val_Name : constant String := Unique_Name (Member);
             Base_Name : constant String := Get_Name_String (Chars (Member));
             Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
@@ -1224,7 +1226,7 @@ package body Tree_Walk is
             Member_Symbol_Init : constant Irep := Make_Constant_Expr
               (I_Type => Make_Signedbv_Type (Integer (Member_Size)),
                Value => Convert_Uint_To_Hex
-                 (Enumeration_Rep (Member), Member_Size),
+                 (Enumeration_Pos (Member), Member_Size),
                Source_Location => Get_Source_Location (Member));
             Typecast_Expr : constant Irep := Make_Op_Typecast
               (Op0 => Member_Symbol_Init,
@@ -1238,11 +1240,19 @@ package body Tree_Walk is
                                      Value_Expr     => Typecast_Expr,
                                      A_Symbol_Table => Global_Symbol_Table);
          end;
+         Last_Member := Member;
          Next (Member);
          exit when not Present (Member);
       end loop;
+
       return Make_C_Enum_Type
-        (I_Subtype => Make_Signedbv_Type (32), -- FIXME why 32?
+        (I_Subtype =>
+           Make_Bounded_Signedbv_Type
+             (Width       => 32, -- FIXME why 32?
+              Lower_Bound => Store_Symbol_Bound
+                (Bound_Type_Symbol (Do_Defining_Identifier (First_Member))),
+              Upper_Bound => Store_Symbol_Bound
+                (Bound_Type_Symbol (Do_Defining_Identifier (Last_Member)))),
          I_Body => Enum_Body);
    end Do_Enumeration_Definition;
 
@@ -4311,7 +4321,7 @@ package body Tree_Walk is
          Set_Bound_Value (Upper_Bound, Upper_Bound_Value, Ok);
          if not Ok then
             return Report_Unhandled_Node_Type
-              (Lower_Bound,
+              (Upper_Bound,
                "Do_Range_Constraint",
                "unsupported upper range kind");
          end if;
