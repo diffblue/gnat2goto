@@ -27,13 +27,12 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;
 with Sinput;
+with ASVAT_Address_Model;    use type
+  ASVAT_Address_Model.Address_To_Access_Functions;
 with ASVAT_Modelling;
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
-
-   function Do_Address_Of (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Attribute_Reference;
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Aggregate;
@@ -90,7 +89,7 @@ package body Tree_Walk is
            I_Symbol_Expr | I_Dereference_Expr;
 
    function Do_Dereference (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Explicit_Dereference,
+     with Pre  => Nkind (N) = N_Explicit_Dereference,
         Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
 
    function Do_Derived_Type_Definition (N : Node_Id) return Irep
@@ -767,6 +766,13 @@ package body Tree_Walk is
    is
       Args : constant Irep := Make_Argument_List;
 
+      --  A formal access parameter cannot be mode out (an Ada rule) and
+      --  an actual corresponding to the formal access parameter must be an
+      --  access type (again an Ada rule and checked by the front end).
+      --  Therefore, the actual parameter will be a goto pointer type and
+      --  does not need wrapping into a pointer.  Since the mode of a formal
+      --  access parameter cannot be out or in out the Wrap_Argument function
+      --  will not wrap the corresponding actual parameter.
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
          (if Is_Out
          then Make_Address_Of (Base)
@@ -821,9 +827,10 @@ package body Tree_Walk is
             return;
          end if;
 
-         Actual_Irep := Wrap_Argument (
-          Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
-                                 Formal_Type, Global_Symbol_Table), Is_Out);
+         Actual_Irep := Wrap_Argument
+           (Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
+            Formal_Type, Global_Symbol_Table), Is_Out);
+
          Append_Argument (Args, Actual_Irep);
 
       end Handle_Parameter;
@@ -835,15 +842,6 @@ package body Tree_Walk is
 
    begin
       Handle_Parameters (N);
-      declare
-         Arg_List : constant Irep_List := Get_Argument (Args);
-         Cursor : constant List_Cursor :=
-           List_First (Arg_List);
-         El : constant Irep := List_Element (Arg_List, Cursor);
-      begin
-         Print_Irep (El);
-      end;
-
       return Args;
    end Do_Call_Parameters;
 
@@ -969,7 +967,7 @@ package body Tree_Walk is
         Intern (Unique_Name (Unique_Defining_Entity (U)));
       Unit_Symbol : Symbol;
    begin
-      --  Insert all all specifications of all withed units including the
+      --  Insert specifications of all withed units including the
       --  specification of the given compilation unit into the symbol table.
       Do_Withed_Units_Specs;
 
@@ -1350,9 +1348,8 @@ package body Tree_Walk is
             case Get_Attribute_Id (Attribute_Name (N)) is
                when Attribute_Access => return Do_Address_Of (N);
                when Attribute_Address =>
-                  --  The simplest way to model X'Address in ASVAT
-                  --  is as an access to the object.
-                  return Do_Address_Of (N);
+                  --  Use the ASVAT_Address_Model to create the address.
+                  return ASVAT_Address_Model.Do_ASVAT_Address_Of (N);
                when Attribute_Length => return Do_Array_Length (N);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
@@ -1461,17 +1458,7 @@ package body Tree_Walk is
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
          when N_Aggregate            => return Do_Aggregate_Literal (N);
-         when N_Indexed_Component    =>
-            if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-              and then
-                Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-              = "string"
-            then
-               return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                "Index of string unsupported");
-            else
-               return Do_Indexed_Component (N);
-            end if;
+         when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
          when N_In                   =>  return Do_In (N);
          when N_Real_Literal => return Do_Real_Constant (N);
@@ -1726,11 +1713,16 @@ package body Tree_Walk is
 
    function Do_Function_Call (N : Node_Id) return Irep
    is
-      Func_Ent     : Entity_Id;
-      Func_Name    : Symbol_Id;
-      Func_Symbol  : Symbol;
+      Func_Ent      : Entity_Id;
+      Func_Name     : Symbol_Id;
+      Func_Declared : Boolean;
+      Func_Symbol   : Symbol;
 
    begin
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the function call is an implicit dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
             Fun_Type : constant Irep :=
@@ -1761,18 +1753,37 @@ package body Tree_Walk is
          return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
                                             "Wrong name nkind");
       end if;
+
       Func_Ent := Entity (Name (N));
       Func_Name := Intern (Unique_Name (Func_Ent));
+      Func_Declared := Global_Symbol_Table.Contains (Func_Name);
 
       if Nkind (Func_Ent) /= N_Defining_Identifier then
          return Report_Unhandled_Node_Irep (Func_Ent, "Do_Function_Call",
                                     "function entity not defining identifier");
       end if;
 
-      if Global_Symbol_Table.Contains (Func_Name) then
-         Func_Symbol  := Global_Symbol_Table (Func_Name);
-         --  ??? why not get this from the entity
+      if Is_Intrinsic_Subprogram (Func_Ent) then
+         if not Func_Declared then
+            return Report_Unhandled_Node_Irep
+              (N, "Do_Function_Call",
+               "Intrinsic function " &
+                 Unintern (Func_Name) &
+                 " is not in symbol table");
+         elsif Global_Symbol_Table (Func_Name).Value = CProver_Nil then
+            return Report_Unhandled_Node_Irep
+              (N, "Do_Function_Call",
+               "Intrinsic function " &
+                 Unintern (Func_Name) &
+                 " has no defined body");
+         end if;
+      end if;
 
+      --  Here, either it is not an intrinsic function or the intrinsic
+      --  function is in the symbol table and has a goto body defined.
+
+      if Func_Declared then
+         Func_Symbol  := Global_Symbol_Table (Func_Name);
          return Make_Side_Effect_Expr_Function_Call
            (Source_Location => Get_Source_Location (N),
             I_Function => Symbol_Expr (Func_Symbol),
@@ -1781,8 +1792,11 @@ package body Tree_Walk is
       else
          --  This can happen for RTS functions (body not parsed by us)
          --  TODO: handle RTS functions in a sane way
-         return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
-                                            "func name not in symbol table");
+         --  TJJ: I'm not sure this can happen now
+         --  we check for intrinsic functions as above.
+         return Report_Unhandled_Node_Irep
+           (N, "Do_Function_Call",
+            "function " & Unintern (Func_Name) & " not in symbol table");
       end if;
    end Do_Function_Call;
 
@@ -2855,6 +2869,13 @@ package body Tree_Walk is
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Compile_Time_Warning |
+            --  A pragma to print out text as a warning at compile time.
+            --  Gnat2goto is not compiling it is generating a model from
+            --  source code which has been previously compiled and any warning
+            --  generated by pragma Compile_Time_Warning will have been
+            --  displayed and accepted at that time. Gnat2goto can safely
+            --  ignore the pragma.
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
@@ -4134,13 +4155,17 @@ package body Tree_Walk is
 
    end Do_Private_Type_Declaration;
 
-   ---------------------------------
+   --------------------------------
    -- Do_Procedure_Call_Statement --
    ---------------------------------
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
    begin
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the procedure call is an implicit dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
             Fun_Type : constant Irep :=
@@ -4518,7 +4543,27 @@ package body Tree_Walk is
    ---------------------------
 
    function Do_Selected_Component (N : Node_Id) return Irep is
-      Root           : constant Irep := Do_Expression (Prefix (N));
+      --  The prefix to a selected component may be an access to an
+      --  record object which must be implicitly dereferenced.
+      The_Prefix        : constant Node_Id := Prefix (N);
+      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
+      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
+      Resolved_Type     : constant Irep :=
+        (if Is_Implicit_Deref then
+            Do_Type_Reference (Designated_Type (Prefix_Etype))
+         else
+            Do_Type_Reference (Prefix_Etype));
+      Root            : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (I_Type => Resolved_Type,
+            Object => Prefix_Irep,
+            Source_Location => Get_Source_Location (N))
+         else
+            Prefix_Irep);
+
+      --  Where required the prefix has been implicitly dereferenced.
       Component      : constant Entity_Id := Entity (Selector_Name (N));
 
       --  Example:
@@ -4800,10 +4845,11 @@ package body Tree_Walk is
       --  is processed, either from the declaration or the subprogram body
       --  if the subprogram does not have a declaration.
       E : constant Node_Id := Defining_Unit_Name (Specification (N));
+
       ASVAT_Model : constant ASVAT_Modelling.Model_Sorts :=
         ASVAT_Modelling.Get_Model_Sort (E);
       Is_ASVAT_Model : constant Boolean :=
-        ASVAT_Modelling.Is_Model (ASVAT_Model);
+      ASVAT_Modelling.Is_Model (ASVAT_Model);
 
       Proc_Symbol : Symbol;
    begin
@@ -4874,7 +4920,29 @@ package body Tree_Walk is
 
       if ASVAT_Modelling.Is_Model (ASVAT_Model) then
          ASVAT_Modelling.Make_Model (E, ASVAT_Model);
-
+      elsif Is_Intrinsic_Subprogram (E)
+        and Nkind (Specification (N)) = N_Function_Specification
+      then
+         Check_For_Intrinsic_Address_Functions :
+         declare
+            Fun_Sort : constant
+              ASVAT_Address_Model.Address_To_Access_Functions :=
+                ASVAT_Address_Model.Get_Intrinsic_Address_Function (E);
+         begin
+            if Fun_Sort = ASVAT_Address_Model.To_Pointer_Function then
+               --  Make a body for
+               --  function To_Pointer (System.Address) return access T.
+               ASVAT_Address_Model.Make_To_Pointer (E);
+            elsif Fun_Sort = ASVAT_Address_Model.To_Address_Function then
+              --  Make a body for
+              --  function To_Pointer (V : T) return Systen.Address.
+               ASVAT_Address_Model.Make_To_Address (E);
+            else
+               --  If the intrinsic funtion is not from an instatiation of
+               --  the System.Address_To_Access package nothing is done.
+               null;
+            end if;
+         end Check_For_Intrinsic_Address_Functions;
       elsif not Has_Completion (E) then
          --  Here it would be possible to nondet outputs specified
          --  in subprogram specification but at present nothing is done.
@@ -4890,7 +4958,6 @@ package body Tree_Walk is
                "pragma Global unsupported on completed subprograms");
          end if;
       end if;
-
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -4956,38 +5023,60 @@ package body Tree_Walk is
       Param_Iter : Node_Id := First (Parameter_Specifications (N));
    begin
       while Present (Param_Iter) loop
-         if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
-            return Report_Unhandled_Node_Type
-              (N,
-               "Do_Subprogram_Specification",
-               "Param iter type not have etype");
-         end if;
          declare
-            Is_Out : constant Boolean := Out_Present (Param_Iter);
-
-            Param_Name : constant String :=
-                Unique_Name (Defining_Identifier (Param_Iter));
-
-            Param_Type_Base : constant Irep :=
-              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
-            Param_Type : constant Irep :=
-              (if Is_Out
-                 then Make_Pointer_Type (Param_Type_Base)
-                 else Param_Type_Base);
-            Param_Irep : constant Irep := Make_Code_Parameter
-              (Source_Location => Get_Source_Location (Param_Iter),
-               I_Type => Param_Type,
-               Identifier => Param_Name,
-               Base_Name => Param_Name,
-               This => False,
-               Default_Value => Ireps.Empty);
+            Param_Sort : constant Node_Id := Parameter_Type (Param_Iter);
          begin
-            Append_Parameter (Param_List, Param_Irep);
-            New_Parameter_Symbol_Entry (Name_Id        => Intern (Param_Name),
-                                        BaseName       => Param_Name,
-                                        Symbol_Type    => Param_Type,
-                                        A_Symbol_Table => Global_Symbol_Table);
-            Next (Param_Iter);
+            if not (Nkind (Param_Sort)
+                    in N_Has_Etype | N_Access_Definition)
+            then
+               return Report_Unhandled_Node_Type
+                 (N,
+                  "Do_Subprogram_Specification",
+                  "Param iter is not an access parameter or has no etype");
+            end if;
+            declare
+               Is_Out : constant Boolean := Out_Present (Param_Iter);
+
+               --  A subprogram can have a formal access parameter of the form
+               --  procedure P (Ptr_To_ObjectOf_Type_T : access T);
+               Is_Access_Param : constant Boolean :=
+                 Nkind (Param_Sort) = N_Access_Definition;
+
+               Param_Name : constant String :=
+                 Unique_Name (Defining_Identifier (Param_Iter));
+
+               Param_Ada_Type  : constant Node_Id :=
+                 (if Is_Access_Param then
+                     Etype (Subtype_Mark (Param_Sort))
+                  else
+                     Etype (Parameter_Type (Param_Iter)));
+
+               Param_Type_Base : constant Irep :=
+                 Do_Type_Reference (Param_Ada_Type);
+
+               --  If the formal parameter is mode out or in out,
+               --  or is an access parameter, it is made into a pointer
+               Param_Type : constant Irep :=
+                 (if Is_Out or Is_Access_Param then
+                     Make_Pointer_Type (Param_Type_Base)
+                  else Param_Type_Base);
+               Param_Irep : constant Irep := Make_Code_Parameter
+                 (Source_Location => Get_Source_Location (Param_Iter),
+                  I_Type => Param_Type,
+                  Identifier => Param_Name,
+                  Base_Name => Param_Name,
+                  This => False,
+                  Default_Value => Ireps.Empty);
+            begin
+               Append_Parameter (Param_List, Param_Irep);
+               New_Parameter_Symbol_Entry
+                 (Name_Id        => Intern (Param_Name),
+                  BaseName       => Param_Name,
+                  Symbol_Type    => Param_Type,
+                  A_Symbol_Table => Global_Symbol_Table);
+
+               Next (Param_Iter);
+            end;
          end;
       end loop;
       return Make_Code_Type
@@ -5078,15 +5167,27 @@ package body Tree_Walk is
 
    procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id) is
       New_Type        : constant Irep := New_Type_In;
-      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (E));
+      New_Type_Name   : constant String := Unique_Name (E);
+      New_Type_Name_Id   : constant Symbol_Id := Intern (New_Type_Name);
       New_Type_Symbol : constant Symbol :=
-        Make_Type_Symbol (New_Type_Name, New_Type);
+        Make_Type_Symbol (New_Type_Name_Id,
+                          (if New_Type_Name /= "system__address" then
+                           --  For all type declarations except the
+                           --  private type System.Address we use the
+                           --  type declared in the source code.
+                              New_Type
+                           else
+                           --  System.Address is modelled as a pointer
+                           --  to a byte (an array of bytes).
+                              Make_Pointer_Type
+                             (I_Subtype => Make_Unsignedbv_Type (8),
+                              Width     => Pointer_Type_Width)));
    begin
       if Kind (New_Type) = I_Struct_Type then
-         Set_Tag (New_Type, Unintern (New_Type_Name));
+         Set_Tag (New_Type, New_Type_Name);
       end if;
-      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name) then
-         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name,
+      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name_Id) then
+         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name_Id,
                              New_Type_Symbol);
       end if;
    end Do_Type_Declaration;
@@ -5959,6 +6060,13 @@ package body Tree_Walk is
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Compile_Time_Warning |
+            --  A pragma to print out text as a warning at compile time.
+            --  Gnat2goto is not compiling it is generating a model from
+            --  source code which has been previously compiled and any warning
+            --  generated by pragma Compile_Time_Warning will have been
+            --  displayed and accepted at that time. Gnat2goto can safely
+            --  ignore the pragma.
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored

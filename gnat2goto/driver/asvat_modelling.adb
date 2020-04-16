@@ -12,8 +12,6 @@ with Follow;                  use Follow;
 with GOTO_Utils;              use GOTO_Utils;
 with Range_Check;             use Range_Check;
 with Ada.Text_IO;             use Ada.Text_IO;
-with Treepr;                  use Treepr;
---  with System;
 package body ASVAT_Modelling is
 
    function Find_Model (Model : String) return Model_Sorts;
@@ -32,67 +30,6 @@ package body ASVAT_Modelling is
      (Is_Type : Boolean; E : Entity_Id) return String
    with Pre => Ekind (E) in E_Variable | E_Constant and then
      Get_Model_Sort (E) = Represents;
-
-   function Lets_Look (E : Node_Id) return Irep;
-   function Lets_Look (E : Node_Id) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (E);
-      Parameter : constant Node_Id :=
-        First (Parameter_Specifications (Declaration_Node (E)));
-
---        Function_Body     : constant Irep :=
---          Make_Code_Block (Source_Location);
-      Param_Name : constant String :=
-        Unique_Name (Defining_Identifier (Parameter));
-      Param_Entity    : constant Node_Id := Defining_Identifier (Parameter);
-      Param_Type        : constant Node_Id := Etype (Param_Entity);
---        Followed_Type     : constant Irep :=
---          Follow_Symbol_Type (Do_Type_Reference (Param_Type),
---                              Global_Symbol_Table);
-      Param_Irep        : constant Irep :=
-        Make_Symbol_Expr
-          (Source_Location => Source_Location,
-           I_Type          => Make_Pointer_Type (Make_Void_Type),
-           Range_Check     => False,
-           Identifier      => Param_Name);
-      Resolved_Var : constant Irep :=
-        Cast_Enum (Param_Irep, Global_Symbol_Table);
-
-      Deref_Var : constant Irep :=
-        Make_Dereference_Expr
-          (Object          => Resolved_Var,
-           Source_Location => Source_Location);
-      Cond : constant Irep :=
-        Make_Op_Eq
-          (Rhs             => Deref_Var,
-           Lhs             => Deref_Var,
-           Source_Location => Source_Location,
-           Overflow_Check  => False,
-           I_Type          => CProver_Bool_T,
-           Range_Check     => False);
-
-      Subprog_Body : constant Irep := Make_Code_Block (Source_Location);
-
-      Assert : constant Irep :=
-        Make_Assume_Call
-          (Assumption     => Cond,
-           Source_Loc     => Source_Location,
-           A_Symbol_Table => Global_Symbol_Table);
-
-   begin
-      Put_Line (Param_Name);
-      Put_Line (Unique_Name (Param_Type));
-      Print_Node_Briefly (Parameter);
-      Print_Node_Briefly (Param_Entity);
-      --     Print_Irep (Followed_Type);
-      Print_Irep (Param_Irep);
-      Print_Irep (Resolved_Var);
-      Print_Irep (Get_Type (Resolved_Var));
-      Print_Irep (Deref_Var);
-
-      Append_Op (Subprog_Body, Assert);
-
-      return Subprog_Body;
-   end Lets_Look;
 
    ------------------------------------
    -- Do_Parameterless_Function_Call --
@@ -560,7 +497,7 @@ package body ASVAT_Modelling is
       else
          return Report_Unhandled_Node_Irep
            (E,
-            "Do_Var_In_Type",
+            "Make_In_Type_Function",
             Irep_Kind'Image (Kind (Followed_Type)) &
               " objects not supported");
       end if;
@@ -580,14 +517,6 @@ package body ASVAT_Modelling is
       (case Model is
          when Nondet_Function  => Make_Nondet_Function (E),
          when In_Type_Function => Make_In_Type_Function (E),
-          when Memcpy =>
-             Lets_Look (E),
---               Make_Memcpy_Procedure (E);
---              Report_Unhandled_Node_Irep
---                (N        => E,
---                 Fun_Name => "Make_Model",
---                 Message  => "ASVAT model Memcpy" &
---                   " is currently unsupported"),
          when others =>
             Report_Unhandled_Node_Irep
               (N        => E,

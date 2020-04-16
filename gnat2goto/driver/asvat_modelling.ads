@@ -114,13 +114,14 @@
 with Types;                   use Types;
 with Atree;                   use Atree;
 with Sinfo;                   use Sinfo;
+--  with Einfo;                   use Einfo;
 with Sem_Util;                use Sem_Util;
 with Snames;                  use Snames;
 with Ireps;                   use Ireps;
 package ASVAT_Modelling is
    type Model_Sorts is
      (Not_A_Model, Nondet_Function, In_Type_Function,
-      Nondet_Vars, Nondet_In_Type_Vars, Represents, Memcpy);
+      Nondet_Vars, Nondet_In_Type_Vars, Represents);
    subtype Valid_Model is Model_Sorts range
      Nondet_Function .. Model_Sorts'Last;
 
@@ -156,7 +157,7 @@ package ASVAT_Modelling is
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts);
 
 private
-   Print_Message : constant Boolean := True;
+   Print_Message : constant Boolean := False;
 
    function Get_Actual_Obj_Name (Obj : Entity_Id;
                                  Replace_Object : Boolean) return String;
