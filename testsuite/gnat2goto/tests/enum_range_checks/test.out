@@ -1,0 +1,5 @@
+[enum.assertion.1] line 8 assertion A = Get_A: SUCCESS
+[enum.assertion.2] line 10 assertion B = Get_B: SUCCESS
+[enum.assertion.3] line 12 assertion Get_A /= Get_B: SUCCESS
+[enum.assertion.4] line 14 assertion Get_A = Get_B: FAILURE
+VERIFICATION FAILED
