@@ -1268,15 +1268,49 @@ package body Tree_Walk is
          exit when not Present (Member);
       end loop;
 
-      return Make_C_Enum_Type
-        (I_Subtype =>
-           Make_Bounded_Signedbv_Type
-             (Width       => 32, -- FIXME why 32?
-              Lower_Bound => Store_Symbol_Bound
-                (Bound_Type_Symbol (Do_Defining_Identifier (First_Member))),
-              Upper_Bound => Store_Symbol_Bound
-                (Bound_Type_Symbol (Do_Defining_Identifier (Last_Member)))),
-         I_Body => Enum_Body);
+      declare
+         function Make_Char_Symbol (N : Node_Id) return Irep is
+           (Make_Symbol_Expr
+              (Source_Location => Get_Source_Location (N),
+               I_Type          => Enum_Type_Symbol,
+               Range_Check     => False,
+               Identifier      => Unique_Name (N)))
+            with Pre => Nkind (N) = N_Defining_Character_Literal;
+
+         Lower_Bound : constant Irep :=
+           (case Nkind (First_Member) is
+               when N_Defining_Identifier =>
+                  Do_Defining_Identifier (First_Member),
+               when N_Defining_Character_Literal =>
+                  Make_Char_Symbol (First_Member),
+               when others =>
+                  Report_Unhandled_Node_Irep
+              (N        => First_Member,
+               Fun_Name => "Do_Enumeration_Definition",
+               Message  => "Incorrect Enumeration Literal"));
+
+         Upper_Bound : constant Irep :=
+           (case Nkind (Last_Member) is
+               when N_Defining_Identifier =>
+                  Do_Defining_Identifier (Last_Member),
+               when N_Defining_Character_Literal =>
+                  Make_Char_Symbol (Last_Member),
+               when others =>
+                  Report_Unhandled_Node_Irep
+              (N        => Last_Member,
+               Fun_Name => "Do_Enumeration_Definition",
+               Message  => "Incorrect Enumeration Literal"));
+      begin
+         return Make_C_Enum_Type
+           (I_Subtype =>
+              Make_Bounded_Signedbv_Type
+                (Width       => 32, -- FIXME why 32?
+                 Lower_Bound => Store_Symbol_Bound
+                   (Bound_Type_Symbol (Lower_Bound)),
+                 Upper_Bound => Store_Symbol_Bound
+                   (Bound_Type_Symbol (Upper_Bound))),
+            I_Body => Enum_Body);
+      end;
    end Do_Enumeration_Definition;
 
    function Do_Attribute_Pos_Val (N : Node_Id) return Irep is
