@@ -961,10 +961,9 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id; Unit_Is_Subprogram : out Boolean)
-     return Symbol
+   function Do_Compilation_Unit (N : Node_Id) return Symbol
    is
-      U           : constant Node_Id := Unit (N);
+      U         : constant Node_Id := Unit (N);
       Unit_Name : constant Symbol_Id :=
         Intern (Unique_Name (Unique_Defining_Entity (U)));
       Unit_Symbol : Symbol;
@@ -975,31 +974,29 @@ package body Tree_Walk is
 
       case Nkind (U) is
          when N_Subprogram_Body =>
-            --  The specification of the subprogram body has already
-            --  been inserted into the symbol table by the call to
-            --  Do_Withed_Unit_Specs.
+            --  The subprogram specification will have been entered into the
+            --  symbol table by Do_Withed_Unit_Specs.
+            --  Now the subprogram's body is added to the symbol table.
             pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
             Unit_Symbol := Global_Symbol_Table (Unit_Name);
-
-            --  Now compile the body of the subprogram
             Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
 
             --  and update the symbol table entry for this subprogram.
             Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
-            Unit_Is_Subprogram := True;
 
          when N_Package_Body =>
             declare
                Dummy : constant Irep := Do_Subprogram_Or_Block (U);
                pragma Unreferenced (Dummy);
             begin
-            --  The specification of the package body has already
-            --  been inserted into the symbol table by the call to
-            --  Do_Withed_Unit_Specs.
+               --  The specification of the package body has already
+               --  been inserted into the symbol table by the call to
+               --  Do_Withed_Unit_Specs.
+               --  Add the package body to the symbol table.
                pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
                Unit_Symbol := Global_Symbol_Table (Unit_Name);
-               Unit_Is_Subprogram := False;
             end;
+
          when N_Subprogram_Declaration | N_Package_Declaration =>
             --  Package and subprogram declarations are processed
             --  when they appear in a with statement.
@@ -1010,7 +1007,7 @@ package body Tree_Walk is
             --  think such uses would be unusual (TJJ 21/11/2019)
             null;
          when N_Generic_Subprogram_Declaration
-           | N_Generic_Package_Declaration =>
+            | N_Generic_Package_Declaration =>
             --  Generic subprograms and packages
             --  don't need to specially handled
             --  because their instantiations appear as nodes
@@ -1018,7 +1015,7 @@ package body Tree_Walk is
             null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Do_Compilation_Unit",
-                                         "Generic units are unsupported");
+                                         "unsupported compilation unit sort");
       end case;
 
       return Unit_Symbol;
