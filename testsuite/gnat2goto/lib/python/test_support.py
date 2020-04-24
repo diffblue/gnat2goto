@@ -62,13 +62,22 @@ def process_gnat2goto(debug, file, is_main):
     return True
 
 # only run the following if gnat2goto succeeded
-def process_cbmc(debug, files, cbmcargs):
+def process_cbmc(debug, files, specs, cbmcargs):
     """Process Ada file with gnat2goto and cbmc"""
     jsout = []
     for file in files:
         unit          = os.path.splitext(file)[0]
         file_jsout    = unit + ".json_symtab"
-        jsout.append(file_jsout)
+        # json_symtab files are not generated for generic bodies
+	if os.path.exists(file_jsout):
+            jsout.append(file_jsout)
+
+    for file in specs:
+        unit          = os.path.splitext(file)[0]
+        file_jsout    = unit + ".json_symtab"
+        # json_symtab are only generated for specifications if it is a generic instantiation
+	if os.path.exists(file_jsout):
+            jsout.append(file_jsout)
 
     cbmcerr = TEST_NAME + "cbmc_error"
 
@@ -99,19 +108,25 @@ def filter_cbmc_output(cbmc_output):
     lines = cbmc_output.split("\n")
     return "\n".join(filter(cbmc_match, lines))
 
-def prove(cbmcargs="", main="", debug=False):
+def prove(cbmcargs="", main="", specs=[], debug=False):
     """Call gnat2goto (and cbmc) on all *.adb files from the current directory
 
     PARAMETERS
       cbmcargs: arguments to be passed to CBMC
       main: name of the file containing the entry point
+      specs A list of the Ada specification files that need to be included
+            required for library-level generic instantiations.
       debug: flag indicating if debug output should be printed out
     """
     for file in ada_body_files():
         gnat2goto_success = process_gnat2goto(debug, file, main == "" or file == main)
         if not gnat2goto_success:
             return ""
-    out = process_cbmc(debug, ada_body_files(), cbmcargs)
+    for file in specs:
+        gnat2goto_success = process_gnat2goto(debug, file, False)
+        if not gnat2goto_success:
+            return ""
+    out = process_cbmc(debug, ada_body_files(), specs, cbmcargs)
     if debug:
         print('<<< DEBUG ' + file + ' >>>')
         print(out)
