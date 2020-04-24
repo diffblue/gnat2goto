@@ -358,6 +358,9 @@ package body Driver is
 
       The_Unit   : constant Node_Id := Unit (GNAT_Root);
 
+      Unit_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Unique_Defining_Entity (The_Unit)));
+
       --  Only add CPROVER_Start if the unit is subprogram body
       --  and the user did not suppress it (by cmdl option).
       Add_Start : constant Boolean :=
@@ -370,13 +373,21 @@ package body Driver is
 
       Sanitised_Symbol_Table : Symbol_Table;
    begin
-      if Nkind (The_Unit) not in  N_Subprogram_Body | N_Package_Body then
-         --  Only non-generic compilation unit bodies are translated.
-         --  Generic instances are expanf=ded by the front-end and appear
-         --  in the tree as normal subprograms and packages.
-         --  There is nothomg more to be done.
-         --  If kind of the compilation unit has not been determined
-         --  it cannot be translated (an error will have been reported).
+      if Nkind (The_Unit) not in  N_Subprogram_Body | N_Package_Body or else
+        not Global_Symbol_Table.Contains (Unit_Name)
+      then
+         --  Only non-generic compilation unit bodies generate a
+         --  json symbol table. Generic declarations and their bodies
+         --  do not generate json symbol tables because instances of the
+         --  generic units are expanded in the AST by the front-end.
+         --  Library level generic instantiations, although they are
+         --  declarations, appear in the tree as unit bodies, and so
+         --  gnat2goto will generate a json symbol for such instantiations
+         --  As generic declarations are not translated by Do_Compilation_Unit
+         --  they will not have an entry in the symbol table.
+         --  Hence a unit body which does not have an entry in the
+         --  global symbol table is a generic body and a
+         --  json symbol table is not generated.
          return;
       end if;
 
