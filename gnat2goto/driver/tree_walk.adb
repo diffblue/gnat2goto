@@ -974,28 +974,44 @@ package body Tree_Walk is
 
       case Nkind (U) is
          when N_Subprogram_Body =>
-            --  The subprogram specification will have been entered into the
-            --  symbol table by Do_Withed_Unit_Specs.
+            --  If the unit is not the body of a generic declaration,
+            --  the subprogram specification will have been entered into the
+            --  symbol table by the processing of with'd units including
+            --  the specification of this unit.
             --  Now the subprogram's body is added to the symbol table.
-            pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
-            Unit_Symbol := Global_Symbol_Table (Unit_Name);
-            Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
+            if Global_Symbol_Table.Contains (Unit_Name) then
+               Unit_Symbol := Global_Symbol_Table (Unit_Name);
+               Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
 
-            --  and update the symbol table entry for this subprogram.
-            Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+               --  and update the symbol table entry for this subprogram.
+               Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+            else
+               --  It is the body of a generic declaration and the
+               --  and generic declarations are not translated.
+               --  Gnat2goto does not tranlate the body either snd
+               --  so there is nothing to be done.
+               null;
+            end if;
 
          when N_Package_Body =>
-            declare
-               Dummy : constant Irep := Do_Subprogram_Or_Block (U);
-               pragma Unreferenced (Dummy);
-            begin
-               --  The specification of the package body has already
-               --  been inserted into the symbol table by the call to
-               --  Do_Withed_Unit_Specs.
-               --  Add the package body to the symbol table.
-               pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
-               Unit_Symbol := Global_Symbol_Table (Unit_Name);
-            end;
+            --  If the unit is not the body of a generic declaration,
+            --  the specification of the package body has already
+            --  been inserted into the symbol table by the call to
+            --  Do_Withed_Unit_Specs.
+            if Global_Symbol_Table.Contains (Unit_Name) then
+               declare
+                  Dummy : constant Irep := Do_Subprogram_Or_Block (U);
+                  pragma Unreferenced (Dummy);
+               begin
+                  Unit_Symbol := Global_Symbol_Table (Unit_Name);
+               end;
+            else
+               --  It is the body of a generic declaration and the
+               --  and generic declarations are not translated.
+               --  Gnat2goto does not tranlate the body either snd
+               --  so there is nothing to be done.
+               null;
+            end if;
 
          when N_Subprogram_Declaration | N_Package_Declaration =>
             --  Package and subprogram declarations are processed
