@@ -5413,59 +5413,67 @@ package body Tree_Walk is
                "Address representation clauses are not currently supported");
             return;
          elsif Attr_Id = "size" or else Attr_Id = "component_size" then
-            declare
-               Target_Name : constant Irep := Do_Identifier (Name (N));
-               Entity_Esize : constant Uint := Esize (Entity (N));
-               Target_Type_Irep : constant Irep :=
-                 Follow_Symbol_Type
-                   (Get_Type (Target_Name), Global_Symbol_Table);
-               Expression_Value : constant Uint := Expr_Value (Expression (N));
-            begin
-               pragma Assert (Kind (Target_Type_Irep) in Class_Type);
-               if Attr_Id = "size" then
-
-                  --  Just check that the front-end already applied this size
-                  --  clause, i .e. that the size of type-irep we already had
-                  --  equals the entity type this clause is applied to (and the
-                  --  size specified in this clause).
-                  if Entity_Esize /=
-                       UI_From_Int (Int (Get_Width (Target_Type_Irep)))
-                    or Entity_Esize /= Expression_Value
-                  then
-                     Report_Unhandled_Node_Empty
-                       (N, "Process_Declaration",
-                        "size clause not applied by the front-end");
-                  end if;
-                  return;
-               elsif Attr_Id = "component_size" then
-                  if not Is_Array_Type (Entity (N)) then
-                     Report_Unhandled_Node_Empty
-                       (N, "Process_Declaration",
-                        "Component size only supported for array types");
-                     return;
-                  end if;
-                  declare
-                     Array_Data : constant Irep :=
-                       Get_Data_Component_From_Type (Target_Type_Irep);
-                     Target_Subtype : constant Irep :=
-                       Follow_Symbol_Type (Get_Subtype (Get_Type (Array_Data)),
-                                           Global_Symbol_Table);
-                     Target_Subtype_Width : constant Uint :=
-                       UI_From_Int (Int (Get_Width (Target_Subtype)));
-                  begin
-                     if Component_Size (Entity (N)) /= Expression_Value or
-                       Target_Subtype_Width /= Expression_Value
-                     then
-                        Report_Unhandled_Node_Empty
-                          (N, "Process_Declaration",
-                           "Having component sizes be different from the "
-                           & "size of their underlying type "
-                           & "is currently not supported");
-                     end if;
-                  end;
-                  return;
-               end if;
-            end;
+            --  The following checking is faulty and may cause a precondition
+            --  failure.
+            --  Gnat2goto does not really make use of 'Size directly,
+            --  so for the moment thsi check is commented out until
+            --  a satisfactory solution is found.
+            return;
+--              declare
+--                 Target_Name : constant Irep := Do_Identifier (Name (N));
+--                 Entity_Esize : constant Uint := Esize (Entity (N));
+--                 Target_Type_Irep : constant Irep :=
+--                   Follow_Symbol_Type
+--                     (Get_Type (Target_Name), Global_Symbol_Table);
+--                 Expression_Value : constant Uint :=
+--                     Expr_Value (Expression (N));
+--              begin
+--                 pragma Assert (Kind (Target_Type_Irep) in Class_Type);
+--                 if Attr_Id = "size" then
+--
+--               --  Just check that the front-end already applied this size
+--               --  clause, i .e. that the size of type-irep we already had
+--               --  equals the entity type this clause is applied to (and the
+--               --  size specified in this clause).
+--                    if Entity_Esize /=
+--                         UI_From_Int (Int (Get_Width (Target_Type_Irep)))
+--                      or Entity_Esize /= Expression_Value
+--                    then
+--                       Report_Unhandled_Node_Empty
+--                         (N, "Process_Declaration",
+--                          "size clause not applied by the front-end");
+--                    end if;
+--                    return;
+--                 elsif Attr_Id = "component_size" then
+--                    if not Is_Array_Type (Entity (N)) then
+--                       Report_Unhandled_Node_Empty
+--                         (N, "Process_Declaration",
+--                          "Component size only supported for array types");
+--                       return;
+--                    end if;
+--                    declare
+--                       Array_Data : constant Irep :=
+--                         Get_Data_Component_From_Type (Target_Type_Irep);
+--                       Target_Subtype : constant Irep :=
+--                         Follow_Symbol_Type
+--                            (Get_Subtype (Get_Type (Array_Data)),
+--                                          Global_Symbol_Table);
+--                       Target_Subtype_Width : constant Uint :=
+--                         UI_From_Int (Int (Get_Width (Target_Subtype)));
+--                    begin
+--                       if Component_Size (Entity (N)) /= Expression_Value or
+--                         Target_Subtype_Width /= Expression_Value
+--                       then
+--                          Report_Unhandled_Node_Empty
+--                            (N, "Process_Declaration",
+--                             "Having component sizes be different from the "
+--                             & "size of their underlying type "
+--                             & "is currently not supported");
+--                       end if;
+--                    end;
+--                    return;
+--                 end if;
+--              end;
          elsif Attr_Id = "alignment" then
             --  ASVAT does not model alignment of objects in memory.
             --  Nothing to be done.
