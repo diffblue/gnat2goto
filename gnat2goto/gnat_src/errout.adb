@@ -3219,8 +3219,13 @@ package body Errout is
          --  compilation. Even when the configurations match, this message
          --  may be issued on correct code, because pragma Pack is ignored
          --  in CodePeer mode.
+         --  TJJ 5-may-2020 ASVAT: It seems that SPARK and gnat2goto
+         --  also generate this message and abort compilation even if
+         --  a composite type is not packed even if the configuration
+         --  pragma Implicit_Packing (or Profile (Rational)) is applied.
+         --  So, Gnatprove_Mode added to the test below.
 
-         if CodePeer_Mode then
+         if CodePeer_Mode or GNATprove_Mode then
             return True;
 
          --  When a size is wrong for a frozen type there is no explicit size
