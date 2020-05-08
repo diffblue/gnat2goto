@@ -48,11 +48,6 @@ Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
 --
-Occurs: 24 times
-Calling function: Process_Declaration
-Error message: size clause not applied by the front-end
-Nkind: N_Attribute_Definition_Clause
---
 Occurs: 23 times
 Calling function: Do_Expression
 Error message: Quantified
