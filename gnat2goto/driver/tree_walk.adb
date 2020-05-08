@@ -5412,7 +5412,7 @@ package body Tree_Walk is
               (N, "Process_Declaration",
                "Address representation clauses are not currently supported");
             return;
-         elsif Attr_Id = "size" or else Attr_Id = "component_size" then
+         elsif Attr_Id = "size" then
             --  The following checking is faulty and may cause a precondition
             --  failure.
             --  Gnat2goto does not really make use of 'Size directly,
@@ -5474,6 +5474,44 @@ package body Tree_Walk is
 --                    return;
 --                 end if;
 --              end;
+         elsif Attr_Id = "component_size" then
+            declare
+               Target_Name : constant Irep := Do_Identifier (Name (N));
+               Target_Type_Irep : constant Irep :=
+                 Follow_Symbol_Type
+                   (Get_Type (Target_Name), Global_Symbol_Table);
+               Expression_Value : constant Uint :=
+                   Expr_Value (Expression (N));
+            begin
+               pragma Assert (Kind (Target_Type_Irep) in Class_Type);
+               if not Is_Array_Type (Entity (N)) then
+                  Report_Unhandled_Node_Empty
+                    (N, "Process_Declaration",
+                     "Component size only supported for array types");
+                  return;
+               end if;
+               declare
+                  Array_Data : constant Irep :=
+                    Get_Data_Component_From_Type (Target_Type_Irep);
+                  Target_Subtype : constant Irep :=
+                    Follow_Symbol_Type
+                      (Get_Subtype (Get_Type (Array_Data)),
+                       Global_Symbol_Table);
+                  Target_Subtype_Width : constant Uint :=
+                    UI_From_Int (Int (Get_Width (Target_Subtype)));
+               begin
+                  if Component_Size (Entity (N)) /= Expression_Value or
+                    Target_Subtype_Width /= Expression_Value
+                  then
+                     Report_Unhandled_Node_Empty
+                       (N, "Process_Declaration",
+                        "Having component sizes be different from the "
+                        & "size of their underlying type "
+                        & "is currently not supported");
+                  end if;
+               end;
+               return;
+            end;
          elsif Attr_Id = "alignment" then
             --  ASVAT does not model alignment of objects in memory.
             --  Nothing to be done.
