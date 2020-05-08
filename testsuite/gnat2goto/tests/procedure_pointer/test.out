@@ -1,6 +1,6 @@
 Standard_Output from gnat2goto test:
 ----------At: Do_Itype_Definition----------
-----------Unknown Ekind----------
+----------Unknown Ekind E_ACCESS_SUBTYPE----------
 N_Defining_Identifier "T4b" (Entity_Id=2491)
  Parent = <empty>
  Sloc = 8525  test.adb:14:4
