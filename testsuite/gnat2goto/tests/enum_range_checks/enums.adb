@@ -1,4 +1,5 @@
 procedure Enums is
+   --  Check the use of Pos instead of Rep.
    type My_Enum is (one, two, three, four, five);
 
    subtype Enum_Sub is My_Enum range two .. four;

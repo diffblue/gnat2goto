@@ -1,17 +1,17 @@
-[enums.assertion.1] line 14 Ada Check assertion: SUCCESS
-[enums.assertion.2] line 16 assertion VE in My_Enum: SUCCESS
-[enums.assertion.3] line 17 assertion VE >= My_Enum'First and VE <= My_Enum'Last: SUCCESS
-[enums.assertion.4] line 18 assertion VE >= Enum_Sub'First and VE <= Enum_Sub'Last: FAILURE
-[enums.assertion.5] line 19 assertion VS in My_Enum: SUCCESS
-[enums.assertion.6] line 20 assertion VS >= My_Enum'First and VS <= My_Enum'Last: SUCCESS
-[enums.assertion.7] line 21 assertion VS >= Enum_Sub'First and VS <= Enum_Sub'Last: SUCCESS
-[enums.assertion.8] line 22 assertion VE <= VS: SUCCESS
-[enums.assertion.9] line 23 assertion VE <= My_Enum'Last: SUCCESS
-[enums.assertion.10] line 24 assertion VE >= My_Enum'First: SUCCESS
-[enums.assertion.11] line 25 assertion VE in Enum_Sub: FAILURE
-[enums.assertion.12] line 26 assertion VE >= Enum_Sub'First: FAILURE
-[enums.assertion.13] line 27 assertion VE = one: SUCCESS
-[enums.assertion.14] line 28 assertion VE = T: SUCCESS
-[enums.assertion.15] line 29 assertion VS = two: SUCCESS
-[enums.assertion.16] line 30 assertion T = one: SUCCESS
+[enums.assertion.1] line 15 Ada Check assertion: SUCCESS
+[enums.assertion.2] line 17 assertion VE in My_Enum: SUCCESS
+[enums.assertion.3] line 18 assertion VE >= My_Enum'First and VE <= My_Enum'Last: SUCCESS
+[enums.assertion.4] line 19 assertion VE >= Enum_Sub'First and VE <= Enum_Sub'Last: FAILURE
+[enums.assertion.5] line 20 assertion VS in My_Enum: SUCCESS
+[enums.assertion.6] line 21 assertion VS >= My_Enum'First and VS <= My_Enum'Last: SUCCESS
+[enums.assertion.7] line 22 assertion VS >= Enum_Sub'First and VS <= Enum_Sub'Last: SUCCESS
+[enums.assertion.8] line 23 assertion VE <= VS: SUCCESS
+[enums.assertion.9] line 24 assertion VE <= My_Enum'Last: SUCCESS
+[enums.assertion.10] line 25 assertion VE >= My_Enum'First: SUCCESS
+[enums.assertion.11] line 26 assertion VE in Enum_Sub: FAILURE
+[enums.assertion.12] line 27 assertion VE >= Enum_Sub'First: FAILURE
+[enums.assertion.13] line 28 assertion VE = one: SUCCESS
+[enums.assertion.14] line 29 assertion VE = T: SUCCESS
+[enums.assertion.15] line 30 assertion VS = two: SUCCESS
+[enums.assertion.16] line 31 assertion T = one: SUCCESS
 VERIFICATION FAILED
