@@ -43,10 +43,12 @@ begin
       pragma Assert (Arr (I) = I);
    end loop;
 
-   pragma Assert (Arr (3) = 5);
-   pragma Assert (Ptr (5) = 3);
+   pragma Assert (Arr (3) = 5, "This should fail");
+   pragma Assert (Ptr (5) = 3, "This should fail");
+   pragma Assert (Ptr (3) = 3);
+   pragma Assert (Ptr (5) = 5);
    pragma Assert (Ptr.all (3) = 3);
-   pragma Assert (Ptr.all (3) = 5);
+   pragma Assert (Ptr.all (3) = 5, "This should fail");
 
   for I in Index loop
       Ptr.all (I) := Index'Last - I + 1;
@@ -62,6 +64,7 @@ begin
 
    pragma Assert (Arr (1) = Index'Last);
    pragma Assert (Ptr (Index'Last) = 1);
+   pragma Assert (Ptr (1) = Index'Last);
    pragma Assert (Ptr.all (1) = Index'Last);
    pragma Assert (Ptr.all (Index'Last) = 1);
 

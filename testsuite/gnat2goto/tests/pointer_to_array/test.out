@@ -1,0 +1,24 @@
+[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
+[pointer_to_array.assertion.1] line 21 Ada Check assertion: SUCCESS
+[pointer_to_array.assertion.2] line 25 assertion Arr (I) = Index'Last - I + 1: SUCCESS
+[pointer_to_array.assertion.3] line 31 assertion Ptr (I) = Index'Last - I + 1: SUCCESS
+[pointer_to_array.assertion.4] line 39 assertion Ptr (I) = I: SUCCESS
+[pointer_to_array.assertion.5] line 43 assertion Arr (I) = I: SUCCESS
+[pointer_to_array.assertion.6] line 46 assertion Arr (3) = 5: FAILURE
+[pointer_to_array.assertion.7] line 47 assertion Ptr (5) = 3: FAILURE
+[pointer_to_array.assertion.8] line 48 assertion Ptr (3) = 3: SUCCESS
+[pointer_to_array.assertion.9] line 49 assertion Ptr (5) = 5: SUCCESS
+[pointer_to_array.assertion.10] line 50 assertion Ptr.all (3) = 3: SUCCESS
+[pointer_to_array.assertion.11] line 51 assertion Ptr.all (3) = 5: FAILURE
+[pointer_to_array.assertion.12] line 58 assertion Ptr.all (I) = Index'Last - I + 1: SUCCESS
+[pointer_to_array.assertion.13] line 62 assertion Arr (I) = Index'Last - I + 1: SUCCESS
+[pointer_to_array.assertion.14] line 65 assertion Arr (1) = Index'Last: SUCCESS
+[pointer_to_array.assertion.15] line 66 assertion Ptr (Index'Last) = 1: SUCCESS
+[pointer_to_array.assertion.16] line 67 assertion Ptr (1) = Index'Last: SUCCESS
+[pointer_to_array.assertion.17] line 68 assertion Ptr.all (1) = Index'Last: SUCCESS
+[pointer_to_array.assertion.18] line 69 assertion Ptr.all (Index'Last) = 1: SUCCESS
+[pointer_to_array.assertion.19] line 71 assertion Ptr'Length = Index'Last: SUCCESS
+[pointer_to_array.assertion.20] line 74 Ada Check assertion: SUCCESS
+VERIFICATION FAILED

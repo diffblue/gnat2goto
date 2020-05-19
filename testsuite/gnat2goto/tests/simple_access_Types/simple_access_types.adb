@@ -9,7 +9,7 @@ begin
    pragma Assert (I = 5);
    Acc := I'Access;
    Acc.all := 3;
-  pragma Assert (I = 5);
-    pragma Assert (I = 3);
+   pragma Assert (I = 5, "This assertion should fail");
+   pragma Assert (I = 3);
 
 end Simple_Access_Types;
