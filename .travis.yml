@@ -7,8 +7,8 @@ dist: trusty
 compiler: gcc
 
 env:
-  GNAT: "http://mirrors.cdn.adacore.com/art/5739cefdc7a447658e0b016b"
-  GNATCOLL: "http://mirrors.cdn.adacore.com/art/5a15cb87c7a4479a23674d44"
+  GNAT: "https://community.download.adacore.com/v1/845147a8c6ef6af29a68144d6b3d228fd226268e?filename=gnat-gpl-2016-x86_64-linux-bin.tar.gz"
+  GNATCOLL: "https://community.download.adacore.com/v1/18ce6dfd017b4d4005aa6a9284a4a09ee16f88c3?filename=gnatcoll-gpl-2016-src-m1.tar.gz"
 
 cache:
   ccache: true
