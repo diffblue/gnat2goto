@@ -24,7 +24,7 @@ package Range_Check is
      with Pre => Kind (Bound_Type) in
      I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
        | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
-         | I_Floatbv_Type,
+         | I_Floatbv_Type | I_C_Enum_Type,
      Post => Kind (Get_Bound'Result) in Class_Expr;
 
    function Get_Bound_Of_Bounded_Type (Bound_Type : Irep;
@@ -32,7 +32,8 @@ package Range_Check is
      with Pre => Kind (Bound_Type) in
      I_Bounded_Signedbv_Type
        | I_Bounded_Floatbv_Type
-       | I_Bounded_Unsignedbv_Type,
+       | I_Bounded_Unsignedbv_Type
+       | I_C_Enum_Type,
        Post => Kind (Get_Bound_Of_Bounded_Type'Result) in Class_Expr;
 
    function Make_Div_Zero_Assert_Expr (N : Node_Id; Value : Irep;
