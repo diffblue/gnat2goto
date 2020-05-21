@@ -2115,47 +2115,47 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:54|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2240,7 +2240,7 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:54
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:55
 
 --
 Occurs: 1 times
