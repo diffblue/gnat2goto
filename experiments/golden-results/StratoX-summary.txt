@@ -8,6 +8,11 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
+Occurs: 163 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Export: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
 Occurs: 152 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
@@ -32,11 +37,6 @@ Occurs: 13 times
 Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
---
-Occurs: 13 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Global
-Nkind: N_Pragma
 --
 Occurs: 10 times
 Calling function: Do_Expression
@@ -102,6 +102,11 @@ Occurs: 2 times
 Calling function: Do_Itype_Integer_Subtype
 Error message: Non-literal bound unsupported
 Nkind: N_Defining_Identifier
+--
+Occurs: 2 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Import: Multi-language analysis unsupported
+Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
@@ -2150,7 +2155,7 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:73|
 Error detected at REDACTED
 --
 Occurs: 1 times
