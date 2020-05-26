@@ -771,6 +771,13 @@ package body Tree_Walk is
    is
       Args : constant Irep := Make_Argument_List;
 
+      --  A formal access parameter cannot be mode out (an Ada rule) and
+      --  an actual corresponding to the formal access parameter must be an
+      --  access type (again an Ada rule and checked by the front end).
+      --  Therefore, the actual parameter will be a goto pointer type and
+      --  does not need wrapping into a pointer.  Since the mode of a formal
+      --  access parameter cannot be out or in out the Wrap_Argument function
+      --  will not wrap the corresponding actual parameter.
       function Wrap_Argument (Base : Irep; Is_Out : Boolean) return Irep is
          (if Is_Out
          then Make_Address_Of (Base)
@@ -4977,38 +4984,60 @@ package body Tree_Walk is
       Param_Iter : Node_Id := First (Parameter_Specifications (N));
    begin
       while Present (Param_Iter) loop
-         if not (Nkind (Parameter_Type (Param_Iter)) in N_Has_Etype) then
-            return Report_Unhandled_Node_Type
-              (N,
-               "Do_Subprogram_Specification",
-               "Param iter type not have etype");
-         end if;
          declare
-            Is_Out : constant Boolean := Out_Present (Param_Iter);
-
-            Param_Name : constant String :=
-                Unique_Name (Defining_Identifier (Param_Iter));
-
-            Param_Type_Base : constant Irep :=
-              Do_Type_Reference (Etype (Parameter_Type (Param_Iter)));
-            Param_Type : constant Irep :=
-              (if Is_Out
-                 then Make_Pointer_Type (Param_Type_Base)
-                 else Param_Type_Base);
-            Param_Irep : constant Irep := Make_Code_Parameter
-              (Source_Location => Get_Source_Location (Param_Iter),
-               I_Type => Param_Type,
-               Identifier => Param_Name,
-               Base_Name => Param_Name,
-               This => False,
-               Default_Value => Ireps.Empty);
+            Param_Sort : constant Node_Id := Parameter_Type (Param_Iter);
          begin
-            Append_Parameter (Param_List, Param_Irep);
-            New_Parameter_Symbol_Entry (Name_Id        => Intern (Param_Name),
-                                        BaseName       => Param_Name,
-                                        Symbol_Type    => Param_Type,
-                                        A_Symbol_Table => Global_Symbol_Table);
-            Next (Param_Iter);
+            if not (Nkind (Param_Sort)
+                    in N_Has_Etype | N_Access_Definition)
+            then
+               return Report_Unhandled_Node_Type
+                 (N,
+                  "Do_Subprogram_Specification",
+                  "Param iter is not an access parameter or has no etype");
+            end if;
+            declare
+               Is_Out : constant Boolean := Out_Present (Param_Iter);
+
+               --  A subprogram can have a formal access parameter of the form
+               --  procedure P (Ptr_To_ObjectOf_Type_T : access T);
+               Is_Access_Param : constant Boolean :=
+                 Nkind (Param_Sort) = N_Access_Definition;
+
+               Param_Name : constant String :=
+                 Unique_Name (Defining_Identifier (Param_Iter));
+
+               Param_Ada_Type  : constant Node_Id :=
+                 (if Is_Access_Param then
+                     Etype (Subtype_Mark (Param_Sort))
+                  else
+                     Etype (Parameter_Type (Param_Iter)));
+
+               Param_Type_Base : constant Irep :=
+                 Do_Type_Reference (Param_Ada_Type);
+
+               --  If the formal parameter is mode out or in out,
+               --  or is an access parameter, it is made into a pointer
+               Param_Type : constant Irep :=
+                 (if Is_Out or Is_Access_Param then
+                     Make_Pointer_Type (Param_Type_Base)
+                  else Param_Type_Base);
+               Param_Irep : constant Irep := Make_Code_Parameter
+                 (Source_Location => Get_Source_Location (Param_Iter),
+                  I_Type => Param_Type,
+                  Identifier => Param_Name,
+                  Base_Name => Param_Name,
+                  This => False,
+                  Default_Value => Ireps.Empty);
+            begin
+               Append_Parameter (Param_List, Param_Irep);
+               New_Parameter_Symbol_Entry
+                 (Name_Id        => Intern (Param_Name),
+                  BaseName       => Param_Name,
+                  Symbol_Type    => Param_Type,
+                  A_Symbol_Table => Global_Symbol_Table);
+
+               Next (Param_Iter);
+            end;
          end;
       end loop;
       return Make_Code_Type
