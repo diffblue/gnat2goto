@@ -30,6 +30,7 @@ with Sinput;
 with ASVAT.Address_Model;    use type
   ASVAT.Address_Model.Address_To_Access_Functions;
 with ASVAT.Size_Model;
+with ASVAT.Modelling;
 
 package body Tree_Walk is
 
@@ -108,12 +109,6 @@ package body Tree_Walk is
    function Do_Function_Call (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Function_Call,
         Post => Kind (Do_Function_Call'Result) in Class_Expr;
-
-   function Make_Assume_Expr (N : Node_Id; Assumption : Irep) return Irep;
-
-   function Do_Nondet_Function_Call (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Function_Call,
-        Post => Kind (Do_Nondet_Function_Call'Result) in Class_Expr;
 
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
@@ -310,6 +305,8 @@ package body Tree_Walk is
 
    function Get_Fresh_Type_Name (Actual_Type : Irep; Associated_Node : Node_Id)
                                 return Irep;
+
+   function Get_Import_Convention (N : Node_Id) return String;
 
    function Get_Variant_Union_Member_Name (N : Node_Id) return String;
 
@@ -1609,46 +1606,6 @@ package body Tree_Walk is
       end if;
    end Do_Full_Type_Declaration;
 
-   ----------------------
-   -- Make_Assume_Expr --
-   ----------------------
-
-   function Make_Assume_Expr (N : Node_Id; Assumption : Irep) return Irep is
-      Source_Location : constant Irep := Get_Source_Location (N);
-      Assume_Params : constant Irep := Make_Parameter_List;
-      Assume_Type : constant Irep := Make_Code_Type
-        (Parameters => Assume_Params,
-         Ellipsis => False,
-         Return_Type => CProver_Void_T,
-         Inlined => False,
-         Knr => False);
-      Assume_Function_Name : constant String := "__CPROVER_assume";
-      Sym_Assume : constant Irep := Make_Symbol_Expr (
-                                     Source_Location => Source_Location,
-                                     I_Type          => Assume_Type,
-                                     Range_Check     => False,
-                                     Identifier      => Assume_Function_Name);
-      Assume_Args  : constant Irep := Make_Argument_List;
-      SEE_Fun_Call : constant Irep := Make_Side_Effect_Expr_Function_Call
-        (Source_Location => Source_Location,
-         I_Function => Sym_Assume,
-         Arguments => Assume_Args,
-         I_Type => CProver_Void_T);
-   begin
-      Append_Parameter
-        (Assume_Params,
-         Make_Code_Parameter
-           (Source_Location => Source_Location,
-            Default_Value => Ireps.Empty,
-            --  arbitrary, should be replaced with a CProver_Int_T
-            I_Type => Make_Signedbv_Type (32),
-            Base_Name => Assume_Function_Name,
-            This => False,
-            Identifier => Assume_Function_Name & "::assumption"));
-      Append_Argument (Assume_Args, Assumption);
-      return SEE_Fun_Call;
-   end Make_Assume_Expr;
-
    -----------------------------
    -- Do_Qualified_Expression --
    -----------------------------
@@ -1679,88 +1636,16 @@ package body Tree_Walk is
       end case;
    end Do_Qualified_Expression;
 
-   -----------------------------
-   -- Do_Nondet_Function_Call --
-   -----------------------------
-
-   function Do_Nondet_Function_Call (N : Node_Id) return Irep is
-      Func_Str     : constant String := Unique_Name (Entity (Name (N)));
-      Func_Name    : constant Symbol_Id := Intern (Func_Str);
-      Source_Location   : constant Irep := Get_Source_Location (N);
-   begin
-      if Global_Symbol_Table.Contains (Func_Name) then
-         --  ??? why not get this from the entity
-
-         --  Two implementation options here:
-         --  1. Trickery: Use LET expression to create a tmp variable and
-         --     assign nondet with ranges (side effect with function call
-         --     to assume). However, cannot use I_Code_Assume directly,
-         --     because cbmc considers this a statement.
-         --  2. Future: Just place I_Nondet_Expr, set type, let cbmc
-         --     place the assume on ranges.
-         --  Due to lack of insight into cbmc, we implement 1.
-         declare
-            Func_Symbol : constant Symbol := Global_Symbol_Table (Func_Name);
-
-            Type_Irep    : constant Irep :=
-              Get_Return_Type (Func_Symbol.SymType);
-            Sym_Nondet   : constant Irep :=
-              Fresh_Var_Symbol_Expr (Type_Irep, Func_Str);
-            Followed_Type : constant Irep :=
-              Follow_Symbol_Type (Type_Irep, Global_Symbol_Table);
-            Nondet_Expr  : constant Irep := Make_Side_Effect_Expr_Nondet
-              (Source_Location => Source_Location,
-               I_Type => Type_Irep);
-
-            function Assume_And_Yield_Lhs return Irep;
-            function Assume_And_Yield_Lhs return Irep is
-            begin
-               if Kind (Followed_Type) in
-                 I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
-               then
-                  return Make_Assume_Expr
-                    (N,
-                     Make_Range_Expression
-                       (Sym_Nondet,
-                        Get_Bound (N, Followed_Type, Bound_Low),
-                        Get_Bound (N, Followed_Type, Bound_High)));
-               else
-                  return Make_Assume_Expr
-                    (N,
-                     Make_Constant_Expr
-                       (Source_Location => Source_Location,
-                        I_Type          => CProver_Bool_T,
-                        Range_Check     => False,
-                        Value           => "true"));
-               end if;
-            end Assume_And_Yield_Lhs;
-            Assume_And_Yield : constant Irep := Make_Op_Comma
-              (Lhs => Assume_And_Yield_Lhs,
-               Rhs => Sym_Nondet,
-               Source_Location => Source_Location);
-         begin
-            return Make_Let_Binding_Expr
-              (Symbol          => Sym_Nondet,
-               Value           => Nondet_Expr,
-               Where           => Assume_And_Yield,
-               Source_Location => Source_Location,
-               I_Type          => Type_Irep);
-         end;
-      else -- How did that happen (GNAT should reject)?
-         return Report_Unhandled_Node_Irep (N, "Do_Nondet_Function_Call",
-                                            "func name not in symbol table");
-      end if;
-   end Do_Nondet_Function_Call;
-
    ----------------------
    -- Do_Function_Call --
    ----------------------
 
    function Do_Function_Call (N : Node_Id) return Irep
    is
-      Func_Ent     : Entity_Id;
-      Func_Name    : Symbol_Id;
-      Func_Symbol  : Symbol;
+      Func_Ent      : Entity_Id;
+      Func_Name     : Symbol_Id;
+      Func_Symbol   : Symbol;
+      Func_Declared : Boolean;
 
    begin
       --  It seems as though an N_Explicit_Drereference is placed in the tree
@@ -1797,46 +1682,29 @@ package body Tree_Walk is
          return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
                                             "Wrong name nkind");
       end if;
+
       Func_Ent := Entity (Name (N));
       Func_Name := Intern (Unique_Name (Func_Ent));
-
-      --  TODO: in general, the Ada program must be able to
-      --  use cbm's built-in functions, like "__cprover_assume".
-      --  However, there are several problems:
-      --   1. without no function bodies, GNAT rejects the program
-      --   2. GNAT turns identifiers to lower case, thus "__CPROVER_assume"
-      --      et.al. won't be recognized by cbmc anymore.
-      --   3. Identifiers cannot start with underline in Ada.
-      --   4. cbmc will ignore the Ada type ranges when assigning nondets,
-      --      whereas we would expect that "nondet_natural return Natural"
-      --      will not introduce negative numbers.
-
-      --  For now, we only handle "nondet" prefixes here.
+      Func_Declared := Global_Symbol_Table.Contains (Func_Name);
 
       if Nkind (Func_Ent) /= N_Defining_Identifier then
          return Report_Unhandled_Node_Irep (Func_Ent, "Do_Function_Call",
                                     "function entity not defining identifier");
       end if;
-      if Name_Has_Prefix (N, "nondet") or else
-        Has_GNAT2goto_Annotation (Func_Ent, "nondet")
-      then
-         return Do_Nondet_Function_Call (N);
-      else
-         if Global_Symbol_Table.Contains (Func_Name) then
-            Func_Symbol  := Global_Symbol_Table (Func_Name);
-            --  ??? why not get this from the entity
 
-            return Make_Side_Effect_Expr_Function_Call
-              (Source_Location => Get_Source_Location (N),
-               I_Function => Symbol_Expr (Func_Symbol),
-               Arguments => Do_Call_Parameters (N),
-               I_Type => Get_Return_Type (Func_Symbol.SymType));
-         else
-            --  This can happen for RTS functions (body not parsed by us)
-            --  TODO: handle RTS functions in a sane way
-            return Report_Unhandled_Node_Irep (N, "Do_Function_Call",
-                                              "func name not in symbol table");
-         end if;
+      if Func_Declared then
+         Func_Symbol  := Global_Symbol_Table (Func_Name);
+         return Make_Side_Effect_Expr_Function_Call
+           (Source_Location => Get_Source_Location (N),
+            I_Function => Symbol_Expr (Func_Symbol),
+            Arguments => Do_Call_Parameters (N),
+            I_Type => Get_Return_Type (Func_Symbol.SymType));
+      else
+         --  This can happen for RTS functions (body not parsed by us)
+         --  TODO: handle RTS functions in a sane way
+         return Report_Unhandled_Node_Irep
+           (N, "Do_Function_Call",
+            "function " & Unintern (Func_Name) & " not in symbol table");
       end if;
    end Do_Function_Call;
 
@@ -2752,7 +2620,9 @@ package body Tree_Walk is
                                          "Unsupported pragma: SPARK Mode");
          when Name_Global =>
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                         "Unsupported pragma: Global");
+                                         "pragma Global is unsupported " &
+                                           "in a sequence of statements");
+
          when Name_Variant =>
             --  Could as well be ignored but is another verification condition
             --  that should be checked
@@ -2897,7 +2767,7 @@ package body Tree_Walk is
                                        "Known but unsupported pragma: Export");
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
-              Name_Assertion_Policy |
+              Name_Assertion_Policy | Name_Check_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
@@ -4876,6 +4746,18 @@ package body Tree_Walk is
       Proc_Name   : constant Symbol_Id :=
         Intern (Unique_Name (Defining_Entity (N)));
 
+      --  ASVAT models have a modelling body inserted rather than
+      --  the body declared in the program text.
+      --  The model body is inserted when the subprogram specification
+      --  is processed, either from the declaration or the subprogram body
+      --  if the subprogram does not have a declaration.
+      E : constant Node_Id := Defining_Unit_Name (Specification (N));
+
+      ASVAT_Model : constant ASVAT.Modelling.Model_Sorts :=
+        ASVAT.Modelling.Get_Model_Sort (E);
+      Is_ASVAT_Model : constant Boolean :=
+      ASVAT.Modelling.Is_Model (ASVAT_Model);
+
       Proc_Symbol : Symbol;
    begin
       --  Corresponding_Spec is optional for subprograms
@@ -4893,6 +4775,11 @@ package body Tree_Walk is
          --  The subprogram specification of the subprogram body is used to
          --  populate the symbol table instead.
          Register_Subprogram_Specification (Specification (N));
+
+         if Is_ASVAT_Model then
+            --  Generate the model body.
+            ASVAT.Modelling.Make_Model (E, ASVAT_Model);
+         end if;
       end if;
       --  Todo aspect_specification, i.e. pre/post-conditions
       --  Now the subprogram should registered in the symbol table
@@ -4901,11 +4788,15 @@ package body Tree_Walk is
          Report_Unhandled_Node_Empty (N, "Do_Subprogram_Body",
                                       "Proc name not in symbol table");
       end if;
-      Proc_Symbol := Global_Symbol_Table (Proc_Name);
+      if not Is_ASVAT_Model then
+         --  The actual body has to be processed from the program text
+         Proc_Symbol := Global_Symbol_Table (Proc_Name);
 
-      --  Compile the subprogram body and update its entry in the symbol table.
-      Proc_Symbol.Value := Do_Subprogram_Or_Block (N);
-      Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
+         --  Compile the subprogram body and
+         --  update its entry in the symbol table.
+         Proc_Symbol.Value := Do_Subprogram_Or_Block (N);
+         Global_Symbol_Table.Replace (Proc_Name, Proc_Symbol);
+      end if;
    end Do_Subprogram_Body;
 
    -----------------------------
@@ -4928,11 +4819,15 @@ package body Tree_Walk is
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
       E : constant Node_Id := Defining_Unit_Name (Specification (N));
+      ASVAT_Model : constant ASVAT.Modelling.Model_Sorts :=
+        ASVAT.Modelling.Get_Model_Sort (E);
    begin
       pragma Assert (Ekind (E) in Subprogram_Kind);
       Register_Subprogram_Specification (Specification (N));
 
-      if Is_Intrinsic_Subprogram (E)
+      if ASVAT.Modelling.Is_Model (ASVAT_Model) then
+         ASVAT.Modelling.Make_Model (E, ASVAT_Model);
+      elsif Is_Intrinsic_Subprogram (E)
         and Nkind (Specification (N)) = N_Function_Specification
       then
          Check_For_Intrinsic_Address_Functions :
@@ -4955,6 +4850,15 @@ package body Tree_Walk is
                null;
             end if;
          end Check_For_Intrinsic_Address_Functions;
+      elsif not Has_Completion (E) then
+         --  Here it would be possible to nondet outputs specified
+         --  in subprogram specification but at present nothing is done.
+         --  A missing body will be reported when it is "linked".
+         null;
+      else
+         --  It is a normal Ada subprogram.
+         --  Nothing more to be done;
+         null;
       end if;
    end Do_Subprogram_Declaration;
 
@@ -5359,6 +5263,35 @@ package body Tree_Walk is
 
       return Fresh_Symbol_Type;
    end Get_Fresh_Type_Name;
+
+   ---------------------------
+   -- Get_Import_Convention --
+   ---------------------------
+
+   function Get_Import_Convention (N : Node_Id) return String is
+      --  The gnat front end insists thet the parameters for
+      --  pragma Import are given in the specified order even
+      --  if named association is used:
+      --  1. Convention,
+      --  2. Enity,
+      --  3. Optional External_Name,
+      --  4. Optional Link_Name.
+      --  The first 2 parameters are mandatory and
+      --  for ASVAT models the External_Name is required.
+      --
+      --  The Convention parameter will always be present as
+      --  the first parameter.
+      Conv_Assoc : constant Node_Id :=
+        First (Pragma_Argument_Associations (N));
+      Conv_Name  : constant Name_Id := Chars (Conv_Assoc);
+      Convention : constant String  := Get_Name_String
+        (Chars (Expression (Conv_Assoc)));
+   begin
+      --  Double check the named parameter if named association is used.
+      pragma Assert (Conv_Name = No_Name or else
+                     Get_Name_String (Conv_Name) = "convention");
+      return Convention;
+   end Get_Import_Convention;
 
    -----------------------------------
    -- Get_Variant_Union_Member_Name --
@@ -5806,8 +5739,16 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Refine");
          when Name_Global =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Global");
+            --  Global is used in SPARK 2014 to allow modular analysis.  It
+            --  is not required and can be safely ignored when performing
+            --  whole program analysis.
+            --  ASVAT essentially performs whole program analysis and the only
+            --  use of pragma Global is when the body of a called subprogram
+            --  is not included in the analysis.  In such cases, ASVAT obtains
+            --  the list of inputs and outputs, including any listed in a
+            --  pragma Global from the subprogram specification.
+            --  No action is required here.
+            null;
          when Name_Variant =>
             --  Could as well be ignored but is another verification condition
             --  that should be checked
@@ -5852,34 +5793,24 @@ package body Tree_Walk is
             --  However, if the calling convention is specified as "Intrinsic"
             --  then the subprogram is built into the compiler and gnat2goto
             --  can safely ignore the pragma.
+            --  If the calling convention is Ada the imported entity, if it is
+            --  subprogram, will have to be supplied when symtab2gb linking.
+            --  The convention is always the first parameter and External_Name
+            --  (if present) the third parameter of pragma Import.
+            --  This is enforced by the gnat front-end.
             declare
-               --  If the pragma is specified with positional parameter
-               --  association, then the calling convention is the first
-               --  parameter. Check to see if it is Intrinsic.
-               Next_Ass : Node_Id := First (Pragma_Argument_Associations (N));
-               Is_Intrinsic : Boolean := Present (Next_Ass) and then
-                 Nkind (Expression (Next_Ass)) = N_Identifier and then
-                 Get_Name_String (Chars (Expression (Next_Ass))) = "intrinsic";
-            begin
-               --  If the first parameter is not Intrinsic, check named
-               --  parameters for calling convention
-               while not Is_Intrinsic and Present (Next_Ass) loop
-                  if Chars (Next_Ass) /= No_Name and then
-                    Get_Name_String (Chars (Next_Ass)) = "convention"
-                  then
-                     --  The named parameter is Convention, check to see if it
-                     --  is Intrinsic
-                     Is_Intrinsic :=
-                       Get_Name_String (Chars (Expression (Next_Ass))) =
-                       "intrinsic";
-                  end if;
-                     --  Get the next parameter association
-                  Next_Ass := Next (Next_Ass);
-               end loop;
+               Convention : constant String := Get_Import_Convention (N);
 
-               if not Is_Intrinsic then
-                  Put_Line (Standard_Error,
-                            "Warning: Multi-language analysis unsupported.");
+               Is_Intrinsic : constant Boolean :=
+                 Convention = "intrinsic";
+               Is_Ada : constant Boolean :=
+                 Convention = "ada";
+
+            begin
+               if not (Is_Intrinsic or Is_Ada) then
+                  Report_Unhandled_Node_Empty
+                    (N, "Process_Pragma_Declaration",
+                     "pragma Import: Multi-language analysis unsupported");
                end if;
             end;
 
@@ -5957,8 +5888,8 @@ package body Tree_Walk is
             --  allowing an Ada subprogram to be called from a foreign
             --  language, or an Ada object to be accessed from a foreign
             --  language. Need to be detected.
-            Put_Line (Standard_Error,
-                      "Warning: Multi-language analysis unsupported.");
+            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
+                     "pragma Export: Multi-language analysis unsupported");
          when Name_Machine_Attribute =>
             Handle_Pragma_Machine_Attribute (N);
          when Name_Check =>
@@ -6008,9 +5939,41 @@ package body Tree_Walk is
          when Name_Initializes =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Initializes");
-         when Name_Annotate |
-            --  Ignore here. Rather look for those when we process a node.
-              Name_Assertion_Policy | Name_Check_Policy |
+         when Name_Annotate =>
+            --  Annotate ASVAT is only supported as an aspect
+            if not From_Aspect_Specification (N) then
+               declare
+                  Args : constant List_Id :=
+                    Pragma_Argument_Associations (N);
+                  First_Arg : constant Node_Id :=
+                    (if Present (Args) then
+                          First (Args)
+                     else
+                        Types.Empty);
+                  First_Expr : constant Node_Id :=
+                    (if Present (First_Arg) then
+                          Expression (First_Arg)
+                     else
+                        Types.Empty);
+
+                  Anno_Id : constant String :=
+                    (if Present (First_Expr) and then
+                     Nkind (First_Expr) = N_Identifier
+                     then
+                        Get_Name_String (Chars (First_Expr))
+                     else
+                        "");
+               begin
+                  if Anno_Id = "asvat" then
+                     Report_Unhandled_Node_Empty
+                       (N, "Process_Pragma_Declaration",
+                        "pragma Annotate: " &
+                          "ASVAT Annotation only supported as an aspect");
+                  end if;
+               end;
+            end if;
+
+         when Name_Assertion_Policy | Name_Check_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
