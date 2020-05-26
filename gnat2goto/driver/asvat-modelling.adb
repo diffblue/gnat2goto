@@ -1,9 +1,9 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Namet;                   use Namet;
-with Stringt;                 use Stringt;
 with Nlists;                  use Nlists;
 with Einfo;                   use Einfo;
 with Aspects;                 use Aspects;
+with Sem_Util;                use Sem_Util;
 with Ireps;                   use Ireps;
 with Follow;                  use Follow;
 with Range_Check;             use Range_Check;
@@ -42,128 +42,14 @@ package body ASVAT.Modelling is
       return Result;
    end Find_Model;
 
-   -------------------------
-   -- Get_Annotation_Name --
-   -------------------------
-
-   function Get_Annotation_Name (N : Node_Id) return String is
-     (Get_Name_String
-        (Chars (Expression
-                (First (Pragma_Argument_Associations (N))))));
-
-   ---------------------------
-   -- Get_Import_Convention --
-   ---------------------------
-
-   function Get_Import_Convention (N : Node_Id) return String is
-      --  The gnat front end insists thet the parameters for
-      --  pragma Import are given in the specified order even
-      --  if named association is used:
-      --  1. Convention,
-      --  2. Enity,
-      --  3. Optional External_Name,
-      --  4. Optional Link_Name.
-      --  The first 2 parameters are mandatory and
-      --  for ASVAT models the External_Name is required.
-      --
-      --  The Convention parameter will always be present as
-      --  the first parameter.
-      Conv_Assoc : constant Node_Id :=
-        First (Pragma_Argument_Associations (N));
-      Conv_Name  : constant Name_Id := Chars (Conv_Assoc);
-      Convention : constant String  := Get_Name_String
-        (Chars (Expression (Conv_Assoc)));
-   begin
-      --  Double check the named parameter if named association is used.
-      pragma Assert (Conv_Name = No_Name or else
-                     Get_Name_String (Conv_Name) = "convention");
-      return Convention;
-   end Get_Import_Convention;
-
-   ------------------------------
-   -- Get_Import_External_Name --
-   ------------------------------
-
-   function Get_Import_External_Name (N : Node_Id) return String is
-      --  The gnat front end insists thet the parameters for
-      --  pragma Import are given in the specified order even
-      --  if named association is used:
-      --  1. Convention,
-      --  2. Enity,
-      --  3. Optional External_Name,
-      --  4. Optional Link_Name.
-      --  The first 2 parameters are mandatory and
-      --  for ASVAT models the External_Name is required.
-      --
-      --  The External_Name parameter, if present, will be
-      --  the third parameter.
-      External_Assoc : constant Node_Id := Next
-        (Next
-           (First (Pragma_Argument_Associations (N))));
-   begin
-      if Present (External_Assoc) then
-         declare
-            External_Name : constant Name_Id := Chars (External_Assoc);
-            External_Name_Id : constant String_Id :=
-              Strval (Expression (External_Assoc));
-            External_Name_Id_Length : constant Natural :=
-              Natural (String_Length (External_Name_Id));
-         begin
-            --  Double check the named parameter if named association is used.
-            pragma Assert (External_Name = No_Name or else
-                             Get_Name_String
-                               (External_Name) = "external_name");
-            String_To_Name_Buffer (External_Name_Id);
-            return To_Lower (Name_Buffer (1 .. External_Name_Id_Length));
-         end;
-      else
-         return "";
-      end if;
-   end Get_Import_External_Name;
-
-   --------------------------
-   -- Get_Import_Link_Name --
-   --------------------------
-
-   function Get_Import_Link_Name (N : Node_Id) return String is
-      --  The gnat front end insists thet the parameters for
-      --  pragma Import are given in the specified order even
-      --  if named association is used:
-      --  1. Convention,
-      --  2. Enity,
-      --  3. Optional External_Name,
-      --  4. Optional Link_Name.
-      --  The first 2 parameters are mandatory and
-      --  for ASVAT models the External_Name is required
-      --  and for imported non-visible objects, Link_Name is required.
-      --  The Link_Name parameter, if present, will be
-      --  the Fourth parameter.
-      External_Assoc : constant Node_Id := Next
-        (Next
-           (First (Pragma_Argument_Associations (N))));
-      Link_Assoc     : constant Node_Id :=
-        (if Present (External_Assoc) then Next (External_Assoc)
-         else External_Assoc);
-   begin
-      if Present (Link_Assoc) then
-         declare
-            Link_Name    : constant Name_Id := Chars (Link_Assoc);
-            Link_Name_Id : constant String_Id :=
-              Strval (Expression (Link_Assoc));
-            Link_Name_Id_Length : constant Natural :=
-              Natural (String_Length (Link_Name_Id));
-         begin
-            --  Double check the named parameter if named association is used.
-            pragma Assert (Link_Name = No_Name or else
-                             Get_Name_String
-                               (Link_Name) = "link_name");
-            String_To_Name_Buffer (Link_Name_Id);
-            return To_Lower (Name_Buffer (1 .. Link_Name_Id_Length));
-         end;
-      else
-         return "";
-      end if;
-   end Get_Import_Link_Name;
+--     -------------------------
+--     -- Get_Annotation_Name --
+--     -------------------------
+--
+--     function Get_Annotation_Name (N : Node_Id) return String is
+--       (Get_Name_String
+--          (Chars (Expression
+--                  (First (Pragma_Argument_Associations (N))))));
 
    -------------------------
    -- Get_Model_From_Anno --
@@ -224,51 +110,11 @@ package body ASVAT.Modelling is
       end if;
    end Get_Model_From_Anno;
 
-   ---------------------------
-   -- Get_Model_From_Import --
-   ---------------------------
-
-   function Get_Model_From_Import (N : Node_Id) return Model_Sorts is
-      Convention : constant String :=
-        Get_Import_Convention (N);
-
-      Is_Ada : constant Boolean := Convention = "ada";
-
-      Model_String  : constant String :=
-        (if Is_Ada then
-            Get_Import_External_Name (N)
-         else
-            "");
-      Model : constant Model_Sorts := Find_Model (Model_String);
-   begin
-      if Is_Ada then
-         if Model_String = "" then
-            Report_Unhandled_Node_Empty
-              (N, "Get_Model_From_Import",
-               "Import convention Ada must have a model sort");
-         elsif Model = Not_A_Model then
-            Report_Unhandled_Node_Empty
-              (N, "Get_Model_From_Import",
-               "Import convention Ada but '" &
-                 Model_String &
-                 "' is not an ASVAT model sort");
-         end if;
-      end if;
-      return Model;
-   end Get_Model_From_Import;
-
    --------------------
    -- Get_Model_Sort --
    --------------------
 
    function Get_Model_Sort (E : Entity_Id) return Model_Sorts is
-      Obj_Import    : constant Node_Id := Get_Pragma (E, Pragma_Import);
-      Subprog_Import : constant Node_Id :=
-        (if Ekind (E) in E_Procedure | E_Function then
-              Import_Pragma (E)
-         else
-            Obj_Import);
-
       Anno           : constant Node_Id := Find_Aspect (E, Aspect_Annotate);
 
       Anno_Model     : constant Model_Sorts :=
@@ -277,27 +123,8 @@ package body ASVAT.Modelling is
          else
             Not_A_Model);
 
-      --  The ASVAT anotation is used even if there is a pragma Import
-      --  specifying a, possibly different, model.
-      Import_Model   : constant Model_Sorts :=
-        (if Present (Obj_Import) then
-              (if Anno_Model = Not_A_Model then
-                   Get_Model_From_Import (Obj_Import)
-              else
-                 Anno_Model)
-         elsif Present (Subprog_Import) then
-              (if Anno_Model = Not_A_Model then
-                   Get_Model_From_Import (Subprog_Import)
-              else
-                 Anno_Model)
-         else
-            Not_A_Model);
-
    begin
-      return (if Anno_Model /= Not_A_Model then
-                 Anno_Model
-              else
-                 Import_Model);
+      return Anno_Model;
    end Get_Model_Sort;
 
    --------------------------
