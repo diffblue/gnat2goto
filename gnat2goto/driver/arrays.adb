@@ -1,6 +1,6 @@
 with Nlists;                use Nlists;
 with Uintp;                 use Uintp;
-
+with Namet;                 use Namet;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Range_Check;           use Range_Check;
@@ -791,19 +791,34 @@ package body Arrays is
 
    function Do_Array_Length (N : Node_Id) return Irep
    is
-      Array_Struct : constant Irep := Do_Expression (Prefix (N));
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the prefix of the Length attribute is an implicit
+      --  dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
+      Array_Struct      : constant Irep := Do_Expression (Prefix (N));
    begin
       return Build_Array_Size (Array_Struct);
    end Do_Array_Length;
 
    function Do_Array_First (N : Node_Id) return Irep
    is
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the prefix of the Length attribute is an implicit
+      --  dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
    begin
       return Get_First_Index (Do_Expression (Prefix (N)));
    end Do_Array_First;
 
    function Do_Array_Last (N : Node_Id) return Irep
    is
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the prefix of the Length attribute is an implicit
+      --  dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
    begin
       return Get_Last_Index (Do_Expression (Prefix (N)));
    end Do_Array_Last;
@@ -857,8 +872,28 @@ package body Arrays is
    --  }
    ----------------------------------------------------------------------------
    function Do_Slice (N : Node_Id) return Irep is
+      --  The prefix to the slice may be an access to an array object
+      --  which must be implicitly dereferenced.
+      The_Prefix        : constant Node_Id := Prefix (N);
+      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
+      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+      Result_Type        : constant Irep :=
+        (if Is_Implicit_Deref then
+            Do_Type_Reference (Designated_Type (Prefix_Etype))
+         else
+            Do_Type_Reference (Prefix_Etype));
+      Base_Irep         : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (I_Type => Result_Type,
+            Object => Prefix_Irep,
+            Source_Location => Get_Source_Location (N))
+         else
+            Prefix_Irep);
+
+      --  Where required the prefix has been implicitly dereferenced.
       Source_Loc : constant Irep := Get_Source_Location (N);
-      Result_Type : constant Irep := Do_Type_Reference (Etype (N));
       Slice_Params : constant Irep := Make_Parameter_List;
       Slice_Args : constant Irep := Make_Argument_List;
       Function_Name : constant String := "slice_expr";
@@ -937,7 +972,7 @@ package body Arrays is
                         Func_Params    => Slice_Params,
                         FBody          => Build_Slice_Func_Body,
                         A_Symbol_Table => Global_Symbol_Table);
-      Slice_Id : constant Irep := Do_Expression (Prefix (N));
+      Slice_Id : constant Irep := Base_Irep;
    begin
       Append_Argument (Slice_Args,
                        Slice_Id);
@@ -954,39 +989,74 @@ package body Arrays is
 
    --  TODO: multi-dimensional arrays.
    function Do_Indexed_Component (N : Node_Id) return Irep is
-      Base_Irep : constant Irep := Do_Expression (Prefix (N));
-      Idx_Irep : constant Irep :=
-        Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
-                               CProver_Size_T, Global_Symbol_Table);
-
-      Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
-      First_Irep : constant Irep := Get_First_Index (Base_Irep);
-      Last_Irep : constant Irep := Get_Last_Index (Base_Irep);
-      Checked_Index : constant Irep :=
-        Make_Index_Assert_Expr (N           => N,
-                                Index       => Idx_Irep,
-                                First_Index => First_Irep,
-                                Last_Index  => Last_Irep);
-      Zero_Based_Index : constant Irep :=
-        Make_Op_Sub (Rhs             => First_Irep,
-                     Lhs             => Checked_Index,
-                     Source_Location => Source_Loc,
-                     Overflow_Check  => False,
-                     I_Type          => Get_Type (Idx_Irep),
-                     Range_Check     => False);
-
-      Data_Irep : constant Irep :=
-        Get_Data_Member (Base_Irep, Global_Symbol_Table);
-      Data_Type : constant Irep := Get_Type (Data_Irep);
-      Indexed_Data : constant Irep :=
-        Offset_Array_Data (Base         => Base_Irep,
-                           Offset       => Zero_Based_Index);
-      Element_Type : constant Irep := Get_Subtype (Data_Type);
+      --  The prefix to an indexed component may be an access to an
+      --  array object which must be implicitly dereferenced.
+      The_Prefix        : constant Node_Id := Prefix (N);
+      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
    begin
-      return
-        Make_Dereference_Expr (Object          => Indexed_Data,
-                               Source_Location => Source_Loc,
-                               I_Type          => Element_Type);
+      if (if Nkind (Prefix_Etype) = N_Defining_Identifier then
+             Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
+          elsif Is_Implicit_Deref then
+             Get_Name_String (Chars (Designated_Type (Prefix_Etype)))
+          else
+             "")
+        = "string"
+      then
+         return Report_Unhandled_Node_Irep (N, "Do_Expression",
+                                            "Index of string unsupported");
+      end if;
+
+      --  Where required the prefix has been implicitly dereferenced.
+      declare
+         Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+         Resolved_Type     : constant Irep :=
+           (if Is_Implicit_Deref then
+               Do_Type_Reference (Designated_Type (Prefix_Etype))
+            else
+               Do_Type_Reference (Prefix_Etype));
+         Base_Irep         : constant Irep :=
+           (if Is_Implicit_Deref then
+               Make_Dereference_Expr
+              (I_Type => Resolved_Type,
+               Object => Prefix_Irep,
+               Source_Location => Get_Source_Location (N))
+            else
+               Prefix_Irep);
+
+         Idx_Irep : constant Irep :=
+           Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
+                                  CProver_Size_T, Global_Symbol_Table);
+
+         Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
+         First_Irep : constant Irep := Get_First_Index (Base_Irep);
+         Last_Irep : constant Irep := Get_Last_Index (Base_Irep);
+         Checked_Index : constant Irep :=
+           Make_Index_Assert_Expr (N           => N,
+                                   Index       => Idx_Irep,
+                                   First_Index => First_Irep,
+                                   Last_Index  => Last_Irep);
+         Zero_Based_Index : constant Irep :=
+           Make_Op_Sub (Rhs             => First_Irep,
+                        Lhs             => Checked_Index,
+                        Source_Location => Source_Loc,
+                        Overflow_Check  => False,
+                        I_Type          => Get_Type (Idx_Irep),
+                        Range_Check     => False);
+
+         Data_Irep : constant Irep :=
+           Get_Data_Member (Base_Irep, Global_Symbol_Table);
+         Data_Type : constant Irep := Get_Type (Data_Irep);
+         Indexed_Data : constant Irep :=
+           Offset_Array_Data (Base         => Base_Irep,
+                              Offset       => Zero_Based_Index);
+         Element_Type : constant Irep := Get_Subtype (Data_Type);
+      begin
+         return
+           Make_Dereference_Expr (Object          => Indexed_Data,
+                                  Source_Location => Source_Loc,
+                                  I_Type          => Element_Type);
+      end;
    end Do_Indexed_Component;
 
    function Get_First_Index_Component (Array_Struct : Irep)

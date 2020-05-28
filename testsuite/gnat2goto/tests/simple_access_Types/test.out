@@ -1,0 +1,4 @@
+[simple_access_types.assertion.1] line 9 assertion I = 5: SUCCESS
+[simple_access_types.assertion.2] line 12 assertion I = 5: FAILURE
+[simple_access_types.assertion.3] line 13 assertion I = 3: SUCCESS
+VERIFICATION FAILED

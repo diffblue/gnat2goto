@@ -1477,17 +1477,7 @@ package body Tree_Walk is
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
          when N_Aggregate            => return Do_Aggregate_Literal (N);
-         when N_Indexed_Component    =>
-            if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-              and then
-                Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-              = "string"
-            then
-               return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                "Index of string unsupported");
-            else
-               return Do_Indexed_Component (N);
-            end if;
+         when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
          when N_In                   =>  return Do_In (N);
          when N_Real_Literal => return Do_Real_Constant (N);
@@ -1787,6 +1777,10 @@ package body Tree_Walk is
       Func_Symbol  : Symbol;
 
    begin
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the function call is an implicit dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
             Fun_Type : constant Irep :=
@@ -4213,6 +4207,10 @@ package body Tree_Walk is
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
    begin
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the procedure call is an implicit dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
             Fun_Type : constant Irep :=
@@ -4589,7 +4587,27 @@ package body Tree_Walk is
    ---------------------------
 
    function Do_Selected_Component (N : Node_Id) return Irep is
-      Root           : constant Irep := Do_Expression (Prefix (N));
+      --  The prefix to a selected component may be an access to an
+      --  record object which must be implicitly dereferenced.
+      The_Prefix        : constant Node_Id := Prefix (N);
+      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
+      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
+      Resolved_Type     : constant Irep :=
+        (if Is_Implicit_Deref then
+            Do_Type_Reference (Designated_Type (Prefix_Etype))
+         else
+            Do_Type_Reference (Prefix_Etype));
+      Root            : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (I_Type => Resolved_Type,
+            Object => Prefix_Irep,
+            Source_Location => Get_Source_Location (N))
+         else
+            Prefix_Irep);
+
+      --  Where required the prefix has been implicitly dereferenced.
       Component      : constant Entity_Id := Entity (Selector_Name (N));
 
       --  Example:
