@@ -102,6 +102,9 @@ package Tree_Walk is
      Post => Kind (Make_Malloc_Function_Call_Expr'Result) =
      I_Side_Effect_Expr_Function_Call;
 
+   function Do_Address_Of (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Attribute_Reference;
+
    function Do_Expression (N : Node_Id) return Irep
      with Pre  => Nkind (N) in N_Subexpr,
      Post => Kind (Do_Expression'Result) in Class_Expr;
