@@ -27,13 +27,11 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;
 with Sinput;
-
+with ASVAT.Address_Model;    use type
+  ASVAT.Address_Model.Address_To_Access_Functions;
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
-
-   function Do_Address_Of (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Attribute_Reference;
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Aggregate;
@@ -62,7 +60,8 @@ package body Tree_Walk is
 
    function Do_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Integer_Literal,
-        Post => Kind (Do_Constant'Result) = I_Constant_Expr;
+        Post => Kind (Do_Constant'Result) in
+           I_Constant_Expr | I_Op_Typecast;
 
    function Do_Character_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Character_Literal,
@@ -1032,31 +1031,47 @@ package body Tree_Walk is
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
       Int_Val : constant Uint := Intval (N);
       Source_Loc : constant Irep := Get_Source_Location (N);
-   begin
-      if Etype (N) = Stand.Universal_Integer then
-         return Make_Constant_Expr
+      Is_Address : constant Boolean :=
+        Unique_Name (Etype (N)) = "system__address";
+      Is_Integer : constant Boolean := Etype (N) = Stand.Universal_Integer;
+      Is_BV      : constant Boolean :=
+        Kind (Constant_Type) in Class_Bitvector_Type;
+
+      Const_Irep : constant Irep :=
+        (if Is_Integer or Is_Address then
+              Make_Constant_Expr
            (Source_Location => Source_Loc,
             I_Type          => Constant_Type,
             Range_Check     => False,
-            Value           => UI_Image (Int_Val, Decimal));
-      end if;
-
-      if not (Kind (Constant_Type) in Class_Bitvector_Type)
-      then
+            Value           => UI_Image (Int_Val, Decimal))
+         elsif Is_BV then
+            Make_Constant_Expr
+           (Source_Location => Source_Loc,
+            I_Type          => Constant_Type,
+            Range_Check     => False,
+            Value           =>
+              Convert_Uint_To_Hex (Int_Val, Pos (Get_Width (Constant_Type))))
+         else
+            Make_Constant_Expr (Source_Location => Source_Loc,
+                                I_Type          => Constant_Type,
+                                Range_Check     => False,
+                                Value           => "0"));
+   begin
+      if not (Is_Integer or Is_BV or Is_Address) then
          Report_Unhandled_Node_Empty (N, "Do_Constant",
                                       "Unsupported constant type");
-         return Make_Constant_Expr (Source_Location => Source_Loc,
-                                    I_Type          => Constant_Type,
-                                    Range_Check     => False,
-                                    Value           => "0");
       end if;
 
-      return Make_Constant_Expr
-        (Source_Location => Source_Loc,
-         I_Type          => Constant_Type,
-         Range_Check     => False,
-         Value           =>
-           Convert_Uint_To_Hex (Int_Val, Pos (Get_Width (Constant_Type))));
+      return (if Is_Address then
+                 Make_Op_Typecast
+                (Op0             => Const_Irep,
+                 Source_Location => Get_Source_Location (N),
+                 I_Type          => Make_Pointer_Type
+                   (I_Subtype => Make_Unsignedbv_Type (8),
+                    Width     => Pointer_Type_Width),
+                 Range_Check     => False)
+              else
+                 Const_Irep);
    end Do_Constant;
 
    ---------------------------
@@ -1366,9 +1381,8 @@ package body Tree_Walk is
             case Get_Attribute_Id (Attribute_Name (N)) is
                when Attribute_Access => return Do_Address_Of (N);
                when Attribute_Address =>
-                  --  The simplest way to model X'Address in ASVAT
-                  --  is as an access to the object.
-                  return Do_Address_Of (N);
+                  --  Use the ASVAT.Address_Model to create the address.
+                  return ASVAT.Address_Model.Do_ASVAT_Address_Of (N);
                when Attribute_Length => return Do_Array_Length (N);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
@@ -4934,9 +4948,35 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
+      E : constant Node_Id := Defining_Unit_Name (Specification (N));
    begin
+      pragma Assert (Ekind (E) in Subprogram_Kind);
       Register_Subprogram_Specification (Specification (N));
-      --  Todo Aspect specifications
+
+      if Is_Intrinsic_Subprogram (E)
+        and Nkind (Specification (N)) = N_Function_Specification
+      then
+         Check_For_Intrinsic_Address_Functions :
+         declare
+            Fun_Sort : constant
+              ASVAT.Address_Model.Address_To_Access_Functions :=
+                ASVAT.Address_Model.Get_Intrinsic_Address_Function (E);
+         begin
+            if Fun_Sort = ASVAT.Address_Model.To_Pointer_Function then
+               --  Make a body for
+               --  function To_Pointer (System.Address) return access T.
+               ASVAT.Address_Model.Make_To_Pointer (E);
+            elsif Fun_Sort = ASVAT.Address_Model.To_Address_Function then
+              --  Make a body for
+              --  function To_Pointer (V : T) return Systen.Address.
+               ASVAT.Address_Model.Make_To_Address (E);
+            else
+               --  If the intrinsic funtion is not from an instatiation of
+               --  the System.Address_To_Access package nothing is done.
+               null;
+            end if;
+         end Check_For_Intrinsic_Address_Functions;
+      end if;
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -5146,15 +5186,27 @@ package body Tree_Walk is
 
    procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id) is
       New_Type        : constant Irep := New_Type_In;
-      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (E));
+      New_Type_Name   : constant String := Unique_Name (E);
+      New_Type_Name_Id   : constant Symbol_Id := Intern (New_Type_Name);
       New_Type_Symbol : constant Symbol :=
-        Make_Type_Symbol (New_Type_Name, New_Type);
+        Make_Type_Symbol (New_Type_Name_Id,
+                          (if New_Type_Name /= "system__address" then
+                           --  For all type declarations except the
+                           --  private type System.Address we use the
+                           --  type declared in the source code.
+                              New_Type
+                           else
+                           --  System.Address is modelled as a pointer
+                           --  to a byte (an array of bytes).
+                              Make_Pointer_Type
+                             (I_Subtype => Make_Unsignedbv_Type (8),
+                              Width     => Pointer_Type_Width)));
    begin
       if Kind (New_Type) = I_Struct_Type then
-         Set_Tag (New_Type, Unintern (New_Type_Name));
+         Set_Tag (New_Type, New_Type_Name);
       end if;
-      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name) then
-         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name,
+      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name_Id) then
+         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name_Id,
                              New_Type_Symbol);
       end if;
    end Do_Type_Declaration;
