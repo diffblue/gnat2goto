@@ -2923,29 +2923,36 @@ package body Tree_Walk is
             --  language. Need to be detected.
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
                                        "Known but unsupported pragma: Export");
-         when Name_Linker_Options =>
-            --  Used to specify the system linker parameters needed when a
-            --  given compilation unit is included in a partition. We want to
-            --  know that code manipulates the linking.
-            Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                               "Known but unsupported pragma: Linker Options");
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
               Name_Assertion_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Compile_Time_Warning |
+            --  Used to issue a compile time warning from the compiler
+            --  front-end.  The warning will be issued by the front-end but has
+            --  no affect on the AST.  It can be ignored safely by gnat2goto.
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
-            Name_Inline |
+              Name_Inline |
             --  Indicates that inline expansion is desired for all calls to
             --  that entity. -> Ignored
-            Name_Inspection_Point |
+              Name_Inspection_Point |
             --  Identifies a set of objects each of whose values is to be
             --  available at the point(s) during program execution
             --  corresponding to the position of the pragma in the compilation
             --  unit. -> Ignored
+              Name_Linker_Options |
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. We want to
+            --  know that code manipulates the linking. The
+            --  goto functions produced by gnat2goto are linked by symtab2gb.
+            --  Currently there very few options for this linker and none that
+            --  apply to most linkers.  Currently  the pragma can ignored,
+            --  but in the future, if symtab2gb was to take more options
+            --  this pragma could be reinstated.
               Name_List |
             --  Takes one of the identifiers On or Off as the single
             --  argument. It specifies that listing of the compilation is to be
@@ -6009,12 +6016,6 @@ package body Tree_Walk is
             --  language. Need to be detected.
             Put_Line (Standard_Error,
                       "Warning: Multi-language analysis unsupported.");
-         when Name_Linker_Options =>
-            --  Used to specify the system linker parameters needed when a
-            --  given compilation unit is included in a partition. We want to
-            --  know that code manipulates the linking.
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                               "Known but unsupported pragma: Linker Options");
          when Name_Machine_Attribute =>
             Handle_Pragma_Machine_Attribute (N);
          when Name_Check =>
@@ -6031,8 +6032,33 @@ package body Tree_Walk is
             null;
 
          when Name_Suppress_Initialization =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                "Unsupported pragma: Suppress initialization");
+            --  pragma Suppress_Initialization can be ignored if it is
+            --  appied to an array or scalar type which do not have a
+            --  default value aspect applied.
+            --  If these conditions are not met an unsupported pragma is
+            --  reported.
+            declare
+               Arg : constant Node_Id :=
+                 First (Pragma_Argument_Associations (N));
+               E   : constant Entity_Id := Entity
+                 (if Present (Arg) and then
+                  Nkind (Arg) = N_Pragma_Argument_Association
+                  then
+                     Expression (Arg)
+                  else
+                     Arg);
+            begin
+               if not ((Is_Array_Type (E) and then
+                          not Present (Default_Aspect_Component_Value (E)))
+                        or else
+                        (Is_Scalar_Type (E) and then
+                             not Present (Default_Aspect_Value (E))))
+               then
+                  Report_Unhandled_Node_Empty
+                    (N, "Process_Pragma_Declaration",
+                     "Unsupported pragma: Suppress initialization");
+               end if;
+            end;
          when Name_Obsolescent =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Obsolescent");
@@ -6045,6 +6071,10 @@ package body Tree_Walk is
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Compile_Time_Warning |
+            --  Used to issue a compile time warning from the compiler
+            --  front-end.  The warning will be issued by the front-end but has
+            --  no affect on the AST.  It can be ignored safely by gnat2goto.
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
@@ -6053,6 +6083,17 @@ package body Tree_Walk is
             --  available at the point(s) during program execution
             --  corresponding to the position of the pragma in the compilation
             --  unit. -> Ignored
+              Name_Linker_Options |
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. We want to
+            --  know that code manipulates the linking.Name_Linker_Options =>
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. The
+            --  goto functions produced by gnat2goto are linked by symtab2gb.
+            --  Currently there very few options for this linker and none that
+            --  apply to most linkers.  Currently  the pragma can ignored,
+            --  but in the future, if symtab2gb was to take more options
+            --  this pragma could be reinstated.
               Name_List |
             --  Takes one of the identifiers On or Off as the single
             --  argument. It specifies that listing of the compilation is to be
