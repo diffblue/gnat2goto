@@ -13,11 +13,6 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 202 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Suppress initialization
-Nkind: N_Pragma
---
 Occurs: 153 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
@@ -186,6 +181,11 @@ Nkind: N_Pragma
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Refine
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
 Nkind: N_Pragma
 --
 Occurs: 1 times

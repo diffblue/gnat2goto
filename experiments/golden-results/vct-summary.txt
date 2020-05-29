@@ -18,11 +18,6 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_COPY_SIGN unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 6 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Suppress initialization
-Nkind: N_Pragma
---
 Occurs: 4 times
 Calling function: Process_Declaration
 Error message: size clause not applied by the front-end
