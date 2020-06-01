@@ -1501,7 +1501,10 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Quantified");
-         when N_Null =>
+         when N_Null |
+            --  gnat2goto does not process freeze nodes at present.
+            --  Possibly of use when package initialisationis considered.
+              N_Freeze_Entity | N_Freeze_Generic_Entity =>
             return Do_Null_Expression (N);
          when others                 =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
@@ -6265,6 +6268,10 @@ package body Tree_Walk is
          when N_Object_Declaration =>
             Do_Object_Declaration (N, Block);
 
+         when N_Freeze_Entity | N_Freeze_Generic_Entity =>
+            --  gnat2goto does not process freeze nodes as
+            --  the information contained therein is not needed by gnat2goto.
+            null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
                                          "Unknown expression kind");
