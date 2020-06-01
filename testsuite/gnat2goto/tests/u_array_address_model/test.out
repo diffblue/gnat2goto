@@ -1,11 +1,3 @@
-Standard_Output from gnat2goto u_array_address_model:
-----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: compile_time_warning----------
-N_Pragma (Node_Id=3669) (source,analyzed)
- Sloc = 19196  s-atacco.ads:42:4 [u_array_address_model.adb:10:4]
- Pragma_Argument_Associations = List (List_Id=-99999824)
- Pragma_Identifier = N_Identifier "compile_time_warning" (Node_Id=3681)
-
 Standard_Error from gnat2goto u_array_address_model:
 u_array_address_model.adb:10:04: warning: in instantiation at s-atacco.ads:43
 u_array_address_model.adb:10:04: warning: Object is unconstrained array type
