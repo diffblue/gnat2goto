@@ -1030,7 +1030,7 @@ Error detected at REDACTED
 --
 Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:109|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1100,17 +1100,17 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:109|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:109|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:109|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times

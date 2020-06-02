@@ -99,11 +99,6 @@ Error message: Unhandled aggregate kind: E_RECORD_TYPE_WITH_PRIVATE
 Nkind: N_Aggregate
 --
 Occurs: 1 times
-Calling function: Do_Constant
-Error message: Unsupported constant type
-Nkind: N_Integer_Literal
---
-Occurs: 1 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MIN unsupported
 Nkind: N_Attribute_Reference
@@ -2973,11 +2968,6 @@ Occurs: 3 times
 | GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
 Error detected at REDACTED
 --
-Occurs: 3 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
 Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1784|
@@ -3185,7 +3175,7 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:109|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times

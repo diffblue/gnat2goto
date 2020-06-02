@@ -3,7 +3,7 @@ Calling function: Process_Declaration
 Error message: size clause not applied by the front-end
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 379 times
+Occurs: 378 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
@@ -13,7 +13,7 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 153 times
+Occurs: 152 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
@@ -33,30 +33,30 @@ Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
-Occurs: 14 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Global
-Nkind: N_Pragma
---
 Occurs: 13 times
 Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 13 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Global
+Nkind: N_Pragma
 --
 Occurs: 10 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 10 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
-Nkind: N_Pragma
---
 Occurs: 8 times
 Calling function: Do_Type_Reference
 Error message: Type of type not a type
 Nkind: N_Defining_Identifier
+--
+Occurs: 8 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -72,11 +72,6 @@ Occurs: 5 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
 Nkind: N_Pragma
---
-Occurs: 3 times
-Calling function: Do_Constant
-Error message: Unsupported constant type
-Nkind: N_Integer_Literal
 --
 Occurs: 3 times
 Calling function: Process_Declaration
@@ -114,9 +109,9 @@ Error message: unsupported lower range kind
 Nkind: N_Real_Literal
 --
 Occurs: 1 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MACHINE_RADIX unsupported
-Nkind: N_Attribute_Reference
+Calling function: Do_Constant
+Error message: Unsupported constant type
+Nkind: N_Integer_Literal
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -1718,11 +1713,6 @@ Occurs: 10 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
-Occurs: 8 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
 Occurs: 7 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
@@ -1743,9 +1733,9 @@ Occurs: 3 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
-Occurs: 3 times
+Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:998                      |
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
 --
 Occurs: 2 times
@@ -2203,34 +2193,9 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
 Occurs: 25 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from goto_utils.ads:147
-
---
-Occurs: 2 times
-<========================>
-raised CONSTRAINT_ERROR : Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map
 
 --
 Occurs: 2 times

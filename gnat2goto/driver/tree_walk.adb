@@ -960,10 +960,9 @@ package body Tree_Walk is
    -- Do_Compilation_Unit --
    -------------------------
 
-   function Do_Compilation_Unit (N : Node_Id; Unit_Is_Subprogram : out Boolean)
-     return Symbol
+   function Do_Compilation_Unit (N : Node_Id) return Symbol
    is
-      U           : constant Node_Id := Unit (N);
+      U         : constant Node_Id := Unit (N);
       Unit_Name : constant Symbol_Id :=
         Intern (Unique_Name (Unique_Defining_Entity (U)));
       Unit_Symbol : Symbol;
@@ -974,31 +973,45 @@ package body Tree_Walk is
 
       case Nkind (U) is
          when N_Subprogram_Body =>
-            --  The specification of the subprogram body has already
-            --  been inserted into the symbol table by the call to
-            --  Do_Withed_Unit_Specs.
-            pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
-            Unit_Symbol := Global_Symbol_Table (Unit_Name);
+            --  If the unit is not the body of a generic declaration,
+            --  the subprogram specification will have been entered into the
+            --  symbol table by the processing of with'd units including
+            --  the specification of this unit.
+            --  Now the subprogram's body is added to the symbol table.
+            if Global_Symbol_Table.Contains (Unit_Name) then
+               Unit_Symbol := Global_Symbol_Table (Unit_Name);
+               Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
 
-            --  Now compile the body of the subprogram
-            Unit_Symbol.Value := Do_Subprogram_Or_Block (U);
-
-            --  and update the symbol table entry for this subprogram.
-            Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
-            Unit_Is_Subprogram := True;
+               --  and update the symbol table entry for this subprogram.
+               Global_Symbol_Table.Replace (Unit_Name, Unit_Symbol);
+            else
+               --  It is the body of a generic declaration and the
+               --  and generic declarations are not translated.
+               --  Gnat2goto does not tranlate the body either snd
+               --  so there is nothing to be done.
+               null;
+            end if;
 
          when N_Package_Body =>
-            declare
-               Dummy : constant Irep := Do_Subprogram_Or_Block (U);
-               pragma Unreferenced (Dummy);
-            begin
-            --  The specification of the package body has already
+            --  If the unit is not the body of a generic declaration,
+            --  the specification of the package body has already
             --  been inserted into the symbol table by the call to
             --  Do_Withed_Unit_Specs.
-               pragma Assert (Global_Symbol_Table.Contains (Unit_Name));
-               Unit_Symbol := Global_Symbol_Table (Unit_Name);
-               Unit_Is_Subprogram := False;
-            end;
+            if Global_Symbol_Table.Contains (Unit_Name) then
+               declare
+                  Dummy : constant Irep := Do_Subprogram_Or_Block (U);
+                  pragma Unreferenced (Dummy);
+               begin
+                  Unit_Symbol := Global_Symbol_Table (Unit_Name);
+               end;
+            else
+               --  It is the body of a generic declaration and the
+               --  and generic declarations are not translated.
+               --  Gnat2goto does not tranlate the body either snd
+               --  so there is nothing to be done.
+               null;
+            end if;
+
          when N_Subprogram_Declaration | N_Package_Declaration =>
             --  Package and subprogram declarations are processed
             --  when they appear in a with statement.
@@ -1009,7 +1022,7 @@ package body Tree_Walk is
             --  think such uses would be unusual (TJJ 21/11/2019)
             null;
          when N_Generic_Subprogram_Declaration
-           | N_Generic_Package_Declaration =>
+            | N_Generic_Package_Declaration =>
             --  Generic subprograms and packages
             --  don't need to specially handled
             --  because their instantiations appear as nodes
@@ -1017,7 +1030,7 @@ package body Tree_Walk is
             null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Do_Compilation_Unit",
-                                         "Generic units are unsupported");
+                                         "unsupported compilation unit sort");
       end case;
 
       return Unit_Symbol;

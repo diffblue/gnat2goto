@@ -1,0 +1,4 @@
+[inc.assertion.1] line 3 Ada Check assertion: SUCCESS
+[p.assertion.1] line 6 assertion J = 1: SUCCESS
+[p.assertion.2] line 8 assertion J = 3: SUCCESS
+VERIFICATION SUCCESSFUL

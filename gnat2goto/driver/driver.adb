@@ -353,14 +353,18 @@ package body Driver is
    is
       pragma Assert (Nkind (GNAT_Root) = N_Compilation_Unit);
 
-      Unit_Is_Subprogram : Boolean;
       Program_Symbol : constant Symbol :=
-        Do_Compilation_Unit (GNAT_Root, Unit_Is_Subprogram);
+        Do_Compilation_Unit (GNAT_Root);
 
-      --  Only add CPROVER_Start if the unit is subprogram and the user did not
-      --  suppress it (by cmdl option).
+      The_Unit   : constant Node_Id := Unit (GNAT_Root);
+
+      Unit_Name : constant Symbol_Id :=
+        Intern (Unique_Name (Unique_Defining_Entity (The_Unit)));
+
+      --  Only add CPROVER_Start if the unit is subprogram body
+      --  and the user did not suppress it (by cmdl option).
       Add_Start : constant Boolean :=
-        Unit_Is_Subprogram and not Suppress_Cprover_Start;
+        Nkind (The_Unit) = N_Subprogram_Body and not Suppress_Cprover_Start;
 
       Sym_Tab_File : File_Type;
       Base_Name  : constant String :=
@@ -369,6 +373,27 @@ package body Driver is
 
       Sanitised_Symbol_Table : Symbol_Table;
    begin
+      if Nkind (The_Unit) not in  N_Subprogram_Body | N_Package_Body or else
+        not Global_Symbol_Table.Contains (Unit_Name)
+      then
+         --  Only non-generic compilation unit bodies generate a
+         --  json symbol table. Generic declarations and their bodies
+         --  do not generate json symbol tables because instances of the
+         --  generic units are expanded in the AST by the front-end.
+         --  Library level generic instantiations, although they are
+         --  declarations, appear in the tree as unit bodies, and so
+         --  gnat2goto will generate a json symbol for such instantiations
+         --  As generic declarations are not translated by Do_Compilation_Unit
+         --  they will not have an entry in the symbol table.
+         --  Hence a unit body which does not have an entry in the
+         --  global symbol table is a generic body and a
+         --  json symbol table is not generated.
+         return;
+      end if;
+
+      --  The compilation unit is a body, a tranlation has been completed
+      --  and the symbol table populated.
+      --  Now generate the json file from the symbol table
       Create (Sym_Tab_File, Out_File, Base_Name & ".json_symtab");
       --  Gather local symbols and put them in the symtab
       declare
