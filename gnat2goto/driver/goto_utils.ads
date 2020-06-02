@@ -85,7 +85,7 @@ package GOTO_Utils is
                                          BaseName :              String;
                                          Symbol_Type :           Irep;
                                          A_Symbol_Table : in out Symbol_Table)
-     with Pre => Kind (Symbol_Type) in Class_Type;
+     with Pre => Kind (Symbol_Type) in Class_Type | I_Address_Of_Expr;
 
    function New_Function_Symbol_Entry (Name : String; Symbol_Type : Irep;
                                        Value : Irep;

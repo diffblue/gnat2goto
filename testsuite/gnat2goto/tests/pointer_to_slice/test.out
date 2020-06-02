@@ -1,0 +1,41 @@
+
+Error from cbmc pointer_to_slice:
+--- begin invariant violation report ---
+Invariant check failed
+File: simplify_expr.cpp:2660 function: simplify_rec
+Condition: as_const(tmp).type() == expr.type()
+Reason: Postcondition
+Backtrace:
+cbmc(+0x24192d) [0x55cf743dc92d]
+cbmc(+0x241e8f) [0x55cf743dce8f]
+cbmc(+0x16b8cc) [0x55cf743068cc]
+cbmc(+0x26c926) [0x55cf74407926]
+cbmc(+0x2709fe) [0x55cf7440b9fe]
+cbmc(+0x26c7a5) [0x55cf744077a5]
+cbmc(+0x2709fe) [0x55cf7440b9fe]
+cbmc(+0x26c7a5) [0x55cf744077a5]
+cbmc(+0x2709fe) [0x55cf7440b9fe]
+cbmc(+0x26c7a5) [0x55cf744077a5]
+cbmc(+0x270aba) [0x55cf7440baba]
+cbmc(+0x270b37) [0x55cf7440bb37]
+cbmc(+0x6237d6) [0x55cf747be7d6]
+cbmc(+0x6259c8) [0x55cf747c09c8]
+cbmc(+0x625ea3) [0x55cf747c0ea3]
+cbmc(+0x4c47bd) [0x55cf7465f7bd]
+cbmc(+0x625ede) [0x55cf747c0ede]
+cbmc(+0x6260f8) [0x55cf747c10f8]
+cbmc(+0x626e3a) [0x55cf747c1e3a]
+cbmc(+0x4a2666) [0x55cf7463d666]
+cbmc(+0x4a22eb) [0x55cf7463d2eb]
+cbmc(+0x2d0402) [0x55cf7446b402]
+cbmc(+0x2cb938) [0x55cf74466938]
+cbmc(+0x15fb09) [0x55cf742fab09]
+cbmc(+0x14f301) [0x55cf742ea301]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xeb) [0x7ff9ef28209b]
+cbmc(+0x1605da) [0x55cf742fb5da]
+
+
+--- end invariant violation report ---
+
+ERROR code  -6 returned by cbmc when processing pointer_to_slice
+

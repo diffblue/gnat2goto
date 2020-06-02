@@ -1,0 +1,9 @@
+[record_access_types.assertion.1] line 13 assertion VR.I = 5: SUCCESS
+[record_access_types.assertion.2] line 16 assertion VR.I = 5: FAILURE
+[record_access_types.assertion.3] line 17 assertion VR.I = 3: SUCCESS
+[record_access_types.assertion.4] line 18 assertion VP.I = 3: SUCCESS
+[record_access_types.assertion.5] line 21 assertion VR.I = 5: FAILURE
+[record_access_types.assertion.6] line 22 assertion VR.I = 7: SUCCESS
+[record_access_types.assertion.7] line 25 assertion VP.I = 7: FAILURE
+[record_access_types.assertion.8] line 26 assertion VP.I = 11: SUCCESS
+VERIFICATION FAILED

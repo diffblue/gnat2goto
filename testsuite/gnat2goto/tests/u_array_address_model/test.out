@@ -1,0 +1,10 @@
+Standard_Error from gnat2goto u_array_address_model:
+u_array_address_model.adb:10:04: warning: in instantiation at s-atacco.ads:43
+u_array_address_model.adb:10:04: warning: Object is unconstrained array type
+u_array_address_model.adb:10:04: warning: To_Pointer results may not have bounds
+
+[u_array_address_model.assertion.1] line 18 Ada Check assertion: SUCCESS
+[u_array_address_model.assertion.2] line 24 assertion PV.all (I) = My_Int (I): SUCCESS
+[u_array_address_model.assertion.3] line 32 assertion V (I) = My_Int (V'Last - I + 1): SUCCESS
+[u_array_address_model.assertion.4] line 35 assertion V'Address = To_Address (Object_Pointer (PV)): SUCCESS
+VERIFICATION SUCCESSFUL

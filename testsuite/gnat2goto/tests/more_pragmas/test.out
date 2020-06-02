@@ -1,0 +1,34 @@
+Standard_Output from gnat2goto more_pragmas:
+----------At: Process_Pragma_Declaration----------
+----------Unsupported pragma: Suppress initialization----------
+N_Pragma (Node_Id=2315) (source,analyzed)
+ Sloc = 8846  more_pragmas.adb:17:4
+ Pragma_Argument_Associations = List (List_Id=-99999973)
+ Pragma_Identifier = N_Identifier "suppress_initialization" (Node_Id=2316)
+ Next_Rep_Item = N_Aspect_Specification (Node_Id=2313)
+----------At: Process_Pragma_Declaration----------
+----------Unsupported pragma: Suppress initialization----------
+N_Pragma (Node_Id=2351) (source,analyzed)
+ Sloc = 9008  more_pragmas.adb:23:4
+ Pragma_Argument_Associations = List (List_Id=-99999969)
+ Pragma_Identifier = N_Identifier "suppress_initialization" (Node_Id=2352)
+----------At: Process_Pragma_Declaration----------
+----------Unsupported pragma: Suppress initialization----------
+N_Pragma (Node_Id=2370) (source,analyzed)
+ Sloc = 9172  more_pragmas.adb:27:4
+ Pragma_Argument_Associations = List (List_Id=-99999966)
+ Pragma_Identifier = N_Identifier "suppress_initialization" (Node_Id=2371)
+ Next_Rep_Item = N_Aspect_Specification (Node_Id=2368)
+----------At: Process_Pragma_Declaration----------
+----------Unsupported pragma: Suppress initialization----------
+N_Pragma (Node_Id=2384) (source,analyzed)
+ Sloc = 9304  more_pragmas.adb:31:4
+ Pragma_Argument_Associations = List (List_Id=-99999964)
+ Pragma_Identifier = N_Identifier "suppress_initialization" (Node_Id=2385)
+
+Standard_Error from gnat2goto more_pragmas:
+more_pragmas.adb:5:33: warning: This should not be reported as unsupported
+more_pragmas.adb:35:33: warning: This should not be reported as unsupported
+
+[more_pragmas.assertion.1] line 36 assertion V = 0: SUCCESS
+VERIFICATION SUCCESSFUL

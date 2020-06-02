@@ -27,13 +27,11 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;
 with Sinput;
-
+with ASVAT.Address_Model;    use type
+  ASVAT.Address_Model.Address_To_Access_Functions;
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
-
-   function Do_Address_Of (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Attribute_Reference;
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Aggregate;
@@ -62,7 +60,8 @@ package body Tree_Walk is
 
    function Do_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Integer_Literal,
-        Post => Kind (Do_Constant'Result) = I_Constant_Expr;
+        Post => Kind (Do_Constant'Result) in
+           I_Constant_Expr | I_Op_Typecast;
 
    function Do_Character_Constant (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_Character_Literal,
@@ -1045,31 +1044,47 @@ package body Tree_Walk is
       Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
       Int_Val : constant Uint := Intval (N);
       Source_Loc : constant Irep := Get_Source_Location (N);
-   begin
-      if Etype (N) = Stand.Universal_Integer then
-         return Make_Constant_Expr
+      Is_Address : constant Boolean :=
+        Unique_Name (Etype (N)) = "system__address";
+      Is_Integer : constant Boolean := Etype (N) = Stand.Universal_Integer;
+      Is_BV      : constant Boolean :=
+        Kind (Constant_Type) in Class_Bitvector_Type;
+
+      Const_Irep : constant Irep :=
+        (if Is_Integer or Is_Address then
+              Make_Constant_Expr
            (Source_Location => Source_Loc,
             I_Type          => Constant_Type,
             Range_Check     => False,
-            Value           => UI_Image (Int_Val, Decimal));
-      end if;
-
-      if not (Kind (Constant_Type) in Class_Bitvector_Type)
-      then
+            Value           => UI_Image (Int_Val, Decimal))
+         elsif Is_BV then
+            Make_Constant_Expr
+           (Source_Location => Source_Loc,
+            I_Type          => Constant_Type,
+            Range_Check     => False,
+            Value           =>
+              Convert_Uint_To_Hex (Int_Val, Pos (Get_Width (Constant_Type))))
+         else
+            Make_Constant_Expr (Source_Location => Source_Loc,
+                                I_Type          => Constant_Type,
+                                Range_Check     => False,
+                                Value           => "0"));
+   begin
+      if not (Is_Integer or Is_BV or Is_Address) then
          Report_Unhandled_Node_Empty (N, "Do_Constant",
                                       "Unsupported constant type");
-         return Make_Constant_Expr (Source_Location => Source_Loc,
-                                    I_Type          => Constant_Type,
-                                    Range_Check     => False,
-                                    Value           => "0");
       end if;
 
-      return Make_Constant_Expr
-        (Source_Location => Source_Loc,
-         I_Type          => Constant_Type,
-         Range_Check     => False,
-         Value           =>
-           Convert_Uint_To_Hex (Int_Val, Pos (Get_Width (Constant_Type))));
+      return (if Is_Address then
+                 Make_Op_Typecast
+                (Op0             => Const_Irep,
+                 Source_Location => Get_Source_Location (N),
+                 I_Type          => Make_Pointer_Type
+                   (I_Subtype => Make_Unsignedbv_Type (8),
+                    Width     => Pointer_Type_Width),
+                 Range_Check     => False)
+              else
+                 Const_Irep);
    end Do_Constant;
 
    ---------------------------
@@ -1379,9 +1394,8 @@ package body Tree_Walk is
             case Get_Attribute_Id (Attribute_Name (N)) is
                when Attribute_Access => return Do_Address_Of (N);
                when Attribute_Address =>
-                  --  The simplest way to model X'Address in ASVAT
-                  --  is as an access to the object.
-                  return Do_Address_Of (N);
+                  --  Use the ASVAT.Address_Model to create the address.
+                  return ASVAT.Address_Model.Do_ASVAT_Address_Of (N);
                when Attribute_Length => return Do_Array_Length (N);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
@@ -1490,17 +1504,7 @@ package body Tree_Walk is
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
          when N_Aggregate            => return Do_Aggregate_Literal (N);
-         when N_Indexed_Component    =>
-            if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-              and then
-                Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-              = "string"
-            then
-               return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                "Index of string unsupported");
-            else
-               return Do_Indexed_Component (N);
-            end if;
+         when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
          when N_In                   =>  return Do_In (N);
          when N_Real_Literal => return Do_Real_Constant (N);
@@ -1510,7 +1514,10 @@ package body Tree_Walk is
          when N_Quantified_Expression =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                "Quantified");
-         when N_Null =>
+         when N_Null |
+            --  gnat2goto does not process freeze nodes at present.
+            --  Possibly of use when package initialisationis considered.
+              N_Freeze_Entity | N_Freeze_Generic_Entity =>
             return Do_Null_Expression (N);
          when others                 =>
             return Report_Unhandled_Node_Irep (N, "Do_Expression",
@@ -1800,6 +1807,10 @@ package body Tree_Walk is
       Func_Symbol  : Symbol;
 
    begin
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the function call is an implicit dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
             Fun_Type : constant Irep :=
@@ -2928,29 +2939,36 @@ package body Tree_Walk is
             --  language. Need to be detected.
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
                                        "Known but unsupported pragma: Export");
-         when Name_Linker_Options =>
-            --  Used to specify the system linker parameters needed when a
-            --  given compilation unit is included in a partition. We want to
-            --  know that code manipulates the linking.
-            Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                               "Known but unsupported pragma: Linker Options");
          when Name_Annotate |
             --  Ignore here. Rather look for those when we process a node.
               Name_Assertion_Policy |
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Compile_Time_Warning |
+            --  Used to issue a compile time warning from the compiler
+            --  front-end.  The warning will be issued by the front-end but has
+            --  no affect on the AST.  It can be ignored safely by gnat2goto.
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
-            Name_Inline |
+              Name_Inline |
             --  Indicates that inline expansion is desired for all calls to
             --  that entity. -> Ignored
-            Name_Inspection_Point |
+              Name_Inspection_Point |
             --  Identifies a set of objects each of whose values is to be
             --  available at the point(s) during program execution
             --  corresponding to the position of the pragma in the compilation
             --  unit. -> Ignored
+              Name_Linker_Options |
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. We want to
+            --  know that code manipulates the linking. The
+            --  goto functions produced by gnat2goto are linked by symtab2gb.
+            --  Currently there very few options for this linker and none that
+            --  apply to most linkers.  Currently  the pragma can ignored,
+            --  but in the future, if symtab2gb was to take more options
+            --  this pragma could be reinstated.
               Name_List |
             --  Takes one of the identifiers On or Off as the single
             --  argument. It specifies that listing of the compilation is to be
@@ -4226,6 +4244,10 @@ package body Tree_Walk is
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
    is
    begin
+      --  It seems as though an N_Explicit_Drereference is placed in the tree
+      --  even when the procedure call is an implicit dereference.
+      --  Hence, implicit dereferences do not have to be seperately handled,
+      --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
             Fun_Type : constant Irep :=
@@ -4602,7 +4624,27 @@ package body Tree_Walk is
    ---------------------------
 
    function Do_Selected_Component (N : Node_Id) return Irep is
-      Root           : constant Irep := Do_Expression (Prefix (N));
+      --  The prefix to a selected component may be an access to an
+      --  record object which must be implicitly dereferenced.
+      The_Prefix        : constant Node_Id := Prefix (N);
+      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
+      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
+      Resolved_Type     : constant Irep :=
+        (if Is_Implicit_Deref then
+            Do_Type_Reference (Designated_Type (Prefix_Etype))
+         else
+            Do_Type_Reference (Prefix_Etype));
+      Root            : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (I_Type => Resolved_Type,
+            Object => Prefix_Irep,
+            Source_Location => Get_Source_Location (N))
+         else
+            Prefix_Irep);
+
+      --  Where required the prefix has been implicitly dereferenced.
       Component      : constant Entity_Id := Entity (Selector_Name (N));
 
       --  Example:
@@ -4929,9 +4971,35 @@ package body Tree_Walk is
    -------------------------------
 
    procedure Do_Subprogram_Declaration (N : Node_Id) is
+      E : constant Node_Id := Defining_Unit_Name (Specification (N));
    begin
+      pragma Assert (Ekind (E) in Subprogram_Kind);
       Register_Subprogram_Specification (Specification (N));
-      --  Todo Aspect specifications
+
+      if Is_Intrinsic_Subprogram (E)
+        and Nkind (Specification (N)) = N_Function_Specification
+      then
+         Check_For_Intrinsic_Address_Functions :
+         declare
+            Fun_Sort : constant
+              ASVAT.Address_Model.Address_To_Access_Functions :=
+                ASVAT.Address_Model.Get_Intrinsic_Address_Function (E);
+         begin
+            if Fun_Sort = ASVAT.Address_Model.To_Pointer_Function then
+               --  Make a body for
+               --  function To_Pointer (System.Address) return access T.
+               ASVAT.Address_Model.Make_To_Pointer (E);
+            elsif Fun_Sort = ASVAT.Address_Model.To_Address_Function then
+              --  Make a body for
+              --  function To_Pointer (V : T) return Systen.Address.
+               ASVAT.Address_Model.Make_To_Address (E);
+            else
+               --  If the intrinsic funtion is not from an instatiation of
+               --  the System.Address_To_Access package nothing is done.
+               null;
+            end if;
+         end Check_For_Intrinsic_Address_Functions;
+      end if;
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -5141,15 +5209,27 @@ package body Tree_Walk is
 
    procedure Do_Type_Declaration (New_Type_In : Irep; E : Entity_Id) is
       New_Type        : constant Irep := New_Type_In;
-      New_Type_Name   : constant Symbol_Id := Intern (Unique_Name (E));
+      New_Type_Name   : constant String := Unique_Name (E);
+      New_Type_Name_Id   : constant Symbol_Id := Intern (New_Type_Name);
       New_Type_Symbol : constant Symbol :=
-        Make_Type_Symbol (New_Type_Name, New_Type);
+        Make_Type_Symbol (New_Type_Name_Id,
+                          (if New_Type_Name /= "system__address" then
+                           --  For all type declarations except the
+                           --  private type System.Address we use the
+                           --  type declared in the source code.
+                              New_Type
+                           else
+                           --  System.Address is modelled as a pointer
+                           --  to a byte (an array of bytes).
+                              Make_Pointer_Type
+                             (I_Subtype => Make_Unsignedbv_Type (8),
+                              Width     => Pointer_Type_Width)));
    begin
       if Kind (New_Type) = I_Struct_Type then
-         Set_Tag (New_Type, Unintern (New_Type_Name));
+         Set_Tag (New_Type, New_Type_Name);
       end if;
-      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name) then
-         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name,
+      if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name_Id) then
+         Symbol_Maps.Insert (Global_Symbol_Table, New_Type_Name_Id,
                              New_Type_Symbol);
       end if;
    end Do_Type_Declaration;
@@ -5952,12 +6032,6 @@ package body Tree_Walk is
             --  language. Need to be detected.
             Put_Line (Standard_Error,
                       "Warning: Multi-language analysis unsupported.");
-         when Name_Linker_Options =>
-            --  Used to specify the system linker parameters needed when a
-            --  given compilation unit is included in a partition. We want to
-            --  know that code manipulates the linking.
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                               "Known but unsupported pragma: Linker Options");
          when Name_Machine_Attribute =>
             Handle_Pragma_Machine_Attribute (N);
          when Name_Check =>
@@ -5974,8 +6048,33 @@ package body Tree_Walk is
             null;
 
          when Name_Suppress_Initialization =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                "Unsupported pragma: Suppress initialization");
+            --  pragma Suppress_Initialization can be ignored if it is
+            --  appied to an array or scalar type which do not have a
+            --  default value aspect applied.
+            --  If these conditions are not met an unsupported pragma is
+            --  reported.
+            declare
+               Arg : constant Node_Id :=
+                 First (Pragma_Argument_Associations (N));
+               E   : constant Entity_Id := Entity
+                 (if Present (Arg) and then
+                  Nkind (Arg) = N_Pragma_Argument_Association
+                  then
+                     Expression (Arg)
+                  else
+                     Arg);
+            begin
+               if not ((Is_Array_Type (E) and then
+                          not Present (Default_Aspect_Component_Value (E)))
+                        or else
+                        (Is_Scalar_Type (E) and then
+                             not Present (Default_Aspect_Value (E))))
+               then
+                  Report_Unhandled_Node_Empty
+                    (N, "Process_Pragma_Declaration",
+                     "Unsupported pragma: Suppress initialization");
+               end if;
+            end;
          when Name_Obsolescent =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Obsolescent");
@@ -5988,6 +6087,10 @@ package body Tree_Walk is
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
+              Name_Compile_Time_Warning |
+            --  Used to issue a compile time warning from the compiler
+            --  front-end.  The warning will be issued by the front-end but has
+            --  no affect on the AST.  It can be ignored safely by gnat2goto.
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
@@ -5996,6 +6099,17 @@ package body Tree_Walk is
             --  available at the point(s) during program execution
             --  corresponding to the position of the pragma in the compilation
             --  unit. -> Ignored
+              Name_Linker_Options |
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. We want to
+            --  know that code manipulates the linking.Name_Linker_Options =>
+            --  Used to specify the system linker parameters needed when a
+            --  given compilation unit is included in a partition. The
+            --  goto functions produced by gnat2goto are linked by symtab2gb.
+            --  Currently there very few options for this linker and none that
+            --  apply to most linkers.  Currently  the pragma can ignored,
+            --  but in the future, if symtab2gb was to take more options
+            --  this pragma could be reinstated.
               Name_List |
             --  Takes one of the identifiers On or Off as the single
             --  argument. It specifies that listing of the compilation is to be
@@ -6208,6 +6322,10 @@ package body Tree_Walk is
          when N_Object_Declaration =>
             Do_Object_Declaration (N, Block);
 
+         when N_Freeze_Entity | N_Freeze_Generic_Entity =>
+            --  gnat2goto does not process freeze nodes as
+            --  the information contained therein is not needed by gnat2goto.
+            null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
                                          "Unknown expression kind");
