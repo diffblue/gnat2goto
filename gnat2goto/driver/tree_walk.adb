@@ -29,6 +29,8 @@ with Ada.Characters.Handling;
 with Sinput;
 with ASVAT.Address_Model;    use type
   ASVAT.Address_Model.Address_To_Access_Functions;
+with ASVAT.Size_Model;
+
 package body Tree_Walk is
 
    procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
@@ -1430,70 +1432,24 @@ package body Tree_Walk is
                   return Do_Attribute_Pred_Discrete (N);
                when Attribute_Succ =>
                   return Do_Attribute_Succ_Discrete (N);
-               when Attribute_Size =>
+               when Attribute_Size |
+                    Attribute_Value_Size | Attribute_VADS_Size =>
                   --  S'Size and X'Size are optimised into a simple literal
-                  --  by the gnat frontend when the size of the subtype or
-                  --  object is known by the frontend.
+                  --  by the gnat front-end when the size of the subtype or
+                  --  object is known by the front-end.
                   --  In such cases this branch will not be entered.
-                  --  S'Size where S is a scalar subtype is nearly always
-                  --  known at compile time, it is implementation dependent
-                  --  for indefinite subtypes.
-                  --  The Ada RM only specifies the value of S'Size, when
-                  --  S is a packed record and S is a formal parameter of
-                  --  Unchecked conversion.
-                  --  The gnat frontend function RM_Size should be used to
-                  --  obtain the value of S'Size.  It has the value 0 if
-                  --  the size of the subtype is not known to the frontend.
-                  --
-                  --  To obtain X'Size the frontend function Esize is used.
-                  --  The function can be applied to the object or its subtype.
-                  --  It seems that when applied to the object it returns 0 if
-                  --  the object does not have an attribute definition clause
-                  --  specifying its size.
-                  --  In such cases gnat2goto uses the default size of the
-                  --  object obtained by applying Esize to its subtype.
-                  --  Unfortunately, this may also return 0 if the size of
-                  --  the subtype is not known by the frontend.
-                  declare
-                     Constant_Type : constant Irep :=
-                       Do_Type_Reference (Stand.Universal_Integer);
-                     The_Entity : constant Node_Id := Entity (Prefix (N));
-                     The_Size  : Uint;
-                  begin
-                     if Is_Object (The_Entity) then
-                        declare
-                           Object_Size : constant Uint := Esize (The_Entity);
-                           Default_Obj_Size : constant Uint :=
-                             Esize (Etype (The_Entity));
-                           The_Size_To_Use : constant Uint :=
-                             (if Integer (UI_To_Int (Object_Size)) /= 0 then
-                                 Object_Size
-                              else
-                                 Default_Obj_Size
-                             );
-                        begin
-                           The_Size := The_Size_To_Use;
-                        end;
-                     elsif Is_Type (The_Entity) then
-                        --  Since the attribute is applied to a subtype,
-                        --  S'Size, RM_Size should be used.
-                        The_Size := RM_Size (The_Entity);
+                  return ASVAT.Size_Model.Do_Attribute_Size (N);
+               when Attribute_Component_Size  =>
+                  --  The attribute component size isoptimised into a
+                  --  simple literal by the gnat front-end when the size of
+                  --  the component is known by the front-end.
+                  --  In such cases this branch will not be entered.
 
-                        if not Is_Definite_Subtype (The_Entity) then
-                           Report_Unhandled_Node_Empty
-                             (The_Entity,
-                              "Do_Expression",
-                              "Size attribute applied to indefinite type " &
-                                "is implementation defined");
-                        end if;
-                     end if;
-
-                     return Make_Constant_Expr
-                       (Value =>
-                          UI_Image (Input  => The_Size, Format => Decimal),
-                        I_Type => Constant_Type,
-                        Source_Location => Get_Source_Location (N));
-                  end;
+                  --  For the moment we report an unhandled node if
+                  --  this branch is entered.
+                  return Report_Unhandled_Node_Irep
+                    (N, "Do_Expression",
+                     "Component_Size unsupported");
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
@@ -5578,60 +5534,31 @@ package body Tree_Walk is
               (N, "Process_Declaration",
                "Address representation clauses are not currently supported");
             return;
-         elsif Attr_Id = "size" or else Attr_Id = "component_size" then
-            declare
-               Target_Name : constant Irep := Do_Identifier (Name (N));
-               Entity_Esize : constant Uint := Esize (Entity (N));
-               Target_Type_Irep : constant Irep :=
-                 Follow_Symbol_Type
-                   (Get_Type (Target_Name), Global_Symbol_Table);
-               Expression_Value : constant Uint := Expr_Value (Expression (N));
-            begin
-               pragma Assert (Kind (Target_Type_Irep) in Class_Type);
-               if Attr_Id = "size" then
+         elsif Attr_Id = "size" or Attr_Id = "value_size" then
+            --  The size is recorded in the ASVAT extra information
+            --  The expression giving the size must be static according
+            --  to the rules of Ada. This is checked by the front-end.
+            ASVAT.Size_Model.Set_Rep_Size
+              (Entity (N), Expr_Value (Expression (N)));
 
-                  --  Just check that the front-end already applied this size
-                  --  clause, i .e. that the size of type-irep we already had
-                  --  equals the entity type this clause is applied to (and the
-                  --  size specified in this clause).
-                  if Entity_Esize /=
-                       UI_From_Int (Int (Get_Width (Target_Type_Irep)))
-                    or Entity_Esize /= Expression_Value
-                  then
-                     Report_Unhandled_Node_Empty
-                       (N, "Process_Declaration",
-                        "size clause not applied by the front-end");
-                  end if;
-                  return;
-               elsif Attr_Id = "component_size" then
-                  if not Is_Array_Type (Entity (N)) then
-                     Report_Unhandled_Node_Empty
-                       (N, "Process_Declaration",
-                        "Component size only supported for array types");
-                     return;
-                  end if;
-                  declare
-                     Array_Data : constant Irep :=
-                       Get_Data_Component_From_Type (Target_Type_Irep);
-                     Target_Subtype : constant Irep :=
-                       Follow_Symbol_Type (Get_Subtype (Get_Type (Array_Data)),
-                                           Global_Symbol_Table);
-                     Target_Subtype_Width : constant Uint :=
-                       UI_From_Int (Int (Get_Width (Target_Subtype)));
-                  begin
-                     if Component_Size (Entity (N)) /= Expression_Value or
-                       Target_Subtype_Width /= Expression_Value
-                     then
-                        Report_Unhandled_Node_Empty
-                          (N, "Process_Declaration",
-                           "Having component sizes be different from the "
-                           & "size of their underlying type "
-                           & "is currently not supported");
-                     end if;
-                  end;
-                  return;
-               end if;
-            end;
+            --  Other than recording the size in the extra information,
+            --  nothing more to be done here.
+            --  The attribute does affect the values given for RM_Size and
+            --  Esize by the front-end.
+            return;
+
+         elsif Attr_Id = "component_size" then
+            --  The component size is recorded in the ASVAT extra information
+            --  The expression giving the size must be static according
+            --  to the rules of Ada. This is checked by the front-end.
+            ASVAT.Size_Model.Set_Rep_Component_Size
+              (Entity (N), Expr_Value (Expression (N)));
+
+            --  Other than recording the component_size in the extra
+            --  information, nothing more to be done here.
+            --  The attribute does may the values given for RM_Size and
+            --  Esize by the front-end.
+            return;
          elsif Attr_Id = "alignment" then
             --  ASVAT does not model alignment of objects in memory.
             --  Nothing to be done.

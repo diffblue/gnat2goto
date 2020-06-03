@@ -1,0 +1,12 @@
+[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
+[iss_131.assertion.1] line 24 assertion Vna'size = 4: SUCCESS
+[iss_131.assertion.2] line 25 assertion neigh_array'size = 4: SUCCESS
+[iss_131.assertion.3] line 26 assertion r'Size = 16: SUCCESS
+[iss_131.assertion.4] line 27 assertion Vr'Size = 16: SUCCESS
+[iss_131.assertion.5] line 37 assertion Vna'Component_size = 1: FAILURE
+[iss_131.assertion.6] line 38 assertion neigh_array'component_size = 1: FAILURE
+[iss_131.assertion.7] line 49 assertion Vna'Component_size = 8: SUCCESS
+[iss_131.assertion.8] line 50 assertion neigh_array'component_size = 8: SUCCESS
+VERIFICATION FAILED
