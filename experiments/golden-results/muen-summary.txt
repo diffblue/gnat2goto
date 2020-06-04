@@ -25,11 +25,6 @@ Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Global
-Nkind: N_Pragma
---
-Occurs: 8 times
-Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --

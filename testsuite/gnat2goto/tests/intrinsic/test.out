@@ -1,6 +1,16 @@
-Standard_Error from gnat2goto use_import:
-Warning: Multi-language analysis unsupported.
-Warning: Multi-language analysis unsupported.
+Standard_Output from gnat2goto use_import:
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=2272) (source,analyzed)
+ Sloc = 8249  use_import.adb:3:4
+ Pragma_Argument_Associations = List (List_Id=-99999980)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=2273)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=2296) (source,analyzed)
+ Sloc = 8305  use_import.adb:6:4
+ Pragma_Argument_Associations = List (List_Id=-99999976)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=2297)
 
 [overflow.1] file use_import.adb line 16 arithmetic overflow on signed unary minus in -((long int)use_import__i): SUCCESS
 [use_import.assertion.1] line 16 Ada Check assertion: SUCCESS

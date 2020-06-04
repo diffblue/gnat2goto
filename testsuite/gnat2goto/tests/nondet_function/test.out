@@ -1,0 +1,65 @@
+[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
+[precondition_instance.4] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.5] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.6] file <internal> memcpy destination region writeable: SUCCESS
+[precondition_instance.7] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.8] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.9] file <internal> memcpy destination region writeable: SUCCESS
+[nondet_function.assertion.2] line 77 assertion Var_My_Int = 3: SUCCESS
+[nondet_function.assertion.3] line 78 assertion Var_My_Sub_Int = 5: SUCCESS
+[nondet_function.assertion.4] line 80 assertion Var_My_Enum = one: SUCCESS
+[nondet_function.assertion.5] line 81 assertion Var_My_Sub_Enum = three: SUCCESS
+[nondet_function.assertion.1] line 84 Ada Check assertion: SUCCESS
+[nondet_function.assertion.6] line 84 assertion Var_Fixed_Array (I) = 7: SUCCESS
+[nondet_function.assertion.7] line 87 assertion Var_Rec.A = 11: SUCCESS
+[nondet_function.assertion.8] line 88 assertion Var_Rec.B = five: SUCCESS
+[nondet_function.assertion.9] line 89 assertion Var_Rec.I = 1: SUCCESS
+[nondet_function.assertion.10] line 91 assertion Var_Rec.D (I) = 13: SUCCESS
+[nondet_function.assertion.11] line 94 assertion Var_My_Int >= My_Int'First and Var_My_Int <= My_Int'Last: SUCCESS
+[nondet_function.assertion.12] line 95 assertion Var_My_Sub_Int in My_Sub_Int: SUCCESS
+[nondet_function.assertion.13] line 97 assertion Var_My_Enum in My_Enum: SUCCESS
+[nondet_function.assertion.14] line 98 assertion Var_My_Sub_Enum in My_Sub_Enum: SUCCESS
+[nondet_function.assertion.15] line 101 assertion Var_Fixed_Array (I) in My_Sub_Int: SUCCESS
+[nondet_function.assertion.16] line 104 assertion Var_Rec.A in My_Sub_Int: SUCCESS
+[nondet_function.assertion.17] line 105 assertion Var_Rec.B in My_Enum: SUCCESS
+[nondet_function.assertion.18] line 106 assertion Var_Rec.I in Index: SUCCESS
+[nondet_function.assertion.19] line 108 assertion Var_Rec.D (I) in My_Sub_Int: SUCCESS
+[nondet_function.assertion.20] line 111 assertion In_Type (Var_My_Int): SUCCESS
+[nondet_function.assertion.21] line 112 assertion In_Type_Sub (Var_My_Sub_Int): SUCCESS
+[nondet_function.assertion.22] line 113 assertion In_Type (Var_My_Enum): SUCCESS
+[nondet_function.assertion.23] line 114 assertion In_Type_Sub (Var_My_Sub_Enum): SUCCESS
+[nondet_function.assertion.24] line 117 assertion In_Type_Sub (Var_Fixed_Array (I)): SUCCESS
+[nondet_function.assertion.25] line 120 assertion In_Type_Sub (Var_Rec.A): SUCCESS
+[nondet_function.assertion.26] line 121 assertion In_Type (Var_Rec.B): SUCCESS
+[nondet_function.assertion.27] line 122 assertion In_Type (Var_Rec.I): SUCCESS
+[nondet_function.assertion.28] line 124 assertion In_Type_Sub (Var_Rec.D (I)): SUCCESS
+[nondet_function.assertion.29] line 128 assertion Var_My_Int = 3: FAILURE
+[nondet_function.assertion.30] line 131 assertion Var_My_Sub_Int = 5: FAILURE
+[nondet_function.assertion.31] line 134 assertion Var_My_Enum = one: FAILURE
+[nondet_function.assertion.32] line 137 assertion Var_My_Sub_Enum = three: FAILURE
+[nondet_function.assertion.33] line 144 assertion Var_Fixed_Array (I) = 7: FAILURE
+[nondet_function.assertion.34] line 151 assertion Var_Rec.A = 11: FAILURE
+[nondet_function.assertion.35] line 152 assertion Var_Rec.B = five: FAILURE
+[nondet_function.assertion.36] line 153 assertion Var_Rec.I = 1: FAILURE
+[nondet_function.assertion.37] line 155 assertion Var_Rec.D (I) = 13: FAILURE
+[nondet_function.assertion.38] line 158 assertion Var_My_Int >= My_Int'First and Var_My_Int <= My_Int'Last: FAILURE
+[nondet_function.assertion.39] line 159 assertion Var_My_Sub_Int in My_Sub_Int: FAILURE
+[nondet_function.assertion.40] line 161 assertion Var_My_Enum in My_Enum: FAILURE
+[nondet_function.assertion.41] line 162 assertion Var_My_Sub_Enum in My_Sub_Enum: FAILURE
+[nondet_function.assertion.42] line 165 assertion Var_Fixed_Array (I) in My_Sub_Int: FAILURE
+[nondet_function.assertion.43] line 168 assertion Var_Rec.A in My_Sub_Int: FAILURE
+[nondet_function.assertion.44] line 169 assertion Var_Rec.B in My_Enum: FAILURE
+[nondet_function.assertion.45] line 170 assertion Var_Rec.I in Index: FAILURE
+[nondet_function.assertion.46] line 172 assertion Var_Rec.D (I) in My_Sub_Int: FAILURE
+[nondet_function.assertion.47] line 191 assertion Var_My_Int >= My_Int'First and Var_My_Int <= My_Int'Last: SUCCESS
+[nondet_function.assertion.48] line 192 assertion Var_My_Sub_Int in My_Sub_Int: SUCCESS
+[nondet_function.assertion.49] line 194 assertion Var_My_Enum >= My_Enum'First and Var_My_Enum <= My_Enum'Last: SUCCESS
+[nondet_function.assertion.50] line 195 assertion Var_My_Sub_Enum in My_Sub_Enum: SUCCESS
+[nondet_function.assertion.51] line 198 assertion Var_Fixed_Array (I) in My_Sub_Int: SUCCESS
+[nondet_function.assertion.52] line 201 assertion Var_Rec.A in My_Sub_Int: SUCCESS
+[nondet_function.assertion.53] line 202 assertion Var_Rec.B in My_Enum: SUCCESS
+[nondet_function.assertion.54] line 203 assertion Var_Rec.I in Index: SUCCESS
+[nondet_function.assertion.55] line 205 assertion Var_Rec.D (I) in My_Sub_Int: SUCCESS
+VERIFICATION FAILED

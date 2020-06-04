@@ -18,6 +18,11 @@ Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Export: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
