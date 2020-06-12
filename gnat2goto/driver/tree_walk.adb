@@ -687,8 +687,11 @@ package body Tree_Walk is
                                                   "Actual iter not present");
                      return Struct_Expr;
                   end if;
-                  if Defining_Identifier (Substruct_Component_List) /=
-                    Entity (First (Choices (Actual_Iter)))
+
+                  if Get_Name_String
+                    (Chars (Defining_Identifier (Substruct_Component_List))) /=
+                    Get_Name_String
+                      (Chars (Entity (First (Choices (Actual_Iter)))))
                   then
                      Report_Unhandled_Node_Empty (N,
                                                  "Do_Aggregate_Literal_Record",
