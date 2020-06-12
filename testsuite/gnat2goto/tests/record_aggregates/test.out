@@ -1,0 +1,34 @@
+Error from cbmc record_aggregates:
+--- begin invariant violation report ---
+Invariant check failed
+File: ../util/std_types.h:305 function: to_struct_type
+Condition: can_cast_type<struct_typet>(type)
+Reason: Precondition
+Backtrace:
+cbmc(+0x24357d) [0x55919ad0457d]
+cbmc(+0x243adf) [0x55919ad04adf]
+cbmc(+0x16d51c) [0x55919ac2e51c]
+cbmc(+0x605392) [0x55919b0c6392]
+cbmc(+0x60493e) [0x55919b0c593e]
+cbmc(+0x602cc4) [0x55919b0c3cc4]
+cbmc(+0x5c8fb5) [0x55919b089fb5]
+cbmc(+0x62b9c0) [0x55919b0ec9c0]
+cbmc(+0x62be73) [0x55919b0ece73]
+cbmc(+0x4c865d) [0x55919af8965d]
+cbmc(+0x62beae) [0x55919b0eceae]
+cbmc(+0x62c0c8) [0x55919b0ed0c8]
+cbmc(+0x62ce0a) [0x55919b0ede0a]
+cbmc(+0x4a5886) [0x55919af66886]
+cbmc(+0x4a550b) [0x55919af6650b]
+cbmc(+0x2d2fb2) [0x55919ad93fb2]
+cbmc(+0x2cdfa7) [0x55919ad8efa7]
+cbmc(+0x161759) [0x55919ac22759]
+cbmc(+0x150e11) [0x55919ac11e11]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xeb) [0x7f95f031509b]
+cbmc(+0x16222a) [0x55919ac2322a]
+
+
+--- end invariant violation report ---
+
+ERROR code  -6 returned by cbmc when processing record_aggregates
+
