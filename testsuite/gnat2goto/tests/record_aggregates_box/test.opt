@@ -1,0 +1,2 @@
+ALL XFAIL gnt2goto Failed precondition from tree_walk.ads
+

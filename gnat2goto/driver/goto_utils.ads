@@ -92,7 +92,7 @@ package GOTO_Utils is
                                        A_Symbol_Table : in out Symbol_Table)
                                        return Symbol
      with Pre => (Kind (Symbol_Type) = I_Code_Type
-                  and then (Kind (Value) = I_Code_Block
+                  and then (Kind (Value) in I_Code_Block | I_Code_Assert
                     or else Value = Ireps.Empty));
 
    function Create_Fun_Parameter (Fun_Name : String; Param_Name : String;

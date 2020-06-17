@@ -1,0 +1,2 @@
+ALL XFAIL cbmc Invariant check failed - reason precondition
+
