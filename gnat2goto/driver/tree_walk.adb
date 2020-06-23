@@ -1242,12 +1242,16 @@ package body Tree_Walk is
    -------------------------------
 
    function Do_Enumeration_Definition (N : Node_Id) return Irep is
-      Enum_Body : constant Irep := Make_C_Enum_Members;
+      Enum_Body        : constant Irep := Make_C_Enum_Members;
       Enum_Type_Symbol : constant Irep := Make_Symbol_Type
         (Identifier => Unique_Name (Defining_Identifier (Parent (N))));
-      First_Member : constant Node_Id := First (Literals (N));
-      Member : Node_Id := First_Member;
-      Last_Member : Node_Id := First_Member;
+      First_Member     : constant Node_Id := First (Literals (N));
+      Member           : Node_Id := First_Member;
+      Last_Member      : Node_Id := First_Member;
+      --  Track the number of bits required for the enumeration type.
+      Member_Count     : Natural  := 0;
+      Current_Bit_Size : Positive := 8;
+      Current_Max_Memb : Positive := 2 ** Current_Bit_Size;
    begin
       loop
          declare
@@ -1277,12 +1281,27 @@ package body Tree_Walk is
                                      Value_Expr     => Typecast_Expr,
                                      A_Symbol_Table => Global_Symbol_Table);
          end;
+         Member_Count := Member_Count + 1;
+         --  Check if the current bit size is sufficient.
+         if Member_Count > Current_Max_Memb then
+            Current_Bit_Size := Current_Bit_Size + 8;
+            Current_Max_Memb := 2 ** Current_Bit_Size;
+         end if;
          Last_Member := Member;
          Next (Member);
          exit when not Present (Member);
       end loop;
 
       declare
+         --  The Esize of the enumeration type is not accessible
+         --  at this node in the tree, the type is not yet defined.
+         --  By default, for an enumeration type, the front-end will
+         --  give an Esize of the number of bits needed to represent an
+         --  the count of the literals rounded up to the nearest byte.
+         --  The Assumed_Size used here is based on the same calculation.
+         --  An alternative, conservative approach would be to assume all
+         --  enumeration literals require 32 bits.
+         Assumed_Esize : constant Positive := Current_Bit_Size;
          function Make_Char_Symbol (N : Node_Id) return Irep is
            (Make_Symbol_Expr
               (Source_Location => Get_Source_Location (N),
@@ -1317,8 +1336,9 @@ package body Tree_Walk is
       begin
          return Make_C_Enum_Type
            (I_Subtype =>
-              Make_Bounded_Signedbv_Type
-                (Width       => 32, -- FIXME why 32?
+            --  Enumeration literals positions start from 0.
+              Make_Bounded_Unsignedbv_Type
+                (Width       => Assumed_Esize,
                  Lower_Bound => Store_Symbol_Bound
                    (Bound_Type_Symbol (Lower_Bound)),
                  Upper_Bound => Store_Symbol_Bound
