@@ -1462,7 +1462,12 @@ package body Tree_Walk is
          when N_Aggregate            => return Do_Aggregate_Literal (N);
          when N_Indexed_Component    => return Do_Indexed_Component (N);
          when N_Slice                => return Do_Slice (N);
-         when N_In                   =>  return Do_In (N);
+         when N_In                   => return Do_In (N);
+         when N_Not_In               => return
+              Make_Op_Not (Op0             => Do_In (N),
+                           Source_Location => Get_Source_Location (N),
+                           I_Type          => CProver_Bool_T,
+                           Range_Check     => False);
          when N_Real_Literal => return Do_Real_Constant (N);
          when N_If_Expression => return Do_If_Expression (N);
          when N_And_Then => return Do_And_Then (N);

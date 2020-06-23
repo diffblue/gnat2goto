@@ -109,7 +109,7 @@ package Tree_Walk is
      Post => Kind (Do_Expression'Result) in Class_Expr;
 
    function Do_In (N : Node_Id) return Irep
-     with Pre => Nkind (N) in N_In,
+     with Pre => Nkind (N) in N_In | N_Not_In,
      Post => Kind (Do_In'Result) = I_Op_And;
 
    function Make_Memcpy_Function_Call_Expr (Destination : Irep;
