@@ -1484,45 +1484,79 @@ package body Tree_Walk is
    function Do_In (N : Node_Id) return Irep is
       function Get_Range (N : Node_Id) return Node_Id;
       function Get_Range (N : Node_Id) return Node_Id is
-         Underlying_Type : Entity_Id := N;
       begin
-         while not (Nkind (Underlying_Type) = N_Defining_Identifier) loop
-            Underlying_Type := Etype (N);
-         end loop;
-         if No (Scalar_Range (Underlying_Type)) then
-            Report_Unhandled_Node_Empty (N, "Get_Range",
-                                         "Does not contain range");
-            return N;
-         end if;
-         return Scalar_Range (Underlying_Type);
+         case Nkind (N) is
+            when N_Range =>
+               return N;
+            when N_Identifier | N_Expanded_Name =>
+               return Scalar_Range (Etype (N));
+            when others =>
+               Report_Unhandled_Node_Empty
+                 (N        => N,
+                  Fun_Name => "Get_Range",
+                  Message  => "Unexpected membership_choice");
+               return N;
+         end case;
       end Get_Range;
 
-      Left_Op : constant Irep :=
-        Cast_Enum (Do_Expression (Left_Opnd (N)), Global_Symbol_Table);
-      Range_Node : constant Node_Id := Get_Range (Right_Opnd (N));
-      Low_Right : constant Irep :=
-        Cast_Enum (Do_Expression (Low_Bound (Range_Node)),
-                   Global_Symbol_Table);
-      High_Right : constant Irep :=
-        Cast_Enum (Do_Expression (High_Bound (Range_Node)),
-                   Global_Symbol_Table);
-      Geq_Low : constant Irep := Make_Op_Geq (Rhs             => Low_Right,
-                                              Lhs             => Left_Op,
-                                              Source_Location =>
-                                                Get_Source_Location (N),
-                                              I_Type => Make_Bool_Type);
-      Leq_High : constant Irep := Make_Op_Leq (Rhs             => High_Right,
-                                               Lhs             => Left_Op,
-                                               Source_Location =>
-                                                 Get_Source_Location (N),
-                                               I_Type => Make_Bool_Type);
-      Range_Irep : constant Irep := Make_Op_And
-        (Source_Location => Get_Source_Location (N),
-         I_Type => CProver_Bool_T);
    begin
-      Append_Op (Range_Irep, Geq_Low);
-      Append_Op (Range_Irep, Leq_High);
-      return Range_Irep;
+      if Present (Right_Opnd (N)) then
+         declare
+            Left_Op : constant Irep :=
+              Cast_Enum (Do_Expression (Left_Opnd (N)), Global_Symbol_Table);
+            Range_Node : constant Node_Id := Get_Range (Right_Opnd (N));
+            Low_Right : constant Irep :=
+              Cast_Enum (Do_Expression (Low_Bound (Range_Node)),
+                         Global_Symbol_Table);
+            High_Right : constant Irep :=
+              Cast_Enum (Do_Expression (High_Bound (Range_Node)),
+                         Global_Symbol_Table);
+            Geq_Low : constant Irep :=
+              Make_Op_Geq
+                (Rhs             =>
+                   Typecast_If_Necessary
+                     (Expr           => Low_Right,
+                      New_Type       => Get_Type (Left_Op),
+                      A_Symbol_Table => Global_Symbol_Table),
+                 Lhs             => Left_Op,
+                 Source_Location =>
+                   Get_Source_Location (N),
+                 I_Type => Make_Bool_Type);
+            Leq_High : constant Irep :=
+              Make_Op_Leq
+                (Rhs             =>
+                   Typecast_If_Necessary
+                     (Expr           => High_Right,
+                      New_Type       => Get_Type (Left_Op),
+                      A_Symbol_Table => Global_Symbol_Table),
+                 Lhs             => Left_Op,
+                 Source_Location =>
+                   Get_Source_Location (N),
+                 I_Type => Make_Bool_Type);
+            Range_Irep : constant Irep :=
+              Make_Op_And
+                (Source_Location => Get_Source_Location (N),
+                 I_Type => CProver_Bool_T);
+         begin
+            Append_Op (Range_Irep, Geq_Low);
+            Append_Op (Range_Irep, Leq_High);
+            return Range_Irep;
+         end;
+      else
+         if Present (Alternatives (N)) then
+            return
+              Report_Unhandled_Node_Irep
+                (N        => N,
+                 Fun_Name => "Do_In",
+                 Message  =>
+                   "gnat2goto currently only supports one mebership_choice");
+         else
+            return Report_Unhandled_Node_Irep
+              (N        => N,
+               Fun_Name => "Do_In",
+               Message  => "Unknown mebership_choice");
+         end if;
+      end if;
    end Do_In;
 
    -------------------
