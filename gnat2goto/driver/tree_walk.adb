@@ -310,9 +310,6 @@ package body Tree_Walk is
 
    function Get_Variant_Union_Member_Name (N : Node_Id) return String;
 
-   function Make_Increment
-     (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep;
-
    function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep;
 
    function Make_Runtime_Check (Condition : Irep) return Irep
@@ -2112,72 +2109,103 @@ package body Tree_Walk is
 
    function Do_Loop_Statement (N : Node_Id) return Irep is
       Iter_Scheme  : constant Node_Id := Iteration_Scheme (N);
-      Body_Block   : constant Irep := Process_Statements (Statements (N));
       Loop_Irep : Irep;
       Loop_Wrapper : constant Irep := Make_Code_Block
         (Get_Source_Location (N));
    begin
-      if not Present (Iter_Scheme) then
-         Loop_Irep := Make_Code_While
-           (Loop_Body => Body_Block,
-            Cond => CProver_True,
-            Source_Location => Get_Source_Location (N));
-      else
-         if Present (Condition (Iter_Scheme)) then
-            --  WHILE loop
-            declare
-               Cond : constant Irep := Do_Expression (Condition (Iter_Scheme));
-            begin
+      if not Present (Iter_Scheme) or else Present (Condition (Iter_Scheme))
+      then
+         --  The statements of the loop can be processed.
+         declare
+            Body_Block : constant Irep :=
+              Process_Statements (Statements (N));
+            Loop_Cond  : constant Irep :=
+              (if not Present (Iter_Scheme) then
+               --  It is a simple loop condition is True.
+                  CProver_True
+               else
+               --  It is a WHILE loop get the loop condition.
+                  Do_Expression (Condition (Iter_Scheme))
+              );
+         begin
                Loop_Irep := Make_Code_While
                  (Loop_Body => Body_Block,
-                  Cond => Cond,
+                  Cond => Loop_Cond,
                   Source_Location => Get_Source_Location (N));
-            end;
-         else
-            --  FOR loop.
-            --   Ada 1995: loop_parameter_specification
-            --   Ada 2012: +iterator_specification
-            if Present (Loop_Parameter_Specification (Iter_Scheme)) then
+         end;
+      else
+         --  It's a FOR loop.
+         --  The statements in the body of the loop cannot be processed
+         --  until the loop variable has been inserted into the symbol table.
+         --
+         --   Ada 1995: loop_parameter_specification
+         --   Ada 2012: +iterator_specification
+         if Present (Loop_Parameter_Specification (Iter_Scheme)) then
+            declare
+               Spec : constant Node_Id :=
+                 Loop_Parameter_Specification (Iter_Scheme);
+               Loopvar      : constant Entity_Id :=
+                 Defining_Identifier (Spec);
+               Loopvar_Name : constant String :=
+                 Unique_Name (Loopvar);
+               Loopvar_Type : constant Entity_Id := Etype (Loopvar);
+
+               function Get_Range (Spec : Node_Id) return Node_Id;
+
+               function Get_Range (Spec : Node_Id) return Node_Id
+               is
+                  Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
+               begin
+                  if Nkind (Dsd) = N_Subtype_Indication then
+                     Dsd := Range_Expression (Constraint (Dsd));
+                  end if;
+
+                  return Dsd;
+               end Get_Range;
+
+               Dsd : Node_Id;
+
+               Type_Loopvar : constant Irep := Do_Type_Reference
+                 (Etype (Etype (Defining_Identifier (Spec))));
+
+               Sym_Loopvar : constant Irep :=
+                 Make_Symbol_Expr
+                   (Source_Location =>
+                      Get_Source_Location (Defining_Identifier (Spec)),
+                    I_Type          => Type_Loopvar,
+                    Identifier      => Loopvar_Name);
+
+               Init : Irep;
+               Cond : Irep;
+               Post : Irep;
+
+               Bound_Low : Irep;
+               Bound_High : Irep;
+               Pre_Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
+            begin
+               --  Add the loop variable to the symbol table
+               New_Object_Symbol_Entry
+                 (Object_Name       => Intern (Loopvar_Name),
+                  Object_Type       => Do_Type_Reference (Loopvar_Type),
+                  Object_Init_Value => Ireps.Empty,
+                  A_Symbol_Table    => Global_Symbol_Table);
+
+               --  Now the statements of the for loop can be processed.
                declare
-                  Spec : constant Node_Id :=
-                    Loop_Parameter_Specification (Iter_Scheme);
-                  Loopvar_Name : constant String :=
-                    Unique_Name (Defining_Identifier (Spec));
+                  Body_Block : constant Irep :=
+                    Process_Statements (Statements (N));
+                  --  And, if the loop variable is an enumeration type,
+                  --  the underlying numerical representation of the
+                  --  enumeration can be obtained.
+                  --  If the loop variable is a discrete numeric type,
+                  --  the function Cast_Enum is an identity function.
+                  Loopvar_Numeric_Rep : constant Irep :=
+                    Cast_Enum (Sym_Loopvar, Global_Symbol_Table);
 
-                  function Get_Range (Spec : Node_Id)
-                     return Node_Id;
-
-                  function Get_Range (Spec : Node_Id)
-                     return Node_Id
-                  is
-                     Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
-                  begin
-                     if Nkind (Dsd) = N_Subtype_Indication then
-                        Dsd := Range_Expression (Constraint (Dsd));
-                     end if;
-
-                     return Dsd;
-                  end Get_Range;
-
-                  Dsd : Node_Id;
-
-                  Type_Loopvar : constant Irep := Do_Type_Reference
-                    (Etype (Etype (Defining_Identifier (Spec))));
-
-                  Sym_Loopvar : constant Irep :=
-                    Make_Symbol_Expr
-                      (Source_Location =>
-                         Get_Source_Location (Defining_Identifier (Spec)),
-                       I_Type          => Type_Loopvar,
-                       Identifier      => Loopvar_Name);
-
-                  Init : Irep;
-                  Cond : Irep;
-                  Post : Irep;
-
-                  Bound_Low : Irep;
-                  Bound_High : Irep;
-                  Pre_Dsd : Node_Id := Discrete_Subtype_Definition (Spec);
+                  --  A loop increment/decrement constant is required
+                  --  for a FOR loop.
+                  Loop_Inc_Dec : constant Irep :=
+                    Make_Integer_Constant (1, Loopvar_Type);
                begin
                   if Nkind (Pre_Dsd) = N_Subtype_Indication then
                      Pre_Dsd := Range_Expression (Constraint (Pre_Dsd));
@@ -2187,9 +2215,10 @@ package body Tree_Walk is
                     and  Nkind (Pre_Dsd) /= N_Real_Range_Specification
                     and not (Present (Scalar_Range (Etype (Pre_Dsd))))
                   then
-                     Report_Unhandled_Node_Empty (Pre_Dsd,
-                                                  "Do_While_Statement",
-                                                  "Wrong Nkind spec");
+                     Report_Unhandled_Node_Empty
+                       (Pre_Dsd,
+                        "Do_Loop_Statement - FOR loop",
+                        "Invalid Discrete_Subtype_Definition");
                      return Loop_Wrapper;
                   end if;
                   if Nkind (Pre_Dsd) = N_Identifier or
@@ -2200,55 +2229,109 @@ package body Tree_Walk is
                      Dsd := Get_Range (Spec);
                   end if;
                   if not (Present (Low_Bound (Dsd))) then
-                     Report_Unhandled_Node_Empty (Dsd,
-                                                  "Do_While_Statement",
-                                                  "No range in subtype");
+                     Report_Unhandled_Node_Empty
+                       (Dsd,
+                        "Do_Loop_Statement  FOR loop",
+                        "Mebership_choice subtype has unknown range");
                      return Loop_Wrapper;
                   end if;
                   Bound_Low := Do_Expression (Low_Bound (Dsd));
                   Bound_High := Do_Expression (High_Bound (Dsd));
+
                   --  Loop var decl
                   Append_Op (Loop_Wrapper, Make_Code_Decl
                              (Symbol          => Sym_Loopvar,
                               Source_Location => Get_Source_Location
                                 (Defining_Identifier (Spec))));
 
-                  --  TODO: needs generalization to support enums
                   if Reverse_Present (Spec) then
-                     Init := Make_Code_Assign
-                       (Lhs => Sym_Loopvar,
-                        Rhs => Typecast_If_Necessary
-                          (Bound_High,
-                           Get_Type (Sym_Loopvar),
-                           Global_Symbol_Table),
-                        Source_Location => Get_Source_Location (Spec));
-                     Cond := Make_Op_Geq
-                       (Rhs             => Bound_Low,
-                        Lhs             => Sym_Loopvar,
-                        Source_Location => Get_Source_Location (Spec),
-                        Overflow_Check  => False,
-                        I_Type          => Make_Bool_Type,
-                        Range_Check     => False);
-                     Post := Make_Increment
-                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), -1);
+                     declare
+                        --  Arithmetic has to be performed on numeric types.
+                        Dec : constant Irep := Make_Op_Sub
+                          (Lhs => Loopvar_Numeric_Rep,
+                           Rhs => Typecast_If_Necessary
+                             (Loop_Inc_Dec,
+                              Get_Type (Loopvar_Numeric_Rep),
+                              Global_Symbol_Table),
+                           I_Type => Get_Type (Loopvar_Numeric_Rep),
+                          Source_Location => Internal_Source_Location);
+                     begin
+                        Init := Make_Code_Assign
+                          (Lhs => Sym_Loopvar,
+                           Rhs => Typecast_If_Necessary
+                             (Bound_High,
+                              Get_Type (Sym_Loopvar),
+                              Global_Symbol_Table),
+                           Source_Location => Get_Source_Location (Spec));
+                        --  Here the numeric representation of the loop
+                        --  variable must be used for the relational operator.
+                        Cond := Make_Op_Geq
+                          (Rhs             =>
+                             Typecast_If_Necessary
+                               (Bound_Low,
+                                Get_Type (Loopvar_Numeric_Rep),
+                                Global_Symbol_Table),
+                           Lhs             => Loopvar_Numeric_Rep,
+                           Source_Location => Get_Source_Location (Spec),
+                           Overflow_Check  => False,
+                           I_Type          => Make_Bool_Type,
+                           Range_Check     => False);
+                        --  Assignment has the given type.
+                        Post :=
+                          Make_Side_Effect_Expr_Assign
+                            (Lhs => Sym_Loopvar,
+                             Rhs => Typecast_If_Necessary
+                               (Expr           => Dec,
+                                New_Type       => Get_Type (Sym_Loopvar),
+                                A_Symbol_Table => Global_Symbol_Table),
+                             Source_Location => Internal_Source_Location,
+                             I_Type => Get_Type (Sym_Loopvar));
+                     end;
                   else
-                     Init := Make_Code_Assign
-                       (Lhs => Sym_Loopvar,
-                        Rhs => Typecast_If_Necessary
-                          (Bound_Low,
-                           Get_Type (Sym_Loopvar),
-                           Global_Symbol_Table),
-                        Source_Location => Get_Source_Location (Spec));
-                     Cond := Make_Op_Leq
-                       (Rhs             => Bound_High,
-                        Lhs             => Sym_Loopvar,
-                        Source_Location => Get_Source_Location (Spec),
-                        Overflow_Check  => False,
-                        I_Type          => Make_Bool_Type,
-                        Range_Check     => False);
-                     Post := Make_Increment
-                       (Sym_Loopvar, Etype (Low_Bound (Dsd)), 1);
+                     declare
+                        --  Arithmetic has to be performed on numeric types.
+                        Inc : constant Irep := Make_Op_Add
+                          (Lhs => Loopvar_Numeric_Rep,
+                           Rhs => Typecast_If_Necessary
+                             (Loop_Inc_Dec,
+                              Get_Type (Loopvar_Numeric_Rep),
+                              Global_Symbol_Table),
+                           I_Type => Get_Type (Loopvar_Numeric_Rep),
+                          Source_Location => Internal_Source_Location);
+                     begin
+                        Init := Make_Code_Assign
+                          (Lhs => Sym_Loopvar,
+                           Rhs => Typecast_If_Necessary
+                             (Bound_Low,
+                              Get_Type (Sym_Loopvar),
+                              Global_Symbol_Table),
+                           Source_Location => Get_Source_Location (Spec));
+                        --  Here the numeric representation of the loop
+                        --  variable must be used for the relational operator.
+                        Cond := Make_Op_Leq
+                          (Rhs             =>
+                             Typecast_If_Necessary
+                               (Bound_High,
+                                Get_Type (Loopvar_Numeric_Rep),
+                                Global_Symbol_Table),
+                           Lhs             => Loopvar_Numeric_Rep,
+                           Source_Location => Get_Source_Location (Spec),
+                           Overflow_Check  => False,
+                           I_Type          => Make_Bool_Type,
+                           Range_Check     => False);
+                        --  Assignment has the given type.
+                        Post :=
+                          Make_Side_Effect_Expr_Assign
+                            (Lhs => Sym_Loopvar,
+                             Rhs => Typecast_If_Necessary
+                               (Expr           => Inc,
+                                New_Type       => Get_Type (Sym_Loopvar),
+                                A_Symbol_Table => Global_Symbol_Table),
+                             Source_Location => Internal_Source_Location,
+                             I_Type => Get_Type (Sym_Loopvar));
+                     end;
                   end if;
+
                   Set_Source_Location (Post, Get_Source_Location (Spec));
                   Loop_Irep := Make_Code_For
                     (Loop_Body => Body_Block,
@@ -2257,21 +2340,20 @@ package body Tree_Walk is
                      Iter => Post,
                      Source_Location => Get_Source_Location (N));
                end;
-            else
-               if not Present (Iterator_Specification (Iter_Scheme)) then
-                  Report_Unhandled_Node_Empty (N, "Do_While_Statement",
-                                           "Scheme specification not present");
-                  return Loop_Wrapper;
-
-               end if;
-               Report_Unhandled_Node_Empty (N, "Do_While_Statement",
-                                            "Loop iterators not implemented");
+            end;
+         else
+            if not Present (Iterator_Specification (Iter_Scheme)) then
+               Report_Unhandled_Node_Empty
+                 (N, "Do_Loop_Statement",
+                  "Scheme specification not present");
                return Loop_Wrapper;
+
             end if;
+            Report_Unhandled_Node_Empty (N, "Do_Loop_Statement",
+                                         "Loop iterators not implemented");
+            return Loop_Wrapper;
          end if;
       end if;
-
-      Set_Loop_Body (Loop_Irep, Body_Block);
 
       Append_Op (Loop_Wrapper, Loop_Irep);
 
@@ -5372,39 +5454,24 @@ package body Tree_Walk is
       return To_String (Variant_Name);
    end Get_Variant_Union_Member_Name;
 
-   --------------------
-   -- Make_Increment --
-   --------------------
-
-   function Make_Increment
-     (Sym : Irep; Sym_Type : Node_Id; Amount : Integer) return Irep
-   is
-      Amount_Expr : constant Irep :=
-        Make_Integer_Constant (Amount, Sym_Type);
-      Plus : constant Irep := Make_Op_Add
-        (Lhs => Sym,
-         Rhs => Amount_Expr,
-         I_Type => Get_Type (Sym),
-         Source_Location => Internal_Source_Location);
-   begin
-      return Make_Side_Effect_Expr_Assign
-        (Lhs => Sym,
-         Rhs => Plus,
-         Source_Location => Internal_Source_Location,
-         I_Type => Get_Type (Sym));
-   end Make_Increment;
-
    ---------------------------
    -- Make_Integer_Constant --
    ---------------------------
 
    function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep is
-      Type_Width : constant Int := UI_To_Int (Esize (Ty));
-      Val_Binary : constant String := Convert_Int_To_Binary (Val, Type_Width);
+      Type_Width    : constant Int := UI_To_Int (Esize (Ty));
+      Val_Binary    : constant String :=
+        Convert_Int_To_Binary (Val, Type_Width);
+      Type_Irep     : constant Irep := Do_Type_Reference (Ty);
+      Resolved_Type : constant Irep :=
+        (if Kind (Type_Irep) = I_C_Enum_Type then
+              Get_Subtype (Type_Irep)
+         else
+            Type_Irep);
    begin
       return Make_Constant_Expr
         (Value => Val_Binary,
-         I_Type => Do_Type_Reference (Ty),
+         I_Type => Resolved_Type,
          Source_Location => Internal_Source_Location);
    end Make_Integer_Constant;
 
