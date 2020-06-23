@@ -1,0 +1,4 @@
+[do_in_int.assertion.1] line 14 assertion I in Small_Int: SUCCESS
+[inc.assertion.2] line 6 assertion E in Small_Int: SUCCESS
+[inc.assertion.1] line 7 Ada Check assertion: FAILURE
+VERIFICATION FAILED
