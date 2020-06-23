@@ -4330,7 +4330,11 @@ package body Tree_Walk is
             Bound_Value :=
               Store_Nat_Bound (Bound_Type_Nat (Intval (Bound)));
             Ok := True;
-         when N_Identifier =>
+         when N_Character_Literal =>
+            Bound_Value :=
+              Store_Symbol_Bound (Bound_Type_Symbol (Bound));
+            Ok := True;
+         when N_Identifier | N_Expanded_Name =>
             Bound_Value :=
                  Store_Symbol_Bound (Bound_Type_Symbol (
                                      Do_Identifier (Bound)));
