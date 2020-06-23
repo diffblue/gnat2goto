@@ -795,11 +795,11 @@ package body Tree_Walk is
            Kind (Mem) = I_Symbol_Expr
          then
             declare
-               Val : constant Irep := Global_Symbol_Table
-                 (Intern
-                    (Get_Identifier
-                     (Mem)))
-                 .Value;
+               Key : constant Symbol_Id :=
+                 Intern (Get_Identifier (Mem));
+               pragma Assert (Global_Symbol_Table.Contains (Key),
+                              "Enum symbol not in symbol table");
+               Val : constant Irep := Global_Symbol_Table (Key).Value;
             begin
                if Val = Ireps.Empty then
                   return Mem;
