@@ -23,9 +23,14 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_full_access
 Nkind: N_Pragma
 --
-Occurs: 22 times
+Occurs: 32 times
 Calling function: Do_Expression
 Error message: First of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 23 times
+Calling function: Do_Expression
+Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 22 times
@@ -33,17 +38,12 @@ Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
-Occurs: 13 times
-Calling function: Do_Expression
-Error message: Last of string unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 10 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 8 times
+Occurs: 10 times
 Calling function: Do_Type_Reference
 Error message: Type of type not a type
 Nkind: N_Defining_Identifier
@@ -99,11 +99,6 @@ Error message: Unknown Ekind E_ENUMERATION_SUBTYPE
 Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
-Calling function: Do_Itype_Integer_Subtype
-Error message: Non-literal bound unsupported
-Nkind: N_Defining_Identifier
---
-Occurs: 2 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
@@ -112,11 +107,6 @@ Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
 Error message: unsupported lower range kind
 Nkind: N_Real_Literal
---
-Occurs: 1 times
-Calling function: Do_Constant
-Error message: Unsupported constant type
-Nkind: N_Integer_Literal
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -132,6 +122,11 @@ Occurs: 1 times
 Calling function: Do_Function_Call
 Error message: function entity not defining identifier
 Nkind: N_Defining_Operator_Symbol
+--
+Occurs: 1 times
+Calling function: Do_In
+Error message: gnat2goto currently only supports one mebership_choice
+Nkind: N_In
 --
 Occurs: 1 times
 Calling function: Do_Op_Expon
@@ -1755,6 +1750,11 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
 Error detected at REDACTED
 --
@@ -1841,11 +1841,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1183                         |
 Error detected at REDACTED
 --
 Occurs: 1 times

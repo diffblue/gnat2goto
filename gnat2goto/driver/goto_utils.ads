@@ -219,7 +219,7 @@ package GOTO_Utils is
                               return Irep;
    function Get_Int32_T_Zero return Irep;
    function Get_Ada_Check_Symbol (Name : String;
-                                  A_Symbol_Table : out Symbol_Table;
+                                  A_Symbol_Table : in out Symbol_Table;
                                   Source_Loc : Irep)
                                   return Symbol;
 

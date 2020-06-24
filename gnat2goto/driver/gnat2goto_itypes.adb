@@ -144,24 +144,32 @@ package body Gnat2goto_Itypes is
    ------------------------------
 
    function Do_Itype_Integer_Subtype (N : Entity_Id) return Irep is
-      Lower_Bound : constant Irep :=
-        Do_Expression (Low_Bound (Scalar_Range (N)));
-      Upper_Bound : constant Irep :=
-        Do_Expression (High_Bound (Scalar_Range (N)));
+      Lower_Bound : constant Node_Id := Low_Bound (Scalar_Range (N));
+      Upper_Bound : constant Node_Id := High_Bound (Scalar_Range (N));
+
+      --  Itype_Integer_Subtypes may not have non-static bounds as
+      --  they are created for anonymous subtypes for loop variables.
+      Lower_Bound_Value : constant Integer :=
+        (case Nkind (Lower_Bound) is
+            when N_Integer_Literal =>
+               Store_Nat_Bound (Bound_Type_Nat (Intval (Lower_Bound))),
+            when others =>
+               Store_Symbol_Bound (Bound_Type_Symbol (
+           Do_Expression (Lower_Bound))));
+
+      Upper_Bound_Value : constant Integer :=
+        (case Nkind (Upper_Bound) is
+            when N_Integer_Literal =>
+               Store_Nat_Bound (Bound_Type_Nat (Intval (Upper_Bound))),
+            when others =>
+               Store_Symbol_Bound (Bound_Type_Symbol (
+           Do_Expression (Upper_Bound))));
 
    begin
-      if Kind (Upper_Bound) /= I_Constant_Expr or
-        Kind (Lower_Bound) /= I_Constant_Expr
-      then
-         return Report_Unhandled_Node_Irep (N, "Do_Itype_Integer_Subtype",
-                                            "Non-literal bound unsupported");
-      end if;
       return
         Make_Bounded_Signedbv_Type (
-                       Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                                      Low_Bound (Scalar_Range (N))))),
-                       Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                                      High_Bound (Scalar_Range (N))))),
+                       Lower_Bound => Lower_Bound_Value,
+                       Upper_Bound => Upper_Bound_Value,
                        Width       => Positive (UI_To_Int (Esize (N))));
    end Do_Itype_Integer_Subtype;
 

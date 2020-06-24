@@ -895,7 +895,7 @@ package body GOTO_Utils is
    end Get_Int32_T_Zero;
 
    function Get_Ada_Check_Symbol (Name : String;
-                                  A_Symbol_Table : out Symbol_Table;
+                                  A_Symbol_Table : in out Symbol_Table;
                                   Source_Loc : Irep)
                                   return Symbol is
    begin

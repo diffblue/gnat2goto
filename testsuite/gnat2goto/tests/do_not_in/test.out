@@ -1,0 +1,9 @@
+[dec.assertion.1] line 12 assertion E in Small_Int: SUCCESS
+[do_not_in_int.assertion.1] line 21 assertion I not in Small_Int: SUCCESS
+[do_not_in_int.assertion.2] line 25 assertion I not in Small_Int: SUCCESS
+[do_not_in_int.assertion.3] line 29 assertion I in Small_Int: SUCCESS
+[do_not_in_int.assertion.4] line 32 assertion I in Small_Int: SUCCESS
+[do_not_in_int.assertion.5] line 34 assertion I = 3: SUCCESS
+[inc.assertion.2] line 6 assertion E in Small_Int: SUCCESS
+[inc.assertion.1] line 7 Ada Check assertion: SUCCESS
+VERIFICATION SUCCESSFUL
