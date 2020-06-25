@@ -1,0 +1,4 @@
+[access_subprog_access_param.assertion.1] line 19 assertion IP = 2: SUCCESS
+[access_subprog_access_param.assertion.2] line 22 assertion IM = 6: SUCCESS
+[my_proc.assertion.1] line 7 Ada Check assertion: SUCCESS
+VERIFICATION SUCCESSFUL
