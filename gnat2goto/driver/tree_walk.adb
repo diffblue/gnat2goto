@@ -276,7 +276,9 @@ package body Tree_Walk is
         Post => Kind (Do_Subprogram_Or_Block'Result) = I_Code_Block;
 
    function Do_Subprogram_Specification (N : Node_Id) return Irep
-   with Pre  => Nkind (N) in N_Subprogram_Specification,
+     with Pre  => Nkind (N) in N_Subprogram_Specification |
+                               N_Access_Procedure_Definition |
+                               N_Access_Function_Definition,
         Post => Kind (Do_Subprogram_Specification'Result) = I_Code_Type;
 
    procedure Do_Subtype_Declaration (N : Node_Id)
@@ -5140,9 +5142,10 @@ package body Tree_Walk is
         (Parameters => Param_List,
          Ellipsis => False,
          Return_Type =>
-           (if Nkind (N) = N_Function_Specification
-              then Do_Type_Reference (Etype (Result_Definition (N)))
-              else CProver_Void_T),
+           (if Nkind (N) in N_Function_Specification |
+               N_Access_Function_Definition
+            then Do_Type_Reference (Etype (Result_Definition (N)))
+            else CProver_Void_T),
          Inlined => False,
          Knr => False);
    end Do_Subprogram_Specification;
@@ -6483,38 +6486,13 @@ package body Tree_Walk is
 
    function Do_Access_Function_Definition (N : Node_Id) return Irep
    is
-      Return_Type : constant Irep :=
-        (if Nkind (N) = N_Access_Procedure_Definition
-         then CProver_Void_T
-         else Do_Type_Reference (Etype (Result_Definition (N))));
-      Parameters : constant Irep := Make_Parameter_List;
-      Fun_Name : constant String :=
-        Unique_Name (Defining_Identifier (Parent (N)));
-      A_Parameter : Node_Id := First (Parameter_Specifications (N));
+      --  The subprogram Do_Subprogram_Specification can be used
+      --  here for commonality.
+      --  Do_Subprogram_Specification has to be extended to accept
+      --  N_Access_Procedure and N_Access_Function nodes as well as
+      --  N_Subprogram_Specification nodes.
    begin
-      while Present (A_Parameter) loop
-         declare
-            Param_Name : constant String :=
-              Unique_Name (Defining_Identifier (A_Parameter));
-            Param_Type : constant Irep :=
-              Do_Type_Reference (Etype (Parameter_Type (A_Parameter)));
-            Param_Irep : constant Irep :=
-              Create_Fun_Parameter (Fun_Name        => Fun_Name,
-                                    Param_Name      => Param_Name,
-                                    Param_Type      => Param_Type,
-                                    Param_List      => Parameters,
-                                    A_Symbol_Table  => Global_Symbol_Table,
-                                   Source_Location => Get_Source_Location (N));
-         begin
-            pragma Assert (Kind (Param_Irep) = I_Code_Parameter);
-         end;
-         Next (A_Parameter);
-      end loop;
-      return Make_Pointer_Type (Make_Code_Type (Parameters  => Parameters,
-                                                Ellipsis    => False,
-                                                Return_Type => Return_Type,
-                                                Inlined     => False,
-                                                Knr         => False));
+      return Make_Pointer_Type (Do_Subprogram_Specification (N));
    end Do_Access_Function_Definition;
 
    function Do_Access_To_Object_Definition (N : Node_Id) return Irep
