@@ -1,2 +1,0 @@
-ALL XFAIL gnat2goto: failed precondition from tree_walk.ads:154
-
