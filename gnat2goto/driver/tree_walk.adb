@@ -1716,9 +1716,12 @@ package body Tree_Walk is
             Fun_Type : constant Irep :=
               Get_Subtype (Do_Type_Reference (Etype (Prefix (Name (N)))));
             Return_Type : constant Irep := Get_Return_Type (Fun_Type);
+            --  Note: the Object parameter is treated as an expression
+            --  rather than an identifer as a subprogram pointer could be
+            --  a component of a record or array.
             Deref_Function : constant Irep :=
               Make_Dereference_Expr
-              (Object          => Do_Identifier (Prefix (Name (N))),
+              (Object          => Do_Expression (Prefix (Name (N))),
                Source_Location => Get_Source_Location (N),
                I_Type          => Fun_Type,
                Range_Check     => False);
@@ -4220,10 +4223,13 @@ package body Tree_Walk is
       --  they are handled as explicit dereferences.
       if Nkind (Name (N)) = N_Explicit_Dereference then
          declare
+            --  Note: the Object parameter is treated as an expression
+            --  rather than an identifer as a subprogram pointer could be
+            --  a component of a record or array.
             Fun_Type : constant Irep :=
               Get_Subtype (Do_Type_Reference (Etype (Prefix (Name (N)))));
             Deref_Function : constant Irep := Make_Dereference_Expr
-              (Object          => Do_Identifier (Prefix (Name (N))),
+              (Object          => Do_Expression (Prefix (Name (N))),
                Source_Location => Get_Source_Location (N),
                I_Type          => Fun_Type,
                Range_Check     => False);
@@ -4249,6 +4255,7 @@ package body Tree_Walk is
             "Do_Procedure_Call_Statement",
             "Wrong nkind of name");
       end if;
+
       declare
          Callee : constant Unbounded_String
            := To_Unbounded_String (Unique_Name (Entity (Name (N))));

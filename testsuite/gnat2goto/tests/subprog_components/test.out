@@ -1,0 +1,13 @@
+[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
+[precondition_instance.4] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.5] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.6] file <internal> memcpy destination region writeable: SUCCESS
+[func_components.assertion.2] line 28 assertion IM = 2: SUCCESS
+[func_components.assertion.3] line 31 assertion IFn = 6: SUCCESS
+[func_components.assertion.1] line 33 Ada Check assertion: SUCCESS
+[func_components.assertion.4] line 34 assertion IM = 3: SUCCESS
+[func_components.assertion.5] line 37 assertion IFn = 7: SUCCESS
+[my_message.assertion.1] line 15 Ada Check assertion: SUCCESS
+VERIFICATION SUCCESSFUL
