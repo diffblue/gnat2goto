@@ -657,9 +657,10 @@ package body Driver is
             F => Mantissa_Size);
       end Translate_Floating_Type;
    begin
-      --  Add primitive types to the symtab
-      --  XXX if we properly support processing Standard
-      --      this will become (mostly) redundant
+      --  Add primitive types to the symtab.
+      --  It seems as though the parsing of Standard by the front-end does
+      --  not generate an AST which is entirely consistent with other units,
+      --  so the primitive types are added to the symbol table here.
       for Standard_Type in S_Types'Range loop
          declare
             Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
