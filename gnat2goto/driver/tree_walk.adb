@@ -1656,6 +1656,9 @@ package body Tree_Walk is
 
          --  Declare the implicit initial subtype too
          if Etype (E) /= E then
+            Put_Line ("First_Subtype");
+            Print_Node_Briefly (E);
+            Print_Node_Briefly (Etype (E));
             Do_Type_Declaration (New_Type, Etype (E));
          end if;
       end if;
@@ -1990,9 +1993,18 @@ package body Tree_Walk is
    --  For now, don't encode the constraint in the Irep form; we'll generate
    --  appropriate checks in the front-end, rather than delegating to CBMC
    --  as for range checks.
+--     function Do_Index_Or_Discriminant_Constraint
+--       (N : Node_Id; Underlying : Irep) return Irep;
+--     is (Underlying);
+
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
-   is (Underlying);
+   is
+   begin
+      Put_Line ("Do_Index_Or_Discriminant_Constraint");
+      Print_Node_Briefly (First (Constraints (N)));
+      return Underlying;
+   end Do_Index_Or_Discriminant_Constraint;
 
    -----------------------------------------
    --          Do_Range_In_Case           --
@@ -3324,13 +3336,14 @@ package body Tree_Walk is
       is
       begin
          if Ekind (E) in Array_Kind then
-            return Make_Array_Default_Initialiser (E);
+            return Ireps.Empty; --  Make_Array_Default_Initialiser (E);
          elsif Ekind (E) in Record_Kind then
             return Make_Record_Default_Initialiser (E, DCs);
          elsif Ekind (E) in Private_Kind and then Present (Full_View (E))
            and then Ekind (Full_View (E)) in Array_Kind
          then
-            return Make_Array_Default_Initialiser (Full_View (E));
+            return Ireps.Empty;
+            --  Make_Array_Default_Initialiser (Full_View (E));
          else
             return Report_Unhandled_Node_Irep (E, "Make_Default_Initialiser",
                                                  "Unknown Ekind");
@@ -3346,6 +3359,11 @@ package body Tree_Walk is
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
    begin
+      Put_Line ("Do_Object_Declaration_Full");
+      Print_Node_Briefly (N);
+      Print_Node_Briefly (Defined);
+      Print_Node_Briefly (Etype (Defined));
+      Print_Irep (Obj_Type);
       Append_Op (Block, Decl);
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
@@ -5158,6 +5176,9 @@ package body Tree_Walk is
       New_Type : constant Irep := Do_Subtype_Indication
         (Subtype_Indication (N));
    begin
+      Put_Line ("Subtype_Declaration");
+      Print_Irep (New_Type);
+      Print_Node_Briefly (Defining_Identifier (N));
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
 
@@ -5170,11 +5191,14 @@ package body Tree_Walk is
       Underlying : Irep;
       Constr : Node_Id;
    begin
+      Put_Line ("Subtype_Indication");
+      Print_Node_Briefly (N);
       case Nkind (N) is
          when N_Subtype_Indication =>
             Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
             Constr := Constraint (N);
             if Present (Constr) then
+               Print_Node_Briefly (Constr);
                case Nkind (Constr) is
                when N_Range_Constraint =>
                   return Do_Range_Constraint (Constr, Underlying);
@@ -5322,7 +5346,9 @@ package body Tree_Walk is
 
    procedure Do_Withed_Unit_Spec (N : Node_Id) is
    begin
-      if Defining_Entity (N) = Stand.Standard_Standard then
+      if Defining_Entity (N) = Stand.Standard_Standard or else
+        Unique_Name (Defining_Entity (N)) = "system"
+      then
          --  TODO: github issue #252
          --  At the moment Standard is not processed
          null;

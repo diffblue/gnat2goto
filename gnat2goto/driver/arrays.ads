@@ -16,13 +16,13 @@ package Arrays is
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep;
 
    function Do_Constrained_Array_Definition (N : Node_Id) return Irep
-     with Pre  => Nkind (N) in N_Array_Type_Definition,
-     Post => Kind (Do_Constrained_Array_Definition'Result) = I_Struct_Type;
+     with Pre  => Nkind (N) in N_Array_Type_Definition; --  ,
+--     Post => Kind (Do_Constrained_Array_Definition'Result) = I_Struct_Type;
 
    function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep
-     with Pre  => Nkind (N) in N_Array_Type_Definition,
-     Post => Kind (Do_Unconstrained_Array_Definition'Result) =
-     I_Struct_Type;
+     with Pre  => Nkind (N) in N_Array_Type_Definition; --  ,
+     --  Post => Kind (Do_Unconstrained_Array_Definition'Result) =
+     --  I_Struct_Type;
 
    function Do_Array_Assignment (N : Node_Id) return Irep
      with Pre => Nkind (N) = N_Assignment_Statement,
