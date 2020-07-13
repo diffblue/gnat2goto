@@ -1,0 +1,9 @@
+[nat_and_pos.assertion.1] line 12 assertion In_Type_Natural (Var): FAILURE
+[nat_and_pos.assertion.2] line 13 assertion In_Type_Positive (Var): FAILURE
+[nat_and_pos.assertion.3] line 15 assertion In_Type_Natural (Var): SUCCESS
+[nat_and_pos.assertion.4] line 16 assertion In_Type_Positive (Var): FAILURE
+[nat_and_pos.assertion.5] line 18 assertion In_Type_Natural (Var): SUCCESS
+[nat_and_pos.assertion.6] line 19 assertion In_Type_Positive (Var): SUCCESS
+[nat_and_pos.assertion.7] line 21 assertion In_Type_Natural (Var): SUCCESS
+[nat_and_pos.assertion.8] line 22 assertion In_Type_Positive (Var): SUCCESS
+VERIFICATION FAILED

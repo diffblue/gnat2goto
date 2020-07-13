@@ -44,6 +44,7 @@ with Namet;                 use Namet;
 with Lib;                   use Lib;
 with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
+with Range_Check;           use Range_Check;
 
 with GNAT2GOTO.Options;
 
@@ -616,8 +617,29 @@ package body Driver is
 
       function Translate_Signed_Type (Type_Node : Node_Id)
                                      return Irep
-      is (Make_Signedbv_Type
-            (Width => Get_Bv_Width (Type_Node)));
+      is
+      begin
+         if Type_Node in Standard_Natural | Standard_Positive then
+            --  It is a bounded integer subtype
+            declare
+               Lower_Bound  : constant Uint :=
+                 (if Type_Node = Standard_Natural then Uint_0 else Uint_1);
+               Higher_Bound : constant Uint :=
+                Intval (Type_High_Bound (Standard_Integer));
+            begin
+               return Make_Bounded_Signedbv_Type
+                       (Width       => Get_Bv_Width (Type_Node),
+                        Lower_Bound =>
+                          Store_Nat_Bound (Bound_Type_Nat (Lower_Bound)),
+                        Upper_Bound =>
+                          Store_Nat_Bound (Bound_Type_Nat (Higher_Bound)));
+            end;
+         else
+            --  It is an unbounded integer type
+            return Make_Signedbv_Type
+              (Width => Get_Bv_Width (Type_Node));
+         end if;
+      end Translate_Signed_Type;
 
       function Translate_Enum_Type (Type_Node : Node_Id)
                                    return Irep
@@ -635,9 +657,10 @@ package body Driver is
             F => Mantissa_Size);
       end Translate_Floating_Type;
    begin
-      --  Add primitive types to the symtab
-      --  XXX if we properly support processing Standard
-      --      this will become (mostly) redundant
+      --  Add primitive types to the symtab.
+      --  It seems as though the parsing of Standard by the front-end does
+      --  not generate an AST which is entirely consistent with other units,
+      --  so the primitive types are added to the symbol table here.
       for Standard_Type in S_Types'Range loop
          declare
             Builtin_Node : constant Node_Id := Standard_Entity (Standard_Type);
