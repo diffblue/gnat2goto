@@ -2000,10 +2000,19 @@ package body Tree_Walk is
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
    is
+      Parent_Node : constant Node_Id := Parent (N);
+      Subtype_Node : constant Node_Id := Parent (Parent_Node);
    begin
-      Put_Line ("Do_Index_Or_Discriminant_Constraint");
-      Print_Node_Briefly (First (Constraints (N)));
-      return Underlying;
+      if Is_Array_Type (Etype (Parent_Node)) then
+         --  The subtype declaration is a constrained subtype of an
+         --  unconstrained array.
+         return Do_Array_Subtype (Subtype_Node, Parent_Node, N);
+      else
+         --  It is a record subtype with a discriminant constraint.
+         --  At the moment nothing is done here but this may change
+         --  when record declaration code is reworked.
+         return Underlying;
+      end if;
    end Do_Index_Or_Discriminant_Constraint;
 
    -----------------------------------------

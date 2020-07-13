@@ -9,8 +9,8 @@ with Sem_Util;              use Sem_Util;
 --  with Treepr;                use Treepr;
 --  with Text_IO;               use Text_IO;
 package body Arrays is
-
-   --  A type for storing the bounds of an array dimension;
+   --  Type for gathering the lower and upper bounds of an array dimension
+   --  and the number of elements in the dimension (Length = High - Low + 1).
    type Dimension_Bounds is record
       Low, High, Length : Irep;
    end record;
@@ -41,6 +41,11 @@ package body Arrays is
    --  The lower (first) and upper (last) bounds are the base type of
    --  index and the length is of type Int32_T;
    --  Note this places a maximum length of an array to be 2**31-1.
+
+   function Make_Array_Subtype (The_Array      : Node_Id;
+                                Is_Constrained : Boolean;
+                                Component_Defn : Node_Id;
+                                Dimensions     : List_Id) return Irep;
 
    ----------------------------
    -- Declare_First_And_Last --
@@ -542,144 +547,47 @@ package body Arrays is
       return Ret;
    end Make_Array_Default_Initialiser;
 
+   -------------------------
+   -- Do_Array_Definition --
+   -------------------------
+
+   function Do_Array_Subtype (Subtype_Node     : Node_Id;
+                              Parent_Node      : Node_Id;
+                              Index_Constraint : Node_Id) return Irep
+   is
+      --  An array subtype defines a constrained array subtype of an
+      --  unconstrained array subtype
+     (Make_Array_Subtype
+        (The_Array      => Subtype_Node,
+         Is_Constrained => True,
+         Component_Defn => Component_Definition (Parent_Node),
+         Dimensions     => Constraints (Index_Constraint)));
+
    -------------------------------------
    -- Do_Constrained_Array_Definition --
    -------------------------------------
 
-   --  No difference between representations at the moment:
-   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
-   renames Do_Unconstrained_Array_Definition;
+   function Do_Constrained_Array_Definition (N : Node_Id) return Irep is
+      --  The array type declaration node is the  parent of the
+      --  array_definition node.
+     (Make_Array_Subtype
+        (The_Array      => Parent (N),
+         Is_Constrained => True,
+         Component_Defn => Component_Definition (N),
+         Dimensions     => Discrete_Subtype_Definitions (N)));
 
    ---------------------------------------
    -- Do_Unconstrained_Array_Definition --
    ---------------------------------------
 
    function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep is
-      Sub_Identifier : constant Node_Id :=
-        Subtype_Indication (Component_Definition (N));
-      Sub_Pre : constant Irep :=
-        Do_Type_Reference (Etype (Sub_Identifier));
-      Sub : constant Irep :=
-        (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
-         = I_C_Enum_Type
-         then
-         --  TODO: use ASVAT.Size_Model.Size when Package standard
-         --  is handled
-            Make_Signedbv_Type (32)
-         else
-            Sub_Pre);
-
-      Array_Type_Name : constant String :=
-        Unique_Name (Defining_Identifier (Parent (N)));
-
-      Dimension_Iter : Node_Id :=
-        First ((if Nkind (N) = N_Unconstrained_Array_Definition then
-                   Subtype_Marks (N) else
-                   Discrete_Subtype_Definitions (N)));
-
-      --  The front-end ensures that the array has at least one dimension.
-      Array_Type_Irep  : Irep;
-      Dimension_Number : Positive := 1;
-   begin
-      --  Do the first dimension.
-      declare
-         Raw_Str : constant String := Integer'Image (Dimension_Number);
-         Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
-         Length_Id : constant Symbol_Id :=
-           Intern (Array_Type_Name & "___length_" & Dim_Str);
-      begin
-         Declare_First_Last_Length
-           (Prefix         => Array_Type_Name,
-            Dimension      => Dimension_Number,
-            Is_Constrained => Nkind (N) = N_Constrained_Array_Definition,
-            Index          => Dimension_Iter);
-         --  Not the most efficient way of obtaining the length of the
-         --  dimension, but it checks that it has been inserted correctly.
-         pragma Assert (Global_Symbol_Table.Contains (Length_Id));
-         Array_Type_Irep := Make_Array_Type
-           (Sub, Global_Symbol_Table (Length_Id).Value);
-      end;
-
-      --  Now the remaining dimensions.
-      Dimension_Iter := Next (Dimension_Iter);
-      while Present (Dimension_Iter) loop
-         declare
-            Raw_Str : constant String := Integer'Image (Dimension_Number);
-            Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
-            Length_Id : constant Symbol_Id :=
-              Intern (Array_Type_Name & "___length_" & Dim_Str);
-         begin
-            Dimension_Number := Dimension_Number + 1;
-            Declare_First_Last_Length
-              (Prefix         => Array_Type_Name,
-               Dimension      => Dimension_Number,
-               Is_Constrained => Nkind (N) = N_Constrained_Array_Definition,
-               Index          => Dimension_Iter);
-
-            pragma Assert (Global_Symbol_Table.Contains (Length_Id));
-            Array_Type_Irep := Make_Array_Type
-              (Array_Type_Irep, Global_Symbol_Table (Length_Id).Value);
-            Dimension_Iter := Next (Dimension_Iter);
-         end;
-      end loop;
-      return Array_Type_Irep;
-   end Do_Unconstrained_Array_Definition;
-
---        Ret_Components : constant Irep := Make_Struct_Union_Components;
---        Ret : constant Irep :=
---          Make_Struct_Type (Tag        => "unconstr_array",
---                            Components => Ret_Components);
---        Sub_Identifier : constant Node_Id :=
---          Subtype_Indication (Component_Definition (N));
---        Sub_Pre : constant Irep :=
---          Do_Type_Reference (Etype (Sub_Identifier));
---        Sub : constant Irep :=
---          (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
---           = I_C_Enum_Type
---           then
---              Make_Signedbv_Type (32)
---           else
---              Sub_Pre);
---        Data_Type : constant Irep :=
---          Make_Pointer_Type (I_Subtype => Sub,
---                             Width     => Pointer_Type_Width);
---        Data_Member : constant Irep :=
---          Make_Struct_Component ("data", Data_Type);
---
---        Dimension_Iter : Node_Id :=
---          First ((if Nkind (N) = N_Unconstrained_Array_Definition then
---                     Subtype_Marks (N) else
---                     Discrete_Subtype_Definitions (N)));
---        Dimension_Number : Positive := 1;
---     begin
---
---   --  Define a structure with explicit first, last and data-pointer members
---
---        while Present (Dimension_Iter) loop
---           declare
---              Number_Str_Raw : constant String :=
---                Integer'Image (Dimension_Number);
---              Number_Str : constant String :=
---                Number_Str_Raw (2 .. Number_Str_Raw'Last);
---              First_Name : constant String := "first" & Number_Str;
---              Last_Name : constant String := "last" & Number_Str;
---              First_Comp : constant Irep :=
---                Make_Struct_Component (First_Name, CProver_Size_T);
---              Last_Comp : constant Irep :=
---                Make_Struct_Component (Last_Name, CProver_Size_T);
---           begin
---
---              Append_Component (Ret_Components, First_Comp);
---              Append_Component (Ret_Components, Last_Comp);
---
---           end;
---           Dimension_Number := Dimension_Number + 1;
---           Next (Dimension_Iter);
---        end loop;
---
---        Append_Component (Ret_Components, Data_Member);
---        return Ret;
---     end Do_Unconstrained_Array_Definition;
+      --  The array type declaration node is the  parent of the
+      --  array_definition node.
+     (Make_Array_Subtype
+        (The_Array      => Parent (N),
+         Is_Constrained => False,
+         Component_Defn => Component_Definition (N),
+         Dimensions     => Subtype_Marks (N)));
 
    -------------------------
    -- Do_Array_Assignment --
@@ -1429,4 +1337,132 @@ package body Arrays is
                           Overflow_Check  => False,
                           I_Type          => Get_Type (Data_Member));
    end Offset_Array_Data;
+
+   function Make_Array_Subtype (The_Array      : Node_Id;
+                                Is_Constrained : Boolean;
+                                Component_Defn : Node_Id;
+                                Dimensions     : List_Id) return Irep
+     is
+      Sub_Identifier : constant Node_Id :=
+        Subtype_Indication (Component_Defn);
+      Sub_Pre : constant Irep :=
+        Do_Type_Reference (Etype (Sub_Identifier));
+      Sub : constant Irep :=
+        (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
+         = I_C_Enum_Type
+         then
+         --  TODO: use ASVAT.Size_Model.Size when Package standard
+         --  is handled
+            Make_Signedbv_Type (32)
+         else
+            Sub_Pre);
+
+      Array_Type_Name : constant String :=
+        Unique_Name (Defining_Identifier (The_Array));
+
+      --  The front-end ensures that the array has at least one dimension.
+      Dimension_Iter : Node_Id := First (Dimensions);
+      Array_Type_Irep  : Irep;
+      Dimension_Number : Positive := 1;
+   begin
+      --  Do the first dimension.
+      declare
+         Raw_Str : constant String := Integer'Image (Dimension_Number);
+         Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
+         Length_Id : constant Symbol_Id :=
+           Intern (Array_Type_Name & "___length_" & Dim_Str);
+      begin
+         Declare_First_Last_Length
+           (Prefix         => Array_Type_Name,
+            Dimension      => Dimension_Number,
+            Is_Constrained => Is_Constrained,
+            Index          => Dimension_Iter);
+         --  Not the most efficient way of obtaining the length of the
+         --  dimension, but it checks that it has been inserted correctly.
+         pragma Assert (Global_Symbol_Table.Contains (Length_Id));
+         Array_Type_Irep := Make_Array_Type
+           (Sub, Global_Symbol_Table (Length_Id).Value);
+      end;
+
+      --  Now the remaining dimensions.
+      Dimension_Iter := Next (Dimension_Iter);
+      while Present (Dimension_Iter) loop
+         declare
+            Raw_Str : constant String := Integer'Image (Dimension_Number);
+            Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
+            Length_Id : constant Symbol_Id :=
+              Intern (Array_Type_Name & "___length_" & Dim_Str);
+         begin
+            Dimension_Number := Dimension_Number + 1;
+            Declare_First_Last_Length
+              (Prefix         => Array_Type_Name,
+               Dimension      => Dimension_Number,
+               Is_Constrained => Is_Constrained,
+               Index          => Dimension_Iter);
+
+            pragma Assert (Global_Symbol_Table.Contains (Length_Id));
+            Array_Type_Irep := Make_Array_Type
+              (Array_Type_Irep, Global_Symbol_Table (Length_Id).Value);
+            Dimension_Iter := Next (Dimension_Iter);
+         end;
+      end loop;
+      return Array_Type_Irep;
+   end Make_Array_Subtype;
+
+--        Ret_Components : constant Irep := Make_Struct_Union_Components;
+--        Ret : constant Irep :=
+--          Make_Struct_Type (Tag        => "unconstr_array",
+--                            Components => Ret_Components);
+--        Sub_Identifier : constant Node_Id :=
+--          Subtype_Indication (Component_Definition (N));
+--        Sub_Pre : constant Irep :=
+--          Do_Type_Reference (Etype (Sub_Identifier));
+--        Sub : constant Irep :=
+--          (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
+--           = I_C_Enum_Type
+--           then
+--              Make_Signedbv_Type (32)
+--           else
+--              Sub_Pre);
+--        Data_Type : constant Irep :=
+--          Make_Pointer_Type (I_Subtype => Sub,
+--                             Width     => Pointer_Type_Width);
+--        Data_Member : constant Irep :=
+--          Make_Struct_Component ("data", Data_Type);
+--
+--        Dimension_Iter : Node_Id :=
+--          First ((if Nkind (N) = N_Unconstrained_Array_Definition then
+--                     Subtype_Marks (N) else
+--                     Discrete_Subtype_Definitions (N)));
+--        Dimension_Number : Positive := 1;
+--     begin
+--
+--   --  Define a structure with explicit first, last and data-pointer members
+--
+--        while Present (Dimension_Iter) loop
+--           declare
+--              Number_Str_Raw : constant String :=
+--                Integer'Image (Dimension_Number);
+--              Number_Str : constant String :=
+--                Number_Str_Raw (2 .. Number_Str_Raw'Last);
+--              First_Name : constant String := "first" & Number_Str;
+--              Last_Name : constant String := "last" & Number_Str;
+--              First_Comp : constant Irep :=
+--                Make_Struct_Component (First_Name, CProver_Size_T);
+--              Last_Comp : constant Irep :=
+--                Make_Struct_Component (Last_Name, CProver_Size_T);
+--           begin
+--
+--              Append_Component (Ret_Components, First_Comp);
+--              Append_Component (Ret_Components, Last_Comp);
+--
+--           end;
+--           Dimension_Number := Dimension_Number + 1;
+--           Next (Dimension_Iter);
+--        end loop;
+--
+--        Append_Component (Ret_Components, Data_Member);
+--        return Ret;
+--     end Do_Unconstrained_Array_Definition;
+
 end Arrays;

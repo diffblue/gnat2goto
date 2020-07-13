@@ -15,14 +15,20 @@ package Arrays is
 
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep;
 
+   function Do_Array_Subtype (Subtype_Node     : Node_Id;
+                              Parent_Node      : Node_Id;
+                              Index_Constraint : Node_Id) return Irep
+     with Pre => Nkind (Index_Constraint) = N_Index_Or_Discriminant_Constraint,
+     Post => Kind (Do_Array_Subtype'Result) = I_Array_Type;
+
    function Do_Constrained_Array_Definition (N : Node_Id) return Irep
-     with Pre  => Nkind (N) in N_Array_Type_Definition; --  ,
---     Post => Kind (Do_Constrained_Array_Definition'Result) = I_Struct_Type;
+     with Pre  => Nkind (N) in N_Array_Type_Definition,
+     Post => Kind (Do_Constrained_Array_Definition'Result) = I_Array_Type;
 
    function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep
-     with Pre  => Nkind (N) in N_Array_Type_Definition; --  ,
-     --  Post => Kind (Do_Unconstrained_Array_Definition'Result) =
-     --  I_Struct_Type;
+     with Pre  => Nkind (N) in N_Array_Type_Definition,
+     Post => Kind (Do_Unconstrained_Array_Definition'Result) =
+     I_Array_Type;
 
    function Do_Array_Assignment (N : Node_Id) return Irep
      with Pre => Nkind (N) = N_Assignment_Statement,
