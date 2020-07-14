@@ -15,10 +15,11 @@ package Arrays is
 
    function Make_Array_Default_Initialiser (E : Entity_Id) return Irep;
 
-   function Do_Array_Subtype (Subtype_Node     : Node_Id;
-                              Parent_Node      : Node_Id;
-                              Index_Constraint : Node_Id) return Irep
-     with Pre => Nkind (Index_Constraint) = N_Index_Or_Discriminant_Constraint,
+   function Do_Array_Subtype (Subtype_Node   : Node_Id;
+                              Parent_Type    : Entity_Id;
+                              Is_Constrained : Boolean;
+                              First_Index    : Node_Id) return Irep
+     with Pre => Is_Array_Type (Parent_Type),
      Post => Kind (Do_Array_Subtype'Result) = I_Array_Type;
 
    function Do_Constrained_Array_Definition (N : Node_Id) return Irep

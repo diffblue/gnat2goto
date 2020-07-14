@@ -6,8 +6,8 @@ with Follow;                use Follow;
 with Range_Check;           use Range_Check;
 with Sem_Util;              use Sem_Util;
 --  with ASVAT.Size_Model;
---  with Treepr;                use Treepr;
---  with Text_IO;               use Text_IO;
+with Treepr;                use Treepr;
+with Text_IO;               use Text_IO;
 package body Arrays is
    --  Type for gathering the lower and upper bounds of an array dimension
    --  and the number of elements in the dimension (Length = High - Low + 1).
@@ -42,10 +42,10 @@ package body Arrays is
    --  index and the length is of type Int32_T;
    --  Note this places a maximum length of an array to be 2**31-1.
 
-   function Make_Array_Subtype (The_Array      : Node_Id;
+   function Make_Array_Subtype (Declaration    : Node_Id;
                                 Is_Constrained : Boolean;
-                                Component_Defn : Node_Id;
-                                Dimensions     : List_Id) return Irep;
+                                First_Index    : Node_Id;
+                                Component_Type : Entity_Id) return Irep;
 
    ----------------------------
    -- Declare_First_And_Last --
@@ -551,17 +551,16 @@ package body Arrays is
    -- Do_Array_Definition --
    -------------------------
 
-   function Do_Array_Subtype (Subtype_Node     : Node_Id;
-                              Parent_Node      : Node_Id;
-                              Index_Constraint : Node_Id) return Irep
+   function Do_Array_Subtype (Subtype_Node   : Node_Id;
+                              Parent_Type    : Entity_Id;
+                              Is_Constrained : Boolean;
+                              First_Index    : Node_Id) return Irep
    is
-      --  An array subtype defines a constrained array subtype of an
-      --  unconstrained array subtype
      (Make_Array_Subtype
-        (The_Array      => Subtype_Node,
-         Is_Constrained => True,
-         Component_Defn => Component_Definition (Parent_Node),
-         Dimensions     => Constraints (Index_Constraint)));
+        (Declaration    => Subtype_Node,
+         Is_Constrained => Is_Constrained,
+         First_Index    => First_Index,
+         Component_Type => Component_Type (Parent_Type)));
 
    -------------------------------------
    -- Do_Constrained_Array_Definition --
@@ -571,10 +570,11 @@ package body Arrays is
       --  The array type declaration node is the  parent of the
       --  array_definition node.
      (Make_Array_Subtype
-        (The_Array      => Parent (N),
+        (Declaration    => Parent (N),
          Is_Constrained => True,
-         Component_Defn => Component_Definition (N),
-         Dimensions     => Discrete_Subtype_Definitions (N)));
+         First_Index    => First (Discrete_Subtype_Definitions (N)),
+         Component_Type =>
+           (Component_Type (Defining_Identifier (Parent (N))))));
 
    ---------------------------------------
    -- Do_Unconstrained_Array_Definition --
@@ -584,10 +584,11 @@ package body Arrays is
       --  The array type declaration node is the  parent of the
       --  array_definition node.
      (Make_Array_Subtype
-        (The_Array      => Parent (N),
+        (Declaration    => Parent (N),
          Is_Constrained => False,
-         Component_Defn => Component_Definition (N),
-         Dimensions     => Subtype_Marks (N)));
+         First_Index    => First (Subtype_Marks (N)),
+         Component_Type =>
+           (Component_Type (Defining_Identifier (Parent (N))))));
 
    -------------------------
    -- Do_Array_Assignment --
@@ -1063,6 +1064,9 @@ package body Arrays is
       Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
       Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
    begin
+      Put_Line ("Do_Indexed_Component");
+      Print_Node_Briefly (The_Prefix);
+      Print_Node_Briefly (Prefix_Etype);
       if (if Nkind (Prefix_Etype) = N_Defining_Identifier then
              Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
           elsif Is_Implicit_Deref then
@@ -1075,14 +1079,20 @@ package body Arrays is
                                             "Index of string unsupported");
       end if;
 
-      --  Where required the prefix has been implicitly dereferenced.
       declare
-         Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
-         Resolved_Type     : constant Irep :=
+         Array_Type : constant Entity_Id :=
            (if Is_Implicit_Deref then
-               Do_Type_Reference (Designated_Type (Prefix_Etype))
+               Designated_Type (Prefix_Etype)
             else
-               Do_Type_Reference (Prefix_Etype));
+               Prefix_Etype);
+         Array_Name : constant String := Unique_Name (Array_Type);
+         Array_First_Id : constant Symbol_Id :=
+           Intern (Array_Name & "___first_1");
+         Array_Last_Id : constant Symbol_Id :=
+           Intern (Array_Name & "___last_1");
+         Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+         Resolved_Type     : constant Irep := Do_Type_Reference (Array_Type);
+
          Base_Irep         : constant Irep :=
            (if Is_Implicit_Deref then
                Make_Dereference_Expr
@@ -1092,13 +1102,18 @@ package body Arrays is
             else
                Prefix_Irep);
 
+         Element_Type : constant Irep :=
+           Do_Type_Reference (Component_Type (Array_Type));
+
          Idx_Irep : constant Irep :=
            Typecast_If_Necessary (Do_Expression (First (Expressions (N))),
-                                  CProver_Size_T, Global_Symbol_Table);
+                                  Int32_T, Global_Symbol_Table);
 
          Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
-         First_Irep : constant Irep := Get_First_Index (Base_Irep);
-         Last_Irep : constant Irep := Get_Last_Index (Base_Irep);
+         First_Irep : constant Irep :=
+           Global_Symbol_Table (Array_First_Id).Value;
+         Last_Irep : constant Irep :=
+           Global_Symbol_Table (Array_Last_Id).Value;
          Checked_Index : constant Irep :=
            Make_Index_Assert_Expr (N           => N,
                                    Index       => Idx_Irep,
@@ -1112,18 +1127,34 @@ package body Arrays is
                         I_Type          => Get_Type (Idx_Irep),
                         Range_Check     => False);
 
-         Data_Irep : constant Irep :=
-           Get_Data_Member (Base_Irep, Global_Symbol_Table);
-         Data_Type : constant Irep := Get_Type (Data_Irep);
          Indexed_Data : constant Irep :=
-           Offset_Array_Data (Base         => Base_Irep,
-                              Offset       => Zero_Based_Index);
-         Element_Type : constant Irep := Get_Subtype (Data_Type);
+           Make_Index_Expr
+             (I_Array         => Base_Irep,
+              Index           => Zero_Based_Index,
+              Source_Location => Source_Loc,
+              I_Type          => Element_Type,
+              Range_Check     => False);
       begin
+         Put_Line ("Do_Indexed_Component_2");
+         Print_Irep (First_Irep);
+         Print_Irep (Last_Irep);
+         Print_Irep (Zero_Based_Index);
+         Print_Irep (Base_Irep);
+         Print_Irep (Element_Type);
+         Print_Irep (Indexed_Data);
+         Print_Irep (Make_Array_Expr
+             (Source_Location => Source_Loc,
+              I_Type          => Indexed_Data,
+              Range_Check     => False));
+
          return
-           Make_Dereference_Expr (Object          => Indexed_Data,
-                                  Source_Location => Source_Loc,
-                                  I_Type          => Element_Type);
+           Make_Array_Expr
+             (Source_Location => Source_Loc,
+              I_Type          => Indexed_Data,
+              Range_Check     => False);
+--             Make_Dereference_Expr (Object          => Indexed_Data,
+--                                    Source_Location => Source_Loc,
+--                                    I_Type          => Element_Type);
       end;
    end Do_Indexed_Component;
 
@@ -1338,75 +1369,88 @@ package body Arrays is
                           I_Type          => Get_Type (Data_Member));
    end Offset_Array_Data;
 
-   function Make_Array_Subtype (The_Array      : Node_Id;
+   function Make_Array_Subtype (Declaration    : Node_Id;
                                 Is_Constrained : Boolean;
-                                Component_Defn : Node_Id;
-                                Dimensions     : List_Id) return Irep
-     is
-      Sub_Identifier : constant Node_Id :=
-        Subtype_Indication (Component_Defn);
-      Sub_Pre : constant Irep :=
-        Do_Type_Reference (Etype (Sub_Identifier));
-      Sub : constant Irep :=
-        (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
-         = I_C_Enum_Type
-         then
-         --  TODO: use ASVAT.Size_Model.Size when Package standard
-         --  is handled
-            Make_Signedbv_Type (32)
-         else
-            Sub_Pre);
-
-      Array_Type_Name : constant String :=
-        Unique_Name (Defining_Identifier (The_Array));
-
-      --  The front-end ensures that the array has at least one dimension.
-      Dimension_Iter : Node_Id := First (Dimensions);
-      Array_Type_Irep  : Irep;
-      Dimension_Number : Positive := 1;
+                                First_Index    : Node_Id;
+                                Component_Type : Entity_Id) return Irep
+   is
    begin
-      --  Do the first dimension.
+      Put_Line ("Make_Array_Subtype");
+      Print_Node_Briefly (Declaration);
+      Print_Node_Briefly (Component_Type);
+      Put_Line ("Is_Constrained " &
+                  Boolean'Image (Is_Constrained));
+      Print_Node_Briefly (Component_Type);
       declare
-         Raw_Str : constant String := Integer'Image (Dimension_Number);
-         Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
-         Length_Id : constant Symbol_Id :=
-           Intern (Array_Type_Name & "___length_" & Dim_Str);
-      begin
-         Declare_First_Last_Length
-           (Prefix         => Array_Type_Name,
-            Dimension      => Dimension_Number,
-            Is_Constrained => Is_Constrained,
-            Index          => Dimension_Iter);
-         --  Not the most efficient way of obtaining the length of the
-         --  dimension, but it checks that it has been inserted correctly.
-         pragma Assert (Global_Symbol_Table.Contains (Length_Id));
-         Array_Type_Irep := Make_Array_Type
-           (Sub, Global_Symbol_Table (Length_Id).Value);
-      end;
+         Sub_Pre : constant Irep :=
+           Do_Type_Reference (Component_Type);
+         Sub : constant Irep :=
+           (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
+            = I_C_Enum_Type
+            then
+            --  TODO: use ASVAT.Size_Model.Size when Package standard
+            --  is handled
+               Make_Signedbv_Type (32)
+            else
+               Sub_Pre);
 
-      --  Now the remaining dimensions.
-      Dimension_Iter := Next (Dimension_Iter);
-      while Present (Dimension_Iter) loop
+         Array_Subtype_Name : constant String :=
+           Unique_Name
+             (if Nkind (Declaration) = N_Defining_Identifier then
+                     Declaration
+              else
+                 Defining_Identifier (Declaration));
+
+         --  The front-end ensures that the array has at least one dimension.
+         Dimension_Iter : Node_Id := First_Index;
+         Array_Type_Irep  : Irep;
+         Dimension_Number : Positive := 1;
+      begin
+         --  Do the first dimension.
          declare
             Raw_Str : constant String := Integer'Image (Dimension_Number);
             Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
             Length_Id : constant Symbol_Id :=
-              Intern (Array_Type_Name & "___length_" & Dim_Str);
+              Intern (Array_Subtype_Name & "___length_" & Dim_Str);
          begin
-            Dimension_Number := Dimension_Number + 1;
             Declare_First_Last_Length
-              (Prefix         => Array_Type_Name,
+              (Prefix         => Array_Subtype_Name,
                Dimension      => Dimension_Number,
                Is_Constrained => Is_Constrained,
                Index          => Dimension_Iter);
-
+            --  Not the most efficient way of obtaining the length of the
+            --  dimension, but it checks that it has been inserted correctly.
             pragma Assert (Global_Symbol_Table.Contains (Length_Id));
             Array_Type_Irep := Make_Array_Type
-              (Array_Type_Irep, Global_Symbol_Table (Length_Id).Value);
-            Dimension_Iter := Next (Dimension_Iter);
+              (Sub, Global_Symbol_Table (Length_Id).Value);
          end;
-      end loop;
-      return Array_Type_Irep;
+
+         --  Now the remaining dimensions.
+         Dimension_Iter := Next (Dimension_Iter);
+         while Present (Dimension_Iter) loop
+            declare
+               Raw_Str : constant String := Integer'Image (Dimension_Number);
+               Dim_Str : constant String := Raw_Str (2 .. Raw_Str'Last);
+               Length_Id : constant Symbol_Id :=
+                 Intern (Array_Subtype_Name & "___length_" & Dim_Str);
+            begin
+               Dimension_Number := Dimension_Number + 1;
+               Declare_First_Last_Length
+                 (Prefix         => Array_Subtype_Name,
+                  Dimension      => Dimension_Number,
+                  Is_Constrained => Is_Constrained,
+                  Index          => Dimension_Iter);
+
+               pragma Assert (Global_Symbol_Table.Contains (Length_Id));
+               Array_Type_Irep := Make_Array_Type
+                 (Array_Type_Irep, Global_Symbol_Table (Length_Id).Value);
+               Dimension_Iter := Next (Dimension_Iter);
+            end;
+         end loop;
+         Put_Line ("Done Make_Array_Subtype");
+         return Array_Type_Irep;
+      end;
+
    end Make_Array_Subtype;
 
 --        Ret_Components : constant Irep := Make_Struct_Union_Components;

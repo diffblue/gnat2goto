@@ -2000,13 +2000,28 @@ package body Tree_Walk is
    function Do_Index_Or_Discriminant_Constraint
      (N : Node_Id; Underlying : Irep) return Irep
    is
-      Parent_Node : constant Node_Id := Parent (N);
+      Parent_Node  : constant Node_Id := Parent (N);
+      Parent_Type  : constant Node_Id := Etype (Subtype_Mark (Parent_Node));
       Subtype_Node : constant Node_Id := Parent (Parent_Node);
    begin
-      if Is_Array_Type (Etype (Parent_Node)) then
+      Put_Line ("Do_Index_Or_Discriminant_Constraint");
+      Print_Node_Briefly (N);
+      Print_Node_Briefly (Parent_Node);
+      Print_Node_Briefly (Subtype_Node);
+      Print_Node_Briefly (Subtype_Mark (Parent_Node));
+      Print_Node_Briefly (Parent_Type);
+      if Is_Array_Type (Parent_Type) then
+         Put_Line ("It's an array");
+         Put_Line ("It is constrained " &
+                     Boolean'Image (Is_Constrained (Parent_Type)));
+         Print_Node_Briefly (Component_Type (Parent_Type));
          --  The subtype declaration is a constrained subtype of an
          --  unconstrained array.
-         return Do_Array_Subtype (Subtype_Node, Parent_Node, N);
+         return Do_Array_Subtype
+           (Subtype_Node   => Subtype_Node,
+            Parent_Type    => Parent_Type,
+            Is_Constrained => True,
+            First_Index    => First (Constraints (N)));
       else
          --  It is a record subtype with a discriminant constraint.
          --  At the moment nothing is done here but this may change
@@ -3079,6 +3094,7 @@ package body Tree_Walk is
    procedure Do_Object_Declaration_Full
      (N : Node_Id; Block : Irep) is
       Defined : constant Entity_Id := Defining_Identifier (N);
+      Defined_Type : constant Entity_Id := Etype (Defined);
       Id   : constant Irep := Do_Defining_Identifier (Defined);
       Decl : constant Irep := Make_Code_Decl
         (Symbol => Id,
@@ -3368,16 +3384,16 @@ package body Tree_Walk is
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
    begin
-      Put_Line ("Do_Object_Declaration_Full");
-      Print_Node_Briefly (N);
-      Print_Node_Briefly (Defined);
-      Print_Node_Briefly (Etype (Defined));
-      Print_Irep (Obj_Type);
+--        Put_Line ("Do_Object_Declaration_Full");
+--        Print_Node_Briefly (N);
+--        Print_Node_Briefly (Defined);
+--        Print_Node_Briefly (Defind_Type);
+--        Print_Irep (Obj_Type);
       Append_Op (Block, Decl);
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
          Init_Expr := Do_Expression (Expression (N));
-      elsif Needs_Default_Initialisation (Etype (Defined)) or
+      elsif Needs_Default_Initialisation (Defined_Type) or
         (Present (Object_Definition (N)) and then
          Nkind (Object_Definition (N)) = N_Subtype_Indication)
       then
@@ -3388,7 +3404,7 @@ package body Tree_Walk is
                  then Constraint (Defn) else Types.Empty);
          begin
             Init_Expr :=
-              Make_Default_Initialiser (Etype (Defined),
+              Make_Default_Initialiser (Defined_Type,
                                         Discriminant_Constraint);
          end;
       end if;
@@ -3396,10 +3412,24 @@ package body Tree_Walk is
       pragma Assert (Get_Identifier (Id) = Unintern (Obj_Id));
       if not Global_Symbol_Table.Contains (Obj_Id)
       then
-         New_Object_Symbol_Entry (Object_Name       => Obj_Id,
-                                  Object_Type       => Obj_Type,
-                                  Object_Init_Value => Init_Expr,
-                                  A_Symbol_Table    => Global_Symbol_Table);
+         New_Object_Symbol_Entry
+           (Object_Name       => Obj_Id,
+            Object_Type       =>
+            --  If the object is of an array type, an array type
+            --  object has to be created along with its friends,
+            --  the first, last and length of each dimension.
+              (if Is_Array_Type (Defined_Type) then
+                    Do_Array_Subtype
+                 (Subtype_Node   => Defined,
+                  Parent_Type    => Defined_Type,
+                  Is_Constrained =>
+                    Is_Constrained (Defined_Type),
+                  First_Index    =>
+                    First_Index (Defined_Type))
+               else
+                  Obj_Type),
+            Object_Init_Value => Init_Expr,
+            A_Symbol_Table    => Global_Symbol_Table);
       elsif Init_Expr /= Ireps.Empty then
          Global_Symbol_Table.Update_Element
            (Position => Global_Symbol_Table.Find (Obj_Id),
@@ -5189,6 +5219,7 @@ package body Tree_Walk is
       Print_Irep (New_Type);
       Print_Node_Briefly (Defining_Identifier (N));
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
+      Put_Line ("Done subtype_declaration");
    end Do_Subtype_Declaration;
 
    ---------------------------
@@ -5204,29 +5235,58 @@ package body Tree_Walk is
       Print_Node_Briefly (N);
       case Nkind (N) is
          when N_Subtype_Indication =>
-            Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
-            Constr := Constraint (N);
-            if Present (Constr) then
-               Print_Node_Briefly (Constr);
-               case Nkind (Constr) is
-               when N_Range_Constraint =>
-                  return Do_Range_Constraint (Constr, Underlying);
-               when N_Index_Or_Discriminant_Constraint =>
+            declare
+               Sub_Type : constant Entity_Id :=
+                 Etype (Subtype_Mark (N));
+            begin
+               Underlying := Do_Type_Reference (Sub_Type);
+               Constr := Constraint (N);
+               if not Present (Constr) and then Is_Array_Type (Sub_Type) then
+                  Put_Line ("An array subtype without a constraint");
                   return
-                    Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
-               when others =>
-                  return
-                    Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
-                                                "Unknown expression kind");
-               end case;
-            else
-               return Underlying;
-            end if;
+                    Do_Array_Subtype
+                      (Subtype_Node   => Parent (Parent (N)),
+                       Parent_Type    => Etype (Parent (N)),
+                       Is_Constrained => Is_Constrained (Sub_Type),
+                       First_Index    => First_Index (Sub_Type));
+               elsif Present (Constr) then
+                  Put_Line ("A constraint is present");
+                  Print_Node_Briefly (Constr);
+                  case Nkind (Constr) is
+                  when N_Range_Constraint =>
+                     return Do_Range_Constraint (Constr, Underlying);
+                  when N_Index_Or_Discriminant_Constraint =>
+                     return
+                       Do_Index_Or_Discriminant_Constraint
+                         (Constr, Underlying);
+                  when others =>
+                     return
+                       Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
+                                                   "Unknown expression kind");
+                  end case;
+               else
+                  return Underlying;
+               end if;
+            end;
          when N_Identifier |
               N_Expanded_Name =>
             --  subtype indications w/o constraint are given only as identifier
-            Underlying := Do_Type_Reference (Etype (N));
-            return Underlying;
+            if Is_Array_Type (Etype (N)) then
+               Put_Line ("An identifer that is an array");
+               Print_Node_Briefly (N);
+               Print_Node_Briefly (Etype (N));
+               Print_Node_Briefly (Parent (N));
+               Print_Node_Briefly (Parent (Parent (N)));
+               Print_Node_Briefly (Declaration_Node (Etype (N)));
+               return Do_Array_Subtype
+                 (Subtype_Node   => Parent (N),
+                  Parent_Type    => Etype (N),
+                  Is_Constrained => Is_Constrained (Etype (N)),
+                  First_Index    => First_Index (Etype (N)));
+            else
+               Underlying := Do_Type_Reference (Etype (N));
+               return Underlying;
+            end if;
          when others =>
             return Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
                                                "Unknown expression kind");
