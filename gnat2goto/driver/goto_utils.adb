@@ -372,9 +372,9 @@ package body GOTO_Utils is
    -- New_Parameter_Symbol_Entry --
    --------------------------------
 
-   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
-                                         BaseName :              String;
-                                         Symbol_Type :           Irep;
+   procedure New_Parameter_Symbol_Entry (Name_Id        :        Symbol_Id;
+                                         BaseName       :        String;
+                                         Symbol_Type    :        Irep;
                                          A_Symbol_Table : in out Symbol_Table)
    is
       New_Symbol : constant Symbol :=

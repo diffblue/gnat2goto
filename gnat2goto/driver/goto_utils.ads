@@ -81,9 +81,9 @@ package GOTO_Utils is
       Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
       Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table);
 
-   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
-                                         BaseName :              String;
-                                         Symbol_Type :           Irep;
+   procedure New_Parameter_Symbol_Entry (Name_Id        :        Symbol_Id;
+                                         BaseName       :        String;
+                                         Symbol_Type    :        Irep;
                                          A_Symbol_Table : in out Symbol_Table)
      with Pre => Kind (Symbol_Type) in Class_Type | I_Address_Of_Expr;
 

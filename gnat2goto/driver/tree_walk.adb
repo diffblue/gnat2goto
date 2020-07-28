@@ -51,6 +51,11 @@ package body Tree_Walk is
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
         Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
 
+   function Do_First_Last_Length (N : Node_Id;  Attr : Attribute_Id)
+                                  return Irep
+   with Pre  => Nkind (N) = N_Attribute_Reference,
+        Post => Kind (Do_First_Last_Length'Result) in Class_Expr;
+
    function Do_If_Expression (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_If_Expression;
 
@@ -95,7 +100,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Explicit_Dereference,
         Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
 
-   function Do_Derived_Type_Definition (N : Node_Id) return Irep
+   function Do_Derived_Type_Definition (N : Node_Id; Block : Irep) return Irep
    with Pre  => Nkind (N) = N_Derived_Type_Definition,
         Post => Kind (Do_Derived_Type_Definition'Result) in Class_Type;
 
@@ -103,7 +108,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Enumeration_Type_Definition,
         Post => Kind (Do_Enumeration_Definition'Result) = I_C_Enum_Type;
 
-   procedure Do_Full_Type_Declaration (N : Node_Id)
+   procedure Do_Full_Type_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
 
    function Do_Function_Call (N : Node_Id) return Irep
@@ -118,7 +123,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
-   procedure Do_Incomplete_Type_Declaration (N : Node_Id)
+   procedure Do_Incomplete_Type_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Incomplete_Type_Declaration;
 
    function Do_Exit_Statement (N : Node_Id) return Irep
@@ -126,7 +131,7 @@ package body Tree_Walk is
         Post => Kind (Do_Exit_Statement'Result) in Class_Code;
 
    function Do_Index_Or_Discriminant_Constraint
-     (N : Node_Id; Underlying : Irep) return Irep
+     (N : Node_Id; Underlying : Irep; Block : Irep) return Irep
    with Pre  => Nkind (N) = N_Index_Or_Discriminant_Constraint;
 
    function Do_Loop_Statement (N : Node_Id) return Irep
@@ -228,7 +233,7 @@ package body Tree_Walk is
    procedure Do_Exception_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Exception_Declaration;
 
-   procedure Do_Private_Type_Declaration (N : Node_Id)
+   procedure Do_Private_Type_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Private_Type_Declaration;
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
@@ -281,14 +286,15 @@ package body Tree_Walk is
                                N_Access_Function_Definition,
         Post => Kind (Do_Subprogram_Specification'Result) = I_Code_Type;
 
-   procedure Do_Subtype_Declaration (N : Node_Id)
+   procedure Do_Subtype_Declaration (N : Node_Id; Block : Irep)
    with Pre => Nkind (N) = N_Subtype_Declaration;
 
    function Do_Type_Conversion (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Type_Conversion,
         Post => Kind (Do_Type_Conversion'Result) in Class_Expr;
 
-   function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep;
+   function Do_Type_Definition (N : Node_Id; Discs : List_Id;
+                               Block : Irep) return Irep;
 
    procedure Do_Withed_Unit_Spec (N : Node_Id);
    --  Enters the specification of the withed unit, N, into the symbol table
@@ -369,7 +375,8 @@ package body Tree_Walk is
    with Pre => Nkind (N) in N_Subprogram_Specification;
    --  Insert the subprogram specification into the symbol table
 
-   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id)
+   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id;
+                                       Block : Irep)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
    --  Common procedure for registering non-anonymous type declarations.
    --  Called by Do_Incomplete_Type_Declaration and Do_Private_Type_Declaration
@@ -720,6 +727,8 @@ package body Tree_Walk is
    function Do_Assignment_Statement (N : Node_Id) return Irep
    is
    begin
+      Put_Line ("Assignment_Statement");
+      Print_Node_Briefly (Etype (Name (N)));
       if Ekind (Etype (Name (N))) in Array_Kind then
          declare
             Lhs_Type : constant Entity_Id := Etype (Name (N));
@@ -753,6 +762,9 @@ package body Tree_Walk is
                else Bare_RHS);
          end RHS;
       begin
+         Put_Line ("About to Assign");
+         Print_Irep (LHS);
+         Print_Irep (RHS);
          return Make_Code_Assign
            (Lhs => LHS,
             Rhs => Typecast_If_Necessary
@@ -817,24 +829,68 @@ package body Tree_Walk is
       ----------------------
 
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
-         Is_Out        : constant Boolean := Out_Present (Parent (Formal));
-         Formal_Type : constant Irep :=
-           Follow_Symbol_Type (Do_Type_Reference (Etype (Formal)),
+         Is_Out          : constant Boolean := Out_Present (Parent (Formal));
+         Formal_Ada_Type : constant Entity_Id := Etype (Formal);
+         Formal_Type     : constant Irep :=
+           Follow_Symbol_Type (Do_Type_Reference (Formal_Ada_Type),
                                Global_Symbol_Table);
-         Actual_Irep   : Irep;
+         Actual_Irep      : Irep;
          Expression    : constant Irep := Do_Expression (Actual);
       begin
-         if Is_Out and then
-           not (Kind (Get_Type (Expression)) in Class_Type)
-         then
-            Report_Unhandled_Node_Empty (Actual, "Handle_Parameter",
-                                         "Kind of actual not in class type");
-            return;
+         if Is_Array_Type (Formal_Ada_Type) then
+            declare
+               Actual_Array : constant Entity_Id := Entity (Actual);
+--                 Component_Subtype : constant Entity_Id :=
+--                   Etype (Actual_Array);
+--                 Component_Irep : constant Irep :=
+--                   Do_Type_Reference (Component_Subtype);
+            begin
+               --  If it is an unconstrained array formal parameter
+               --  the First, Last and Length array friend variables
+               --  have to be added to the argument list.
+               if not Is_Constrained (Formal_Ada_Type) then
+                  Put_Line
+                    ("Subprogram call with unconstrained array parameter");
+                  Put_Line
+                    ("££££££££££££££££££££££££££££££££££££££££££££££££££");
+                  Print_Node_Briefly (Formal);
+                  Print_Node_Briefly (Etype (Formal));
+                  Print_Node_Briefly (Actual);
+                  Print_Node_Briefly (Entity (Actual));
+                  Print_Irep (Expression);
+                  Pass_Array_Friends (Actual_Array, Args);
+               end if;
+               --  Now handle the array parameter.  The front-end ensures that
+               --  the array is type compliant.
+               --  Arrays are always passed by reference.
+               Append_Argument (Args,
+                                Make_Address_Of_Expr
+                                  (Object          => Expression,
+                                   Source_Location => Internal_Source_Location,
+                                   I_Type          =>
+                                     Make_Pointer_Type
+                                       (I_Subtype =>
+                                            Do_Type_Reference
+                                          (Component_Type (Formal_Ada_Type)),
+                                        Width     => Pointer_Type_Width),
+                                   Range_Check     => False));
+            end;
+         else
+            --  Formal parameter is not an array type.
+            if Is_Out and then
+              not (Kind (Get_Type (Expression)) in Class_Type)
+            then
+               Report_Unhandled_Node_Empty
+                 (Actual, "Handle_Parameter",
+                  "Kind of actual not in class type");
+               return;
+            end if;
+            Actual_Irep := Wrap_Argument
+              (Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
+               Formal_Type, Global_Symbol_Table), Is_Out);
+            Append_Argument (Args, Actual_Irep);
          end if;
-         Actual_Irep := Wrap_Argument (
-          Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
-                          Formal_Type, Global_Symbol_Table), Is_Out);
-         Append_Argument (Args, Actual_Irep);
+
       end Handle_Parameter;
 
       procedure Handle_Parameters is new
@@ -846,6 +902,36 @@ package body Tree_Walk is
       Handle_Parameters (N);
       return Args;
    end Do_Call_Parameters;
+
+   --------------------------
+   -- Do_First_Last_Length --
+   --------------------------
+
+   function Do_First_Last_Length (N : Node_Id;  Attr : Attribute_Id)
+                                  return Irep
+   is
+   begin
+      if Is_Scalar_Type (Etype (Prefix (N))) then
+         --  When applied to a scalar subtype,
+         --  the attributes First, Last and Length are substituted by their
+         --  value if the range of the subtype is static.
+         --  Hence, this branch will only be executed if the subtype does
+         --  not have a static range, which, currently, is unsupported.
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Do_First_Last_Length",
+            "Dynamic subtypes are unsupported");
+      elsif Nkind (Etype (Prefix (N))) = N_Defining_Identifier and then
+        Get_Name_String (Chars (Etype (Etype (Prefix (N))))) = "string"
+      then
+         return Report_Unhandled_Node_Irep
+           (N, "First_Last_Length",
+            "Attribute applied to string is unsupported");
+      else
+         --  It is an array.
+         return Do_Array_First_Last_Length (N, Attr);
+      end if;
+   end Do_First_Last_Length;
 
    ------------------------
    -- Do_If_Expression --
@@ -1211,9 +1297,10 @@ package body Tree_Walk is
    -- Do_Derived_Type_Definition --
    --------------------------------
 
-   function Do_Derived_Type_Definition (N : Node_Id) return Irep is
+   function Do_Derived_Type_Definition (N : Node_Id;
+                                        Block : Irep) return Irep is
       Subtype_Irep : constant Irep :=
-        Do_Subtype_Indication (Subtype_Indication (N));
+        Do_Subtype_Indication (Subtype_Indication (N), Block);
    begin
       if Present (Record_Extension_Part (N)) then
          return Report_Unhandled_Node_Type (N, "Do_Derived_Type_Definition",
@@ -1417,32 +1504,15 @@ package body Tree_Walk is
                when Attribute_Address =>
                   --  Use the ASVAT.Address_Model to create the address.
                   return ASVAT.Address_Model.Do_ASVAT_Address_Of (N);
-               when Attribute_Length => return Do_Array_Length (N);
+               when Attribute_Length => return
+                    Do_First_Last_Length (N, Attribute_Length);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
-               when Attribute_First  =>
-                  if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-                    and then
-                      Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-                    = "string"
-                  then
-                     return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                "First of string unsupported");
-                  else
-                     return Do_Array_First (N);
-                  end if;
-               when Attribute_Last   =>
-                  if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-                    and then
-                      Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-                    = "string"
-                  then
-                     return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                 "Last of string unsupported");
-                  else
-                     return Do_Array_Last (N);
-                  end if;
+               when Attribute_First  => return
+                    Do_First_Last_Length (N, Attribute_First);
+               when Attribute_Last   => return
+                     Do_First_Last_Length (N, Attribute_Last);
                when Attribute_Val =>
                   return Do_Attribute_Pos_Val (N);
                when Attribute_Pos =>
@@ -1619,10 +1689,10 @@ package body Tree_Walk is
    -- Do_Full_Type_Declaration --
    ------------------------------
 
-   procedure Do_Full_Type_Declaration (N : Node_Id) is
+   procedure Do_Full_Type_Declaration (N : Node_Id; Block : Irep) is
       New_Type : constant Irep :=
         Do_Type_Definition (Type_Definition (N),
-                            Discriminant_Specifications (N));
+                            Discriminant_Specifications (N), Block);
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
       if not (Kind (New_Type) in Class_Type)
@@ -1956,7 +2026,7 @@ package body Tree_Walk is
    -- Do_Incomplete_Type_Declaration --
    ------------------------------------
 
-   procedure Do_Incomplete_Type_Declaration (N : Node_Id) is
+   procedure Do_Incomplete_Type_Declaration (N : Node_Id; Block : Irep) is
       Entity : constant Entity_Id := Defining_Identifier (N);
       --  Only complete types should be inserted in the symbol table.
       --  If an incomplete type declaration is inserted it will prevent
@@ -1979,10 +2049,10 @@ package body Tree_Walk is
          --  incomplete_type_declaration is Full_View_Entity
          --  register the full view in the symbol_table.
          Register_Type_Declaration
-           (Declaration_Node (Full_View_Entity), Full_View_Entity);
+           (Declaration_Node (Full_View_Entity), Full_View_Entity, Block);
       else
          Do_Private_Type_Declaration
-           (Declaration_Node (Full_View_Entity));
+           (Declaration_Node (Full_View_Entity), Block);
       end if;
    end Do_Incomplete_Type_Declaration;
 
@@ -1998,7 +2068,7 @@ package body Tree_Walk is
 --     is (Underlying);
 
    function Do_Index_Or_Discriminant_Constraint
-     (N : Node_Id; Underlying : Irep) return Irep
+     (N : Node_Id; Underlying : Irep; Block : Irep) return Irep
    is
       Parent_Node  : constant Node_Id := Parent (N);
       Parent_Type  : constant Node_Id := Etype (Subtype_Mark (Parent_Node));
@@ -2021,7 +2091,8 @@ package body Tree_Walk is
            (Subtype_Node   => Subtype_Node,
             Parent_Type    => Parent_Type,
             Is_Constrained => True,
-            First_Index    => First (Constraints (N)));
+            First_Index    => First (Constraints (N)),
+            Block => Block);
       else
          --  It is a record subtype with a discriminant constraint.
          --  At the moment nothing is done here but this may change
@@ -3087,9 +3158,9 @@ package body Tree_Walk is
       pragma Assert (Global_Symbol_Table.Contains (Obj_Id));
    end Do_Object_Declaration;
 
-   --------------------------------------------
-   -- Do_Object_Declaration_Full_Declaration --
-   --------------------------------------------
+   --------------------------------
+   -- Do_Object_Declaration_Full --
+   --------------------------------
 
    procedure Do_Object_Declaration_Full
      (N : Node_Id; Block : Irep) is
@@ -3101,8 +3172,8 @@ package body Tree_Walk is
          Source_Location => Get_Source_Location (N));
       Init_Expr : Irep := Ireps.Empty;
 
-      Obj_Id : constant Symbol_Id := Intern (Unique_Name (Defined));
-      Obj_Type : constant Irep := Get_Type (Id);
+      Obj_Name : constant String := Unique_Name (Defined);
+      Obj_Id   : constant Symbol_Id := Intern (Obj_Name);
 
       function Has_Defaulted_Components (E : Entity_Id) return Boolean;
       function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
@@ -3384,12 +3455,10 @@ package body Tree_Walk is
 
       --  Begin processing for Do_Object_Declaration_Full_Declaration
    begin
---        Put_Line ("Do_Object_Declaration_Full");
---        Print_Node_Briefly (N);
---        Print_Node_Briefly (Defined);
---        Print_Node_Briefly (Defind_Type);
---        Print_Irep (Obj_Type);
-      Append_Op (Block, Decl);
+      Put_Line ("Do_Object_Declaration_Full");
+      Print_Node_Briefly (N);
+      Print_Node_Briefly (Defined);
+      Print_Node_Briefly (Defined_Type);
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
          Init_Expr := Do_Expression (Expression (N));
@@ -3409,27 +3478,41 @@ package body Tree_Walk is
          end;
       end if;
 
-      pragma Assert (Get_Identifier (Id) = Unintern (Obj_Id));
-      if not Global_Symbol_Table.Contains (Obj_Id)
-      then
-         New_Object_Symbol_Entry
-           (Object_Name       => Obj_Id,
-            Object_Type       =>
-            --  If the object is of an array type, an array type
-            --  object has to be created along with its friends,
-            --  the first, last and length of each dimension.
-              (if Is_Array_Type (Defined_Type) then
-                    Do_Array_Subtype
-                 (Subtype_Node   => Defined,
-                  Parent_Type    => Defined_Type,
-                  Is_Constrained =>
-                    Is_Constrained (Defined_Type),
-                  First_Index    =>
-                    First_Index (Defined_Type))
-               else
-                  Obj_Type),
-            Object_Init_Value => Init_Expr,
-            A_Symbol_Table    => Global_Symbol_Table);
+      pragma Assert (Get_Identifier (Id) = Obj_Name);
+      if not Global_Symbol_Table.Contains (Obj_Id) then
+         declare
+            Obj_Type : Irep;
+         begin
+            if Is_Array_Type (Defined_Type) then
+               --  In goto an array is not a type, objects may be arrays.
+               --  An anonymous subtype has to be declared for each
+               --  array object describing its format.
+               --  The array subtype and the friend variables,
+               --  First, Last and Length variables for the array object
+               --  must be created and inserted into the symbol table.
+               --  The declarations and initialisations of the friends are
+               --  added to the block.  The anonymous array subtype is
+               --  returned by the Subtype_Irep parameter.
+               Do_Array_Object
+                 (Object_Node     => Defined,
+                  Object_Ada_Type => Defined_Type,
+                  Block           => Block,
+                  Subtype_Irep    => Obj_Type);
+            else
+               --  Otherwise, just use the type of the object.
+               Obj_Type := Get_Type (Id);
+            end if;
+
+            --  Now any array subtype has been determined and any
+            --  array friend variables have been declared and initialised,
+            --  the object proper is declared.
+            Append_Op (Block, Decl);
+            New_Object_Symbol_Entry
+              (Object_Name       => Obj_Id,
+               Object_Type       => Obj_Type,
+               Object_Init_Value => Init_Expr,
+               A_Symbol_Table    => Global_Symbol_Table);
+         end;
       elsif Init_Expr /= Ireps.Empty then
          Global_Symbol_Table.Update_Element
            (Position => Global_Symbol_Table.Find (Obj_Id),
@@ -4201,7 +4284,7 @@ package body Tree_Walk is
    -- Do_Private_Type_Declaration --
    ---------------------------------
 
-   procedure Do_Private_Type_Declaration (N : Node_Id) is
+   procedure Do_Private_Type_Declaration (N : Node_Id; Block : Irep) is
       Entity : constant Entity_Id := Defining_Identifier (N);
       --  A partial view of a type declaration must not be inserted into
       --  the symbol table.
@@ -4251,7 +4334,7 @@ package body Tree_Walk is
             --  private_type_declaration is Full_View_Entity
             --  register the full view in the symbol table.
             Register_Type_Declaration
-              (Declaration_Node (Full_View_Entity), Full_View_Entity);
+              (Declaration_Node (Full_View_Entity), Full_View_Entity, Block);
          else
             Report_Unhandled_Node_Empty
               (Declaration_Node (Full_View_Entity),
@@ -5166,30 +5249,81 @@ package body Tree_Walk is
                      Etype (Subtype_Mark (Param_Sort))
                   else
                      Etype (Parameter_Type (Param_Iter)));
-
-               Param_Type_Base : constant Irep :=
-                 Do_Type_Reference (Param_Ada_Type);
-
-               --  If the formal parameter is mode out or in out,
-               --  or is an access parameter, it is made into a pointer
-               Param_Type : constant Irep :=
-                 (if Is_Out or Is_Access_Param then
-                     Make_Pointer_Type (Param_Type_Base)
-                  else Param_Type_Base);
-               Param_Irep : constant Irep := Make_Code_Parameter
-                 (Source_Location => Get_Source_Location (Param_Iter),
-                  I_Type => Param_Type,
-                  Identifier => Param_Name,
-                  Base_Name => Param_Name,
-                  This => False,
-                  Default_Value => Ireps.Empty);
             begin
-               Append_Parameter (Param_List, Param_Irep);
-               New_Parameter_Symbol_Entry
-                 (Name_Id        => Intern (Param_Name),
-                  BaseName       => Param_Name,
-                  Symbol_Type    => Param_Type,
-                  A_Symbol_Table => Global_Symbol_Table);
+               if Is_Array_Type (Param_Ada_Type) then
+                  declare
+                     Component_Subtype : constant Node_Id :=
+                       Get_Non_Array_Component_Type (Param_Ada_Type);
+
+                     Component_Irep : constant Irep :=
+                       Do_Type_Reference (Component_Subtype);
+
+                     Ptr_To_Component : constant Irep :=
+                       Make_Pointer_Type
+                         (I_Subtype => Component_Irep,
+                          Width     => Pointer_Type_Width);
+
+                     --  Array parameters are represented as pointers to
+                     --  their component type (which could be an array).
+                     --  Multidimensional arrays are represented as a single
+                     --  dimensional array.
+
+                     Array_Param_Irep : constant Irep := Make_Code_Parameter
+                       (Source_Location => Get_Source_Location (Param_Iter),
+                        I_Type => Ptr_To_Component,
+                        Identifier => Param_Name,
+                        Base_Name => Param_Name,
+                        This => False,
+                        Default_Value => Ireps.Empty);
+                  begin
+                     Put_Line ("??????? Do_Subprogram_Specification");
+                     Put_Line ("An array");
+                     Print_Node_Briefly (Param_Iter);
+                     Print_Node_Briefly (Param_Sort);
+                     Print_Node_Briefly (Param_Ada_Type);
+                     Print_Node_Briefly (Component_Subtype);
+                     Print_Irep (Component_Irep);
+                     Print_Irep (Ptr_To_Component);
+                     if not Is_Constrained (Param_Ada_Type) then
+                        Put_Line ("It's an unconstrained array parameter");
+                        Add_Array_Friends
+                          (Param_Name, Param_Ada_Type, Param_List);
+                     end if;
+                     Append_Parameter (Param_List, Array_Param_Irep);
+                     New_Parameter_Symbol_Entry
+                       (Name_Id        => Intern (Param_Name),
+                        BaseName       => Param_Name,
+                        Symbol_Type    => Ptr_To_Component,
+                        A_Symbol_Table => Global_Symbol_Table);
+                  end;
+               else
+                  declare
+                     Param_Type_Base : constant Irep :=
+                       Do_Type_Reference (Param_Ada_Type);
+
+                     --  If the formal parameter is mode out or in out,
+                     --  or is an access parameter, it is made into a pointer
+                     Param_Type : constant Irep :=
+                       (if Is_Out or Is_Access_Param then
+                           Make_Pointer_Type (Param_Type_Base)
+                        else Param_Type_Base);
+
+                     Param_Irep : constant Irep := Make_Code_Parameter
+                       (Source_Location => Get_Source_Location (Param_Iter),
+                        I_Type => Param_Type,
+                        Identifier => Param_Name,
+                        Base_Name => Param_Name,
+                        This => False,
+                        Default_Value => Ireps.Empty);
+                  begin
+                     Append_Parameter (Param_List, Param_Irep);
+                     New_Parameter_Symbol_Entry
+                       (Name_Id        => Intern (Param_Name),
+                        BaseName       => Param_Name,
+                        Symbol_Type    => Param_Type,
+                        A_Symbol_Table => Global_Symbol_Table);
+                  end;
+               end if;
 
                Next (Param_Iter);
             end;
@@ -5211,9 +5345,9 @@ package body Tree_Walk is
    -- Do_Subtype_Declaration --
    ----------------------------
 
-   procedure Do_Subtype_Declaration (N : Node_Id) is
+   procedure Do_Subtype_Declaration (N : Node_Id; Block : Irep) is
       New_Type : constant Irep := Do_Subtype_Indication
-        (Subtype_Indication (N));
+        (Subtype_Indication (N), Block);
    begin
       Put_Line ("Subtype_Declaration");
       Print_Irep (New_Type);
@@ -5226,7 +5360,7 @@ package body Tree_Walk is
    -- Do_Subtype_Indication --
    ---------------------------
 
-   function Do_Subtype_Indication (N : Node_Id) return Irep
+   function Do_Subtype_Indication (N : Node_Id; Block : Irep) return Irep
    is
       Underlying : Irep;
       Constr : Node_Id;
@@ -5248,7 +5382,8 @@ package body Tree_Walk is
                       (Subtype_Node   => Parent (Parent (N)),
                        Parent_Type    => Etype (Parent (N)),
                        Is_Constrained => Is_Constrained (Sub_Type),
-                       First_Index    => First_Index (Sub_Type));
+                       First_Index    => First_Index (Sub_Type),
+                       Block          => Block);
                elsif Present (Constr) then
                   Put_Line ("A constraint is present");
                   Print_Node_Briefly (Constr);
@@ -5258,7 +5393,7 @@ package body Tree_Walk is
                   when N_Index_Or_Discriminant_Constraint =>
                      return
                        Do_Index_Or_Discriminant_Constraint
-                         (Constr, Underlying);
+                         (Constr, Underlying, Block);
                   when others =>
                      return
                        Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
@@ -5282,7 +5417,8 @@ package body Tree_Walk is
                  (Subtype_Node   => Parent (N),
                   Parent_Type    => Etype (N),
                   Is_Constrained => Is_Constrained (Etype (N)),
-                  First_Index    => First_Index (Etype (N)));
+                  First_Index    => First_Index (Etype (N)),
+                  Block          => Block);
             else
                Underlying := Do_Type_Reference (Etype (N));
                return Underlying;
@@ -5349,7 +5485,8 @@ package body Tree_Walk is
    -- Do_Type_Definition --
    ------------------------
 
-   function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep is
+   function Do_Type_Definition (N : Node_Id; Discs : List_Id;
+                               Block : Irep) return Irep is
    begin
       if Discs /= List_Id (Types.Empty)
         and then Nkind (N) /= N_Record_Definition
@@ -5363,13 +5500,13 @@ package body Tree_Walk is
          when N_Signed_Integer_Type_Definition =>
             return Do_Signed_Integer_Definition (N);
          when N_Derived_Type_Definition =>
-            return Do_Derived_Type_Definition (N);
+            return Do_Derived_Type_Definition (N, Block);
          when N_Enumeration_Type_Definition =>
             return Do_Enumeration_Definition (N);
          when N_Constrained_Array_Definition =>
-            return Do_Constrained_Array_Definition (N);
+            return Do_Constrained_Array_Definition (N, Block);
          when N_Unconstrained_Array_Definition =>
-            return Do_Unconstrained_Array_Definition (N);
+            return Do_Unconstrained_Array_Definition (N, Block);
          when N_Modular_Type_Definition =>
             return Do_Modular_Type_Definition (N);
          when N_Floating_Point_Definition =>
@@ -5750,16 +5887,16 @@ package body Tree_Walk is
          --  basic_declarations  --
 
          when N_Full_Type_Declaration =>
-            Do_Full_Type_Declaration (N);
+            Do_Full_Type_Declaration (N, Block);
 
          when N_Incomplete_Type_Declaration =>
-            Do_Incomplete_Type_Declaration (N);
+            Do_Incomplete_Type_Declaration (N, Block);
 
          when N_Private_Type_Declaration =>
-            Do_Private_Type_Declaration (N);
+            Do_Private_Type_Declaration (N, Block);
 
          when N_Subtype_Declaration =>
-            Do_Subtype_Declaration (N);
+            Do_Subtype_Declaration (N, Block);
 
          when N_Object_Declaration =>
             Do_Object_Declaration (N, Block);
@@ -6541,10 +6678,11 @@ package body Tree_Walk is
    -- Register_Type_Declaration --
    -------------------------------
 
-   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id) is
+   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id;
+                                       Block : Irep) is
       New_Type : constant Irep :=
         Do_Type_Definition (Type_Definition (N),
-                            Discriminant_Specifications (N));
+                            Discriminant_Specifications (N), Block);
    begin
       pragma Assert (Kind (New_Type) in Class_Type);
       Do_Type_Declaration (New_Type, E);

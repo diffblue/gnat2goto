@@ -1,4 +1,5 @@
 with Atree;             use Atree;
+with Snames;            use Snames;
 with Einfo;             use Einfo;
 with Sinfo;             use Sinfo;
 
@@ -10,23 +11,52 @@ with GOTO_Utils;        use GOTO_Utils;
 
 package Arrays is
 
+   procedure Add_Array_Friends (Array_Name : String;
+                                Array_Type : Entity_Id;
+                                Param_List : Irep)
+     with Pre => Is_Array_Type (Array_Type) and then
+                 not Is_Constrained (Array_Type);
+   --  For an unconstrained array parameter adds the array friend variables
+   --  Array_Name___first_<Dimension>, Array_Name___last_<Dimension> and
+   --  Array_Name___length_<Dimension> to the symbol table and to the
+   --  subprogram parameter list for each dimension of the array.
+
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep
      with Pre  => Nkind (N) = N_Aggregate;
 
-   function Make_Array_Default_Initialiser (E : Entity_Id) return Irep;
+   procedure Do_Array_Object (Object_Node     : Node_Id;
+                              Object_Ada_Type : Entity_Id;
+                              Block           : Irep;
+                              Subtype_Irep    : out Irep)
+     with Pre  => Is_Array_Type (Object_Ada_Type),
+          Post => Kind (Subtype_Irep) = I_Array_Type;
+   --  In goto an array is not a type, objects may be arrays.
+   --  An anonymous subtype has to be declared for each
+   --  array object describing its format.
+   --  The array subtype and the friend variables,
+   --  First, Last and Length variables for the array object
+   --  must be created and inserted into the symbol table.
+   --  Do_Array_Object creates an array subtype and its friendly variables.
+   --  The declarations and initialisations of the friends are
+   --  added to the block.  The anonymous array subtype is
+   --  returned by the Subtype_Irep parameter.
 
    function Do_Array_Subtype (Subtype_Node   : Node_Id;
                               Parent_Type    : Entity_Id;
                               Is_Constrained : Boolean;
-                              First_Index    : Node_Id) return Irep
+                              First_Index    : Node_Id;
+                              Block          : Irep) return Irep
      with Pre => Is_Array_Type (Parent_Type),
      Post => Kind (Do_Array_Subtype'Result) = I_Array_Type;
+   --  Create an array subtype and its friendly variables.
 
-   function Do_Constrained_Array_Definition (N : Node_Id) return Irep
+   function Do_Constrained_Array_Definition (N     : Node_Id;
+                                             Block : Irep) return Irep
      with Pre  => Nkind (N) in N_Array_Type_Definition,
      Post => Kind (Do_Constrained_Array_Definition'Result) = I_Array_Type;
 
-   function Do_Unconstrained_Array_Definition (N : Node_Id) return Irep
+   function Do_Unconstrained_Array_Definition (N     : Node_Id;
+                                               Block : Irep) return Irep
      with Pre  => Nkind (N) in N_Array_Type_Definition,
      Post => Kind (Do_Unconstrained_Array_Definition'Result) =
      I_Array_Type;
@@ -34,6 +64,11 @@ package Arrays is
    function Do_Array_Assignment (N : Node_Id) return Irep
      with Pre => Nkind (N) = N_Assignment_Statement,
      Post => Kind (Do_Array_Assignment'Result) = I_Code_Assign;
+
+   function Do_Array_First_Last_Length (N : Node_Id; Attr : Attribute_Id)
+                                        return Irep
+     with Pre => Nkind (N) = N_Attribute_Reference and then
+                 Attr in Attribute_First | Attribute_Last | Attribute_Length;
 
    function Do_Array_Length (N : Node_Id) return Irep
      with Pre => Nkind (N) = N_Attribute_Reference;
@@ -79,10 +114,21 @@ package Arrays is
                     I_Symbol_Type | I_Struct_Type),
        Post => Kind (Get_Data_Member'Result) = I_Member_Expr;
 
+   function Get_Non_Array_Component_Type (A : Entity_Id) return Entity_Id
+     with Pre => Is_Array_Type (A);
+   --  When presented with an array repeatedly obtains the component
+   --  type of the array until the component type is not an array subtype.
+   --  It returns this component type.
+
    function Offset_Array_Data (Base : Irep; Offset : Irep) return Irep
      with Pre => (Kind (Base) in Class_Expr
                   and then Kind (Offset) in Class_Expr),
      Post => Kind (Offset_Array_Data'Result) in Class_Expr;
+
+   function Make_Array_Default_Initialiser (E : Entity_Id) return Irep;
+
+   procedure Pass_Array_Friends (Actual_Array : Entity_Id;  Args : Irep)
+     with Pre => Is_Array_Type (Etype (Actual_Array));
 
 private
 
