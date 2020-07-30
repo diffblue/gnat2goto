@@ -17,9 +17,9 @@ package Arrays is
      with Pre => Is_Array_Type (Array_Type) and then
                  not Is_Constrained (Array_Type);
    --  For an unconstrained array parameter adds the array friend variables
-   --  Array_Name___first_<Dimension>, Array_Name___last_<Dimension> and
-   --  Array_Name___length_<Dimension> to the symbol table and to the
-   --  subprogram parameter list for each dimension of the array.
+   --  Array_Name___first_<Dimension> and Array_Name___last_<Dimension>
+   --  to the symbol table and to the subprogram parameter list for each
+   --  dimension of the array.
 
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep
      with Pre  => Nkind (N) = N_Aggregate;
@@ -34,7 +34,7 @@ package Arrays is
    --  An anonymous subtype has to be declared for each
    --  array object describing its format.
    --  The array subtype and the friend variables,
-   --  First, Last and Length variables for the array object
+   --  First and Last for the array object
    --  must be created and inserted into the symbol table.
    --  Do_Array_Object creates an array subtype and its friendly variables.
    --  The declarations and initialisations of the friends are

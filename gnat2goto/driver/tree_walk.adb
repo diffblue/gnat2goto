@@ -1505,7 +1505,32 @@ package body Tree_Walk is
                   --  Use the ASVAT.Address_Model to create the address.
                   return ASVAT.Address_Model.Do_ASVAT_Address_Of (N);
                when Attribute_Length => return
-                    Do_First_Last_Length (N, Attribute_Length);
+                    Make_Op_Add
+                      (Rhs             =>
+                          Make_Constant_Expr
+                         (I_Type         => Int32_T,
+                          Source_Location => Get_Source_Location (N),
+                          Range_Check     => False,
+                          Value           => "1"),
+                       Lhs             =>
+                          Make_Op_Sub
+                         (Rhs             =>
+                                 Do_Array_First_Last_Length
+                            (N    => N,
+                             Attr => Attribute_First),
+                          Lhs             =>
+                             Do_Array_First_Last_Length
+                            (N    => N,
+                             Attr => Attribute_Last),
+                          Source_Location => Get_Source_Location (N),
+                          Overflow_Check  => False,
+                          I_Type          => Int32_T,
+                          Range_Check     => False),
+                       Source_Location => Get_Source_Location (N),
+                       Overflow_Check  => False,
+                       I_Type          => Int32_T,
+                       Range_Check     => False);
+--                    Do_First_Last_Length (N, Attribute_Length);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
