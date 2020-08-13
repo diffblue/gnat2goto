@@ -110,9 +110,9 @@ package body Gnat2goto_Itypes is
    begin
       case Nkind (Var) is
       when N_Constrained_Array_Definition =>
-         return Do_Constrained_Array_Definition (Var, Ireps.Empty);
+         return Do_Constrained_Array_Definition (Var);
       when N_Unconstrained_Array_Definition =>
-         return Do_Unconstrained_Array_Definition (Var, Ireps.Empty);
+         return Do_Unconstrained_Array_Definition (Var);
       when others =>
          return Report_Unhandled_Node_Irep
            (E, "Do_Itype_Array_Type",

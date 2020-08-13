@@ -18,23 +18,29 @@ package body Arrays is
 
    procedure Declare_First_Last (Prefix         : String;
                                  Dimension      : Positive;
-                                 Bounds         : Dimension_Bounds;
                                  Index          : Node_Id;
-                                 Param_List     : Irep;
-                                 Block          : Irep);
-   --  Each dimension of an array has two read-only variable friends
-   --  added to the symbol table and their values are the lower and upper
-   --  bounds of the dimension given in Bounds.
-   --  The variables have the same scope as the array.
-   --  The variables representing the lower and upper bounds of the dimension
+                                 Param_List     : Irep);
+   --  Each dimension of an unconstrained array parameter
+   --  introduces two extra friend parameters of mode in to a subprogram.
+   --  The values passed in these extra parameters are the lower and upper
+   --  bounds of each dimension of the unconstrained array parameter.
+   --  The parameters representing the lower and upper bounds of the dimension
    --  are of the base type of the index type.
    --  Their names of the variables are <Prefix>___first_<Dimension>,
    --  and <Prefix>___last_<imension>.
-   --  If the Param_List /= Ireps.Empty, the variables are taken to be
-   --  friends of a formal unconstrained parameter and are declared as
-   --  parameters and added to the parameter list, Param_List.
-   --  Otherwise, the friend variables are declared and initialised
-   --  in the given Block
+
+   function Do_Constrained_First_Last_Len (E         : Entity_Id;
+                                           Attribute : Attribute_Id;
+                                           Dimension : Positive) return Irep
+     with Pre => Is_Array_Type (E) and then Is_Constrained (E);
+
+   function Do_Unconstrained_First_Last_Length (The_Array  : Entity_Id;
+                                                Attribute  : Attribute_Id;
+                                                Dimension  : Positive;
+                                                Source_Loc : Irep)
+                                                return Irep
+     with Pre => Is_Array_Type (Etype (The_Array)) and not
+                 Is_Constrained (Etype (The_Array));
 
    function Get_Bounds (Index : Node_Id; Is_Constrained : Boolean)
                         return Dimension_Bounds;
@@ -47,8 +53,7 @@ package body Arrays is
    function Make_Array_Subtype (Declaration    : Node_Id;
                                 Is_Constrained : Boolean;
                                 First_Index    : Node_Id;
-                                Component_Type : Entity_Id;
-                                Block : Irep) return Irep;
+                                Component_Type : Entity_Id) return Irep;
 
    ------------------------
    -- Add_Array_Friends --
@@ -65,12 +70,8 @@ package body Arrays is
          Declare_First_Last
            (Prefix     => Array_Name,
             Dimension  => Dimension,
-            Bounds     => Get_Bounds
-              (Index          => Index_Iter,
-               Is_Constrained => False),
             Index      => Index_Iter,
-            Param_List => Param_List,
-            Block      => Ireps.Empty);
+            Param_List => Param_List);
          Index_Iter := Next_Index (Index_Iter);
       end loop;
    end Add_Array_Friends;
@@ -140,13 +141,10 @@ package body Arrays is
 
    procedure Declare_First_Last (Prefix         : String;
                                  Dimension      : Positive;
-                                 Bounds         : Dimension_Bounds;
                                  Index          : Node_Id;
-                                 Param_List     : Irep;
-                                 Block          : Irep)
+                                 Param_List     : Irep)
    is
       Source_Loc      : constant Irep := Get_Source_Location (Index);
-      Vars_Are_Params : constant Boolean := Param_List /= Ireps.Empty;
       Number_Str_Raw  : constant String :=
         Integer'Image (Dimension);
       Number_Str      : constant String :=
@@ -166,95 +164,40 @@ package body Arrays is
 
       Type_Irep : constant Irep :=
         Do_Type_Reference (Index_Type);
+
+      --  Formal parameters.
+      First_Irep : constant Irep := Make_Code_Parameter
+        (Source_Location => Source_Loc,
+         I_Type => Type_Irep,
+         Identifier => First_Name,
+         Base_Name => First_Name,
+         This => False,
+         Default_Value => Ireps.Empty);
+
+      Last_Irep : constant Irep := Make_Code_Parameter
+        (Source_Location => Source_Loc,
+         I_Type => Type_Irep,
+         Identifier => Last_Name,
+         Base_Name => Last_Name,
+         This => False,
+         Default_Value => Ireps.Empty);
    begin
-      if not Vars_Are_Params then
-         --  Ordinary variables.  Add them to the symbol table
-         --  and to the given Block.
-         declare
-            First_Irep  : constant Irep := Make_Symbol_Expr
-                   (Source_Location => Source_Loc,
-                    I_Type          => Type_Irep,
-                    Range_Check     => False,
-                    Identifier      => First_Name);
-            Last_Irep  : constant Irep := Make_Symbol_Expr
-                   (Source_Location => Source_Loc,
-                    I_Type          => Type_Irep,
-                    Range_Check     => False,
-                    Identifier      => Last_Name);
+      --  Add the parameters to the symbol table.
+      New_Parameter_Symbol_Entry
+        (Name_Id        => First_Name_Id,
+         BaseName       => First_Name,
+         Symbol_Type    => Type_Irep,
+         A_Symbol_Table => Global_Symbol_Table);
 
-            Decl_First  : constant Irep := Make_Code_Decl
-              (Symbol => First_Irep,
-               Source_Location => Source_Loc);
-            Decl_Last   : constant Irep := Make_Code_Decl
-              (Symbol => Last_Irep,
-               Source_Location => Source_Loc);
+      New_Parameter_Symbol_Entry
+        (Name_Id        => Last_Name_Id,
+         BaseName       => Last_Name,
+         Symbol_Type    => Type_Irep,
+         A_Symbol_Table => Global_Symbol_Table);
 
-            Init_First  : constant Irep := Make_Code_Assign
-              (Lhs             => First_Irep,
-               Rhs             => Bounds.Low,
-               Source_Location => Source_Loc);
-            Init_Last   : constant Irep := Make_Code_Assign
-              (Lhs             => Last_Irep,
-               Rhs             => Bounds.High,
-               Source_Location => Source_Loc);
-         begin
-            New_Object_Symbol_Entry
-              (Object_Name       => First_Name_Id,
-               Object_Type       => Type_Irep,
-               Object_Init_Value => Bounds.Low,
-               A_Symbol_Table    => Global_Symbol_Table);
-
-            New_Object_Symbol_Entry
-              (Object_Name       => Last_Name_Id,
-               Object_Type       => Type_Irep,
-               Object_Init_Value => Bounds.High,
-               A_Symbol_Table    => Global_Symbol_Table);
-
-            if Block /= Ireps.Empty then
-               Append_Op (Block, Decl_First);
-               Append_Op (Block, Init_First);
-               Append_Op (Block, Decl_Last);
-               Append_Op (Block, Init_Last);
-            end if;
-         end;
-
-      else
-         --  Formal parameters.
-         declare
-            First_Irep : constant Irep := Make_Code_Parameter
-              (Source_Location => Source_Loc,
-               I_Type => Type_Irep,
-               Identifier => First_Name,
-               Base_Name => First_Name,
-               This => False,
-               Default_Value => Ireps.Empty);
-
-            Last_Irep : constant Irep := Make_Code_Parameter
-              (Source_Location => Source_Loc,
-               I_Type => Type_Irep,
-               Identifier => Last_Name,
-               Base_Name => Last_Name,
-               This => False,
-               Default_Value => Ireps.Empty);
-         begin
-            --  Add the parameters to the symbol table.
-            New_Parameter_Symbol_Entry
-              (Name_Id        => First_Name_Id,
-               BaseName       => First_Name,
-               Symbol_Type    => Type_Irep,
-               A_Symbol_Table => Global_Symbol_Table);
-
-            New_Parameter_Symbol_Entry
-              (Name_Id        => Last_Name_Id,
-               BaseName       => Last_Name,
-               Symbol_Type    => Type_Irep,
-               A_Symbol_Table => Global_Symbol_Table);
-
-            --  Append the parameters to the parameter list.
-            Append_Parameter (Param_List, First_Irep);
-            Append_Parameter (Param_List, Last_Irep);
-         end;
-      end if;
+      --  Append the parameters to the parameter list.
+      Append_Parameter (Param_List, First_Irep);
+      Append_Parameter (Param_List, Last_Irep);
    end Declare_First_Last;
 
    --------------------------------
@@ -708,7 +651,6 @@ package body Arrays is
 
    procedure Do_Array_Object (Object_Node     : Node_Id;
                               Object_Ada_Type : Entity_Id;
-                              Block           : Irep;
                               Subtype_Irep    : out Irep)
    is
    begin
@@ -717,8 +659,7 @@ package body Arrays is
           (Declaration    => Object_Node,
            Is_Constrained => True,  -- Object declarations are constrained.
            First_Index    => First_Index (Object_Ada_Type),
-           Component_Type => Get_Non_Array_Component_Type (Object_Ada_Type),
-           Block          => Block);
+           Component_Type => Get_Non_Array_Component_Type (Object_Ada_Type));
    end Do_Array_Object;
 
    ----------------------
@@ -728,22 +669,19 @@ package body Arrays is
    function Do_Array_Subtype (Subtype_Node   : Node_Id;
                               Parent_Type    : Entity_Id;
                               Is_Constrained : Boolean;
-                              First_Index    : Node_Id;
-                              Block          : Irep) return Irep
+                              First_Index    : Node_Id) return Irep
    is
      (Make_Array_Subtype
         (Declaration    => Subtype_Node,
          Is_Constrained => Is_Constrained,
          First_Index    => First_Index,
-         Component_Type => Component_Type (Parent_Type),
-         Block          => Block));
+         Component_Type => Component_Type (Parent_Type)));
 
    -------------------------------------
    -- Do_Constrained_Array_Definition --
    -------------------------------------
 
-   function Do_Constrained_Array_Definition (N    : Node_Id;
-                                            Block : Irep) return Irep is
+   function Do_Constrained_Array_Definition (N    : Node_Id) return Irep is
       --  The array type declaration node is the  parent of the
       --  array_definition node.
      (Make_Array_Subtype
@@ -751,15 +689,13 @@ package body Arrays is
          Is_Constrained => True,
          First_Index    => First (Discrete_Subtype_Definitions (N)),
          Component_Type =>
-           (Component_Type (Defining_Identifier (Parent (N)))),
-         Block          => Block));
+           (Component_Type (Defining_Identifier (Parent (N))))));
 
    ---------------------------------------
    -- Do_Unconstrained_Array_Definition --
    ---------------------------------------
 
-   function Do_Unconstrained_Array_Definition (N     : Node_Id;
-                                               Block : Irep) return Irep is
+   function Do_Unconstrained_Array_Definition (N     : Node_Id) return Irep is
       --  The array type declaration node is the  parent of the
       --  array_definition node.
      (Make_Array_Subtype
@@ -767,8 +703,7 @@ package body Arrays is
          Is_Constrained => False,
          First_Index    => First (Subtype_Marks (N)),
          Component_Type =>
-           (Component_Type (Defining_Identifier (Parent (N)))),
-         Block          => Block));
+           (Component_Type (Defining_Identifier (Parent (N))))));
 
    -------------------------
    -- Do_Array_Assignment --
@@ -816,6 +751,7 @@ package body Arrays is
       Elem_Type_Ent : constant Entity_Id :=
         Get_Array_Component_Type (LHS_Node);
       Element_Type : constant Irep := Do_Type_Reference (Elem_Type_Ent);
+      --  Unique name giben by Build_Function.
       Function_Name : constant String := "concat_assign";
 
       Destination : constant Irep :=
@@ -1017,7 +953,9 @@ package body Arrays is
    function Do_RHS_Array_Assign (N : Node_Id) return Irep_Array
    is
    begin
+      Put_Line ("Do_RHS_Array_Assign Start");
       if not (Nkind (N) = N_Op_Concat) then
+         Put_Line ("Do_RHS_Array_Assign End");
          return (1 => Do_Expression (N));
       end if;
       if Nkind (Right_Opnd (N)) = N_Op_Concat then
@@ -1042,26 +980,22 @@ package body Arrays is
    function Do_Array_First_Last_Length (N : Node_Id; Attr : Attribute_Id)
                                         return Irep
    is
-      Source_Loc : constant Irep := Get_Source_Location (N);
-      The_Prefix : constant Node_Id := Prefix (N);
-      The_Entity : constant Entity_Id := Entity (The_Prefix);
-      Attr_Expr  : constant Node_Id := First (Expressions (N));
-      Dimension  : constant Integer :=
+      Source_Loc  : constant Irep := Get_Source_Location (N);
+      The_Prefix  : constant Node_Id := Prefix (N);
+      The_Entity  : constant Entity_Id := Entity (The_Prefix);
+      Arr_Subtype : constant Entity_Id := Etype (The_Entity);
+      Attr_Expr   : constant Node_Id := First (Expressions (N));
+      Dimension   : constant Integer :=
         (if Present (Attr_Expr) then
             --  Ada rules require the dimension expression to be static.
             Integer (UI_To_Int (Intval (Attr_Expr)))
          else
             --  No dimension expression defaults to dimension 1
             1);
-      Raw_String  : constant String := Integer'Image (Dimension);
-      Dim_String  : constant String := Raw_String (2 .. Raw_String'Last);
-      Array_Name  : constant String := Unique_Name (The_Entity);
-      Prefix      : constant String := Array_Name & "___";
    begin
       Put_Line ("**** Do_Array_First_Last_Length");
       Put_Line (Attribute_Id'Image (Attr));
       Print_Node_Briefly (N);
-
       Print_Node_Briefly (The_Prefix);
       Print_Node_Briefly (Attr_Expr);
 --        Print_Node_Briefly (Etype (Prefix (N)));
@@ -1073,21 +1007,79 @@ package body Arrays is
       else
          Put_Line ("No Dimension");
       end if;
+      Print_Node_Subtree (The_Entity);
+      Print_Node_Briefly (Etype (The_Prefix));
+      Print_Node_Briefly (Etype (The_Entity));
+      if Is_Constrained (Arr_Subtype) then
+         return Do_Constrained_First_Last_Len (Arr_Subtype, Attr, Dimension);
+      else
+         return Do_Unconstrained_First_Last_Length
+           (The_Entity, Attr, Dimension, Source_Loc);
+      end if;
+   end Do_Array_First_Last_Length;
+
+   function Do_Constrained_First_Last_Len (E : Entity_Id;
+                                           Attribute : Attribute_Id;
+                                           Dimension : Positive) return Irep is
+      Dim_Index : Node_Id := First_Index (E);
+   begin
+      Put_Line ("A constrained_Array");
+      --  Get the right index for the dimension
+      for I in 2 .. Dimension loop
+         Dim_Index := Next_Index (Dim_Index);
+      end loop;
+
+      Put_Line ("The Index is");
+      Print_Node_Briefly (Dim_Index);
+      --  Now get the lower and upper bounds of the dimension
+      declare
+         First_Expr : constant Irep :=
+           Do_Expression
+             (Original_Node
+                (Low_Bound (Dim_Index)));
+         Last_Expr : constant Irep :=
+           Do_Expression
+             (Original_Node
+                (High_Bound (Dim_Index)));
+      begin
+         return
+           (case Attribute is
+               when Attribute_First => First_Expr,
+               when Attribute_Last  => Last_Expr,
+               when others =>
+                  --  This must be Attribute_Length
+                  Calculate_Array_Length ((First_Expr, Last_Expr)));
+      end;
+   end Do_Constrained_First_Last_Len;
+
+   function Do_Unconstrained_First_Last_Length (The_Array  : Entity_Id;
+                                                Attribute  : Attribute_Id;
+                                                Dimension  : Positive;
+                                                Source_Loc : Irep)
+                                                return Irep
+   is
+      Raw_String  : constant String := Integer'Image (Dimension);
+      Dim_String  : constant String := Raw_String (2 .. Raw_String'Last);
+      Array_Name  : constant String := Unique_Name (The_Array);
+      Prefix      : constant String := Array_Name & "___";
+   begin
+      Put_Line ("An unconstrained array parameter");
       Put_Line ("The dimension string is:" & Dim_String);
       Put_Line ("The array name:" & Array_Name);
 
-      if Attr in Attribute_First | Attribute_Last then
+      if Attribute in Attribute_First | Attribute_Last then
          declare
             Friend_Name : constant String :=
               Prefix &
-              (if Attr = Attribute_First then
-                  "first_"
-               else
-                  "last_") & Dim_String;
+            (if Attribute = Attribute_First then
+                "first_"
+             else
+                "last_") & Dim_String;
             Friend_Id : constant Symbol_Id := Intern (Friend_Name);
             pragma Assert (Global_Symbol_Table.Contains (Friend_Id));
 
-            Friend_Symbol : constant Symbol := Global_Symbol_Table (Friend_Id);
+            Friend_Symbol : constant Symbol :=
+              Global_Symbol_Table (Friend_Id);
             Friend_Type   : constant Irep := Friend_Symbol.SymType;
             --
          begin
@@ -1128,7 +1120,7 @@ package body Arrays is
             return Calculate_Array_Length ((First_Expr, Last_Expr));
          end;
       end if;
-   end Do_Array_First_Last_Length;
+   end Do_Unconstrained_First_Last_Length;
 
    function Do_Array_Length (N : Node_Id) return Irep
    is
@@ -1219,15 +1211,89 @@ package body Arrays is
    function Do_Slice (N : Node_Id) return Irep is
       --  The prefix to the slice may be an access to an array object
       --  which must be implicitly dereferenced.
+      Source_Loc : constant Irep := Get_Source_Location (N);
+      function Print_Mess (Mess : String) return Boolean;
+      function Print_Mess (Mess : String) return Boolean is
+      begin
+         Put_Line (Mess);
+         return True;
+      end Print_Mess;
+
+      function Print_Node (N : Node_Id; Subtree : Boolean := False)
+                           return Boolean;
+      function Print_Node (N : Node_Id; Subtree : Boolean := False)
+                           return Boolean is
+      begin
+         if Subtree then
+            Print_Node_Subtree (N);
+         else
+            Print_Node_Briefly (N);
+         end if;
+         return True;
+      end Print_Node;
+
+      function Print_Irep_Func (I : Irep) return Boolean;
+      function Print_Irep_Func (I : Irep) return Boolean is
+      begin
+         Print_Irep (I);
+         return True;
+      end Print_Irep_Func;
+
+      pragma Assert (Print_Mess ("Do_Slice Start"));
+      pragma Assert (Print_Node (N, True));
+      pragma Assert (Print_Node (Etype (N)));
+      pragma Assert (Print_Node (First_Index (Etype (N))));
+      pragma Assert (Print_Node (Etype (First_Index (Etype (N)))));
+      pragma Assert (Print_Node
+                     (Low_Bound
+                          (Scalar_Range (Etype (First_Index (Etype (N)))))));
+      pragma Assert (Print_Node
+                     (High_Bound
+                        (Scalar_Range (Etype (First_Index (Etype (N)))))));
+
+      Low_Bound_Expr : constant Irep :=
+        Do_Expression (Low_Bound
+                       (Scalar_Range (Etype (First_Index (Etype (N))))));
+      High_Bound_Expr : constant Irep :=
+        Do_Expression (High_Bound
+                       (Scalar_Range (Etype (First_Index (Etype (N))))));
+
+      pragma Assert (Print_Irep_Func (Low_Bound_Expr));
+      pragma Assert (Print_Irep_Func (High_Bound_Expr));
+
+      pragma Assert (Print_Node (Etype (Prefix (N))));
+      pragma Assert (Print_Node (First_Index (Etype (Prefix (N)))));
+      pragma Assert (Print_Node
+                     (Low_Bound (First_Index (Etype (Prefix (N))))));
+      pragma Assert (Print_Node
+                     (High_Bound (First_Index (Etype (Prefix (N))))));
+
+      Orig_Low_Bound_Expr : constant Irep :=
+        Do_Expression (Low_Bound (First_Index (Etype (Prefix (N)))));
+      Orig_High_Bound_Expr : constant Irep :=
+        Do_Expression (High_Bound (First_Index (Etype (Prefix (N)))));
+
+      pragma Assert (Print_Irep_Func (Orig_Low_Bound_Expr));
+      pragma Assert (Print_Irep_Func (Orig_High_Bound_Expr));
+
+      Slice_Offset : constant Irep :=
+           Make_Op_Sub (Rhs             => Orig_Low_Bound_Expr,
+                        Lhs             => Low_Bound_Expr,
+                        Source_Location => Source_Loc,
+                        Overflow_Check  => False,
+                        I_Type          => Int32_T);
+
+      pragma Assert (Print_Irep_Func (Slice_Offset));
+
       The_Prefix        : constant Node_Id := Prefix (N);
       Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
       Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
       Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
       Result_Type        : constant Irep :=
         (if Is_Implicit_Deref then
-            Do_Type_Reference (Designated_Type (Prefix_Etype))
+            Do_Type_Reference (Component_Type (Designated_Type (Prefix_Etype)))
          else
-            Do_Type_Reference (Prefix_Etype));
+            Do_Type_Reference (Component_Type (Prefix_Etype)));
       Base_Irep         : constant Irep :=
         (if Is_Implicit_Deref then
             Make_Dereference_Expr
@@ -1237,8 +1303,22 @@ package body Arrays is
          else
             Prefix_Irep);
 
+      Slice_Index : constant Irep :=
+        Make_Index_Expr
+             (I_Array         => Base_Irep,
+              Index           => Slice_Offset,
+              Source_Location => Source_Loc,
+              I_Type          => Result_Type,
+              Range_Check     => False);
+
+      pragma Assert (Print_Irep_Func (Slice_Index));
+
+      Slice_Addr : constant Irep :=
+        Make_Address_Of (Slice_Index);
+
+      pragma Assert (Print_Irep_Func (Slice_Addr));
+
       --  Where required the prefix has been implicitly dereferenced.
-      Source_Loc : constant Irep := Get_Source_Location (N);
       Slice_Params : constant Irep := Make_Parameter_List;
       Slice_Args : constant Irep := Make_Argument_List;
       Function_Name : constant String := "slice_expr";
@@ -1253,6 +1333,7 @@ package body Arrays is
       function Build_Slice_Func_Body return Irep;
 
       function Build_Slice_Func_Body return Irep is
+         pragma Assert (Print_Mess ("Build_Slice_Func_Body Start"));
          Base : constant Irep := Param_Symbol (Array_Param);
          Idx_Type : constant Entity_Id :=
            Etype (First_Index (Etype (N)));
@@ -1282,9 +1363,11 @@ package body Arrays is
                         Source_Location => Source_Loc,
                         Overflow_Check  => False,
                         I_Type          => CProver_Size_T);
+         pragma Assert (Print_Mess ("Build_Slice_Func_Body  .."));
          New_Data : constant Irep :=
            Offset_Array_Data (Base         => Base,
                               Offset       => Offset);
+         pragma Assert (Print_Mess ("Build_Slice_Func_Body_Done"));
          Result : constant Irep :=
            Make_Struct_Expr (Source_Location => Source_Loc,
                              I_Type          => Result_Type);
@@ -1319,6 +1402,7 @@ package body Arrays is
                         A_Symbol_Table => Global_Symbol_Table);
       Slice_Id : constant Irep := Base_Irep;
    begin
+      Put_Line ("Do_Slice Body Start");
       Append_Argument (Slice_Args,
                        Slice_Id);
       return Make_Side_Effect_Expr_Function_Call (
@@ -1609,9 +1693,7 @@ package body Arrays is
    function Make_Array_Subtype (Declaration    : Node_Id;
                                 Is_Constrained : Boolean;
                                 First_Index    : Node_Id;
-                                Component_Type : Entity_Id;
-                                Block : Irep) return Irep
-   is
+                                Component_Type : Entity_Id) return Irep is
    begin
       Put_Line ("Make_Array_Subtype");
       Print_Node_Briefly (Declaration);
@@ -1631,13 +1713,6 @@ package body Arrays is
             else
                Sub_Pre);
 
-         Array_Subtype_Name : constant String :=
-           Unique_Name
-             (if Nkind (Declaration) = N_Defining_Identifier then
-              Declaration
-              else
-                 Defining_Identifier (Declaration));
-
          --  The front-end ensures that the array has at least one dimension.
          Dimension_Number : Positive := 1;
          Dimension_Iter   : Node_Id := First_Index;
@@ -1649,13 +1724,13 @@ package body Arrays is
             Bounds : constant Dimension_Bounds :=
               Get_Bounds (Dimension_Iter, Is_Constrained);
          begin
-            Declare_First_Last
-              (Prefix     => Array_Subtype_Name,
-               Dimension  => Dimension_Number,
-               Bounds     => Bounds,
-               Index      => Dimension_Iter,
-               Param_List => Ireps.Empty,
-               Block       => Block);
+--              Declare_First_Last
+--                (Prefix     => Array_Subtype_Name,
+--                 Dimension  => Dimension_Number,
+--                 Bounds     => Bounds,
+--                 Index      => Dimension_Iter,
+--                 Param_List => Ireps.Empty,
+--                 Block       => Block);
             Array_Size := Calculate_Array_Length (Bounds);
          end;
 
@@ -1670,13 +1745,13 @@ package body Arrays is
                Bounds : constant Dimension_Bounds :=
                  Get_Bounds (Dimension_Iter, Is_Constrained);
             begin
-               Declare_First_Last
-                 (Prefix     => Array_Subtype_Name,
-                  Dimension  => Dimension_Number,
-                  Bounds     => Bounds,
-                  Index      => Dimension_Iter,
-                  Param_List => Ireps.Empty,
-                  Block      => Block);
+--                 Declare_First_Last
+--                   (Prefix     => Array_Subtype_Name,
+--                    Dimension  => Dimension_Number,
+--                    Bounds     => Bounds,
+--                    Index      => Dimension_Iter,
+--                    Param_List => Ireps.Empty,
+--                    Block      => Block);
 
                Array_Size := Make_Op_Mul
                  (Rhs             => Calculate_Array_Length (Bounds),
@@ -1753,7 +1828,7 @@ package body Arrays is
 --     end Do_Unconstrained_Array_Definition;
 
    procedure Pass_Array_Friends (Actual_Array : Entity_Id;  Args : Irep) is
-      Array_Name   : constant String := Unique_Name (Actual_Array);
+--        Array_Name   : constant String := Unique_Name (Actual_Array);
       Array_Type   : constant Entity_Id := Etype (Actual_Array);
 
       Index_Iter : Node_Id := First_Index (Array_Type);
@@ -1761,32 +1836,14 @@ package body Arrays is
       for Dimension in 1 .. Integer (Number_Dimensions (Array_Type)) loop
          pragma Assert (Present (Index_Iter));
          declare
-            Raw_String  : constant String := Integer'Image (Dimension);
-            --  Remove the leading space.
-            Dim_String  : constant String :=
-              Raw_String (2 .. Raw_String'Length);
-            First_Name  : constant String :=
-              Array_Name & "___first_" & Dim_String;
-            Last_Name   : constant String :=
-              Array_Name & "___last_" & Dim_String;
-
-            Index_Type  : constant Irep :=
-              Do_Type_Reference (Etype (Index_Iter));
-
-            First_Expr  : constant Irep :=
-              Make_Symbol_Expr
-                (Source_Location => Internal_Source_Location,
-                 I_Type          => Index_Type,
-                 Range_Check     => False,
-                 Identifier      => First_Name);
-
+            First_Expr : constant Irep :=
+              Do_Expression
+                (Original_Node
+                   (Low_Bound (Index_Iter)));
             Last_Expr  : constant Irep :=
-              Make_Symbol_Expr
-                (Source_Location => Internal_Source_Location,
-                 I_Type          => Index_Type,
-                 Range_Check     => False,
-                 Identifier      => Last_Name);
-
+              Do_Expression
+                (Original_Node
+                   (High_Bound (Index_Iter)));
          begin
             Append_Argument (Args, First_Expr);
             Append_Argument (Args, Last_Expr);

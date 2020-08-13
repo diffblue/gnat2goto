@@ -86,7 +86,7 @@ package Tree_Walk is
      with Pre => Is_Type (E) and then
      Kind (New_Type_In) in Class_Type;
 
-   function Do_Subtype_Indication (N : Node_Id; Block : Irep) return Irep
+   function Do_Subtype_Indication (N : Node_Id) return Irep
      with Pre  => Nkind (N) in N_Subtype_Indication | N_Identifier
      | N_Expanded_Name,
      Post => Kind (Do_Subtype_Indication'Result) in Class_Type;

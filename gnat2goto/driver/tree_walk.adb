@@ -100,7 +100,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Explicit_Dereference,
         Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
 
-   function Do_Derived_Type_Definition (N : Node_Id; Block : Irep) return Irep
+   function Do_Derived_Type_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Derived_Type_Definition,
         Post => Kind (Do_Derived_Type_Definition'Result) in Class_Type;
 
@@ -108,7 +108,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_Enumeration_Type_Definition,
         Post => Kind (Do_Enumeration_Definition'Result) = I_C_Enum_Type;
 
-   procedure Do_Full_Type_Declaration (N : Node_Id; Block : Irep)
+   procedure Do_Full_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
 
    function Do_Function_Call (N : Node_Id) return Irep
@@ -123,7 +123,7 @@ package body Tree_Walk is
    with Pre  => Nkind (N) = N_If_Statement,
         Post => Kind (Do_If_Statement'Result) = I_Code_Ifthenelse;
 
-   procedure Do_Incomplete_Type_Declaration (N : Node_Id; Block : Irep)
+   procedure Do_Incomplete_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Incomplete_Type_Declaration;
 
    function Do_Exit_Statement (N : Node_Id) return Irep
@@ -131,7 +131,7 @@ package body Tree_Walk is
         Post => Kind (Do_Exit_Statement'Result) in Class_Code;
 
    function Do_Index_Or_Discriminant_Constraint
-     (N : Node_Id; Underlying : Irep; Block : Irep) return Irep
+     (N : Node_Id; Underlying : Irep) return Irep
    with Pre  => Nkind (N) = N_Index_Or_Discriminant_Constraint;
 
    function Do_Loop_Statement (N : Node_Id) return Irep
@@ -233,7 +233,7 @@ package body Tree_Walk is
    procedure Do_Exception_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Exception_Declaration;
 
-   procedure Do_Private_Type_Declaration (N : Node_Id; Block : Irep)
+   procedure Do_Private_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Private_Type_Declaration;
 
    function Do_Procedure_Call_Statement (N : Node_Id) return Irep
@@ -286,15 +286,14 @@ package body Tree_Walk is
                                N_Access_Function_Definition,
         Post => Kind (Do_Subprogram_Specification'Result) = I_Code_Type;
 
-   procedure Do_Subtype_Declaration (N : Node_Id; Block : Irep)
+   procedure Do_Subtype_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Subtype_Declaration;
 
    function Do_Type_Conversion (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Type_Conversion,
         Post => Kind (Do_Type_Conversion'Result) in Class_Expr;
 
-   function Do_Type_Definition (N : Node_Id; Discs : List_Id;
-                               Block : Irep) return Irep;
+   function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep;
 
    procedure Do_Withed_Unit_Spec (N : Node_Id);
    --  Enters the specification of the withed unit, N, into the symbol table
@@ -375,8 +374,7 @@ package body Tree_Walk is
    with Pre => Nkind (N) in N_Subprogram_Specification;
    --  Insert the subprogram specification into the symbol table
 
-   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id;
-                                       Block : Irep)
+   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
    --  Common procedure for registering non-anonymous type declarations.
    --  Called by Do_Incomplete_Type_Declaration and Do_Private_Type_Declaration
@@ -1297,10 +1295,9 @@ package body Tree_Walk is
    -- Do_Derived_Type_Definition --
    --------------------------------
 
-   function Do_Derived_Type_Definition (N : Node_Id;
-                                        Block : Irep) return Irep is
+   function Do_Derived_Type_Definition (N : Node_Id) return Irep is
       Subtype_Irep : constant Irep :=
-        Do_Subtype_Indication (Subtype_Indication (N), Block);
+        Do_Subtype_Indication (Subtype_Indication (N));
    begin
       if Present (Record_Extension_Part (N)) then
          return Report_Unhandled_Node_Type (N, "Do_Derived_Type_Definition",
@@ -1505,32 +1502,7 @@ package body Tree_Walk is
                   --  Use the ASVAT.Address_Model to create the address.
                   return ASVAT.Address_Model.Do_ASVAT_Address_Of (N);
                when Attribute_Length => return
-                    Make_Op_Add
-                      (Rhs             =>
-                          Make_Constant_Expr
-                         (I_Type         => Int32_T,
-                          Source_Location => Get_Source_Location (N),
-                          Range_Check     => False,
-                          Value           => "1"),
-                       Lhs             =>
-                          Make_Op_Sub
-                         (Rhs             =>
-                                 Do_Array_First_Last_Length
-                            (N    => N,
-                             Attr => Attribute_First),
-                          Lhs             =>
-                             Do_Array_First_Last_Length
-                            (N    => N,
-                             Attr => Attribute_Last),
-                          Source_Location => Get_Source_Location (N),
-                          Overflow_Check  => False,
-                          I_Type          => Int32_T,
-                          Range_Check     => False),
-                       Source_Location => Get_Source_Location (N),
-                       Overflow_Check  => False,
-                       I_Type          => Int32_T,
-                       Range_Check     => False);
---                    Do_First_Last_Length (N, Attribute_Length);
+                  Do_First_Last_Length (N, Attribute_Length);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
@@ -1714,10 +1686,10 @@ package body Tree_Walk is
    -- Do_Full_Type_Declaration --
    ------------------------------
 
-   procedure Do_Full_Type_Declaration (N : Node_Id; Block : Irep) is
+   procedure Do_Full_Type_Declaration (N : Node_Id) is
       New_Type : constant Irep :=
         Do_Type_Definition (Type_Definition (N),
-                            Discriminant_Specifications (N), Block);
+                            Discriminant_Specifications (N));
       E        : constant Entity_Id := Defining_Identifier (N);
    begin
       if not (Kind (New_Type) in Class_Type)
@@ -2051,7 +2023,7 @@ package body Tree_Walk is
    -- Do_Incomplete_Type_Declaration --
    ------------------------------------
 
-   procedure Do_Incomplete_Type_Declaration (N : Node_Id; Block : Irep) is
+   procedure Do_Incomplete_Type_Declaration (N : Node_Id) is
       Entity : constant Entity_Id := Defining_Identifier (N);
       --  Only complete types should be inserted in the symbol table.
       --  If an incomplete type declaration is inserted it will prevent
@@ -2074,10 +2046,10 @@ package body Tree_Walk is
          --  incomplete_type_declaration is Full_View_Entity
          --  register the full view in the symbol_table.
          Register_Type_Declaration
-           (Declaration_Node (Full_View_Entity), Full_View_Entity, Block);
+           (Declaration_Node (Full_View_Entity), Full_View_Entity);
       else
          Do_Private_Type_Declaration
-           (Declaration_Node (Full_View_Entity), Block);
+           (Declaration_Node (Full_View_Entity));
       end if;
    end Do_Incomplete_Type_Declaration;
 
@@ -2093,7 +2065,7 @@ package body Tree_Walk is
 --     is (Underlying);
 
    function Do_Index_Or_Discriminant_Constraint
-     (N : Node_Id; Underlying : Irep; Block : Irep) return Irep
+     (N : Node_Id; Underlying : Irep) return Irep
    is
       Parent_Node  : constant Node_Id := Parent (N);
       Parent_Type  : constant Node_Id := Etype (Subtype_Mark (Parent_Node));
@@ -2116,8 +2088,7 @@ package body Tree_Walk is
            (Subtype_Node   => Subtype_Node,
             Parent_Type    => Parent_Type,
             Is_Constrained => True,
-            First_Index    => First (Constraints (N)),
-            Block => Block);
+            First_Index    => First (Constraints (N)));
       else
          --  It is a record subtype with a discriminant constraint.
          --  At the moment nothing is done here but this may change
@@ -3521,7 +3492,6 @@ package body Tree_Walk is
                Do_Array_Object
                  (Object_Node     => Defined,
                   Object_Ada_Type => Defined_Type,
-                  Block           => Block,
                   Subtype_Irep    => Obj_Type);
             else
                --  Otherwise, just use the type of the object.
@@ -4309,7 +4279,7 @@ package body Tree_Walk is
    -- Do_Private_Type_Declaration --
    ---------------------------------
 
-   procedure Do_Private_Type_Declaration (N : Node_Id; Block : Irep) is
+   procedure Do_Private_Type_Declaration (N : Node_Id) is
       Entity : constant Entity_Id := Defining_Identifier (N);
       --  A partial view of a type declaration must not be inserted into
       --  the symbol table.
@@ -4359,7 +4329,7 @@ package body Tree_Walk is
             --  private_type_declaration is Full_View_Entity
             --  register the full view in the symbol table.
             Register_Type_Declaration
-              (Declaration_Node (Full_View_Entity), Full_View_Entity, Block);
+              (Declaration_Node (Full_View_Entity), Full_View_Entity);
          else
             Report_Unhandled_Node_Empty
               (Declaration_Node (Full_View_Entity),
@@ -5370,9 +5340,9 @@ package body Tree_Walk is
    -- Do_Subtype_Declaration --
    ----------------------------
 
-   procedure Do_Subtype_Declaration (N : Node_Id; Block : Irep) is
+   procedure Do_Subtype_Declaration (N : Node_Id) is
       New_Type : constant Irep := Do_Subtype_Indication
-        (Subtype_Indication (N), Block);
+        (Subtype_Indication (N));
    begin
       Put_Line ("Subtype_Declaration");
       Print_Irep (New_Type);
@@ -5385,7 +5355,7 @@ package body Tree_Walk is
    -- Do_Subtype_Indication --
    ---------------------------
 
-   function Do_Subtype_Indication (N : Node_Id; Block : Irep) return Irep
+   function Do_Subtype_Indication (N : Node_Id) return Irep
    is
       Underlying : Irep;
       Constr : Node_Id;
@@ -5407,8 +5377,7 @@ package body Tree_Walk is
                       (Subtype_Node   => Parent (Parent (N)),
                        Parent_Type    => Etype (Parent (N)),
                        Is_Constrained => Is_Constrained (Sub_Type),
-                       First_Index    => First_Index (Sub_Type),
-                       Block          => Block);
+                       First_Index    => First_Index (Sub_Type));
                elsif Present (Constr) then
                   Put_Line ("A constraint is present");
                   Print_Node_Briefly (Constr);
@@ -5418,7 +5387,7 @@ package body Tree_Walk is
                   when N_Index_Or_Discriminant_Constraint =>
                      return
                        Do_Index_Or_Discriminant_Constraint
-                         (Constr, Underlying, Block);
+                         (Constr, Underlying);
                   when others =>
                      return
                        Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
@@ -5442,8 +5411,7 @@ package body Tree_Walk is
                  (Subtype_Node   => Parent (N),
                   Parent_Type    => Etype (N),
                   Is_Constrained => Is_Constrained (Etype (N)),
-                  First_Index    => First_Index (Etype (N)),
-                  Block          => Block);
+                  First_Index    => First_Index (Etype (N)));
             else
                Underlying := Do_Type_Reference (Etype (N));
                return Underlying;
@@ -5510,8 +5478,7 @@ package body Tree_Walk is
    -- Do_Type_Definition --
    ------------------------
 
-   function Do_Type_Definition (N : Node_Id; Discs : List_Id;
-                               Block : Irep) return Irep is
+   function Do_Type_Definition (N : Node_Id; Discs : List_Id) return Irep is
    begin
       if Discs /= List_Id (Types.Empty)
         and then Nkind (N) /= N_Record_Definition
@@ -5525,13 +5492,13 @@ package body Tree_Walk is
          when N_Signed_Integer_Type_Definition =>
             return Do_Signed_Integer_Definition (N);
          when N_Derived_Type_Definition =>
-            return Do_Derived_Type_Definition (N, Block);
+            return Do_Derived_Type_Definition (N);
          when N_Enumeration_Type_Definition =>
             return Do_Enumeration_Definition (N);
          when N_Constrained_Array_Definition =>
-            return Do_Constrained_Array_Definition (N, Block);
+            return Do_Constrained_Array_Definition (N);
          when N_Unconstrained_Array_Definition =>
-            return Do_Unconstrained_Array_Definition (N, Block);
+            return Do_Unconstrained_Array_Definition (N);
          when N_Modular_Type_Definition =>
             return Do_Modular_Type_Definition (N);
          when N_Floating_Point_Definition =>
@@ -5912,16 +5879,16 @@ package body Tree_Walk is
          --  basic_declarations  --
 
          when N_Full_Type_Declaration =>
-            Do_Full_Type_Declaration (N, Block);
+            Do_Full_Type_Declaration (N);
 
          when N_Incomplete_Type_Declaration =>
-            Do_Incomplete_Type_Declaration (N, Block);
+            Do_Incomplete_Type_Declaration (N);
 
          when N_Private_Type_Declaration =>
-            Do_Private_Type_Declaration (N, Block);
+            Do_Private_Type_Declaration (N);
 
          when N_Subtype_Declaration =>
-            Do_Subtype_Declaration (N, Block);
+            Do_Subtype_Declaration (N);
 
          when N_Object_Declaration =>
             Do_Object_Declaration (N, Block);
@@ -6703,11 +6670,10 @@ package body Tree_Walk is
    -- Register_Type_Declaration --
    -------------------------------
 
-   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id;
-                                       Block : Irep) is
+   procedure Register_Type_Declaration (N : Node_Id; E : Entity_Id) is
       New_Type : constant Irep :=
         Do_Type_Definition (Type_Definition (N),
-                            Discriminant_Specifications (N), Block);
+                            Discriminant_Specifications (N));
    begin
       pragma Assert (Kind (New_Type) in Class_Type);
       Do_Type_Declaration (New_Type, E);
