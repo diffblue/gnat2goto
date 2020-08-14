@@ -1198,20 +1198,20 @@ package body Arrays is
    -- Do_Slice --
    --------------
 
-   --  The following build an expression representing slice
-   --  orig(start .. end)
-   --  Let ArrT := struct { int first; int last; T* data; }
-   ----------------------------------------------------------------------------
-   --  ArrT slice_expr(ArrT orig) {
-   --    T* new_data = data + (start - orig.first);
-   --    ArrT temp_array = {.first=start, .last=end, .data=new_data};
-   --    return temp_array;
-   --  }
+   --  A slice is represented by an array which overlays part of the array
+   --  from which is taken.
+--     --  The following comments are out of date and to be removed.
+--     --  The following build an expression representing slice
+--     --  orig(start .. end)
+--     --  Let ArrT := struct { int first; int last; T* data; }
+-- ----------------------------------------------------------------------------
+--     --  ArrT slice_expr(ArrT orig) {
+--     --    T* new_data = data + (start - orig.first);
+--     --    ArrT temp_array = {.first=start, .last=end, .data=new_data};
+--     --    return temp_array;
+--     --  }
    ----------------------------------------------------------------------------
    function Do_Slice (N : Node_Id) return Irep is
-      --  The prefix to the slice may be an access to an array object
-      --  which must be implicitly dereferenced.
-      Source_Loc : constant Irep := Get_Source_Location (N);
       function Print_Mess (Mess : String) return Boolean;
       function Print_Mess (Mess : String) return Boolean is
       begin
@@ -1251,165 +1251,197 @@ package body Arrays is
                      (High_Bound
                         (Scalar_Range (Etype (First_Index (Etype (N)))))));
 
-      Low_Bound_Expr : constant Irep :=
-        Do_Expression (Low_Bound
-                       (Scalar_Range (Etype (First_Index (Etype (N))))));
-      High_Bound_Expr : constant Irep :=
-        Do_Expression (High_Bound
-                       (Scalar_Range (Etype (First_Index (Etype (N))))));
+      Source_Loc : constant Irep := Get_Source_Location (N);
 
-      pragma Assert (Print_Irep_Func (Low_Bound_Expr));
-      pragma Assert (Print_Irep_Func (High_Bound_Expr));
+      The_Prefix        : constant Node_Id := Prefix (N);
+      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
+      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
+      --  The prefix to the slice may be an access to an array object
+      --  which must be implicitly dereferenced.
+      --  The base array from which the slice is taken.
+      Base_Array_Type   : constant Node_Id :=
+        (if Is_Implicit_Deref then
+            Designated_Type (Prefix_Etype)
+         else
+            Prefix_Etype);
+      Base_Type_Irep    : constant Irep :=
+        Do_Type_Reference (Base_Array_Type);
+      Base_Comp_Type    : constant Irep :=
+        Do_Type_Reference (Component_Type (Base_Array_Type));
+      Base_Irep         : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (I_Type => Base_Type_Irep,
+            Object => Prefix_Irep,
+            Source_Location => Source_Loc)
+         else
+            Prefix_Irep);
 
-      pragma Assert (Print_Node (Etype (Prefix (N))));
-      pragma Assert (Print_Node (First_Index (Etype (Prefix (N)))));
-      pragma Assert (Print_Node
-                     (Low_Bound (First_Index (Etype (Prefix (N))))));
-      pragma Assert (Print_Node
-                     (High_Bound (First_Index (Etype (Prefix (N))))));
+      pragma Assert (Print_Irep_Func (Base_Irep));
+      --  Any required implicit dereferencing has now been done.
 
-      Orig_Low_Bound_Expr : constant Irep :=
-        Do_Expression (Low_Bound (First_Index (Etype (Prefix (N)))));
-      Orig_High_Bound_Expr : constant Irep :=
-        Do_Expression (High_Bound (First_Index (Etype (Prefix (N)))));
+      --  Obtain the range of the slice from the constrained array subtype
+      --  added the ATree by the font-end.
+      Slice_Range       : constant Node_Id :=
+        Scalar_Range
+          (Etype (First_Index (Etype (N))));
 
-      pragma Assert (Print_Irep_Func (Orig_Low_Bound_Expr));
-      pragma Assert (Print_Irep_Func (Orig_High_Bound_Expr));
+      --  Get the low and high bounds of the slice as Irep expressions.
+      --  They may be variable but the slice is always constrained.
+      Slice_First       : constant Irep :=
+        Do_Expression (Low_Bound (Slice_Range));
+      Slice_Last        : constant Irep :=
+        Do_Expression (High_Bound (Slice_Range));
 
+      pragma Assert (Print_Irep_Func (Slice_First));
+      pragma Assert (Print_Irep_Func (Slice_Last));
+
+      --  Now get the low and high bounds of the base array from which
+      --  the slice is taken.
+      --  The Irep expressions may be variable but the base array is
+      --  always constrained.
+      Base_First        : constant Irep :=
+        Do_Expression (Low_Bound (First_Index (Base_Array_Type)));
+      Base_Last         : constant Irep :=
+        Do_Expression (High_Bound (First_Index (Base_Array_Type)));
+
+      pragma Assert (Print_Irep_Func (Base_First));
+      pragma Assert (Print_Irep_Func (Base_Last));
+
+      --  Calculate the off set from the first element of the base array
+      --  to the first element of the slice.  The resulting index is
+      --  the first element of the slice.
       Slice_Offset : constant Irep :=
-           Make_Op_Sub (Rhs             => Orig_Low_Bound_Expr,
-                        Lhs             => Low_Bound_Expr,
+           Make_Op_Sub (Rhs             => Base_First,
+                        Lhs             => Slice_First,
                         Source_Location => Source_Loc,
                         Overflow_Check  => False,
                         I_Type          => Int32_T);
 
       pragma Assert (Print_Irep_Func (Slice_Offset));
 
-      The_Prefix        : constant Node_Id := Prefix (N);
-      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
-      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
-      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
-      Result_Type        : constant Irep :=
-        (if Is_Implicit_Deref then
-            Do_Type_Reference (Component_Type (Designated_Type (Prefix_Etype)))
-         else
-            Do_Type_Reference (Component_Type (Prefix_Etype)));
-      Base_Irep         : constant Irep :=
-        (if Is_Implicit_Deref then
-            Make_Dereference_Expr
-           (I_Type => Result_Type,
-            Object => Prefix_Irep,
-            Source_Location => Get_Source_Location (N))
-         else
-            Prefix_Irep);
-
+      --  Now index the first element of the slice from the base array.
       Slice_Index : constant Irep :=
         Make_Index_Expr
              (I_Array         => Base_Irep,
               Index           => Slice_Offset,
               Source_Location => Source_Loc,
-              I_Type          => Result_Type,
+              I_Type          => Base_Comp_Type,
               Range_Check     => False);
 
       pragma Assert (Print_Irep_Func (Slice_Index));
 
+      --  Obtain the address of the first element of the slice as
+      --  this is the address of the start of the slice
       Slice_Addr : constant Irep :=
         Make_Address_Of (Slice_Index);
 
       pragma Assert (Print_Irep_Func (Slice_Addr));
 
-      --  Where required the prefix has been implicitly dereferenced.
-      Slice_Params : constant Irep := Make_Parameter_List;
-      Slice_Args : constant Irep := Make_Argument_List;
-      Function_Name : constant String := "slice_expr";
-      Array_Param : constant Irep :=
-        Create_Fun_Parameter (Fun_Name        => Function_Name,
-                              Param_Name      => "orig_array",
-                              Param_Type      => Result_Type,
-                              Param_List      => Slice_Params,
-                              A_Symbol_Table  => Global_Symbol_Table,
-                              Source_Location => Source_Loc);
+      --  Now convert this address to an array representation of the slice.
+      Slice_Array : constant Irep :=
+        Make_Op_Typecast
+          (Op0             => Slice_Addr,
+           Source_Location => Source_Loc,
+           I_Type          => Make_Array_Type
+             (I_Subtype => Base_Comp_Type,
+              Size      => Calculate_Array_Length
+                ((Slice_First, Slice_Last))),
+           Range_Check     => False);
 
-      function Build_Slice_Func_Body return Irep;
+      pragma Assert (Print_Irep_Func (Slice_Array));
 
-      function Build_Slice_Func_Body return Irep is
-         pragma Assert (Print_Mess ("Build_Slice_Func_Body Start"));
-         Base : constant Irep := Param_Symbol (Array_Param);
-         Idx_Type : constant Entity_Id :=
-           Etype (First_Index (Etype (N)));
-         New_First_Expr : constant Irep :=
-           Typecast_If_Necessary (Do_Expression (Low_Bound (Scalar_Range
-                                  (Idx_Type))), CProver_Size_T,
-                                  Global_Symbol_Table);
-         Old_First_Expr : constant Irep :=
-           Make_Member_Expr (Compound         => Base,
-                             Source_Location  => Source_Loc,
-                             Component_Number => 0,
-                             I_Type           => CProver_Size_T,
-                             Component_Name   => "first1");
-
-         New_Last_Expr : constant Irep :=
-           Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
-                                  (Idx_Type))), CProver_Size_T,
-                                  Global_Symbol_Table);
-         Result_Block : constant Irep :=
-           Make_Code_Block (Source_Loc, CProver_Nil_T);
-         Array_Temp : constant Irep :=
-           Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
-
-         Offset : constant Irep :=
-           Make_Op_Sub (Rhs             => Old_First_Expr,
-                        Lhs             => New_First_Expr,
-                        Source_Location => Source_Loc,
-                        Overflow_Check  => False,
-                        I_Type          => CProver_Size_T);
-         pragma Assert (Print_Mess ("Build_Slice_Func_Body  .."));
-         New_Data : constant Irep :=
-           Offset_Array_Data (Base         => Base,
-                              Offset       => Offset);
-         pragma Assert (Print_Mess ("Build_Slice_Func_Body_Done"));
-         Result : constant Irep :=
-           Make_Struct_Expr (Source_Location => Source_Loc,
-                             I_Type          => Result_Type);
-
-         Data_Temp : constant Irep :=
-           Fresh_Var_Symbol_Expr (Get_Type (New_Data), "temp_array_data");
-      begin
-         Append_Struct_Member (Result, New_First_Expr);
-         Append_Struct_Member (Result, New_Last_Expr);
-         Append_Struct_Member (Result, Data_Temp);
-
-         Append_Op (Result_Block,
-                    Make_Code_Assign (Rhs             => New_Data,
-                                      Lhs             => Data_Temp,
-                                      Source_Location => Source_Loc));
-         Append_Op (Result_Block,
-                    Make_Code_Assign (Rhs             => Result,
-                                      Lhs             => Array_Temp,
-                                      Source_Location => Source_Loc));
-
-         Append_Op (Result_Block,
-                    Make_Code_Return (Return_Value    => Array_Temp,
-                                      Source_Location => Source_Loc));
-         return Result_Block;
-      end Build_Slice_Func_Body;
-
-      Func_Symbol : constant Symbol :=
-        Build_Function (Name           => Function_Name,
-                        RType          => Result_Type,
-                        Func_Params    => Slice_Params,
-                        FBody          => Build_Slice_Func_Body,
-                        A_Symbol_Table => Global_Symbol_Table);
-      Slice_Id : constant Irep := Base_Irep;
+--        Slice_Params : constant Irep := Make_Parameter_List;
+--        Slice_Args : constant Irep := Make_Argument_List;
+--        Function_Name : constant String := "slice_expr";
+--        Array_Param : constant Irep :=
+--          Create_Fun_Parameter (Fun_Name        => Function_Name,
+--                                Param_Name      => "orig_array",
+--                                Param_Type      => Result_Type,
+--                                Param_List      => Slice_Params,
+--                                A_Symbol_Table  => Global_Symbol_Table,
+--                                Source_Location => Source_Loc);
+--
+--        function Build_Slice_Func_Body return Irep;
+--
+--        function Build_Slice_Func_Body return Irep is
+--           pragma Assert (Print_Mess ("Build_Slice_Func_Body Start"));
+--           Base : constant Irep := Param_Symbol (Array_Param);
+--           Idx_Type : constant Entity_Id :=
+--             Etype (First_Index (Etype (N)));
+--           New_First_Expr : constant Irep :=
+--             Typecast_If_Necessary (Do_Expression (Low_Bound (Scalar_Range
+--                                    (Idx_Type))), CProver_Size_T,
+--                                    Global_Symbol_Table);
+--           Old_First_Expr : constant Irep :=
+--             Make_Member_Expr (Compound         => Base,
+--                               Source_Location  => Source_Loc,
+--                               Component_Number => 0,
+--                               I_Type           => CProver_Size_T,
+--                               Component_Name   => "first1");
+--
+--           New_Last_Expr : constant Irep :=
+--             Typecast_If_Necessary (Do_Expression (High_Bound (Scalar_Range
+--                                    (Idx_Type))), CProver_Size_T,
+--                                    Global_Symbol_Table);
+--           Result_Block : constant Irep :=
+--             Make_Code_Block (Source_Loc, CProver_Nil_T);
+--           Array_Temp : constant Irep :=
+--             Fresh_Var_Symbol_Expr (Result_Type, "temp_array");
+--
+--           Offset : constant Irep :=
+--             Make_Op_Sub (Rhs             => Old_First_Expr,
+--                          Lhs             => New_First_Expr,
+--                          Source_Location => Source_Loc,
+--                          Overflow_Check  => False,
+--                          I_Type          => CProver_Size_T);
+--           pragma Assert (Print_Mess ("Build_Slice_Func_Body  .."));
+--           New_Data : constant Irep :=
+--             Offset_Array_Data (Base         => Base,
+--                                Offset       => Offset);
+--           pragma Assert (Print_Mess ("Build_Slice_Func_Body_Done"));
+--           Result : constant Irep :=
+--             Make_Struct_Expr (Source_Location => Source_Loc,
+--                               I_Type          => Result_Type);
+--
+--           Data_Temp : constant Irep :=
+--             Fresh_Var_Symbol_Expr (Get_Type (New_Data), "temp_array_data");
+--        begin
+--           Append_Struct_Member (Result, New_First_Expr);
+--           Append_Struct_Member (Result, New_Last_Expr);
+--           Append_Struct_Member (Result, Data_Temp);
+--
+--           Append_Op (Result_Block,
+--                      Make_Code_Assign (Rhs             => New_Data,
+--                                        Lhs             => Data_Temp,
+--                                        Source_Location => Source_Loc));
+--           Append_Op (Result_Block,
+--                      Make_Code_Assign (Rhs             => Result,
+--                                        Lhs             => Array_Temp,
+--                                        Source_Location => Source_Loc));
+--
+--           Append_Op (Result_Block,
+--                      Make_Code_Return (Return_Value    => Array_Temp,
+--                                        Source_Location => Source_Loc));
+--           return Result_Block;
+--        end Build_Slice_Func_Body;
+--
+--        Func_Symbol : constant Symbol :=
+--          Build_Function (Name           => Function_Name,
+--                          RType          => Result_Type,
+--                          Func_Params    => Slice_Params,
+--                          FBody          => Build_Slice_Func_Body,
+--                          A_Symbol_Table => Global_Symbol_Table);
+--        Slice_Id : constant Irep := Base_Irep;
    begin
       Put_Line ("Do_Slice Body Start");
-      Append_Argument (Slice_Args,
-                       Slice_Id);
-      return Make_Side_Effect_Expr_Function_Call (
-                                 Arguments       => Slice_Args,
-                                 I_Function      => Symbol_Expr (Func_Symbol),
-                                 Source_Location => Source_Loc,
-                                 I_Type          => Result_Type);
+      return Slice_Array;
+--        return Make_Side_Effect_Expr_Function_Call (
+--                                   Arguments       => Slice_Args,
+--                              I_Function      => Symbol_Expr (Func_Symbol),
+--                                   Source_Location => Source_Loc,
+--                                   I_Type          => Result_Type);
    end Do_Slice;
 
    --------------------------
@@ -1445,13 +1477,13 @@ package body Arrays is
                Designated_Type (Prefix_Etype)
             else
                Prefix_Etype);
-         Array_Name : constant String := Unique_Name (Array_Type);
-         Array_First_Id : constant Symbol_Id :=
-           Intern (Array_Name & "___first_1");
-         Array_Last_Id : constant Symbol_Id :=
-           Intern (Array_Name & "___last_1");
          Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
          Resolved_Type     : constant Irep := Do_Type_Reference (Array_Type);
+
+         --  Indexed arrays
+         Bounds : Dimension_Bounds :=
+           Get_Bounds (Index          => First_Index (Array_Type),
+                       Is_Constrained => True);
 
          Base_Irep         : constant Irep :=
            (if Is_Implicit_Deref then
@@ -1471,9 +1503,11 @@ package body Arrays is
 
          Source_Loc : constant Irep := Get_Source_Location (Base_Irep);
          First_Irep : constant Irep :=
-           Global_Symbol_Table (Array_First_Id).Value;
+           Do_Expression (Low_Bound (First_Index (Array_Type)));
+
          Last_Irep : constant Irep :=
-           Global_Symbol_Table (Array_Last_Id).Value;
+           Do_Expression (High_Bound (First_Index (Array_Type)));
+
          Checked_Index : constant Irep :=
            Make_Index_Assert_Expr (N           => N,
                                    Index       => Idx_Irep,
@@ -1502,10 +1536,6 @@ package body Arrays is
          Print_Irep (Base_Irep);
          Print_Irep (Element_Type);
          Print_Irep (Indexed_Data);
-         Print_Irep (Make_Array_Expr
-             (Source_Location => Source_Loc,
-              I_Type          => Indexed_Data,
-              Range_Check     => False));
 
          return
            Indexed_Data;
@@ -1720,19 +1750,8 @@ package body Arrays is
       begin
          Put_Line ("Do the first dimension");
          --  Do the first dimension.
-         declare
-            Bounds : constant Dimension_Bounds :=
-              Get_Bounds (Dimension_Iter, Is_Constrained);
-         begin
---              Declare_First_Last
---                (Prefix     => Array_Subtype_Name,
---                 Dimension  => Dimension_Number,
---                 Bounds     => Bounds,
---                 Index      => Dimension_Iter,
---                 Param_List => Ireps.Empty,
---                 Block       => Block);
-            Array_Size := Calculate_Array_Length (Bounds);
-         end;
+         Array_Size := Calculate_Array_Length
+           (Get_Bounds (Dimension_Iter, Is_Constrained));
 
          --  Multidimensional arrays are converted into a a single
          --  dimension of an appropriate length.
@@ -1741,26 +1760,14 @@ package body Arrays is
          Dimension_Iter := Next (Dimension_Iter);
          while Present (Dimension_Iter) loop
             Dimension_Number := Dimension_Number + 1;
-            declare
-               Bounds : constant Dimension_Bounds :=
-                 Get_Bounds (Dimension_Iter, Is_Constrained);
-            begin
---                 Declare_First_Last
---                   (Prefix     => Array_Subtype_Name,
---                    Dimension  => Dimension_Number,
---                    Bounds     => Bounds,
---                    Index      => Dimension_Iter,
---                    Param_List => Ireps.Empty,
---                    Block      => Block);
-
-               Array_Size := Make_Op_Mul
-                 (Rhs             => Calculate_Array_Length (Bounds),
-                  Lhs             => Array_Size,
-                  Source_Location => Get_Source_Location (Declaration),
-                  Overflow_Check  => False,
-                  I_Type          => Int32_T,
-                  Range_Check     => False);
-            end;
+            Array_Size := Make_Op_Mul
+              (Rhs             => Calculate_Array_Length
+                 (Get_Bounds (Dimension_Iter, Is_Constrained)),
+               Lhs             => Array_Size,
+               Source_Location => Get_Source_Location (Declaration),
+               Overflow_Check  => False,
+               I_Type          => Int32_T,
+               Range_Check     => False);
 
             Dimension_Iter := Next (Dimension_Iter);
          end loop;
