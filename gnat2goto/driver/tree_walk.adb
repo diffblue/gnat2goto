@@ -745,12 +745,29 @@ package body Tree_Walk is
       end if;
 
       declare
+         function Print_Node (N : Node_Id; Subtree : Boolean := False)
+                              return Boolean;
+         function Print_Node (N : Node_Id; Subtree : Boolean := False)
+                              return Boolean
+         is
+         begin
+            if Subtree then
+               Print_Node_Subtree (N);
+            else
+               Print_Node_Briefly (N);
+            end if;
+            return True;
+         end Print_Node;
+
          LHS : constant Irep := Do_Expression (Name (N));
          function RHS return Irep;
          function RHS return Irep is
+            pragma Assert (Print_Node (N));
             N_RHS : constant Node_Id := Expression (N);
+            pragma Assert (Print_Node (N_RHS));
             Bare_RHS : constant Irep := Do_Expression (N_RHS);
          begin
+            Put_Line ("In function RHS");
             return
               (if Do_Range_Check (N_RHS)
                then Make_Range_Assert_Expr
@@ -762,6 +779,7 @@ package body Tree_Walk is
       begin
          Put_Line ("About to Assign");
          Print_Irep (LHS);
+         Put_Line ("About to call RHS");
          Print_Irep (RHS);
          return Make_Code_Assign
            (Lhs => LHS,
@@ -926,6 +944,9 @@ package body Tree_Walk is
            (N, "First_Last_Length",
             "Attribute applied to string is unsupported");
       else
+         Put_Line ("Do_First_Last_Length - It's an array");
+         Print_Node_Briefly (N);
+         Print_Node_Briefly (Prefix (N));
          --  It is an array.
          return Do_Array_First_Last_Length (N, Attr);
       end if;
@@ -1496,6 +1517,8 @@ package body Tree_Walk is
          when N_Function_Call        => return Do_Function_Call (N);
          when N_Or_Else              => return Do_Or_Else (N);
          when N_Attribute_Reference  =>
+            Put_Line (Attribute_Id'Image
+                      (Get_Attribute_Id (Attribute_Name (N))));
             case Get_Attribute_Id (Attribute_Name (N)) is
                when Attribute_Access => return Do_Address_Of (N);
                when Attribute_Address =>
@@ -2087,7 +2110,7 @@ package body Tree_Walk is
          return Do_Array_Subtype
            (Subtype_Node   => Subtype_Node,
             Parent_Type    => Parent_Type,
-            Is_Constrained => True,
+            Is_Constrained => Is_Constrained (Parent_Type),
             First_Index    => First (Constraints (N)));
       else
          --  It is a record subtype with a discriminant constraint.
