@@ -4,7 +4,7 @@ with Namet;                 use Namet;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Range_Check;           use Range_Check;
-
+with ASVAT.Size_Model;
 package body Arrays is
 
    --------------------------------
@@ -73,7 +73,8 @@ package body Arrays is
            (if Kind (Follow_Symbol_Type (Element_Type_Pre,
             Global_Symbol_Table)) = I_C_Enum_Type
             then
-               Make_Signedbv_Type (32)
+               Make_Signedbv_Type
+              (ASVAT.Size_Model.Static_Size (Element_Type_Ent))
             else
                Element_Type_Pre);
          Element_Size : constant Uint :=
@@ -477,7 +478,8 @@ package body Arrays is
         (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
          = I_C_Enum_Type
          then
-            Make_Signedbv_Type (32)
+            Make_Signedbv_Type
+           (ASVAT.Size_Model.Static_Size (Etype (Sub_Identifier)))
          else
             Sub_Pre);
       Data_Type : constant Irep :=

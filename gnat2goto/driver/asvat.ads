@@ -3,16 +3,21 @@ with Ada.Containers;            use Ada.Containers;
 with GNATCOLL.Symbols;
 with Symbol_Table_Info;         use Symbol_Table_Info;
 with Uintp;                     use Uintp;
+with Ireps;                     use Ireps;
 package ASVAT is
 private
    type Entity_Info is record
       Specified_Rep_Size           : Uint;
       Specified_Rep_Component_Size : Uint;
+      Model_Size                   : Natural;
+      Computed_Model_Size          : Irep;
    end record;
 
    Empty_Entity_Info : constant Entity_Info :=
      (Specified_Rep_Size           => Uint_0,
-      Specified_Rep_Component_Size => Uint_0);
+      Specified_Rep_Component_Size => Uint_0,
+      Model_Size                   => 0,
+      Computed_Model_Size          => Ireps.Empty);
 
    use type GNATCOLL.Symbols.Symbol;  --  for "=" operator
 

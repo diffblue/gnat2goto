@@ -1,24 +1,15 @@
 with Opt;
-with Stand;
 with Snames;                  use Snames;
 with Atree;                   use Atree;
 with Sinfo;                   use Sinfo;
 with Einfo;                   use Einfo;
 with Sem_Util;                use Sem_Util;
 with Sem_Aux;                 use Sem_Aux;
+with System;                  use System;
 with Tree_Walk;               use Tree_Walk;
 with GOTO_Utils;              use GOTO_Utils;
-with System;                  use System;
 
 package body ASVAT.Size_Model is
-
-   function Make_Byte_Aligned_Size (S : Uint) return Uint is
-      --  Many objects sizes are rounded up to the nearest byte boundary
-     (if S > Uint_0 then
-         UI_Mul
-        (UI_Add (UI_Div (UI_Sub (S, 1), Storage_Unit), 1), Storage_Unit)
-      else
-         Uint_0);
 
    procedure Try_Base_Type_Size (N : Node_Id;
                                  E : Entity_Id; The_Size : in out Uint)
@@ -27,9 +18,9 @@ package body ASVAT.Size_Model is
    --  try its base-type.  My be the front-end has a attribute_size value
    --  for the base-type.
 
-   function Do_Vanilla_Size (The_Prefix : Node_Id) return Uint;
+   function Do_Vanilla_Size (The_Prefix : Node_Id) return Irep;
 
-   function Do_VADS_Size (The_Prefix : Node_Id) return Uint;
+   function Do_VADS_Size (The_Prefix : Node_Id) return Irep;
 
    -----------------------
    -- Do_Attribute_Size --
@@ -90,20 +81,29 @@ package body ASVAT.Size_Model is
       --  value.
       --
       --  There are still other occasions when the front end returns 0 for one
-      --  or other or both RM_Size and Esize, so Do_Attribute_Size tries to
-      --  return a sensible value or generates an unhandled report.
+      --  or other or both RM_Size and Esize.
+      --
+      --  The size of an object may be different for the target implementation
+      --  and the ASVAT model.  Since the size of the model is important when
+      --  analysing the model, when not using VADS_Size, the size of an object
+      --  X'Size returns the model object size and is likely to be different
+      --  to the target object size.
+      --
+      --  If either RM_Size or Esize return 0 the size of the ASVAT model
+      --  for the entity is returned.
 
-      Constant_Type : constant Irep :=
-        Do_Type_Reference (Stand.Universal_Integer);
-      The_Prefix    : constant Node_Id := Prefix (N);
+      The_Prefix       : constant Node_Id := Prefix (N);
       Prefix_Etype  : constant Entity_Id := Etype (The_Prefix);
 
       Use_VADS_Size : constant Boolean :=
         Opt.Use_VADS_Size or else
         Get_Attribute_Id (Attribute_Name (N)) = Attribute_VADS_Size;
 
+      --  The front end size is the size that may be obtained from
+      --  the front-end.
       --  The size that is to be returned by the attribute_size.
-      The_Size      : Uint;
+      Front_End_Size : Uint := Uint_0;
+      The_Size      : Irep;
 
    begin
       if not Is_Definite_Subtype (Prefix_Etype) then
@@ -120,14 +120,19 @@ package body ASVAT.Size_Model is
          --  but the back-end does put out a sensible value, which of course,
          --  gnat2goto has no access to.
          --  Reporting an unhandled node is the best it can do.
-         The_Size := RM_Size (Prefix_Etype);
+         Front_End_Size := RM_Size (Prefix_Etype);
+         The_Size := Integer_Constant_To_Expr
+           (Value           => Front_End_Size,
+            Expr_Type       => Int32_T,
+            Source_Location => Get_Source_Location (N));
 
       elsif Nkind (The_Prefix) in N_Has_Entity and then
+        Is_Type (Entity (The_Prefix)) and then
       --  First check if a size representation clause has been applied
-      --  directly to this entity
+      --  directly to this type
         ASVAT.Size_Model.Has_Size_Rep_Clause (Entity (The_Prefix))
       then
-         The_Size := ASVAT.Size_Model.Get_Rep_Size (Entity (The_Prefix));
+         Front_End_Size := ASVAT.Size_Model.Get_Rep_Size (Entity (The_Prefix));
       elsif Use_VADS_Size then
          --  If this attribute is used or
          --  the option is set by prgma Use_VADS_Size, which is part of
@@ -139,12 +144,17 @@ package body ASVAT.Size_Model is
       else
          The_Size := Do_Vanilla_Size (The_Prefix);
       end if;
-      return Make_Constant_Expr
-        (Value =>
-           UI_Image (Input  => The_Size,
-                     Format => Decimal),
-         I_Type => Constant_Type,
-         Source_Location => Get_Source_Location (N));
+
+      --  If the value of Front-End-Size > 0 then a size has been obtained
+      --  from the front-end and should be used as the size.
+      if Front_End_Size > Uint_0 then
+         The_Size := Integer_Constant_To_Expr
+           (Value           => Front_End_Size,
+            Expr_Type       => Int32_T,
+            Source_Location => Get_Source_Location (N));
+      end if;
+
+      return The_Size;
    end Do_Attribute_Size;
 
    -------------------------
@@ -242,6 +252,7 @@ package body ASVAT.Size_Model is
       Base_T : constant Entity_Id :=
         Implementation_Base_Type (E);
       Base_Type_Size : constant Uint := RM_Size (Base_T);
+      pragma Unreferenced (N);
    begin
       if not Is_Base_Type (E) then
          --  If the type of the enitiy is a subtype, check whether the
@@ -250,23 +261,7 @@ package body ASVAT.Size_Model is
             The_Size := Base_Type_Size;
          elsif ASVAT.Size_Model.Has_Size_Rep_Clause (Base_T) then
             The_Size := ASVAT.Size_Model.Get_Rep_Size (Base_T);
-         else
-            Report_Unhandled_Node_Empty
-              (N,
-               "Do_Attribute_Size",
-               "The size of the composite subtype is " &
-                 "not known by the front-end. Use a size " &
-                 "representation clause on the base type " &
-                 "or a Value_Size clause on the subtype " &
-                 "declaration");
          end if;
-      else
-         Report_Unhandled_Node_Empty
-           (N,
-            "Do_Attribute_Size",
-            "The size of the composite is not known " &
-              "by the front-end. Use a size " &
-              "representation clause on its declaration");
       end if;
    end Try_Base_Type_Size;
 
@@ -274,9 +269,10 @@ package body ASVAT.Size_Model is
    -- Do_VADS_Size  --
    -------------------
 
-   function Do_VADS_Size (The_Prefix : Node_Id) return Uint is
+   function Do_VADS_Size (The_Prefix : Node_Id) return Irep is
       Prefix_Etype  : constant Entity_Id := Etype (The_Prefix);
-      The_Size : Uint;
+      Front_End_Size : Uint := Uint_0;
+      The_Size : Irep;
    begin
       if Nkind (The_Prefix) = N_Slice and then
         (Is_Packed_Array (Etype (Prefix (The_Prefix))) or
@@ -295,7 +291,7 @@ package body ASVAT.Size_Model is
             "A Size attribute applied to a slice " &
               "may give an inaccurate value when the array is packed");
 
-         The_Size := RM_Size (Prefix_Etype);
+         Front_End_Size := RM_Size (Prefix_Etype);
 
       elsif Nkind (The_Prefix) = N_Indexed_Component then
          declare
@@ -312,16 +308,16 @@ package body ASVAT.Size_Model is
                    (The_Array_Type));
          begin
             if The_Array_Is_Packed then
-               The_Size := RM_Size (Prefix_Etype);
+               Front_End_Size := RM_Size (Prefix_Etype);
             else
-               The_Size := Esize (Prefix_Etype);
+               Front_End_Size := Esize (Prefix_Etype);
             end if;
          end;
       else
-         The_Size := RM_Size (Prefix_Etype);
+         Front_End_Size := RM_Size (Prefix_Etype);
       end if;
 
-      if The_Size = Uint_0 then
+      if Front_End_Size <= Uint_0 then
          --  The front-end does not give the size of the entity.
          if Nkind (The_Prefix) in N_Has_Entity and then
          --  First check if it is an object and the object size can be
@@ -329,12 +325,34 @@ package body ASVAT.Size_Model is
            Is_Object (Entity (The_Prefix)) and then
            Esize (Entity (The_Prefix)) /= Uint_0
          then
-            The_Size := Esize (Entity (The_Prefix));
+            Front_End_Size := Esize (Entity (The_Prefix));
          else
-            Try_Base_Type_Size (The_Prefix, Prefix_Etype, The_Size);
+            Try_Base_Type_Size (The_Prefix, Prefix_Etype, Front_End_Size);
          end if;
       end if;
 
+      if Front_End_Size > Uint_0 then
+         --  The size has been obtained from the front-end.
+         --  Use this value for the size.
+         The_Size := Integer_Constant_To_Expr
+           (Value           => Front_End_Size,
+            Expr_Type       => Int32_T,
+            Source_Location => Get_Source_Location (The_Prefix));
+      else
+         --  As all other possibilities have been tried use the
+         --  ASVAT_Model_Size
+         if Has_Size (Prefix_Etype) then
+            The_Size := Computed_Size (Prefix_Etype);
+         else
+            Report_Unhandled_Node_Empty
+              (The_Prefix,
+               "Do_Attribute_Size",
+               "The size of the composite is not known " &
+                 "by the front-end. Use a size " &
+                 "representation clause on its declaration");
+            The_Size := Get_Int32_T_Zero;
+         end if;
+      end if;
       return The_Size;
    end Do_VADS_Size;
 
@@ -342,13 +360,12 @@ package body ASVAT.Size_Model is
    -- Do_Vanilla_Size  --
    ----------------------
 
-   function Do_Vanilla_Size (The_Prefix : Node_Id) return Uint is
+   function Do_Vanilla_Size (The_Prefix : Node_Id) return Irep is
       Prefix_Etype  : constant Entity_Id := Etype (The_Prefix);
-      The_Size : Uint;
+      Front_End_Size : Uint := Uint_0;
+      The_Size       : Irep := Ireps.Empty;
    begin
-      if Nkind (The_Prefix) in
-        N_Has_Entity | N_Selected_Component
-      then
+      if Nkind (The_Prefix) in N_Has_Entity | N_Selected_Component then
          declare
             The_Entity : constant Entity_Id :=
               (if Nkind (The_Prefix) =
@@ -358,111 +375,253 @@ package body ASVAT.Size_Model is
                else
                   Entity (The_Prefix));
          begin
-            if Is_Object (The_Entity) then
-               declare
-                  Object_Size : constant Uint :=
-                    Esize (The_Entity);
-                  Default_Obj_Size : constant Uint :=
-                    Esize (Etype (The_Entity));
-                  The_Size_To_Use : constant Uint :=
-                    (if Object_Size > Uint_0 then
-                        Object_Size
-                     elsif Default_Obj_Size > Uint_0 then
-                        Default_Obj_Size
-                     else
-                        Make_Byte_Aligned_Size
-                       (RM_Size (Etype (The_Entity))));
-               begin
-                  The_Size := The_Size_To_Use;
-
-                  if The_Size <= Uint_0 then
-                     Try_Base_Type_Size (The_Prefix,
-                                         Etype (The_Entity), The_Size);
-                     if The_Size > Uint_0 then
-                        The_Size :=
-                          Make_Byte_Aligned_Size (The_Size_To_Use);
-                     end if;
+            if Is_Type (The_Entity) then
+               --  For a prefix that is a subtype mark, type RM_Size is used.
+               Front_End_Size := RM_Size (The_Entity);
+               if Front_End_Size <= Uint_0 then
+                  --  Try using the base type of the entity.
+                  Try_Base_Type_Size
+                    (The_Prefix, Etype (The_Entity), Front_End_Size);
+               end if;
+               if Front_End_Size <= Uint_0 then
+                  --  Unable to obtain the RM Size
+                  --  Try using the ASVAT model size
+                  if Has_Size (The_Entity) then
+                     The_Size := Computed_Size (The_Entity);
+                  else
+                     --  The size has not been computed try using the
+                     --  front-end Esize.
+                     Front_End_Size := Esize (The_Entity);
                   end if;
-               end;
+               end if;
+            elsif Is_Object (The_Entity) then
+               --  The ASVAT model size should be used for an object.
+               if Has_Size (The_Entity) then
+                  The_Size := Computed_Size (The_Entity);
+               else
+                  --  Try obtaining the size from the front-end.
+                  declare
+                     Object_Size : constant Uint :=
+                       Esize (The_Entity);
+                     Default_Obj_Size : constant Uint :=
+                       Esize (Etype (The_Entity));
+                     The_Size_To_Use : constant Uint :=
+                       (if Object_Size > Uint_0 then
+                           Object_Size
+                        elsif Default_Obj_Size > Uint_0 then
+                           Default_Obj_Size
+                        else
+                           Make_Byte_Aligned_Size
+                          (RM_Size (Etype (The_Entity))));
+                  begin
+                     Front_End_Size := The_Size_To_Use;
 
-            elsif Is_Type (The_Entity) then
-               --  Since the attribute is applied to
-               --  a subtype,
-               --  S'Size, RM_Size should be used.
-               The_Size := RM_Size (Entity (The_Prefix));
-
-               if The_Size <= Uint_0 then
-                  Try_Base_Type_Size (The_Prefix,
-                                      Etype (The_Entity), The_Size);
+                     if Front_End_Size <= Uint_0 then
+                        Try_Base_Type_Size
+                          (The_Prefix,
+                           Etype (The_Entity), Front_End_Size);
+                        if Front_End_Size > Uint_0 then
+                           Front_End_Size :=
+                             Make_Byte_Aligned_Size (The_Size_To_Use);
+                        end if;
+                     end if;
+                  end;
                end if;
             else
-               The_Size := Uint_0;
                Report_Unhandled_Node_Empty
                  (The_Prefix,
-                  "Do_Attribute_Size",
-                  "Size attribute applied to an entity " &
-                    "which is not a (sub)type or an object");
+                  "Do_Vanilla_Size",
+                  "The entity is neither a type or an object");
             end if;
          end;
-
-      elsif Nkind (The_Prefix) in
-        N_Indexed_Component | N_Slice
-      then
+      elsif Nkind (The_Prefix) in N_Indexed_Component | N_Slice then
          declare
-            Is_Indexed_Component : constant Boolean :=
-              Nkind (The_Prefix) = N_Indexed_Component;
-            The_Array : constant Node_Id := Prefix (The_Prefix);
+            The_Array  : constant Node_Id := Prefix (The_Prefix);
             Array_Type : constant Entity_Id := Etype (The_Array);
+            Components : constant Entity_Id := Component_Type (Array_Type);
             Is_Implicitly_Packed : constant Boolean :=
               Opt.Implicit_Packing and then
               ASVAT.Size_Model.Has_Size_Rep_Clause (Array_Type);
-
-            Obj_Size : constant Uint :=
-              (if Is_Indexed_Component then
-                  (if not Is_Implicitly_Packed then
-                     Component_Size (Array_Type)
-                  else
-                     RM_Size (Prefix_Etype))
-               else
-                  (if not Is_Implicitly_Packed then
-                       Esize (Prefix_Etype)
-                  else
-                     Make_Byte_Aligned_Size (RM_Size (Prefix_Etype))));
-
-            Type_Size : constant Uint :=
-              (if Is_Indexed_Component and not Is_Implicitly_Packed then
-                       Component_Size (Array_Type)
-               else
-                  RM_Size (Prefix_Etype));
-
-            The_Size_To_Use : constant Uint :=
-              (if Obj_Size > Uint_0 then
-                  Obj_Size
-               else
-                  Make_Byte_Aligned_Size (Type_Size));
          begin
-            The_Size := The_Size_To_Use;
-            if The_Size_To_Use <= Uint_0 then
-               Report_Unhandled_Node_Empty
-                 (N        => The_Prefix,
-                  Fun_Name => "Do_Attribute_Size",
-                  Message  => "The Attribute_Size returns a value <= 0");
+            if Nkind (The_Prefix) = N_Indexed_Component then
+               --  An indexed component cannot be a type reference.
+               --  Use the ASVAT model size of the array components.
+               if Has_Size (Components) then
+                  The_Size := Computed_Size (Components);
+               else
+                  --  The size has not been computed try using the
+                  --  front-end size.
+                  Front_End_Size :=
+                    (if not Is_Implicitly_Packed and then
+                     Component_Size (Array_Type) > Uint_0
+                     then
+                        Component_Size (Array_Type)
+                     else
+                        RM_Size (Components));
+               end if;
+            else
+               --  It's a slice
+               if Has_Size (Prefix_Etype) then
+                  The_Size := Computed_Size (Prefix_Etype);
+               else
+                  --  The size has not been computed try using the
+                  --  front-end size.
+                  Front_End_Size :=
+                    (if not Is_Implicitly_Packed and then
+                     Esize (Prefix_Etype) > Uint_0 then
+                          Esize (Prefix_Etype)
+                     else
+                        Make_Byte_Aligned_Size (RM_Size (Prefix_Etype)));
+               end if;
             end if;
          end;
       else
-         --  Return the default size of the object
-         The_Size := Esize (Prefix_Etype);
+         --  The prefix is not a type reference so use the ASVAT model
+         --  size of the underlying type.
+         if Has_Size (Prefix_Etype) then
+            The_Size := Computed_Size (Prefix_Etype);
+         else
+            --  The size has not been computed try using the
+            --  front-end size.
+            Front_End_Size :=
+              (if Esize (Prefix_Etype) /= 0 then
+                  Esize (Prefix_Etype)
+               else
+                  Make_Byte_Aligned_Size (RM_Size (Prefix_Etype)));
 
-         if The_Size <= Uint_0 then
-            Try_Base_Type_Size (The_Prefix, Prefix_Etype, The_Size);
-            if The_Size > Uint_0 then
-               The_Size :=
-                 Make_Byte_Aligned_Size (The_Size);
-            end if;
          end if;
+      end if;
+
+      if Front_End_Size > 0 then
+         --  The size has been obtained from the front-end.
+         --  Use this value for the size.
+         The_Size := Integer_Constant_To_Expr
+           (Value           => Front_End_Size,
+            Expr_Type       => Int32_T,
+            Source_Location => Get_Source_Location (The_Prefix));
+      elsif The_Size = Ireps.Empty then
+                  Report_Unhandled_Node_Empty
+              (The_Prefix,
+                  "Do_Attribute_Size",
+                  "The size of the composite is not known " &
+                    "by the front-end. Use a size " &
+                    "representation clause on its declaration");
+         The_Size := Get_Int32_T_Zero;
       end if;
 
       return The_Size;
    end Do_Vanilla_Size;
+
+   --------------
+   -- Has_Size --
+   --------------
+
+   function Has_Size (E : Entity_Id) return Boolean is
+      E_Sym_Id : constant Symbol_Id :=
+        Intern (Unique_Name (E));
+   begin
+      return
+        (if Extra_Entity_Info.Contains (E_Sym_Id) then
+              Extra_Entity_Info (E_Sym_Id).Computed_Model_Size /= Ireps.Empty
+         else
+            False);
+   end Has_Size;
+
+   ---------------------
+   -- Has_Static_Size --
+   ---------------------
+
+   function Has_Static_Size (E : Entity_Id) return Boolean is
+      E_Sym_Id : constant Symbol_Id :=
+        Intern (Unique_Name (E));
+   begin
+      return
+        (if Extra_Entity_Info.Contains (E_Sym_Id) then
+              Extra_Entity_Info (E_Sym_Id).Model_Size /= 0
+         else
+            False);
+   end Has_Static_Size;
+
+   -----------------------
+   -- Set_Computed_Size --
+   -----------------------
+
+   procedure Set_Computed_Size (E : Entity_Id; Size_Expr : Irep) is
+      E_Sym_Id   : constant Symbol_Id :=
+        Intern (Unique_Name (E));
+      E_In_Table : constant Boolean := Extra_Entity_Info.Contains (E_Sym_Id);
+      E_Info     : Entity_Info :=
+        (if E_In_Table then
+              Extra_Entity_Info (E_Sym_Id)
+         else
+            Empty_Entity_Info);
+   begin
+      E_Info.Computed_Model_Size := Size_Expr;
+      if E_In_Table then
+         Extra_Entity_Info.Replace (E_Sym_Id, E_Info);
+      else
+         Extra_Entity_Info.Insert (E_Sym_Id, E_Info);
+      end if;
+   end Set_Computed_Size;
+
+   function Computed_Size (E : Entity_Id) return Irep is
+      E_Sym_Id : constant Symbol_Id :=
+        Intern (Unique_Name (E));
+   begin
+      return Extra_Entity_Info (E_Sym_Id).Computed_Model_Size;
+   end Computed_Size;
+
+   function Static_Size (E : Entity_Id) return Natural is
+      E_Sym_Id : constant Symbol_Id :=
+        Intern (Unique_Name (E));
+   begin
+      return Extra_Entity_Info (E_Sym_Id).Model_Size;
+   end Static_Size;
+
+   ----------------------------
+   -- Make_Byte_Aligned_Size --
+   ----------------------------
+
+   function Make_Byte_Aligned_Size (S : Uint) return Uint is
+      --  Many objects sizes are rounded up to the nearest byte boundary
+     (if S > Uint_0 then
+         UI_Mul
+        (UI_Add (UI_Div (UI_Sub (S, 1), Storage_Unit), 1), Storage_Unit)
+      else
+         Uint_0);
+
+   function Make_Byte_Aligned_Size (S : Integer) return Integer is
+      --  Many objects sizes are rounded up to the nearest byte boundary
+     (if S > 0 then
+         (((S - 1) / Storage_Unit) + 1) * Storage_Unit
+      else
+         0);
+
+   ---------------------
+   -- Set_Static_Size --
+   ---------------------
+
+   procedure Set_Static_Size (E : Entity_Id; Model_Size : Natural) is
+      E_Sym_Id   : constant Symbol_Id :=
+        Intern (Unique_Name (E));
+      E_In_Table : constant Boolean := Extra_Entity_Info.Contains (E_Sym_Id);
+      E_Info     : Entity_Info :=
+        (if E_In_Table then
+              Extra_Entity_Info (E_Sym_Id)
+         else
+            Empty_Entity_Info);
+   begin
+      E_Info.Model_Size := Model_Size;
+      E_Info.Computed_Model_Size :=
+        Integer_Constant_To_Expr
+          (Value           => UI_From_Int (Int (Model_Size)),
+           Expr_Type       => Make_Signedbv_Type (32),
+           Source_Location => Get_Source_Location (E));
+      if E_In_Table then
+         Extra_Entity_Info.Replace (E_Sym_Id, E_Info);
+      else
+         Extra_Entity_Info.Insert (E_Sym_Id, E_Info);
+      end if;
+   end Set_Static_Size;
 
 end ASVAT.Size_Model;

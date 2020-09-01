@@ -2,7 +2,6 @@ with Types;               use Types;
 with Atree;               use Atree;
 with Sinfo;               use Sinfo;
 with Snames;              use Snames;
-with Ireps;               use Ireps;
 package ASVAT.Address_Model is
 
    type Address_To_Access_Functions is

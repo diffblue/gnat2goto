@@ -4,7 +4,6 @@ with Nlists;                  use Nlists;
 with Einfo;                   use Einfo;
 with Aspects;                 use Aspects;
 with Sem_Util;                use Sem_Util;
-with Ireps;                   use Ireps;
 with Follow;                  use Follow;
 with Range_Check;             use Range_Check;
 with GOTO_Utils;              use GOTO_Utils;

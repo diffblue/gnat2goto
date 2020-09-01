@@ -18,7 +18,6 @@ package GOTO_Utils is
    function CProver_True return Irep;
    function CProver_False return Irep;
 
-   --  TODO change this to Irep
    function Internal_Source_Location return Irep;
 
    function Float32_T return Irep;
@@ -34,7 +33,9 @@ package GOTO_Utils is
 
    Pointer_Type_Width : constant Positive := 64;
    Size_T_Width : constant Int := 64;
-   --  ??? this should be queried at runtime from GNAT
+   --  The width of CProver_Bool_T has been obtained from the
+   --  cprover source code cbmc/src/util/config.cpp
+   CProver_Bool_Width : constant Positive := 8;
 
    Synthetic_Variable_Counter : Positive := 1;
 
