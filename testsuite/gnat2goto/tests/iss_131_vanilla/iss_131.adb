@@ -248,7 +248,10 @@ begin
    pragma Assert (VSIS'size = 16);
    pragma Assert (neigh_array'size = 4);
    pragma Assert (Vna'size = 8);
+   --  The following assertion fails because the ASVAT model size (= 8) is used
    pragma Assert (Vna (barbara)'size = 1);
+   --  This is the ASVAT model size.
+   pragma Assert (Vna (barbara)'size = 8);
    pragma Assert (Vna (barbara .. margo)'Size = 8);
    pragma Assert (Vna (barbara .. margo)'Component_Size = 1);
    pragma Assert (neigh_array_NS'size = 32);
@@ -333,7 +336,10 @@ begin
 
    pragma Assert (A_T'Size = 8);
    pragma Assert (VA'Size = 8);
+   --  The following assertion fails because the ASVAT model size (= 8) is used
    pragma Assert (VA (1)'Size = 2);
+   --  This is the ASVAT model size.
+   pragma Assert (VA (1)'Size = 8);
    pragma Assert (VA (0 .. 2)'Size = 8);
 
    pragma Assert (Vna'Component_size = 1);

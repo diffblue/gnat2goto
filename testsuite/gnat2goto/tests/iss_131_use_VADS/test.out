@@ -80,7 +80,7 @@ N_Identifier "v4" (Node_Id=3801) (source)
  Entity = N_Defining_Identifier "v4" (Entity_Id=3357)
  Associated_Node = N_Defining_Identifier "v4" (Entity_Id=3357)
 ----------At: Do_Attribute_Size----------
-----------The size of the composite subtype is not known by the front-end. Use a size representation clause on the base type or a Value_Size clause on the subtype declaration----------
+----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
 N_Identifier "stv3_no_size_rep" (Node_Id=3846) (source)
  Parent = N_Attribute_Reference (Node_Id=6962)
  Sloc = 19399  iss_131.adb:327:19
@@ -89,7 +89,7 @@ N_Identifier "stv3_no_size_rep" (Node_Id=3846) (source)
  Entity = N_Defining_Identifier "stv3_no_size_rep" (Entity_Id=3274)
  Associated_Node = N_Defining_Identifier "stv3_no_size_rep" (Entity_Id=3274)
 ----------At: Do_Attribute_Size----------
-----------The size of the composite subtype is not known by the front-end. Use a size representation clause on the base type or a Value_Size clause on the subtype declaration----------
+----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
 N_Identifier "sfv3_no_size_rep" (Node_Id=3855) (source)
  Parent = N_Attribute_Reference (Node_Id=6972)
  Sloc = 19446  iss_131.adb:328:19
@@ -98,7 +98,7 @@ N_Identifier "sfv3_no_size_rep" (Node_Id=3855) (source)
  Entity = N_Defining_Identifier "sfv3_no_size_rep" (Entity_Id=3286)
  Associated_Node = N_Defining_Identifier "sfv3_no_size_rep" (Entity_Id=3286)
 ----------At: Do_Attribute_Size----------
-----------The size of the composite subtype is not known by the front-end. Use a size representation clause on the base type or a Value_Size clause on the subtype declaration----------
+----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
 N_Identifier "vst3_ns" (Node_Id=3864) (source,analyzed)
  Parent = N_Attribute_Reference (Node_Id=6982)
  Sloc = 19492  iss_131.adb:329:19
@@ -107,7 +107,7 @@ N_Identifier "vst3_ns" (Node_Id=3864) (source,analyzed)
  Entity = N_Defining_Identifier "vst3_ns" (Entity_Id=3327)
  Associated_Node = N_Defining_Identifier "vst3_ns" (Entity_Id=3327)
 ----------At: Do_Attribute_Size----------
-----------The size of the composite subtype is not known by the front-end. Use a size representation clause on the base type or a Value_Size clause on the subtype declaration----------
+----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
 N_Identifier "vsf3_ns" (Node_Id=3873) (source,analyzed)
  Parent = N_Attribute_Reference (Node_Id=6992)
  Sloc = 19530  iss_131.adb:330:19
