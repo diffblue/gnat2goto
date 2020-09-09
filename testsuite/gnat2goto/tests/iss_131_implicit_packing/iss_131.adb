@@ -247,7 +247,10 @@ begin
    pragma Assert (VSIS'size = 16);
    pragma Assert (neigh_array'size = 4);
    pragma Assert (Vna'size = 8);
+   --  The following assertion fails because the ASVAT model size (= 8) is used
    pragma Assert (Vna (barbara)'size = 1);
+   --  This is the ASVAT model size.
+   pragma Assert (Vna (barbara)'size = 8);
    --  The following 2 assertions fail with this configuration.
    --  The Slice'Size gives the unpacked result of 16.
    --  The Slice'Component_Size gives the upacked result of 8.
@@ -331,7 +334,10 @@ begin
 
    pragma Assert (A_T'Size = 8);
    pragma Assert (VA'Size = 8);
+   --  The following assertion fails because the ASVAT model size (= 8) is used
    pragma Assert (VA (1)'Size = 2);
+   --  This is the ASVAT model size.
+   pragma Assert (VA (1)'Size = 8);
    pragma Assert (VA (0 .. 2)'Size = 8);
 
    --  Component_Size does not seem to be handled properly by the front-end

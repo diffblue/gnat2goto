@@ -1241,9 +1241,11 @@ package body Tree_Walk is
    -------------------------------
 
    function Do_Enumeration_Definition (N : Node_Id) return Irep is
+      Enum_Type        : constant Entity_Id :=
+        Defining_Identifier (Parent (N));
       Enum_Body        : constant Irep := Make_C_Enum_Members;
       Enum_Type_Symbol : constant Irep := Make_Symbol_Type
-        (Identifier => Unique_Name (Defining_Identifier (Parent (N))));
+        (Identifier => Unique_Name (Enum_Type));
       First_Member     : constant Node_Id := First (Literals (N));
       Member           : Node_Id := First_Member;
       Last_Member      : Node_Id := First_Member;
@@ -1333,6 +1335,7 @@ package body Tree_Walk is
                Fun_Name => "Do_Enumeration_Definition",
                Message  => "Incorrect Enumeration Literal"));
       begin
+         ASVAT.Size_Model.Set_Static_Size (Enum_Type, (Assumed_Esize));
          return Make_C_Enum_Type
            (I_Subtype =>
             --  Enumeration literals positions start from 0.
@@ -4755,19 +4758,17 @@ package body Tree_Walk is
 
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep is
       E : constant Entity_Id := Defining_Entity (Parent (N));
+      pragma Assert (Is_Type (E));
+      Model_Size : constant Positive := Positive (UI_To_Int (Esize (E)));
    begin
-      --  ??? This sounds like it should be a precondition
-      if not Is_Type (E) then
-         return Report_Unhandled_Node_Irep
-           (N, "Do_Signed_Integer_Definition",
-            "Entity id is not a type");
-      end if;
+      ASVAT.Size_Model.Set_Static_Size (E          => E,
+                                 Model_Size => Model_Size);
       return Make_Bounded_Signedbv_Type
         (Lower_Bound =>
            Store_Nat_Bound (Bound_Type_Nat (Intval (Low_Bound (N)))),
          Upper_Bound =>
            Store_Nat_Bound (Bound_Type_Nat (Intval (High_Bound (N)))),
-         Width => Positive (UI_To_Int (Esize (E))));
+         Width => Model_Size);
    end Do_Signed_Integer_Definition;
 
    ----------------------------------
@@ -4782,6 +4783,8 @@ package body Tree_Walk is
       Width : constant Integer := Integer (UI_To_Int (Esize (E)));
       Mantissa : constant Integer := Float_Mantissa_Size (Width);
    begin
+      ASVAT.Size_Model.Set_Static_Size (E          => E,
+                                        Model_Size => Width);
       if Nkind (Scalar_Range_Ent) = N_Real_Range_Specification then
          --  If user specified range bounds we store them
          declare
@@ -6397,6 +6400,7 @@ package body Tree_Walk is
    end Process_Statements;
 
    function Do_Modular_Type_Definition (N : Node_Id) return Irep is
+      E       : constant Entity_Id := Defining_Identifier (Parent (N));
       Mod_Max : constant Uint := Intval (Expression (N));
       --  We start at 1, not 0, because our bitvectors
       --  can't be smaller than 1 bit
@@ -6416,6 +6420,8 @@ package body Tree_Walk is
          return Make_Unsignedbv_Type (Width => Mod_Max_Binary_Logarithm);
       end if;
 
+      ASVAT.Size_Model.Set_Static_Size (E          => E,
+                                 Model_Size => Mod_Max_Binary_Logarithm);
       return Make_Ada_Mod_Type
         (Width => Ada_Type_Size,
          Ada_Mod_Max => Convert_Uint_To_Hex
@@ -6486,23 +6492,29 @@ package body Tree_Walk is
 
    function Do_Access_Function_Definition (N : Node_Id) return Irep
    is
+      E : constant Entity_Id := Defining_Identifier (Parent (N));
       --  The subprogram Do_Subprogram_Specification can be used
       --  here for commonality.
       --  Do_Subprogram_Specification has to be extended to accept
       --  N_Access_Procedure and N_Access_Function nodes as well as
       --  N_Subprogram_Specification nodes.
    begin
+      ASVAT.Size_Model.Set_Static_Size (E          => E,
+                                 Model_Size => Pointer_Type_Width);
       return Make_Pointer_Type (Do_Subprogram_Specification (N));
    end Do_Access_Function_Definition;
 
    function Do_Access_To_Object_Definition (N : Node_Id) return Irep
    is
+      E : constant Entity_Id := Defining_Identifier (Parent (N));
       Sub_Indication : constant Node_Id := Subtype_Indication (N);
       Under_Type : constant Node_Id := Etype
         (if Nkind (Sub_Indication) = N_Subtype_Indication
          then Subtype_Mark (Sub_Indication)
          else Sub_Indication);
    begin
+      ASVAT.Size_Model.Set_Static_Size (E          => E,
+                                 Model_Size => Pointer_Type_Width);
       return Make_Pointer_Type (Do_Type_Reference (Under_Type));
    end Do_Access_To_Object_Definition;
 

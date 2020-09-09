@@ -45,6 +45,7 @@ with Lib;                   use Lib;
 with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
 with Range_Check;           use Range_Check;
+with ASVAT.Size_Model;
 
 with GNAT2GOTO.Options;
 
@@ -143,6 +144,7 @@ package body Driver is
 
    procedure Initialize_CProver_Internal_Variables (Start_Body : Irep) is
       Int_32_T : constant Irep := Make_Signedbv_Type (32);
+      Bool_T   : constant Irep := Make_Unsignedbv_Type (CProver_Bool_Width);
 
       procedure Declare_Missing_Global (Symbol_Expr : Irep)
         with Pre => Kind (Symbol_Expr) = I_Symbol_Expr;
@@ -302,7 +304,7 @@ package body Driver is
             Source_Location => Internal_Source_Location);
          True_Val : constant Irep := Make_Op_Typecast
            (Op0 => Make_Constant_Expr
-              (I_Type => Int_32_T,
+              (I_Type => Bool_T,
                Value => "1",
                Source_Location => Internal_Source_Location),
             I_Type => Make_Bool_Type,
@@ -318,7 +320,7 @@ package body Driver is
             Source_Location => Internal_Source_Location);
          False_Val : constant Irep := Make_Op_Typecast
            (Op0 => Make_Constant_Expr
-              (I_Type => Int_32_T,
+              (I_Type => Bool_T,
                Value => "0",
                Source_Location => Internal_Source_Location),
             I_Type => Make_Bool_Type,
@@ -613,12 +615,16 @@ package body Driver is
         return Irep;
       function Translate_Floating_Type (Type_Node : Node_Id)
         return Irep;
+      function Translate_Boolean_Type (Type_Node : Node_Id)
+        return Irep;
       Translated_Boolean_Type : constant Irep := CProver_Bool_T;
 
       function Translate_Signed_Type (Type_Node : Node_Id)
                                      return Irep
       is
+         Width : constant Integer := Get_Bv_Width (Type_Node);
       begin
+         ASVAT.Size_Model.Set_Static_Size (Type_Node, Width);
          if Type_Node in Standard_Natural | Standard_Positive then
             --  It is a bounded integer subtype
             declare
@@ -628,7 +634,7 @@ package body Driver is
                 Intval (Type_High_Bound (Standard_Integer));
             begin
                return Make_Bounded_Signedbv_Type
-                       (Width       => Get_Bv_Width (Type_Node),
+                       (Width       => Width,
                         Lower_Bound =>
                           Store_Nat_Bound (Bound_Type_Nat (Lower_Bound)),
                         Upper_Bound =>
@@ -637,14 +643,20 @@ package body Driver is
          else
             --  It is an unbounded integer type
             return Make_Signedbv_Type
-              (Width => Get_Bv_Width (Type_Node));
+              (Width => Width);
          end if;
       end Translate_Signed_Type;
 
       function Translate_Enum_Type (Type_Node : Node_Id)
                                    return Irep
-      is (Make_Unsignedbv_Type
-            (Width => Get_Bv_Width (Type_Node)));
+      is
+         Width : constant Integer := Get_Bv_Width (Type_Node);
+      begin
+         ASVAT.Size_Model.Set_Static_Size (Type_Node, Width);
+         return
+           Make_Unsignedbv_Type
+             (Width => Width);
+      end Translate_Enum_Type;
 
       function Translate_Floating_Type (Type_Node : Node_Id)
                                        return Irep
@@ -652,10 +664,19 @@ package body Driver is
          Width : constant Integer :=  Get_Bv_Width (Type_Node);
          Mantissa_Size : constant Integer := Float_Mantissa_Size (Width);
       begin
+         ASVAT.Size_Model.Set_Static_Size (Type_Node, Width);
          return Make_Floatbv_Type
            (Width => Width,
             F => Mantissa_Size);
       end Translate_Floating_Type;
+
+      function Translate_Boolean_Type (Type_Node : Node_Id)
+                                      return Irep is
+      begin
+         ASVAT.Size_Model.Set_Static_Size (Type_Node, CProver_Bool_Width);
+         return Translated_Boolean_Type;
+      end Translate_Boolean_Type;
+
    begin
       --  Add primitive types to the symtab.
       --  It seems as though the parsing of Standard by the front-end does
@@ -672,7 +693,7 @@ package body Driver is
                when E_Enumeration_Type =>
                   (if Standard_Type /= S_Boolean
                      then Translate_Enum_Type (Builtin_Node)
-                     else Translated_Boolean_Type),
+                     else Translate_Boolean_Type (Builtin_Node)),
                when others => CProver_Nil_T);
             Type_Symbol : constant Symbol :=
             (Name | PrettyName | BaseName =>

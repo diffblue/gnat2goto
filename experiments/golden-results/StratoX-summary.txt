@@ -1710,7 +1710,7 @@ Error detected at REDACTED
 --
 Occurs: 7 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:148|
 Error detected at REDACTED
 --
 Occurs: 3 times
@@ -1770,12 +1770,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:148|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:147|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:148|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2190,7 +2190,7 @@ Error detected at REDACTED
 --
 Occurs: 25 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from goto_utils.ads:147
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from goto_utils.ads:148
 
 --
 Occurs: 2 times
