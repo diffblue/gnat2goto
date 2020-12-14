@@ -173,25 +173,6 @@ package body Driver is
          end if;
       end Declare_Missing_Global;
 
-      procedure Initialize_CProver_Rounding_Mode;
-      procedure Initialize_CProver_Rounding_Mode is
-         Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
-           (I_Type => Int_32_T,
-            Identifier => "__CPROVER_rounding_mode",
-            Source_Location => Internal_Source_Location);
-         Rounding_Mode_Val_Bits : constant String (1 .. 32) := (others => '0');
-         Rounding_Mode_Val : constant Irep := Make_Constant_Expr
-           (I_Type => Int_32_T,
-            Value => Rounding_Mode_Val_Bits,
-            Source_Location => Internal_Source_Location);
-         Initialization_Statement : constant Irep := Make_Code_Assign
-           (Lhs => Rounding_Mode_Sym,
-            Rhs => Rounding_Mode_Val,
-            Source_Location => Internal_Source_Location);
-      begin
-         Append_Op (Start_Body, Initialization_Statement);
-      end Initialize_CProver_Rounding_Mode;
-
       procedure Initialize_CProver_Dead_Object;
       procedure Initialize_CProver_Dead_Object is
          Dead_Object_Type : constant Irep :=
@@ -259,6 +240,25 @@ package body Driver is
                Rhs => Malloc_Object_Val,
                Source_Location => Internal_Source_Location));
       end Initialize_CProver_Malloc_Object;
+      
+      procedure Initialize_CProver_Rounding_Mode;
+      procedure Initialize_CProver_Rounding_Mode is
+         Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Int_32_T,
+            Identifier => "__CPROVER_rounding_mode",
+            Source_Location => Internal_Source_Location);
+         Rounding_Mode_Val_Bits : constant String (1 .. 32) := (others => '0');
+         Rounding_Mode_Val : constant Irep := Make_Constant_Expr
+           (I_Type => Int_32_T,
+            Value => Rounding_Mode_Val_Bits,
+            Source_Location => Internal_Source_Location);
+         Initialization_Statement : constant Irep := Make_Code_Assign
+           (Lhs => Rounding_Mode_Sym,
+            Rhs => Rounding_Mode_Val,
+            Source_Location => Internal_Source_Location);
+      begin
+         Append_Op (Start_Body, Initialization_Statement);
+      end Initialize_CProver_Rounding_Mode;
 
       procedure Initialize_Enum_Values;
       procedure Initialize_Enum_Values is
@@ -344,10 +344,10 @@ package body Driver is
       end Initialize_Boolean_Values;
 
    begin
-      Initialize_CProver_Rounding_Mode;
       Initialize_CProver_Dead_Object;
       Initialize_CProver_Deallocated;
       Initialize_CProver_Malloc_Object;
+      Initialize_CProver_Rounding_Mode;
       Initialize_Enum_Values;
       Initialize_Boolean_Values;
    end Initialize_CProver_Internal_Variables;
