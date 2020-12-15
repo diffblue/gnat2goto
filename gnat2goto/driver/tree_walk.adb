@@ -5805,8 +5805,9 @@ package body Tree_Walk is
             null;
 
          when N_Use_Type_Clause =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Use type clause declaration");
+            --  The gnat front end deals with making the type operations
+            --  visible.  Here the node is just accepted.
+            null;
 
             --  proper_body  --
 
