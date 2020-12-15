@@ -368,7 +368,7 @@ package body Driver is
            (I_Type => Int_32_T,
             Identifier => "__CPROVER_rounding_mode",
             Source_Location => Internal_Source_Location);
-         Rounding_Mode_Val_Bits : constant String (1 .. 32) := (others => '0');
+         Rounding_Mode_Val_Bits : constant String (1 .. 8) := (others => '0');
          Rounding_Mode_Val : constant Irep := Make_Constant_Expr
            (I_Type => Int_32_T,
             Value => Rounding_Mode_Val_Bits,
