@@ -5439,6 +5439,11 @@ package body Tree_Walk is
                Do_Subprogram_Declaration (N);
             when N_Package_Declaration =>
                Do_Package_Declaration (N);
+            when N_Package_Renaming_Declaration =>
+               --  The gnat front end handles the renaming declaration but
+               --  the N_Package_Renaming_Declaration node remains in the
+               --  atree.  It must be "swallowed".
+               null;
             when N_Package_Body =>
                null;
             when N_Generic_Subprogram_Declaration
