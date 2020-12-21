@@ -275,6 +275,9 @@ package body Tree_Walk is
                              N_Entry_Body,
         Post => Kind (Do_Subprogram_Or_Block'Result) = I_Code_Block;
 
+   procedure Do_Subprogram_Renaming_Declaration (N : Node_Id)
+   with Pre => Nkind (N) = N_Subprogram_Renaming_Declaration;
+
    function Do_Subprogram_Specification (N : Node_Id) return Irep
      with Pre  => Nkind (N) in N_Subprogram_Specification |
                                N_Access_Procedure_Definition |
@@ -1704,13 +1707,7 @@ package body Tree_Walk is
    -- Do_Function_Call --
    ----------------------
 
-   function Do_Function_Call (N : Node_Id) return Irep
-   is
-      Func_Ent      : Entity_Id;
-      Func_Name     : Symbol_Id;
-      Func_Symbol   : Symbol;
-      Func_Declared : Boolean;
-
+   function Do_Function_Call (N : Node_Id) return Irep is
    begin
       --  It seems as though an N_Explicit_Drereference is placed in the tree
       --  even when the function call is an implicit dereference.
@@ -1750,29 +1747,62 @@ package body Tree_Walk is
                                             "Wrong name nkind");
       end if;
 
-      Func_Ent := Entity (Name (N));
-      Func_Name := Intern (Unique_Name (Func_Ent));
-      Func_Declared := Global_Symbol_Table.Contains (Func_Name);
-
-      if Nkind (Func_Ent) /= N_Defining_Identifier then
-         return Report_Unhandled_Node_Irep (Func_Ent, "Do_Function_Call",
+      declare
+         Func_Ent      : constant Entity_Id := Entity (Name (N));
+         Func_Name     : constant String := Unique_Name (Func_Ent);
+         Func_Id       : constant Symbol_Id := Intern (Func_Name);
+         --  Unless the function entity is an RTS call, it will have an entry
+         --  in the symbol table even if it is a renamed function.  This
+         --  is ensured by Do_Subprogram_Renaming_Declaration.
+         Func_Declared : constant Boolean :=
+           Global_Symbol_Table.Contains (Func_Id);
+      begin
+         if Nkind (Func_Ent) /= N_Defining_Identifier then
+            return Report_Unhandled_Node_Irep (Func_Ent, "Do_Function_Call",
                                     "function entity not defining identifier");
-      end if;
+         end if;
 
-      if Func_Declared then
-         Func_Symbol  := Global_Symbol_Table (Func_Name);
-         return Make_Side_Effect_Expr_Function_Call
-           (Source_Location => Get_Source_Location (N),
-            I_Function => Symbol_Expr (Func_Symbol),
-            Arguments => Do_Call_Parameters (N),
-            I_Type => Get_Return_Type (Func_Symbol.SymType));
-      else
-         --  This can happen for RTS functions (body not parsed by us)
-         --  TODO: handle RTS functions in a sane way
-         return Report_Unhandled_Node_Irep
-           (N, "Do_Function_Call",
-            "function " & Unintern (Func_Name) & " not in symbol table");
-      end if;
+         if Func_Declared then
+            declare
+               Func_Symbol   : constant Symbol :=
+                 Global_Symbol_Table (Func_Id);
+               --  Use the name from the function symbol because the
+               --  function call may be to a renaming of a function and
+               --  goto requires the original function name.
+               --  The funtion symbol contains the original function
+               --  name as this was established by the processing of the
+               --  renaming declaration by
+               --  Do_Subprogram_Renaming_Declaration.
+            begin
+               if Func_Symbol.SymType /= Ireps.Empty then
+                  return Make_Side_Effect_Expr_Function_Call
+                    (Source_Location => Get_Source_Location (N),
+                     I_Function => Symbol_Expr (Func_Symbol),
+                     Arguments => Do_Call_Parameters (N),
+                     I_Type => Get_Return_Type (Func_Symbol.SymType));
+               else
+                  --  The original function that has been renamed is not in
+                  --  the symbol.
+                  --  Could this happen with RTS functions?
+                  --  Can they be renamed?
+                  --  Do_Subprogram_Renaming_Declaration ensures the name
+                  --  of the renamed missing subprogram is entered into
+                  --  the function symbol.
+                  return Report_Unhandled_Node_Irep
+                    (N, "Do_Function_Call",
+                     "Renamed function " & Unintern (Func_Symbol.Name) &
+                       " not in symbol table");
+               end if;
+            end;
+         else
+            --  This can happen for RTS functions (body not parsed by us)
+            --  TODO: handle RTS functions in a sane way
+            return Report_Unhandled_Node_Irep
+              (N, "Do_Function_Call",
+               "function " & Func_Name &
+                 " not in symbol table");
+         end if;
+      end;
    end Do_Function_Call;
 
    ---------------------------------------
@@ -4262,9 +4292,8 @@ package body Tree_Walk is
       end if;
 
       declare
-         Callee : constant Unbounded_String
-           := To_Unbounded_String (Unique_Name (Entity (Name (N))));
-         Sym_Id : constant Symbol_Id := Intern (To_String (Callee));
+         Callee : constant String := Unique_Name (Entity (Name (N)));
+         Sym_Id : constant Symbol_Id := Intern (Callee);
       begin
          if not Global_Symbol_Table.Contains (Sym_Id) then
             return Report_Unhandled_Node_Irep
@@ -4276,18 +4305,30 @@ package body Tree_Walk is
             --  ??? use Get_Entity_Name from gnat2why to handle entries and
             --  entry families (and most likely extend it for accesses to
             --  subprograms).
-
-            Function_Type : constant Irep := Global_Symbol_Table
-              (Sym_Id).SymType;
+            Function_Symbol : constant Symbol := Global_Symbol_Table (Sym_Id);
+            Function_Type   : constant Irep := Function_Symbol.SymType;
+            --  The function name is obtained from the function symbol
+            --  because this will give the name of the actual function called
+            --  even if it has been renamed.
+            Function_Name   : constant String :=
+              Unintern (Function_Symbol.Name);
          begin
-            return Make_Code_Function_Call
-              (I_Function => Make_Symbol_Expr
-                 (Identifier => To_String (Callee),
-                  I_Type => Function_Type,
-                  Source_Location => Get_Source_Location (N)),
-               Arguments => Do_Call_Parameters (N),
-               Lhs => CProver_Nil,
-               Source_Location => Get_Source_Location (N));
+            if Function_Symbol.SymType /= Ireps.Empty then
+               return Make_Code_Function_Call
+                 (I_Function => Make_Symbol_Expr
+                    (Identifier => Function_Name,
+                     I_Type => Function_Type,
+                     Source_Location => Get_Source_Location (N)),
+                  Arguments => Do_Call_Parameters (N),
+                  Lhs => CProver_Nil,
+                  Source_Location => Get_Source_Location (N));
+            else
+               return Report_Unhandled_Node_Irep
+                 (N        => N,
+                  Fun_Name => "Do_Procedure_Call_Statement",
+                  Message  => "Renamed procedure " & Function_Name &
+                    " is not in the symbol table");
+            end if;
          end;
       end;
    end Do_Procedure_Call_Statement;
@@ -5076,6 +5117,47 @@ package body Tree_Walk is
       return Reps;
    end Do_Subprogram_Or_Block;
 
+   ----------------------------------------
+   -- Do_Subprogram_Renaming_Declaration --
+   ----------------------------------------
+
+   procedure Do_Subprogram_Renaming_Declaration (N : Node_Id) is
+      Renaming_Entity   : constant Entity_Id := Defining_Entity (N);
+      Original_Entity   : constant Entity_Id := Entity (Name (N));
+      Renaming_Name     : constant String := Unique_Name (Renaming_Entity);
+      Original_Name     : constant String := Unique_Name (Original_Entity);
+      Renaming_Id       : constant Symbol_Id := Intern (Renaming_Name);
+      Original_Id       : constant Symbol_Id := Intern (Original_Name);
+      Original_Declared : constant Boolean :=
+        Global_Symbol_Table.Contains (Original_Id);
+   begin
+      if Ekind (Renaming_Entity) = E_Subprogram_Body or else
+        Ekind (Original_Entity) = E_Enumeration_Literal or else
+        not Original_Declared
+      then
+         --  Nothing to be done. The front-end handles these cases.
+         --  If the original function is not declared it is probably an
+         --  inbuilt function like "+".
+         return;
+      end if;
+
+      declare
+         Original_Sym : constant Symbol := Global_Symbol_Table (Original_Id);
+      begin
+         --  The renaming entity should not be in the symbol table.
+         if not Global_Symbol_Table.Contains (Renaming_Id) then
+
+            --  The Original entity's Symbol is copied to the renaming enities
+            --  Symbol.  This means, in goto the original subprogram is called
+            --  rather than its renaming.
+            Global_Symbol_Table.Insert
+              (Key      => Renaming_Id,
+               New_Item => Original_Sym);
+         end if;
+         pragma Assert (Global_Symbol_Table.Contains (Renaming_Id));
+      end;
+   end Do_Subprogram_Renaming_Declaration;
+
    --------------------------------
    -- Do_Subprogram_Specification --
    --------------------------------
@@ -5688,10 +5770,15 @@ package body Tree_Walk is
          when N_Package_Declaration =>
             Do_Package_Declaration (N);
 
-         when N_Renaming_Declaration =>
-            --  renaming declarations are handled by the gnat front-end;
-            null;
+         --  remaining declarative items  --
 
+         when N_Renaming_Declaration =>
+            if Nkind (N) = N_Subprogram_Renaming_Declaration then
+               Do_Subprogram_Renaming_Declaration (N);
+            else
+               --  other renaming declarations are handled by the front-end;
+               null;
+            end if;
          when N_Exception_Declaration => Do_Exception_Declaration (N);
 
          when N_Generic_Declaration =>
@@ -5712,8 +5799,6 @@ package body Tree_Walk is
          when N_Use_Type_Clause =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Use type clause declaration");
-
-         --  remaining declarative items  --
 
             --  proper_body  --
 
