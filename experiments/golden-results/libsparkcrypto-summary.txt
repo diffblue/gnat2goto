@@ -18,20 +18,10 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
 Nkind: N_Pragma
 --
-Occurs: 82 times
-Calling function: Do_Function_Call
-Error message: function entity not defining identifier
-Nkind: N_Defining_Operator_Symbol
---
 Occurs: 68 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_UNRESTRICTED_ACCESS unsupported
 Nkind: N_Attribute_Reference
---
-Occurs: 47 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
 --
 Occurs: 26 times
 Calling function: Process_Pragma_Declaration
@@ -42,6 +32,11 @@ Occurs: 21 times
 Calling function: Do_Expression
 Error message: Quantified
 Nkind: N_Quantified_Expression
+--
+Occurs: 14 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_LOOP_ENTRY unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 7 times
 Calling function: Do_Op_Expon
@@ -67,6 +62,11 @@ Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Operator_General
+Error message: Concat unsupported
+Nkind: N_Op_Concat
 --
 Occurs: 32 times
 Redacted compiler error message:

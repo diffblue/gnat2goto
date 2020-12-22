@@ -28,11 +28,6 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_REMAINDER unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 3 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
---
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_SCALING unsupported
