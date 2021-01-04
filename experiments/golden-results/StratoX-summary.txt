@@ -119,11 +119,6 @@ Error message: type not in symbol table after declaration
 Nkind: N_Full_Type_Declaration
 --
 Occurs: 1 times
-Calling function: Do_Function_Call
-Error message: function entity not defining identifier
-Nkind: N_Defining_Operator_Symbol
---
-Occurs: 1 times
 Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
