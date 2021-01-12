@@ -1,1 +1,1 @@
-ALL XFAIL CBMC fails with __new_array not found
+ALL XFAIL gnat2goto Assert_Failure failed postcondition from arrays.ads

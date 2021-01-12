@@ -1,0 +1,10 @@
+[good_size.assertion.2] line 25 assertion I = 8: SUCCESS
+[good_size.assertion.1] line 28 Ada Check assertion: FAILURE
+[good_size.assertion.3] line 29 assertion I = 8: SUCCESS
+[good_size.assertion.4] line 35 assertion J = 4: SUCCESS
+[good_size.assertion.5] line 42 assertion J = 8: SUCCESS
+[good_size.assertion.6] line 46 assertion K = 32: SUCCESS
+[good_size.assertion.7] line 49 assertion K = 32: SUCCESS
+[good_size.assertion.8] line 53 assertion R'Size = 33: SUCCESS
+[good_size.assertion.9] line 57 assertion R_Obj'Size >= R'Size: SUCCESS
+VERIFICATION FAILED

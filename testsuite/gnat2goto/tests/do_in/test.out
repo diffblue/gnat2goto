@@ -1,4 +1,9 @@
-[do_in_int.assertion.1] line 14 assertion I in Small_Int: SUCCESS
-[inc.assertion.2] line 6 assertion E in Small_Int: SUCCESS
-[inc.assertion.1] line 7 Ada Check assertion: FAILURE
+[dec.assertion.1] line 16 assertion E in Small_Int: SUCCESS
+[do_in_int.assertion.1] line 29 assertion I in Small_Int: SUCCESS
+[do_in_int.assertion.2] line 35 assertion I in Small_Int: SUCCESS
+[do_in_int.assertion.3] line 40 assertion I in Small_Int: SUCCESS
+[do_in_int.assertion.4] line 44 assertion I in Small_Int: SUCCESS
+[do_in_int.assertion.5] line 47 assertion I = 3: SUCCESS
+[inc.assertion.2] line 7 assertion E in Small_Int: SUCCESS
+[inc.assertion.1] line 10 Ada Check assertion: FAILURE
 VERIFICATION FAILED

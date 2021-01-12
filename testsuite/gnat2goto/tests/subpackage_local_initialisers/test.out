@@ -1,4 +1,3 @@
-[assertion.1] file subpackage_local_initialisers.adb line 12 Ada Check assertion: SUCCESS
-subpackage_local_initialisers.adb function subpackage_local_initialisers
-[subpackage_local_initialisers.assertion.1] line 15 assertion Subpackage.Get_Value = Double (21): SUCCESS
-VERIFICATION SUCCESSFUL
+[double.assertion.1] line 12 Ada Check assertion: SUCCESS
+[subpackage_local_initialisers.assertion.1] line 15 assertion Subpackage.Get_Value = Double (21): FAILURE
+VERIFICATION FAILED
