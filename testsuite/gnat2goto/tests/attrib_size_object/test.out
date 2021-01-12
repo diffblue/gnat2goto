@@ -1,0 +1,5 @@
+[object_size.assertion.1] line 15 assertion Small_Pos = 7: SUCCESS
+[object_size.assertion.2] line 22 assertion Small_Pos = 8: SUCCESS
+[object_size.assertion.4] line 29 Ada Check assertion: SUCCESS
+[object_size.assertion.3] line 30 assertion Uncons_SP = 32: SUCCESS
+VERIFICATION SUCCESSFUL
