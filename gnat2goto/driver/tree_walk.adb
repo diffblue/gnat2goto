@@ -5439,6 +5439,11 @@ package body Tree_Walk is
                Do_Subprogram_Declaration (N);
             when N_Package_Declaration =>
                Do_Package_Declaration (N);
+            when N_Package_Renaming_Declaration =>
+               --  The gnat front end handles the renaming declaration but
+               --  the N_Package_Renaming_Declaration node remains in the
+               --  atree.  It must be "swallowed".
+               null;
             when N_Package_Body =>
                null;
             when N_Generic_Subprogram_Declaration
@@ -5800,8 +5805,9 @@ package body Tree_Walk is
             null;
 
          when N_Use_Type_Clause =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Use type clause declaration");
+            --  The gnat front end deals with making the type operations
+            --  visible.  Here the node is just accepted.
+            null;
 
             --  proper_body  --
 

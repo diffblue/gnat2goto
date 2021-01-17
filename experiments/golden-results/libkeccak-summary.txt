@@ -3,11 +3,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 47 times
-Calling function: Process_Declaration
-Error message: Use type clause declaration
-Nkind: N_Use_Type_Clause
---
 Occurs: 9 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
