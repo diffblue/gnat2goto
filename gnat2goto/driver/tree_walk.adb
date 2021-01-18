@@ -6170,9 +6170,6 @@ package body Tree_Walk is
          when Name_Obsolescent =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Obsolescent");
-         when Name_Initializes =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Initializes");
          when Name_Annotate =>
             --  Annotate ASVAT is only supported as an aspect
             if not From_Aspect_Specification (N) then
@@ -6218,6 +6215,9 @@ package body Tree_Walk is
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
+              Name_Initializes |
+            --  Used to indicate that variables have been initialized by
+            --  elaboration for SPARK flow analysis. -> Ignored
               Name_Inspection_Point |
             --  Identifies a set of objects each of whose values is to be
             --  available at the point(s) during program execution
