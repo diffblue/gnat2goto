@@ -8,11 +8,6 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
 --
-Occurs: 11 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Initializes
-Nkind: N_Pragma
---
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: depends
@@ -108,7 +103,7 @@ Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
 Raw compiler error message:
 --
-Occurs: 51 times
+Occurs: 49 times
 Redacted compiler error message:
 violation of restriction "REDACTED"
 Raw compiler error message:
@@ -216,11 +211,6 @@ Raw compiler error message:
 Occurs: 5 times
 Redacted compiler error message:
 file "REDACTED" not found
-Raw compiler error message:
---
-Occurs: 5 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 4 times
@@ -341,6 +331,11 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -2631,6 +2626,11 @@ Raw compiler error message:
 Occurs: 1 times
 Redacted compiler error message:
 cannot compile subprogram in file "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
 Raw compiler error message:
 --
 Occurs: 1 times
