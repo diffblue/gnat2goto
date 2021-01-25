@@ -1,0 +1,12 @@
+[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
+[precondition_instance.4] file <internal> memcpy src/dst overlap: SUCCESS
+[precondition_instance.5] file <internal> memcpy source region readable: SUCCESS
+[precondition_instance.6] file <internal> memcpy destination region writeable: SUCCESS
+[index.assertion.1] line 52 Ada Check assertion: SUCCESS
+[priv_typ_aggregate.assertion.1] line 65 assertion Get_I_Priv (V_P) = 3: SUCCESS
+[priv_typ_aggregate.assertion.2] line 66 assertion Get_J_Lim (V_L) = 11: SUCCESS
+[priv_typ_aggregate.assertion.3] line 69 assertion Index (A_P, 3) = 3: SUCCESS
+[priv_typ_aggregate.assertion.4] line 70 assertion Index (A_L, 5) = 5: SUCCESS
+VERIFICATION SUCCESSFUL
