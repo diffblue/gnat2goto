@@ -1,0 +1,8 @@
+[init.assertion.1] line 8 assertion NewVar1 = PragmaInitVars.Variable1: FAILURE
+[init.assertion.2] line 9 assertion NewVar2 = PragmaInitVars.Variable2: FAILURE
+[init.assertion.3] file pragmainitnull.adb line 8 assertion Variable1 = 1: SUCCESS
+[init.assertion.4] file pragmainitnull.adb line 9 assertion Variable2 = 2: SUCCESS
+[init.assertion.5] file pragmainitvars.adb line 8 assertion Variable1 = 1: SUCCESS
+[init.assertion.6] file pragmainitvars.adb line 9 assertion Variable2 = 2: SUCCESS
+[init.assertion.7] file pragmainitvars.adb line 10 assertion Variable3 = 3: SUCCESS
+VERIFICATION FAILED
