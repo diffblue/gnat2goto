@@ -150,11 +150,6 @@ Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Atomic
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Effective writes
 Nkind: N_Pragma
 --
