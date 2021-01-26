@@ -6004,9 +6004,9 @@ package body Tree_Walk is
               Name_Atomic_Components =>
             --  For an atomic object all reads and updates of the object as a
             --  whole are indivisible. It changes the semantics wrt to thread
-            --  interleavings.
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Atomic");
+            --  interleavings. Only changes the way data is written/read
+            --  not the values themselves. -> Ignored
+            null;
          when Name_Volatile |
               Name_Volatile_Components =>
             --  For a volatile object all reads and updates of the object as a
