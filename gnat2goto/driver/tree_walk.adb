@@ -550,7 +550,7 @@ package body Tree_Walk is
    --------------------------
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep is
-      N_Type : constant Entity_Id := Etype (N);
+      N_Type : constant Entity_Id :=  Underlying_Type (Etype (N));
       --  TOCHECK: Parent type may be more than one step away?
    begin
       case Ekind (N_Type) is
@@ -577,7 +577,7 @@ package body Tree_Walk is
 
    function Do_Aggregate_Literal_Record (N : Node_Id) return Irep is
       N_Type : constant Entity_Id := Etype (N);
-      N_Underlying_Type : constant Node_Id := Etype (N_Type);
+      N_Underlying_Type : constant Node_Id := Underlying_Type (N_Type);
    begin
       --  It appears GNAT sorts the aggregate members for us into the order
       --  discriminant (if any), common members, variant members.
@@ -588,7 +588,7 @@ package body Tree_Walk is
          Variant_Node : constant Node_Id := Variant_Part (Components);
 
          Component_Iter : Node_Id :=
-           First_Component_Or_Discriminant (N_Type);
+           First_Component_Or_Discriminant (N_Underlying_Type);
          Actual_Iter    : Node_Id := First (Component_Associations (N));
          Struct_Expr : constant Irep := Make_Struct_Expr
            (Source_Location => Get_Source_Location (N),
