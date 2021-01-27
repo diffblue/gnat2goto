@@ -44,11 +44,6 @@ Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 2 times
-Calling function: Do_Aggregate_Literal
-Error message: Unhandled aggregate kind: E_PRIVATE_TYPE
-Nkind: N_Aggregate
---
-Occurs: 2 times
 Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
@@ -62,11 +57,6 @@ Occurs: 2 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Do_Aggregate_Literal
-Error message: Unhandled aggregate kind: E_RECORD_TYPE_WITH_PRIVATE
-Nkind: N_Aggregate
 --
 Occurs: 1 times
 Calling function: Do_Expression
