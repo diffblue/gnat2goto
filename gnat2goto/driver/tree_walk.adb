@@ -1045,29 +1045,32 @@ package body Tree_Walk is
    -----------------
 
    function Do_Constant (N : Node_Id) return Irep is
-      Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Int_Val : constant Uint := Intval (N);
-      Source_Loc : constant Irep := Get_Source_Location (N);
-      Is_Address : constant Boolean :=
-        Unique_Name (Etype (N)) = "system__address";
-      Is_Integer : constant Boolean := Etype (N) = Stand.Universal_Integer;
-      Is_BV      : constant Boolean :=
+      E_Type        : constant Entity_Id := Etype (N);
+      Constant_Type : constant Irep := Do_Type_Reference (E_Type);
+      Int_Val       : constant Uint := Expr_Value (N);
+      Source_Loc    : constant Irep := Get_Source_Location (N);
+      Is_Address    : constant Boolean :=
+        Unique_Name (E_Type) = "system__address";
+      Is_Integer    : constant Boolean := Is_Integer_Type (E_Type);
+      Is_BV         : constant Boolean :=
         Kind (Constant_Type) in Class_Bitvector_Type;
 
       Const_Irep : constant Irep :=
-        (if Is_Integer or Is_Address then
-              Make_Constant_Expr
-           (Source_Location => Source_Loc,
-            I_Type          => Constant_Type,
-            Range_Check     => False,
-            Value           => UI_Image (Int_Val, Decimal))
-         elsif Is_BV then
+      --  Test for BV has to come first because a BV type may be an
+      --  an Integer also.
+        (if Is_BV then
             Make_Constant_Expr
            (Source_Location => Source_Loc,
             I_Type          => Constant_Type,
             Range_Check     => False,
             Value           =>
               Convert_Uint_To_Hex (Int_Val, Pos (Get_Width (Constant_Type))))
+         elsif Is_Integer or Is_Address then
+              Make_Constant_Expr
+           (Source_Location => Source_Loc,
+            I_Type          => Constant_Type,
+            Range_Check     => False,
+            Value           => UI_Image (Int_Val, Decimal))
          else
             Make_Constant_Expr (Source_Location => Source_Loc,
                                 I_Type          => Constant_Type,
