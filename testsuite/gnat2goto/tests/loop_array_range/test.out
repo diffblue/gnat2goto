@@ -3,5 +3,6 @@
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
 [loop_array_range.assertion.1] line 8 Ada Check assertion: SUCCESS
 [loop_array_range.assertion.3] line 8 Ada Check assertion: SUCCESS
-[loop_array_range.assertion.2] line 11 assertion Sum=6: FAILURE
-VERIFICATION FAILED
+[loop_array_range.assertion.2] line 11 assertion Sum=10: SUCCESS
+VERIFICATION SUCCESSFUL
+

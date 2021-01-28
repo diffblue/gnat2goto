@@ -15,7 +15,7 @@ procedure Do_In_Int is
       --  This assertion should succeed.
       pragma Assert (E in Small_Int);
       --  Should get a check failure here if E = .
-      --  TJJ 23/06/20 - cbmc no range check failure given when E = 1.
+      --  TJJ 04/01/21 - cbmc - check does fail when E = 1.
       E := E - 1;
    end Dec;
 
@@ -36,13 +36,13 @@ begin
 
    I := 3;
    Inc (I);
-   --  Assertion shoul succeed - and does.
+   --  Assertion should succeed - and does.
    pragma Assert (I in Small_Int);
 
    Dec (I);
-   --  Assertion shoul succeed - and does.
+   --  Assertion should succeed - and does.
    pragma Assert (I in Small_Int);
 
-   --  Assertion shoul succeed - and does.
+   --  Assertion should succeed - and does.
    pragma Assert (I = 3);
 end Do_In_Int;
