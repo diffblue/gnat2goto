@@ -6602,14 +6602,19 @@ package body Tree_Walk is
    is
       E : constant Entity_Id := Defining_Identifier (Parent (N));
       Sub_Indication : constant Node_Id := Subtype_Indication (N);
-      Under_Type : constant Node_Id := Etype
-        (if Nkind (Sub_Indication) = N_Subtype_Indication
-         then Subtype_Mark (Sub_Indication)
-         else Sub_Indication);
+      Under_Type : constant Node_Id := Underlying_Type
+        (Etype
+           (if Nkind (Sub_Indication) = N_Subtype_Indication
+            then Subtype_Mark (Sub_Indication)
+            else Sub_Indication));
    begin
       ASVAT.Size_Model.Set_Static_Size (E          => E,
-                                 Model_Size => Pointer_Type_Width);
-      return Make_Pointer_Type (Do_Type_Reference (Under_Type));
+                                        Model_Size => Pointer_Type_Width);
+      return Make_Pointer_Type
+        (if Is_Record_Type (Under_Type) then
+              Make_Struct_Tag_Type (Unique_Name (Under_Type))
+         else
+            Do_Type_Reference (Under_Type));
    end Do_Access_To_Object_Definition;
 
    function Get_No_Return_Check return Irep is
