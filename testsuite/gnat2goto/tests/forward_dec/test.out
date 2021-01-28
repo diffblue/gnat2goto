@@ -1,0 +1,12 @@
+Standard_Output from gnat2goto forward_dec:
+----------At: Do_Aggregate_Literal_Array----------
+----------Array aggregates of type string are unsupported----------
+N_Aggregate (Node_Id=2504) (source,analyzed)
+ Parent = N_Qualified_Expression (Node_Id=2626)
+ Sloc = 9581  forward_dec.adb:50:38
+ Etype = N_Defining_Identifier "T5b" (Entity_Id=2619)
+ Component_Associations = List (List_Id=-99999952)
+ Aggregate_Bounds = N_Range (Node_Id=2611)
+
+[forward_dec.assertion.1] line 61 assertion Val_T (V) = 0: SUCCESS
+VERIFICATION SUCCESSFUL
