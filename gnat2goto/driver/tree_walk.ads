@@ -156,5 +156,11 @@ package Tree_Walk is
    function Do_Selected_Component (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Selected_Component,
         Post => Kind (Do_Selected_Component'Result) in
-          I_Member_Expr | I_Op_Comma;
+                I_Member_Expr | I_Op_Comma;
+
+   --  Required by Gnat2goto.Itpes.Declare_Itype
+   function Do_Enumeration_Definition (N : Node_Id) return Irep
+   with Pre  => Nkind (N) = N_Enumeration_Type_Definition,
+        Post => Kind (Do_Enumeration_Definition'Result) = I_C_Enum_Type;
+
 end Tree_Walk;

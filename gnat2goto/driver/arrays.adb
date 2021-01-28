@@ -11,7 +11,18 @@ package body Arrays is
    -- Do_Aggregate_Literal_Array --
    --------------------------------
 
+   function Do_Aggregate_Literal_Array_Main (N : Node_Id) return Irep;
+
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep is
+     (if Einfo.Is_Standard_String_Type (Etype (N)) then
+         Report_Unhandled_Node_Irep
+        (N        => N,
+         Fun_Name => "Do_Aggregate_Literal_Array",
+         Message  => "Array aggregates of type string are unsupported")
+      else
+         Do_Aggregate_Literal_Array_Main (N));
+
+   function Do_Aggregate_Literal_Array_Main (N : Node_Id) return Irep is
       Result_Type : constant Irep := Do_Type_Reference (Etype (N));
 
       function Build_Array_Lit_Func_Body (N : Node_Id) return Irep
@@ -277,7 +288,7 @@ package body Arrays is
             begin
                if List_Length (Choices (Component_Node)) /= 1 then
                   return Report_Unhandled_Node_Irep (N,
-                                     "Do_Aggregate_Literal_Array",
+                                     "Do_Aggregate_Literal_Array_Main",
                                      "More than one choice in component node");
                end if;
                while Present (Component_Node) loop
@@ -391,7 +402,7 @@ package body Arrays is
            Symbol_Expr (Func_Symbol),
          Return_Type => Result_Type,
          Source_Loc  => Get_Source_Location (N));
-   end Do_Aggregate_Literal_Array;
+   end Do_Aggregate_Literal_Array_Main;
 
    ------------------------------------
    -- Make_Array_Default_Initialiser --
@@ -472,14 +483,16 @@ package body Arrays is
                           Components => Ret_Components);
       Sub_Identifier : constant Node_Id :=
         Subtype_Indication (Component_Definition (N));
+      --  Entity should be used rather than Etype because Sub_Identifer
+      --  may be an N_Identifier node which does not have an Etype field.
       Sub_Pre : constant Irep :=
-        Do_Type_Reference (Etype (Sub_Identifier));
+        Do_Type_Reference (Entity (Sub_Identifier));
       Sub : constant Irep :=
         (if Kind (Follow_Symbol_Type (Sub_Pre, Global_Symbol_Table))
          = I_C_Enum_Type
          then
             Make_Signedbv_Type
-           (ASVAT.Size_Model.Static_Size (Etype (Sub_Identifier)))
+           (ASVAT.Size_Model.Static_Size (Entity (Sub_Identifier)))
          else
             Sub_Pre);
       Data_Type : constant Irep :=
@@ -490,8 +503,8 @@ package body Arrays is
 
       Dimension_Iter : Node_Id :=
         First ((if Nkind (N) = N_Unconstrained_Array_Definition then
-                   Subtype_Marks (N) else
-                   Discrete_Subtype_Definitions (N)));
+                  Subtype_Marks (N) else
+                  Discrete_Subtype_Definitions (N)));
       Dimension_Number : Positive := 1;
    begin
 
