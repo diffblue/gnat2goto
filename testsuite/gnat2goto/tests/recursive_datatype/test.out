@@ -1,0 +1,5 @@
+[rec_data.assertion.1] line 26 assertion V.N = 3: SUCCESS
+[rec_data.assertion.2] line 27 assertion V.Next.N = 5: SUCCESS
+[rec_data.assertion.3] line 32 assertion W.N = 7: SUCCESS
+[rec_data.assertion.4] line 33 assertion W.Next.N = 11: SUCCESS
+VERIFICATION SUCCESSFUL
