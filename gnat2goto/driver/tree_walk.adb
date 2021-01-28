@@ -550,7 +550,7 @@ package body Tree_Walk is
    --------------------------
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep is
-      N_Type : constant Entity_Id := Etype (N);
+      N_Type : constant Entity_Id :=  Underlying_Type (Etype (N));
       --  TOCHECK: Parent type may be more than one step away?
    begin
       case Ekind (N_Type) is
@@ -577,7 +577,7 @@ package body Tree_Walk is
 
    function Do_Aggregate_Literal_Record (N : Node_Id) return Irep is
       N_Type : constant Entity_Id := Etype (N);
-      N_Underlying_Type : constant Node_Id := Etype (N_Type);
+      N_Underlying_Type : constant Node_Id := Underlying_Type (N_Type);
    begin
       --  It appears GNAT sorts the aggregate members for us into the order
       --  discriminant (if any), common members, variant members.
@@ -588,7 +588,7 @@ package body Tree_Walk is
          Variant_Node : constant Node_Id := Variant_Part (Components);
 
          Component_Iter : Node_Id :=
-           First_Component_Or_Discriminant (N_Type);
+           First_Component_Or_Discriminant (N_Underlying_Type);
          Actual_Iter    : Node_Id := First (Component_Associations (N));
          Struct_Expr : constant Irep := Make_Struct_Expr
            (Source_Location => Get_Source_Location (N),
@@ -1045,29 +1045,32 @@ package body Tree_Walk is
    -----------------
 
    function Do_Constant (N : Node_Id) return Irep is
-      Constant_Type : constant Irep := Do_Type_Reference (Etype (N));
-      Int_Val : constant Uint := Intval (N);
-      Source_Loc : constant Irep := Get_Source_Location (N);
-      Is_Address : constant Boolean :=
-        Unique_Name (Etype (N)) = "system__address";
-      Is_Integer : constant Boolean := Etype (N) = Stand.Universal_Integer;
-      Is_BV      : constant Boolean :=
+      E_Type        : constant Entity_Id := Etype (N);
+      Constant_Type : constant Irep := Do_Type_Reference (E_Type);
+      Int_Val       : constant Uint := Expr_Value (N);
+      Source_Loc    : constant Irep := Get_Source_Location (N);
+      Is_Address    : constant Boolean :=
+        Unique_Name (E_Type) = "system__address";
+      Is_Integer    : constant Boolean := Is_Integer_Type (E_Type);
+      Is_BV         : constant Boolean :=
         Kind (Constant_Type) in Class_Bitvector_Type;
 
       Const_Irep : constant Irep :=
-        (if Is_Integer or Is_Address then
-              Make_Constant_Expr
-           (Source_Location => Source_Loc,
-            I_Type          => Constant_Type,
-            Range_Check     => False,
-            Value           => UI_Image (Int_Val, Decimal))
-         elsif Is_BV then
+      --  Test for BV has to come first because a BV type may be an
+      --  an Integer also.
+        (if Is_BV then
             Make_Constant_Expr
            (Source_Location => Source_Loc,
             I_Type          => Constant_Type,
             Range_Check     => False,
             Value           =>
               Convert_Uint_To_Hex (Int_Val, Pos (Get_Width (Constant_Type))))
+         elsif Is_Integer or Is_Address then
+              Make_Constant_Expr
+           (Source_Location => Source_Loc,
+            I_Type          => Constant_Type,
+            Range_Check     => False,
+            Value           => UI_Image (Int_Val, Decimal))
          else
             Make_Constant_Expr (Source_Location => Source_Loc,
                                 I_Type          => Constant_Type,
