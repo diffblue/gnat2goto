@@ -3,6 +3,16 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
+Occurs: 37 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: read
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 37 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: write
+Nkind: N_Attribute_Definition_Clause
+--
 Occurs: 27 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
@@ -100,187 +110,187 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 2 times
