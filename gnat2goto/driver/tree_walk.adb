@@ -738,10 +738,13 @@ package body Tree_Walk is
 
       declare
          LHS : constant Irep := Do_Expression (Name (N));
+
          function RHS return Irep;
          function RHS return Irep is
             N_RHS : constant Node_Id := Expression (N);
             Bare_RHS : constant Irep := Do_Expression (N_RHS);
+            pragma Assert (Kind (Bare_RHS) in Class_Expr and then
+                           Kind (Get_Type (LHS)) in Class_Type);
          begin
             return
               (if Do_Range_Check (N_RHS)
@@ -751,6 +754,7 @@ package body Tree_Walk is
                   Bounds_Type => Get_Type (LHS))
                else Bare_RHS);
          end RHS;
+
       begin
          return Make_Code_Assign
            (Lhs => LHS,
@@ -1428,22 +1432,14 @@ package body Tree_Walk is
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
                when Attribute_First  =>
-                  if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-                    and then
-                      Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-                    = "string"
-                  then
+                  if Is_String_Type (Etype (Prefix (N))) then
                      return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                 "First of string unsupported");
                   else
                      return Do_Array_First (N);
                   end if;
                when Attribute_Last   =>
-                  if Nkind (Etype (Prefix (N))) = N_Defining_Identifier
-                    and then
-                      Get_Name_String (Chars (Etype (Etype (Prefix (N)))))
-                    = "string"
-                  then
+                  if Is_String_Type (Etype (Prefix (N))) then
                      return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                  "Last of string unsupported");
                   else
@@ -1626,41 +1622,35 @@ package body Tree_Walk is
    ------------------------------
 
    procedure Do_Full_Type_Declaration (N : Node_Id) is
-      New_Type : constant Irep :=
-        Do_Type_Definition (Type_Definition (N),
-                            Discriminant_Specifications (N));
       E        : constant Entity_Id := Defining_Identifier (N);
       E_Id     : constant Symbol_Id := Intern (Unique_Name (E));
    begin
-      if not (Kind (New_Type) in Class_Type)
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
-                      "Identifier not in class type. Type definition failed.");
-         return;
-      end if;
-      if not Is_Type (E)
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
-                                      "identifier not a type");
+      if Global_Symbol_Table.Contains (E_Id) then
+         --  The type declaration has already been processed by looking
+         --  ahead from a previous private or incomplete type declaration.
          return;
       end if;
 
-      --  If the entity is already in the symbol table and
-      --  this is the full_type_declaration of a previous
-      --  private_type_declaration or incomplete_type_declaration then
-      --  either it will have a previous private declaration or an
-      --  Incomplete_View of the declaration will be present and the
-      --  full_type_declaration will have been registered
-      --  (via `Register_Type_Declaration') when its
-      --  private or incomplete_type_declaration was processed.
-      --  If it has no private declaration or the Incomplete_View is not
-      --  present or it is a derived_type_definition
-      --  then the full_type_declaration has to be registered
-      if (not Global_Symbol_Table.Contains (E_Id)) or else
-        (not (Has_Private_Declaration (E)
-              or else Present (Incomplete_View (N)))
-        or else Nkind (Type_Definition (N)) = N_Derived_Type_Definition)
-      then
+      declare
+         New_Type : constant Irep :=
+           Do_Type_Definition (Type_Definition (N),
+                               Discriminant_Specifications (N));
+      begin
+         if not (Kind (New_Type) in Class_Type)
+         then
+            Report_Unhandled_Node_Empty
+              (N, "Do_Full_Type_Declaration",
+               "Identifier not in class type. Type definition failed.");
+            return;
+         end if;
+
+         if not Is_Type (E)
+         then
+            Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
+                                         "identifier not a type");
+            return;
+         end if;
+
          Do_Type_Declaration (New_Type, E);
 
          --  Declare the implicit initial subtype too
@@ -1674,13 +1664,14 @@ package body Tree_Walk is
          if Is_Tagged_Type (E) then
             Do_Type_Declaration (New_Type, Class_Wide_Type (E));
          end if;
-      end if;
 
-      if not (Global_Symbol_Table.Contains (E_Id))
-      then
-         Report_Unhandled_Node_Empty (N, "Do_Full_Type_Declaration",
-                                 "type not in symbol table after declaration");
-      end if;
+         if not (Global_Symbol_Table.Contains (E_Id))
+         then
+            Report_Unhandled_Node_Empty
+              (N, "Do_Full_Type_Declaration",
+               "type not in symbol table after declaration");
+         end if;
+      end;
    end Do_Full_Type_Declaration;
 
    -----------------------------
@@ -2011,6 +2002,11 @@ package body Tree_Walk is
       --  all incomplete_type_declarations should have a full view.
       Full_View_Entity : constant Entity_Id := Full_View (Entity);
    begin
+      if Global_Symbol_Table.Contains (Intern (Unique_Name (Entity))) then
+         --  The type declaration has already been processed by looking
+         --  ahead from a previous private or incomplete type declaration.
+         return;
+      end if;
       pragma Assert (Is_Incomplete_Type (Entity));
       --   If the incomplete_type_declaration is completed by a
       --   private_type_declaration, the private_type_declaration
@@ -3151,7 +3147,10 @@ package body Tree_Walk is
             return False;
          end if;
          Component_Iter :=
-           First (Component_Items (Component_List (Record_Def)));
+           (if Present (Component_List (Record_Def)) then
+               First (Component_Items (Component_List (Record_Def)))
+            else
+               Types.Empty);
          while Present (Component_Iter) loop
             if Present (Expression (Component_Iter)) then
                return True;
@@ -3984,12 +3983,19 @@ package body Tree_Walk is
          RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
                                            Global_Symbol_Table);
 
+         --  Guard against LHS not having a type
+         Tgt : constant Irep :=
+           (if Kind (Get_Type (LHS)) in Class_Type then
+                 Get_Type (LHS)
+            else
+               Ret_Type);
+
          --  Start of processing for Do_Operator_Simple
 
          Unchecked_Result : constant Irep := Make_Binary_Operation
               (Lhs => LHS,
                Rhs => Typecast_If_Necessary
-                 (RHS, Get_Type (LHS), Global_Symbol_Table),
+                 (RHS, Tgt, Global_Symbol_Table),
                I_Type => Ret_Type,
                Overflow_Check => Do_Overflow_Check (N),
                Source_Location => Get_Source_Location (N));
@@ -4180,6 +4186,7 @@ package body Tree_Walk is
       Package_Symbol.Mode       := Intern ("C");
       Package_Symbol.Value      := Make_Nil (Get_Source_Location (N));
 
+      pragma Assert (not Global_Symbol_Table.Contains (Package_Name));
       Global_Symbol_Table.Insert (Package_Name, Package_Symbol);
 
       if Present (Visible_Declarations (N)) then
@@ -4211,6 +4218,11 @@ package body Tree_Walk is
       --  all private_type_declarations should have a full view.
       Full_View_Entity : constant Entity_Id := Full_View (Entity);
    begin
+      if Global_Symbol_Table.Contains (Intern (Unique_Name (Entity))) then
+         --  The type declaration has already been processed by looking
+         --  ahead from a previous private or incomplete type declaration.
+         return;
+      end if;
       if Is_Private_Type (Entity) then
          --  Limited types should be ok as limiting a type only applies
          --  constraints on its use within an Ada program.  The gnat
@@ -4602,8 +4614,16 @@ package body Tree_Walk is
       end Do_Variant_Struct;
 
       --  Local variables
-      Component_Iter : Node_Id := First (Component_Items (Component_List (N)));
-      Variants_Node  : constant Node_Id := Variant_Part (Component_List (N));
+      Component_Iter : Node_Id :=
+        (if Present (Component_List (N)) then
+            First (Component_Items (Component_List (N)))
+            else
+               Types.Empty);
+      Variants_Node  : constant Node_Id :=
+        (if Present (Component_List (N)) then
+            Variant_Part (Component_List (N))
+         else
+            Types.Empty);
 
    --  Start of processing for Do_Record_Definition
 
@@ -5308,6 +5328,8 @@ package body Tree_Walk is
    function Do_Type_Conversion (N : Node_Id) return Irep is
       To_Convert : constant Irep := Do_Expression (Expression (N));
       New_Type   : constant Irep := Do_Type_Reference (Etype (N));
+      pragma Assert (Kind (To_Convert) in Class_Expr and then
+                     Kind (New_Type) in Class_Type);
       Maybe_Checked_Op : constant Irep :=
         (if Do_Range_Check (Expression (N))
          then Make_Range_Assert_Expr
@@ -6701,6 +6723,9 @@ package body Tree_Walk is
       ASVAT.Size_Model.Set_Static_Size (E          => E,
                                         Model_Size => Pointer_Type_Width);
       return Make_Pointer_Type
+      --  If this is a pointer to a record make it a pointer to
+      --  a struct_tag_type rather than the record type.
+      --  This prevents infinite recursion in the definition of types.
         (if Is_Record_Type (Under_Type) then
               Make_Struct_Tag_Type (Unique_Name (Under_Type))
          else

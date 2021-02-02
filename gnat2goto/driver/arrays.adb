@@ -5,7 +5,27 @@ with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Range_Check;           use Range_Check;
 with ASVAT.Size_Model;
+with Ada.Text_IO; use Ada.Text_IO;
 package body Arrays is
+
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
+                                   A_Symbol_Table : Symbol_Table) return Irep;
+
+   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
+                                   A_Symbol_Table : Symbol_Table) return Irep
+   is
+   begin
+      if Kind (Expr) not in Class_Expr then
+         Put_Line ("Typecast_If_Necessary - Arrays Expr " &
+                     Irep_Kind'Image (Kind (Expr)));
+         Print_Irep (Expr);
+      elsif Kind (New_Type) not in Class_Type then
+         Put_Line ("Typecast_If_Necessary - Arrays New_Type " &
+                     Irep_Kind'Image (Kind (New_Type)));
+         Print_Irep (New_Type);
+      end if;
+      return GOTO_Utils.Typecast_If_Necessary (Expr, New_Type, A_Symbol_Table);
+   end Typecast_If_Necessary;
 
    --------------------------------
    -- Do_Aggregate_Literal_Array --
@@ -14,7 +34,7 @@ package body Arrays is
    function Do_Aggregate_Literal_Array_Main (N : Node_Id) return Irep;
 
    function Do_Aggregate_Literal_Array (N : Node_Id) return Irep is
-     (if Einfo.Is_Standard_String_Type (Etype (N)) then
+     (if Is_String_Type (Etype (N)) then
          Report_Unhandled_Node_Irep
         (N        => N,
          Fun_Name => "Do_Aggregate_Literal_Array",
@@ -886,7 +906,26 @@ package body Arrays is
    --    return temp_array;
    --  }
    ----------------------------------------------------------------------------
+   function Do_Slice_Main (N : Node_Id) return Irep;
+
    function Do_Slice (N : Node_Id) return Irep is
+      Prefix_Etype : constant Entity_Id := Etype (Prefix (N));
+      Result_Type  : constant Entity_Id :=
+        (if Is_Access_Type (Prefix_Etype) then
+              Designated_Type (Prefix_Etype)
+         else Prefix_Etype);
+   begin
+      if Is_String_Type (Result_Type) then
+         return Report_Unhandled_Node_Irep
+           (N        => N,
+            Fun_Name => "Do_Slice",
+            Message  => "Slices of strings are unsupported");
+      else
+         return Do_Slice_Main (N);
+      end if;
+   end Do_Slice;
+
+   function Do_Slice_Main (N : Node_Id) return Irep is
       --  The prefix to the slice may be an access to an array object
       --  which must be implicitly dereferenced.
       The_Prefix        : constant Node_Id := Prefix (N);
@@ -996,7 +1035,7 @@ package body Arrays is
                                  I_Function      => Symbol_Expr (Func_Symbol),
                                  Source_Location => Source_Loc,
                                  I_Type          => Result_Type);
-   end Do_Slice;
+   end Do_Slice_Main;
 
    --------------------------
    -- Do_Indexed_Component --
