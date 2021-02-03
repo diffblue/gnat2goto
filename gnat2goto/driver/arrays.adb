@@ -5,27 +5,7 @@ with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Range_Check;           use Range_Check;
 with ASVAT.Size_Model;
-with Ada.Text_IO; use Ada.Text_IO;
 package body Arrays is
-
-   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
-                                   A_Symbol_Table : Symbol_Table) return Irep;
-
-   function Typecast_If_Necessary (Expr : Irep; New_Type : Irep;
-                                   A_Symbol_Table : Symbol_Table) return Irep
-   is
-   begin
-      if Kind (Expr) not in Class_Expr then
-         Put_Line ("Typecast_If_Necessary - Arrays Expr " &
-                     Irep_Kind'Image (Kind (Expr)));
-         Print_Irep (Expr);
-      elsif Kind (New_Type) not in Class_Type then
-         Put_Line ("Typecast_If_Necessary - Arrays New_Type " &
-                     Irep_Kind'Image (Kind (New_Type)));
-         Print_Irep (New_Type);
-      end if;
-      return GOTO_Utils.Typecast_If_Necessary (Expr, New_Type, A_Symbol_Table);
-   end Typecast_If_Necessary;
 
    --------------------------------
    -- Do_Aggregate_Literal_Array --
