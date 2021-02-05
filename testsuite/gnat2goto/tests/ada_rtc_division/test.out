@@ -1,0 +1,8 @@
+[assertion.1] file division_check.adb line 15 Ada Check assertion: SUCCESS
+[division_check.assertion.1] line 15 Ada Check assertion: FAILURE
+[division_check.assertion.6] line 15 Ada Check assertion: SUCCESS
+[division_check.assertion.2] line 17 assertion Fl1 = 1.0: SUCCESS
+[division_check.assertion.3] line 29 assertion Int1 = 1: SUCCESS
+[division_check.assertion.4] line 41 assertion Int1 = 1: SUCCESS
+[division_check.assertion.5] line 53 assertion Int1 = 1: SUCCESS
+VERIFICATION FAILED
