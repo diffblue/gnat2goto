@@ -5047,7 +5047,7 @@ package body Tree_Walk is
       Do_Subprogram_Body (Proper_Body (Unit ((Library_Unit (N)))));
    end Do_Subprogram_Body_Stub;
 
--------------------------------
+   -------------------------------
    -- Do_Subprogram_Declaration --
    -------------------------------
 
@@ -5089,11 +5089,14 @@ package body Tree_Walk is
          --  in subprogram specification but at present nothing is done.
          --  A missing body will be reported when it is "linked".
          null;
+
       else
          --  It is a normal Ada subprogram.
          --  Nothing more to be done;
          null;
+
       end if;
+
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -6094,7 +6097,8 @@ package body Tree_Walk is
                                          "Unsupported pragma: Assert/Assume");
          when Name_Precondition =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Precondition");
+                                       "Unsupported pragma: Precondition");
+
          when Name_Postcondition =>
             --  Postcondition will eventually also be translated into
             --  assertions but they should hold elsewhere from where they are

@@ -184,7 +184,7 @@ package body Range_Check is
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String := Fresh_Var_Name ("division_check");
+         Func_Name : constant String := "__division_check";
          Body_Block : constant Irep := Make_Code_Block (Source_Loc);
          Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
@@ -249,6 +249,7 @@ package body Range_Check is
       end Build_Assert_Function;
 
       Call_Args : constant Irep := Make_Argument_List;
+
    begin
       Append_Argument (Call_Args, Value);
       Append_Argument (Call_Args, Divisor);
@@ -352,8 +353,7 @@ package body Range_Check is
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String :=
-           Fresh_Var_Name ("range_check_" & File_Name_Without_Extension (N));
+         Func_Name : constant String := ("range_check" & Check_Name);
          Body_Block : constant Irep :=
            Make_Code_Block (Get_Source_Location (N));
          Func_Params : constant Irep := Make_Parameter_List;
