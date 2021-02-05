@@ -1,4 +1,4 @@
-procedure Range_Second is
+procedure Range_Third is
   type An_Int is range 1..1000;
   subtype Another_Int is An_Int range 5..100;
 
@@ -11,4 +11,4 @@ procedure Range_Second is
 begin
   Testable (50);
   Testable (200);
-end Range_Second;
+end Range_Third;

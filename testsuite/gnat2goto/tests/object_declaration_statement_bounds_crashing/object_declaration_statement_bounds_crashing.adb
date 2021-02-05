@@ -7,7 +7,8 @@ procedure Object_Declaration_Statement_Bounds_Crashing is
     if A > 10 then
       for I in Range_Type range (Index + 1) .. Range_Type'Last
       loop
-        pragma Assert (I < 70);
+        pragma Assert (I > 0);
+        pragma Assert (I <= 79);
       end loop;
       -- Intentional false assert
       pragma Assert (A < -5);

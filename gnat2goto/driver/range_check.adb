@@ -266,6 +266,7 @@ package body Range_Check is
    is
       Index_Type : constant Irep :=
         Follow_Symbol_Type (Get_Type (Index), Global_Symbol_Table);
+      pragma Assert (Kind (Index_Type) in Class_Type);
    begin
       return Make_Range_Assert_Expr (N                    => N,
                                      Value                => Index,
@@ -283,6 +284,9 @@ package body Range_Check is
       High_Value : constant Irep := Get_Bound (N, Value_Type, Bound_High);
       Maybe_Casted_Value : constant Irep := Value;
    begin
+      pragma Assert (Kind (Value) in Class_Expr and then
+                     Kind (Value_Type) in Class_Type);
+
       pragma Assert (Get_Type (Low_Value) = Get_Type (High_Value));
 
       if Kind (Value) in Class_Binary_Expr
@@ -433,7 +437,8 @@ package body Range_Check is
       pragma Assert (Underlying_Lower_Type = Underlying_Upper_Type);
 
       Append_Argument (Call_Args,
-                Typecast_If_Necessary (Expr           => Value,
+                       Typecast_If_Necessary (
+                                       Expr           => Value,
                                        New_Type       => Underlying_Lower_Type,
                                        A_Symbol_Table => Global_Symbol_Table));
       --  Value);
@@ -459,6 +464,9 @@ package body Range_Check is
       Upper_Bound : constant Irep :=
         Get_Bound (N, Followed_Bound_Type, Bound_High);
    begin
+      pragma Assert (Kind (Value) in Class_Expr and then
+                     Kind (Get_Type (Value)) in Class_Type);
+
       return Make_Range_Assert_Expr (N           => N,
                  Value       => Value,
                  Lower_Bound => Lower_Bound,

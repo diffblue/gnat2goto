@@ -6,12 +6,13 @@ pragma Source_File_Name (
 			 Subunit_File_Name  => "*.asu",
 			Dot_Replacement => "-");
 
-procedure P (X : in out integer) is
+procedure P is
    procedure Inc (N : in out Integer) is separate;
+   X : Integer := 97;
    Old_X : constant Integer := X;
 begin
+   pragma Assert (X < Integer'Last);
    Inc (X);
-   --  The following assert should succeed if the possibility
-   --  overflow is ignored.
+   --  The following assert should succeed.
    pragma Assert (X = Old_X + 1);
 end P;

@@ -1,3 +1,88 @@
+Occurs: 78 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: Array aggregates of type string are unsupported
+Nkind: N_Aggregate
+--
+Occurs: 55 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Export: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
+Occurs: 17 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: read
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 17 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: write
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 12 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_VALUE unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 10 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: stream_convert
+Nkind: N_Pragma
+--
+Occurs: 9 times
+Calling function: Do_Derived_Type_Definition
+Error message: record extension unsupported
+Nkind: N_Derived_Type_Definition
+--
+Occurs: 9 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Extension_Aggregate
+--
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Private_Extension_Declaration
+--
+Occurs: 8 times
+Calling function: Do_Operator_General
+Error message: Concat unsupported
+Nkind: N_Op_Concat
+--
+Occurs: 7 times
+Calling function: Do_Expression
+Error message: Index of string unsupported
+Nkind: N_Indexed_Component
+--
+Occurs: 6 times
+Calling function: Do_Expression
+Error message: Last of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 5 times
+Calling function: Do_Slice
+Error message: Slices of strings are unsupported
+Nkind: N_Slice
+--
+Occurs: 5 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: storage_size
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 5 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Validate_Unchecked_Conversion
+--
+Occurs: 4 times
+Calling function: Do_Expression
+Error message: First of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_IMAGE unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 159 times
 Redacted compiler error message:
 file "REDACTED" not found
@@ -1018,7 +1103,7 @@ Redacted compiler error message:
 range must be preceded by subtype mark
 Raw compiler error message:
 --
-Occurs: 11 times
+Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
 Error detected at REDACTED
@@ -1035,62 +1120,7 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1110,70 +1140,120 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 3 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
+
+--
+Occurs: 3 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:467
+
+--
+Occurs: 2 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
+

@@ -1,3 +1,43 @@
+Occurs: 5 times
+Calling function: Do_Derived_Type_Definition
+Error message: record extension unsupported
+Nkind: N_Derived_Type_Definition
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Extension_Aggregate
+--
+Occurs: 1 times
+Calling function: Do_Record_Component
+Error message: Wrong component nkind
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: read
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: storage_size
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: write
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: finalize_storage_only
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: stream_convert
+Nkind: N_Pragma
+--
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
@@ -260,5 +300,5 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1183                         |
 Error detected at REDACTED

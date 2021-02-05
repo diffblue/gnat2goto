@@ -1,31 +1,111 @@
-Occurs: 423 times
+Occurs: 441 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 9 times
+Occurs: 37 times
+Calling function: Do_Derived_Type_Definition
+Error message: record extension unsupported
+Nkind: N_Derived_Type_Definition
+--
+Occurs: 18 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Private_Extension_Declaration
+--
+Occurs: 14 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
+--
+Occurs: 10 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: read
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 10 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: write
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 10 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Export: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
+Occurs: 9 times
+Calling function: Do_Type_Reference
+Error message: Type name is not in the symbol table
+Nkind: N_Defining_Identifier
+--
+Occurs: 9 times
+Calling function: Do_Type_Reference
+Error message: Unexpected node kind N_PRIVATE_EXTENSION_DECLARATION
+Nkind: N_Private_Extension_Declaration
+--
+Occurs: 6 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Extension_Aggregate
+--
+Occurs: 6 times
+Calling function: Do_Record_Component
+Error message: Wrong component nkind
+Nkind: N_Pragma
+--
+Occurs: 6 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: finalize_storage_only
+Nkind: N_Pragma
+--
+Occurs: 6 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: stream_convert
+Nkind: N_Pragma
+--
+Occurs: 5 times
+Calling function: Do_Base_Range_Constraint
+Error message: range expression not bitvector type
+Nkind: N_Range
+--
+Occurs: 5 times
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Ordinary_Fixed_Point_Definition
+--
+Occurs: 5 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: volatile_function
+Nkind: N_Pragma
+--
+Occurs: 4 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Allocator
+--
+Occurs: 3 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
 --
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 1 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Validate_Unchecked_Conversion
+--
 Occurs: 3 times
 Redacted compiler error message:
 generic parameter "REDACTED" is missing from input dependence list
 Raw compiler error message:
 --
-Occurs: 23 times
+Occurs: 25 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 2 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -150,65 +230,50 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:495                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
 Error detected at REDACTED

@@ -2,6 +2,8 @@ separate (P)
 procedure Inc (N : in out Integer) is
    Old_N : constant Integer := N;
 begin
+   --  The next statement could overflow.
    N := N + 1;
+   --  If overflow has not occured then this assertion should be true.
    pragma Assert (N = Old_N + 1);
 end Inc;

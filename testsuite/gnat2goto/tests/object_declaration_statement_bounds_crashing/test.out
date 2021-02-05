@@ -1,3 +1,4 @@
-[callit.assertion.1] line 10 assertion I < 70: FAILURE
-[callit.assertion.2] line 13 assertion A < -5: FAILURE
+[callit.assertion.1] line 10 assertion I > 0: SUCCESS
+[callit.assertion.2] line 11 assertion I <= 79: SUCCESS
+[callit.assertion.3] line 14 assertion A < -5: FAILURE
 VERIFICATION FAILED

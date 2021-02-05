@@ -310,6 +310,7 @@ package body GOTO_Utils is
          IsLValue => True,
          others => <>);
    begin
+      pragma Assert (not A_Symbol_Table.Contains (Object_Name));
       A_Symbol_Table.Insert (Object_Name, Object_Symbol);
    end New_Object_Symbol_Entry;
 
@@ -324,6 +325,7 @@ package body GOTO_Utils is
          Value => CProver_Nil,
          others => <>);
    begin
+      pragma Assert (not A_Symbol_Table.Contains (Subprog_Name));
       A_Symbol_Table.Insert (Subprog_Name, Subprog_Symbol);
    end New_Subprogram_Symbol_Entry;
 
@@ -336,6 +338,7 @@ package body GOTO_Utils is
          IsType => True,
          others => <>);
    begin
+      pragma Assert (not A_Symbol_Table.Contains (Type_Name));
       A_Symbol_Table.Insert (Type_Name, Type_Symbol);
    end New_Type_Symbol_Entry;
 
@@ -349,6 +352,7 @@ package body GOTO_Utils is
          Value => CProver_Nil,
          others => <>);
    begin
+      pragma Assert (not A_Symbol_Table.Contains (Constant_Name));
       A_Symbol_Table.Insert (Constant_Name, Object_Symbol);
    end New_Valueless_Object_Symbol_Entry;
 
@@ -365,6 +369,10 @@ package body GOTO_Utils is
          IsStateVar => True,
          others => <>);
    begin
+      if A_Symbol_Table.Contains (Member_Symbol.Name) then
+         Put_Line ("Already in table " & Unintern (Member_Symbol.Name));
+      end if;
+      pragma Assert (not A_Symbol_Table.Contains (Member_Symbol.Name));
       A_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
    end New_Enum_Member_Symbol_Entry;
 
@@ -418,6 +426,7 @@ package body GOTO_Utils is
             Value => Value,
             others => <>);
       begin
+         pragma Assert (not A_Symbol_Table.Contains (Fun_Name));
          A_Symbol_Table.Insert (Fun_Name, New_Symbol);
          return New_Symbol;
       end;
@@ -735,6 +744,7 @@ package body GOTO_Utils is
          IsLValue | IsStaticLifetime => True,
          others => <>);
    begin
+      pragma Assert (not Symtab.Contains (Identifier_Name));
       Symtab.Insert (Identifier_Name, Identifier_Symbol);
    end Register_Identifier_In_Symbol_Table;
 

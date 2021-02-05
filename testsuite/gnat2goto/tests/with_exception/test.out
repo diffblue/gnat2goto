@@ -1,0 +1,103 @@
+Standard_Output from gnat2goto with_exception:
+----------At: Process_Declaration----------
+----------Representation clause unsupported: storage_size----------
+N_Attribute_Definition_Clause "storage_size" (Node_Id=4390) (source,analyzed)
+ Sloc = 49117  s-stalib.ads:70:4
+ Chars = "storage_size" (Name_Id=300000901)
+ Name = N_Identifier "big_string_ptr" (Node_Id=4387)
+ Expression = N_Integer_Literal (Node_Id=4391)
+ Entity = N_Defining_Identifier "big_string_ptr" (Entity_Id=4376)
+----------At: Process_Declaration----------
+----------Unknown declaration kind----------
+N_Validate_Unchecked_Conversion (Node_Id=5480) (analyzed)
+ Sloc = 49458  s-stalib.ads:76:4
+ Source_Type = N_Defining_Identifier "address" (Entity_Id=3768)
+ Target_Type = N_Defining_Identifier "big_string_ptr" (Entity_Id=4376)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=4814) (source,analyzed)
+ Sloc = 55033  s-stalib.ads:206:4
+ Pragma_Argument_Associations = List (List_Id=-99999638)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=4815)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=4822) (source,analyzed)
+ Sloc = 55097  s-stalib.ads:207:4
+ Pragma_Argument_Associations = List (List_Id=-99999637)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=4823)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=4830) (source,analyzed)
+ Sloc = 55158  s-stalib.ads:208:4
+ Pragma_Argument_Associations = List (List_Id=-99999636)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=4831)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=4838) (source,analyzed)
+ Sloc = 55219  s-stalib.ads:209:4
+ Pragma_Argument_Associations = List (List_Id=-99999635)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=4839)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=4846) (source,analyzed)
+ Sloc = 55280  s-stalib.ads:210:4
+ Pragma_Argument_Associations = List (List_Id=-99999634)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=4847)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=4854) (source,analyzed)
+ Sloc = 55341  s-stalib.ads:211:4
+ Pragma_Argument_Associations = List (List_Id=-99999633)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=4855)
+----------At: Do_Aggregate_Literal_Array----------
+----------Array aggregates of type string are unsupported----------
+N_Aggregate (Node_Id=5961) (source,analyzed)
+ Parent = N_Component_Association (Node_Id=5963)
+ Sloc = 32299  a-except.ads:343:28
+ Etype = N_Defining_Identifier "T10s" (Entity_Id=5954)
+ Component_Associations = List (List_Id=-99999840)
+ Aggregate_Bounds = N_Range (Node_Id=5946)
+----------At: Process_Pragma_Declaration----------
+----------Unknown pragma: stream_convert----------
+N_Pragma (Node_Id=2768) (source,analyzed)
+ Sloc = 24151  a-except.ads:171:4
+ Pragma_Argument_Associations = List (List_Id=-99999909)
+ Pragma_Identifier = N_Identifier "stream_convert" (Node_Id=2769)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=2837) (source,analyzed)
+ Sloc = 25066  a-except.ads:190:4
+ Pragma_Argument_Associations = List (List_Id=-99999900)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=2838)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=2874) (source,analyzed)
+ Sloc = 25606  a-except.ads:200:4
+ Pragma_Argument_Associations = List (List_Id=-99999896)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=2875)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=2912) (source,analyzed)
+ Sloc = 26680  a-except.ads:218:4
+ Pragma_Argument_Associations = List (List_Id=-99999890)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=2913)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=2929) (source,analyzed)
+ Sloc = 26986  a-except.ads:225:4
+ Pragma_Argument_Associations = List (List_Id=-99999887)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=2930)
+----------At: Process_Pragma_Declaration----------
+----------pragma Export: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=3193) (source,analyzed)
+ Sloc = 31430  a-except.ads:327:4
+ Pragma_Argument_Associations = List (List_Id=-99999853)
+ Pragma_Identifier = N_Identifier "export" (Node_Id=3194)
+----------At: Process_Pragma_Declaration----------
+----------Unknown pragma: stream_convert----------
+N_Pragma (Node_Id=3239) (source,analyzed)
+ Sloc = 31957  a-except.ads:336:4
+ Pragma_Argument_Associations = List (List_Id=-99999846)
+ Pragma_Identifier = N_Identifier "stream_convert" (Node_Id=3240)
+
+VERIFICATION SUCCESSFUL
