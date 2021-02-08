@@ -1,0 +1,28 @@
+Standard_Output from gnat2goto rep_clauses:
+----------At: Process_Declaration----------
+----------Address representation clauses are not currently supported----------
+N_Attribute_Definition_Clause "address" (Node_Id=2281) (source,analyzed)
+ Rewritten: original node = N_At_Clause (Node_Id=3737)
+ Sloc = 8299  rep_clauses.adb:6:4
+ Chars = "address" (Name_Id=300000791)
+ Name = N_Identifier "i" (Node_Id=2279)
+ Expression = N_Function_Call (Node_Id=2287)
+ Entity = N_Defining_Identifier "i" (Entity_Id=2269)
+ Check_Address_Alignment = True
+----------At: Process_Declaration----------
+----------Record representation clauses are unsupported----------
+N_Record_Representation_Clause (Node_Id=2312) (source,analyzed)
+ Sloc = 8415  rep_clauses.adb:11:4
+ Identifier = N_Identifier "r" (Node_Id=2311)
+ Component_Clauses = List (List_Id=-99999977)
+----------At: Process_Declaration----------
+----------Enumeration representation clauses are unsupported----------
+N_Enumeration_Representation_Clause (Node_Id=2372) (source,analyzed)
+ Sloc = 8530  rep_clauses.adb:16:4
+ Identifier = N_Identifier "mix_code" (Node_Id=2371)
+ Array_Aggregate = N_Aggregate (Node_Id=2374)
+
+Standard_Error from gnat2goto rep_clauses:
+rep_clauses.adb:12:09: warning: component clause forces biased representation for "S"
+
+VERIFICATION SUCCESSFUL
