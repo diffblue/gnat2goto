@@ -1,22 +1,42 @@
-Occurs: 441 times
+Occurs: 644 times
+Calling function: Process_Pragma_Declaration
+Error message: pragma Import: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
+Occurs: 522 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 37 times
+Occurs: 57 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
+--
+Occurs: 40 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: export_procedure
+Nkind: N_Pragma
+--
+Occurs: 30 times
+Calling function: Do_Object_Declaration
+Error message: Record definition of wrong nkind
+Nkind: N_Object_Declaration
+--
+Occurs: 30 times
+Calling function: Process_Declaration
+Error message: Enumeration representation clauses are unsupported
+Nkind: N_Enumeration_Representation_Clause
 --
 Occurs: 18 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
 --
-Occurs: 14 times
-Calling function: Process_Pragma_Declaration
-Error message: pragma Import: Multi-language analysis unsupported
-Nkind: N_Pragma
+Occurs: 10 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: Array aggregates of type string are unsupported
+Nkind: N_Aggregate
 --
 Occurs: 10 times
 Calling function: Process_Declaration
@@ -230,50 +250,50 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED

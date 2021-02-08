@@ -5796,8 +5796,32 @@ package body Tree_Walk is
    procedure Process_Declaration (N : Node_Id; Block : Irep) is
       procedure Handle_Representation_Clause (N : Node_Id);
       procedure Handle_Representation_Clause (N : Node_Id) is
-         Attr_Id : constant String := Get_Name_String (Chars (N));
+         Attr_Id : constant String :=
+           (if Nkind (N) in N_Has_Chars then
+                 Get_Name_String (Chars (N))
+            else
+            "");
       begin
+         case Nkind (N) is
+            when N_Enumeration_Representation_Clause =>
+               Report_Unhandled_Node_Empty
+                 (N, "Process_Declaration",
+                  "Enumeration representation clauses are unsupported");
+               return;
+            when N_Record_Representation_Clause =>
+               Report_Unhandled_Node_Empty
+                 (N, "Process_Declaration",
+                  "Record representation clauses are unsupported");
+               return;
+            when N_At_Clause =>
+               Report_Unhandled_Node_Empty
+                 (N, "Process_Declaration",
+                  "At clauses are unsupported");
+               return;
+            when others =>
+               null;
+         end case;
+
          --  First check if it is an address clause which gnat2goto does not
          --  currently handle
          if Attr_Id = "address" then
@@ -5838,7 +5862,11 @@ package body Tree_Walk is
 
          Report_Unhandled_Node_Empty
            (N, "Process_Declaration",
-            "Representation clause unsupported: " & Attr_Id);
+            "Representation clause unsupported: " &
+            (if Attr_Id /= "" then
+                    Attr_Id
+               else
+              Node_Kind'Image (Nkind (N))));
 
       end Handle_Representation_Clause;
 
