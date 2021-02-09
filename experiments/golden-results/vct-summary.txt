@@ -160,7 +160,7 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
 Error detected at REDACTED
 --
 Occurs: 1 times

@@ -1230,12 +1230,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1275,7 +1275,7 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 --
 Occurs: 10 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:467
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:469
 
 --
 Occurs: 6 times
@@ -1285,7 +1285,7 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.a
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:437
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:439
 
 --
 Occurs: 1 times
