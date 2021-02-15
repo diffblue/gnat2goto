@@ -1,4 +1,3 @@
-with Types;              use Types;
 package ASVAT.Size_Model is
    --  The size of an object in ASVAT is the size of the model of the object.
    --  This may not be the same size as the object in the executable code of
