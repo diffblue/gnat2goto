@@ -1,36 +1,36 @@
-Occurs: 2210 times
+Occurs: 2240 times
 Calling function: Process_Declaration
 Error message: Record representation clauses are unsupported
 Nkind: N_Record_Representation_Clause
 --
-Occurs: 1799 times
+Occurs: 1824 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_full_access
 Nkind: N_Pragma
 --
-Occurs: 614 times
+Occurs: 646 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
-Occurs: 273 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
-Occurs: 212 times
+Occurs: 378 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
-Occurs: 190 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: unchecked_union
-Nkind: N_Pragma
+Occurs: 275 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 163 times
+Occurs: 224 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
+Occurs: 192 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: unchecked_union
 Nkind: N_Pragma
 --
 Occurs: 101 times
@@ -48,12 +48,12 @@ Calling function: Do_Type_Reference
 Error message: Type name is not in the symbol table
 Nkind: N_Defining_Identifier
 --
-Occurs: 68 times
+Occurs: 69 times
 Calling function: Process_Declaration
 Error message: Enumeration representation clauses are unsupported
 Nkind: N_Enumeration_Representation_Clause
 --
-Occurs: 65 times
+Occurs: 66 times
 Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
@@ -73,15 +73,30 @@ Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
+Occurs: 30 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_COPY_SIGN unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 24 times
 Calling function: Do_Slice
 Error message: Slices of strings are unsupported
 Nkind: N_Slice
 --
-Occurs: 13 times
+Occurs: 24 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
+--
+Occurs: 15 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
+--
+Occurs: 12 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ROUNDING unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 11 times
 Calling function: Do_Operator_General
@@ -94,9 +109,9 @@ Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
-Nkind: N_Pragma
+Calling function: Do_Expression
+Error message: ATTRIBUTE_SCALING unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -106,6 +121,11 @@ Nkind: N_Pragma
 Occurs: 7 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ENUM_REP unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 6 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 6 times
@@ -120,6 +140,11 @@ Nkind: N_Derived_Type_Definition
 --
 Occurs: 5 times
 Calling function: Do_Expression
+Error message: ATTRIBUTE_ASM_INPUT unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 5 times
+Calling function: Do_Expression
 Error message: ATTRIBUTE_TAG unsupported
 Nkind: N_Attribute_Reference
 --
@@ -130,13 +155,23 @@ Nkind: N_Pragma
 --
 Occurs: 4 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_ASM_INPUT unsupported
+Error message: ATTRIBUTE_EXPONENT unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: Array aggregates of type string are unsupported
 Nkind: N_Aggregate
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ASM_OUTPUT unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_VALID unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
 Calling function: Do_Function_Call
@@ -155,12 +190,12 @@ Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 2 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_ASM_OUTPUT unsupported
+Error message: ATTRIBUTE_FLOOR unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_FLOOR unsupported
+Error message: ATTRIBUTE_FRACTION unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
@@ -2060,52 +2095,17 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:57 |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2183,14 +2183,14 @@ Occurs: 11 times
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 
 --
-Occurs: 8 times
+Occurs: 6 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:55
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
 
 --
 Occurs: 6 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:55
 
 --
 Occurs: 6 times
