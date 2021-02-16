@@ -5066,14 +5066,16 @@ package body Tree_Walk is
                  Range_Check     => False,
                  Identifier      => Result_Name);
          begin
-            Append_Declare_And_Init
-              (Symbol     => Result_Var,
-               Value      => Typecast_If_Necessary
-                 (Expr           => Do_Expression (Return_Expr),
-                  New_Type       => Return_I_Type,
-                  A_Symbol_Table => Global_Symbol_Table),
-               Block      => Block,
-               Source_Loc => Location);
+            Append_Op (Block,
+                       Make_Code_Assign
+                         (Rhs             => Typecast_If_Necessary
+                            (Expr           => Do_Expression (Return_Expr),
+                             New_Type       => Return_I_Type,
+                             A_Symbol_Table => Global_Symbol_Table),
+                          Lhs             => Result_Var,
+                            Source_Location => Location,
+                          I_Type          => Return_I_Type,
+                          Range_Check     => False));
             Return_Value := Result_Var;
          end;
       end if;
