@@ -2170,12 +2170,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:745                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:745                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2185,7 +2185,7 @@ Error detected at REDACTED
 --
 Occurs: 22 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:745
 
 --
 Occurs: 11 times
