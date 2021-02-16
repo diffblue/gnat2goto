@@ -3405,5 +3405,14 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb
 --
 Occurs: 2 times
 <========================>
+<<<<<<< HEAD
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
+=======
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:745
+
+--
+Occurs: 1 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:467
+>>>>>>> ad75731... Update golden results.
 

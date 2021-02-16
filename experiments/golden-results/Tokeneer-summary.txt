@@ -1270,12 +1270,20 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+<<<<<<< HEAD
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
+=======
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:745                      |
+>>>>>>> ad75731... Update golden results.
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+<<<<<<< HEAD
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
+=======
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:745                      |
+>>>>>>> ad75731... Update golden results.
 Error detected at REDACTED
 --
 Occurs: 14 times
