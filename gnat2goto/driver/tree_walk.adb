@@ -253,7 +253,7 @@ package body Tree_Walk is
      I_Floatbv_Type | I_Bounded_Floatbv_Type;
 
    procedure Do_Simple_Return_Statement (Block : Irep; N : Node_Id)
-     with Pre  => Nkind (N) = N_Simple_Return_Statement;
+   with Pre  => Nkind (N) = N_Simple_Return_Statement;
 
    function Do_Raise_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Raise_Statement;
