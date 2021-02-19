@@ -3216,11 +3216,8 @@ package body Tree_Walk is
       First_Argument : constant Node_Id := First (Argument_Associations);
 
       --  second is the condition
-      Condition : constant Irep := Make_Code_Expression
-        (Expression => Do_Expression (Expression (First_Argument)),
-         Source_Location => Source_Loc,
-         I_Type          => Make_Bool_Type,
-         Range_Check     => False);
+      Condition : constant Irep :=
+        Do_Expression (Expression (First_Argument));
 
       Func_Params : constant Irep := Make_Parameter_List;
       Func_Type : constant Irep :=

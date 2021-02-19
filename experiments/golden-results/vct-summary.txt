@@ -179,6 +179,14 @@ Occurs: 1 times
 Error detected at REDACTED
 --
 Occurs: 1 times
+<<<<<<< HEAD
+=======
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) exception ureal_to_binary.adb:258                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
+>>>>>>> c8ce191... code and test cases updated
 <========================>
 raised UREAL_TO_BINARY.NEGATIVE_EXPONENT : ureal_to_binary.adb:258
 

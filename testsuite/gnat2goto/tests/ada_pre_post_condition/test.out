@@ -1,0 +1,12 @@
+Standard_Error from gnat2goto pre_post_condition:
+pre_post_condition.adb:1:11: warning: file name does not match unit name, should be "post_condition.adb"
+
+[assertion.2] file pre_post_condition.adb line 6 Ada Pre Condition: FAILURE
+[assertion.1] file pre_post_condition.adb line 7 Ada Post Condition: SUCCESS
+[double.assertion.1] line 12 Ada Check assertion: SUCCESS
+[post_condition.assertion.1] line 48 assertion I = 8: SUCCESS
+[post_condition.assertion.2] line 53 assertion I = 16: SUCCESS
+[post_condition.assertion.3] line 58 assertion J = 3: SUCCESS
+[post_condition.assertion.4] line 63 assertion J = 9: SUCCESS
+[triple.assertion.1] line 22 Ada Check assertion: SUCCESS
+VERIFICATION FAILED

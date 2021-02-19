@@ -8,12 +8,16 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
+<<<<<<< HEAD
 Occurs: 348 times
 Calling function: Make_Range_Assert_Expr
 Error message: Kind of Bounds_Type not supported
 Nkind: N_Type_Conversion
 --
 Occurs: 335 times
+=======
+Occurs: 57 times
+>>>>>>> c8ce191... code and test cases updated
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
