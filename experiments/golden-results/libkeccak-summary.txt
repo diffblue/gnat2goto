@@ -3,6 +3,7 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
+<<<<<<< HEAD
 Occurs: 696 times
 Calling function: Get_Bound
 Error message: Unsupported range type
@@ -19,6 +20,9 @@ Error message: Kind of Bounds_Type not supported
 Nkind: N_Type_Conversion
 --
 Occurs: 344 times
+=======
+Occurs: 57 times
+>>>>>>> code and test cases updated
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition

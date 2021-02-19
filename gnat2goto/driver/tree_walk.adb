@@ -1521,9 +1521,22 @@ package body Tree_Walk is
                                    Item_Name);
                      Return_Variable : constant Irep :=
                        Global_Symbol_Table (Item).Value;
-
                   begin
                      return Return_Variable;
+                  end;
+               when Attribute_Old  =>
+                  declare
+                     Item_Name : constant String :=
+                       Unique_Name (Entity (Prefix (N))) & "___old";
+                     Item : constant Symbol_Id :=
+                       Intern (Item_Name);
+                     pragma Assert (Global_Symbol_Table.Contains (Item),
+                                    "old value not in symbol table " &
+                                   Item_Name);
+                     Old_Variable : constant Irep :=
+                       Global_Symbol_Table (Item).Value;
+                  begin
+                     return Old_Variable;
                   end;
                when others           =>
                   return Report_Unhandled_Node_Irep
@@ -3086,6 +3099,80 @@ package body Tree_Walk is
    end Do_Pragma;
 
    ---------------------------
+   -- Do_Post_Condition     --
+   ---------------------------
+
+   function Do_Post_Condition (N : Node_Id) return Irep is
+
+      Source_Loc : constant Irep := Get_Source_Location (N);
+
+      Argument_Associations : constant List_Id :=
+        Pragma_Argument_Associations (N);
+
+      --  first is the identifier to be given the attribute
+      First_Argument : constant Node_Id := First (Argument_Associations);
+
+      --  second is the condition
+      Condition : constant Irep :=
+        Do_Expression (Expression (First_Argument));
+
+      Func_Params : constant Irep := Make_Parameter_List;
+      Func_Type : constant Irep :=
+        Make_Code_Type (Parameters  => Func_Params,
+                        Ellipsis    => False,
+                        Return_Type => CProver_Void_T,
+                        Inlined     => False,
+                        Knr         => False);
+      Function_Name : constant String := "__CPROVER_Ada_Post_Condition";
+
+      Post_Call_Arguments : constant Irep := Make_Argument_List;
+      Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+
+      Function_Symbol : constant Symbol :=
+        New_Function_Symbol_Entry (Name           => Function_Name,
+                                   Symbol_Type    => Func_Type,
+                                   Value          => Body_Block,
+                                   A_Symbol_Table => Global_Symbol_Table);
+
+      Assert_Comment : constant Irep :=
+        Make_String_Constant_Expr (Text       => "Ada Post Condition",
+                                   Source_Loc => Source_Loc);
+
+      Assert_State : constant Irep :=
+        Make_Assert_Call (Assertion   =>
+                            Do_Expression (Expression (First_Argument)),
+                          Description => Assert_Comment,
+                          Source_Loc  => Source_Loc,
+                          A_Symbol_Table => Global_Symbol_Table);
+      Assume_State : constant Irep :=
+        Make_Assume_Call (Assumption   =>
+                            Do_Expression (Expression (First_Argument)),
+                          Source_Loc   => Source_Loc,
+                          A_Symbol_Table => Global_Symbol_Table);
+   begin
+      Create_Fun_Parameter (Fun_Name        => Function_Name,
+                            Param_Name      => "condition",
+                            Param_Type      => Make_Bool_Type,
+                            Param_List      => Func_Params,
+                            A_Symbol_Table  => Global_Symbol_Table,
+                            Source_Location => Source_Loc);
+
+      Append_Op (Body_Block, Assert_State);
+      Append_Op (Body_Block, Assume_State);
+
+      Append_Argument
+        (Post_Call_Arguments,
+         Condition);
+
+      return Make_Code_Function_Call
+        (Arguments       => Post_Call_Arguments,
+         I_Function      => Symbol_Expr (Function_Symbol),
+         Lhs             => Make_Nil (Source_Loc),
+         Source_Location => Source_Loc,
+         I_Type          => CProver_Void_T);
+   end Do_Post_Condition;
+
+   ---------------------------
    -- Do_Pre_Condition      --
    ---------------------------
 
@@ -3100,11 +3187,8 @@ package body Tree_Walk is
       First_Argument : constant Node_Id := First (Argument_Associations);
 
       --  second is the condition
-      Condition : constant Irep := Make_Code_Expression
-        (Expression => Do_Expression (Expression (First_Argument)),
-         Source_Location => Source_Loc,
-         I_Type          => Make_Bool_Type,
-         Range_Check     => False);
+      Condition : constant Irep :=
+        Do_Expression (Expression (First_Argument));
 
       Func_Params : constant Irep := Make_Parameter_List;
       Func_Type : constant Irep :=
@@ -5066,6 +5150,8 @@ package body Tree_Walk is
                  Range_Check     => False,
                  Identifier      => Result_Name);
          begin
+            Global_Symbol_Table (Intern (Result_Name)).Value :=
+              Result_Var;
             Append_Op (Block,
                        Make_Code_Assign
                          (Rhs             => Typecast_If_Necessary
@@ -5073,7 +5159,7 @@ package body Tree_Walk is
                              New_Type       => Return_I_Type,
                              A_Symbol_Table => Global_Symbol_Table),
                           Lhs             => Result_Var,
-                            Source_Location => Location,
+                          Source_Location => Location,
                           I_Type          => Return_I_Type,
                           Range_Check     => False));
             Return_Value := Result_Var;
@@ -5300,6 +5386,91 @@ package body Tree_Walk is
       Spec : Node_Id;
    begin
       if Nkind (N) = N_Subprogram_Body then
+         Spec := Corresponding_Spec (N);
+      end if;
+      if Nkind (N) = N_Subprogram_Body and then
+        not Acts_As_Spec (N) and then
+        ASVAT.Pragma_Info.Has_Post_Condition (Spec)
+      then
+         --  create variables for any in or in/out parameters
+         --  get list of parameters from Spec and create local vars
+         declare
+            Param_Id : Symbol_Id;
+            Param_Entity : Node_Id :=
+              First_Entity (Defining_Unit_Name (Specification (N)));
+         begin
+            loop
+               --  only interested in in/out and in parameters
+               if Ekind (Param_Entity) in
+                 E_In_Out_Parameter .. E_In_Parameter
+               then
+                  Param_Id := Intern
+                    (Unique_Name (Param_Entity) & "___old");
+                  --  add parameter to global symbol table
+                  New_Object_Symbol_Entry
+                    (Object_Name       => Param_Id,
+                     Object_Type       =>
+                       Do_Type_Reference (Etype (Param_Entity)),
+                     Object_Init_Value => Ireps.Empty,
+                     A_Symbol_Table    => Global_Symbol_Table);
+
+                  --  declare a variable and initialise
+                  declare
+                     Param_Var  : constant Irep :=
+                       Make_Symbol_Expr
+                         (Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False,
+                          Identifier      => Unintern (Param_Id));
+                     Param_Dec  : constant Irep :=
+                       Make_Code_Decl
+                         (Symbol          => Param_Var,
+                          Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False);
+                     Param_In    : constant Irep :=
+                       Make_Symbol_Expr
+                         (Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False,
+                          Identifier      => Unique_Name (Param_Entity));
+
+                     Param_Init : constant Irep :=
+                       Make_Code_Assign
+                         (Rhs             => Param_In,
+                          Lhs             => Param_Var,
+                          Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False);
+
+                  begin
+                     Global_Symbol_Table (Param_Id).Value :=
+                       Param_Var;
+                     Append_Op (Reps, Param_Dec);
+                     Append_Op (Reps, Param_Init);
+                  end;
+               end if;
+               --  get the next parameter
+               Param_Entity := Next_Entity (Param_Entity);
+               --  exit when last parameter processed
+               exit when Param_Entity = Types.Empty;
+            end loop;
+         end;
+      end if;
+
+      if Nkind (N) = N_Subprogram_Body and then
+        not Acts_As_Spec (N) and then
+        ASVAT.Pragma_Info.Has_Pre_Condition (Spec)
+      then
+         Append_Op (Reps, Do_Pre_Condition
+                    (ASVAT.Pragma_Info.Get_Pre_Condition (Spec)));
+      end if;
+
+      if Nkind (N) = N_Subprogram_Body then
          declare
             Subprog_Spec   : constant Node_Id := Specification (N);
          begin
@@ -5342,7 +5513,8 @@ package body Tree_Walk is
          Process_Statement (HSS, Reps);
       end if;
 
-      if not Acts_As_Spec (N) and then
+      if Nkind (N) = N_Subprogram_Body and then
+        not Acts_As_Spec (N) and then
         ASVAT.Pragma_Info.Has_Post_Condition (Spec) and then
         Nkind (Specification (N)) = N_Procedure_Specification
       then

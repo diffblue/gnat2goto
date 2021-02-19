@@ -8,16 +8,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_full_access
 Nkind: N_Pragma
 --
-Occurs: 646 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Precondition
-Nkind: N_Pragma
---
-Occurs: 378 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
---
 Occurs: 275 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
@@ -58,14 +48,18 @@ Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
 --
+<<<<<<< HEAD
 Occurs: 52 times
+=======
+Occurs: 55 times
+>>>>>>> code and test cases updated
 Calling function: Do_Expression
-Error message: First of string unsupported
+Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 46 times
 Calling function: Do_Expression
-Error message: Last of string unsupported
+Error message: First of string unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 44 times
@@ -73,17 +67,20 @@ Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
+<<<<<<< HEAD
 Occurs: 34 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_COPY_SIGN unsupported
 Nkind: N_Attribute_Reference
 --
+=======
+>>>>>>> code and test cases updated
 Occurs: 24 times
 Calling function: Do_Slice
 Error message: Slices of strings are unsupported
 Nkind: N_Slice
 --
-Occurs: 24 times
+Occurs: 22 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
@@ -94,10 +91,21 @@ Error message: Unsupported range type
 Nkind: N_Type_Conversion
 --
 Occurs: 15 times
+Calling function: Do_Expression
+Error message: Quantified
+Nkind: N_Quantified_Expression
+--
+Occurs: 15 times
+Calling function: Do_Op_Expon
+Error message: Exponentiation unhandled for non mod types at the moment
+Nkind: N_Op_Expon
+--
+Occurs: 13 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
 --
+<<<<<<< HEAD
 Occurs: 12 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ROUNDING unsupported
@@ -108,6 +116,8 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_SCALING unsupported
 Nkind: N_Attribute_Reference
 --
+=======
+>>>>>>> code and test cases updated
 Occurs: 11 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
@@ -119,6 +129,7 @@ Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
+<<<<<<< HEAD
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
@@ -129,6 +140,8 @@ Error message: Kind of Bounds_Type not supported
 Nkind: N_Type_Conversion
 --
 Occurs: 8 times
+=======
+>>>>>>> code and test cases updated
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Obsolescent
 Nkind: N_Pragma
@@ -138,6 +151,7 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_ENUM_REP unsupported
 Nkind: N_Attribute_Reference
 --
+<<<<<<< HEAD
 Occurs: 7 times
 Calling function: Do_Object_Declaration_Full
 Error message: Kind of Expression(N) not valid for Range_Check
@@ -153,6 +167,8 @@ Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
 --
+=======
+>>>>>>> code and test cases updated
 Occurs: 5 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
@@ -173,11 +189,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
 Nkind: N_Pragma
 --
-Occurs: 4 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_EXPONENT unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 3 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: Array aggregates of type string are unsupported
@@ -186,11 +197,6 @@ Nkind: N_Aggregate
 Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALID unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
@@ -214,6 +220,14 @@ Error message: ATTRIBUTE_FLOOR unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
+<<<<<<< HEAD
+=======
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+>>>>>>> code and test cases updated
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
@@ -1825,6 +1839,16 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads:52|
 Error detected at REDACTED
 --
@@ -2125,17 +2149,21 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+<<<<<<< HEAD
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:74|
+=======
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:75|
+>>>>>>> code and test cases updated
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sem_util.adb:20815                     |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2165,17 +2193,27 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:503                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:745                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:745                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2185,7 +2223,7 @@ Error detected at REDACTED
 --
 Occurs: 22 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:745
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
 
 --
 Occurs: 11 times
@@ -2205,5 +2243,5 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : sinfo.adb:1113
 --
 Occurs: 1 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb:74
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb:75
 
