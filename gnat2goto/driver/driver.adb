@@ -552,8 +552,23 @@ package body Driver is
       if Add_Start
       then
          declare
-            Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
+            Init_Name : constant Symbol_Id := Intern ("__CPROVER_initialize");
+            Init_Type        : constant Irep := Make_Code_Type
+              (Return_Type => CProver_Void_T,
+               Parameters => Make_Parameter_List,
+               Ellipsis => False,
+               Inlined => False,
+               Knr => False);
+            Init_Body        : constant Irep := Make_Code_Block
+              (Source_Location => Internal_Source_Location);
+            Init_Symbol      : constant Symbol :=
+              (Name | PrettyName | BaseName => Init_Name,
+               SymType => Init_Type,
+               Value => Init_Body,
+               Mode => Intern ("C"),
+               others => <>);
 
+            Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
             Start_Type        : constant Irep := Make_Code_Type
               (Return_Type => CProver_Void_T,
                Parameters => Make_Parameter_List,
@@ -573,7 +588,18 @@ package body Driver is
             Program_Args : constant Irep_List :=
               Get_Parameter (Get_Parameters (Get_Type (Entry_Procedure)));
          begin
-            Initialize_CProver_Internal_Variables (Start_Body);
+            --  Create a __CPROVER_initialize function for all of the
+            --  CPROVER internal variables
+            Initialize_CProver_Internal_Variables (Init_Body);
+            Global_Symbol_Table.Insert (Init_Name, Init_Symbol);
+
+            Append_Op (Start_Body,
+                       Make_Code_Function_Call
+                         (I_Function => Symbol_Expr (Init_Symbol),
+                          Source_Location => Internal_Source_Location,
+                          Lhs => Make_Nil (Internal_Source_Location),
+                          Arguments => Make_Argument_List));
+
             --  Generate a simple _start function that calls the entry point
             declare
                C : List_Cursor := List_First (Program_Args);
