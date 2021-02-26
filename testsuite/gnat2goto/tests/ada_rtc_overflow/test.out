@@ -1,7 +1,4 @@
-[overflow_check.assertion.1] line 22 Ada Check assertion: FAILURE
-[overflow_check.assertion.2] line 24 assertion var4 = -32_758: SUCCESS
-[overflow_check.assertion.3] line 31 assertion Integer(var5) = oor: FAILURE
-[overflow_check.assertion.6] line 34 Ada Check assertion: SUCCESS
-[overflow_check.assertion.4] line 36 assertion var4 = -32_668: SUCCESS
-[overflow_check.assertion.5] line 43 assertion Integer(var5) = oor: SUCCESS
+[overflow_check.assertion.1] line 13 Ada Check assertion: FAILURE
+[overflow_check.assertion.2] line 18 assertion var4 = -2_147_483_638: SUCCESS
+[overflow_check.assertion.3] line 21 assertion false: FAILURE
 VERIFICATION FAILED

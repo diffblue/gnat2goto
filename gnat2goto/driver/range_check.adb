@@ -163,12 +163,21 @@ package body Range_Check is
       end case;
    end Get_Bound_Of_Bounded_Type;
 
-   function Make_Div_Zero_Assert_Expr (Value : Irep;
+   function Make_Div_Zero_Assert_Expr (N : Node_Id;
+                                       Value : Irep;
                                        Divisor : Irep) return Irep
    is
       Value_Type : constant Irep :=
         Follow_Symbol_Type (Get_Type (Value), Global_Symbol_Table);
-      Source_Loc : constant Irep := Internal_Source_Location;
+      Source_Loc : constant Irep := Get_Source_Location (N);
+      Compare_Type : constant Irep :=
+        (if Kind (Value_Type) = I_Bounded_Floatbv_Type or else
+         Kind (Value_Type) = I_Floatbv_Type then
+              Float64_T else Int64_T);
+      Type_String : constant String :=
+        (if Kind (Value_Type) = I_Bounded_Floatbv_Type or else
+         Kind (Value_Type) = I_Floatbv_Type then
+              "_Flt" else "_Int");
 
       function Build_Assert_Function return Symbol;
 
@@ -184,20 +193,20 @@ package body Range_Check is
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String := "__division_check";
+         Func_Name : constant String := "__division_check" & Type_String;
          Body_Block : constant Irep := Make_Code_Block (Source_Loc);
          Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
            Create_Fun_Parameter (Fun_Name        => Func_Name,
                                  Param_Name      => "value",
-                                 Param_Type      => Value_Type,
+                                 Param_Type      => Compare_Type,
                                  Param_List      => Func_Params,
                                  A_Symbol_Table  => Global_Symbol_Table,
                                  Source_Location => Source_Loc);
          Divisor_Arg : constant Irep :=
            Create_Fun_Parameter (Fun_Name        => Func_Name,
                                  Param_Name      => "divisor",
-                                 Param_Type      => Value_Type,
+                                 Param_Type      => Compare_Type,
                                  Param_List      => Func_Params,
                                  A_Symbol_Table  => Global_Symbol_Table,
                                  Source_Location => Source_Loc);
@@ -210,14 +219,16 @@ package body Range_Check is
          Value_Param : constant Irep := Param_Symbol (Value_Arg);
          Divisor_Param : constant Irep := Param_Symbol (Divisor_Arg);
          Return_Inst : constant Irep :=
-           Make_Code_Return (Return_Value    => Value_Param,
+           Make_Code_Return (Return_Value    => Typecast_If_Necessary (
+                             Value_Param, Value_Type,
+                             Global_Symbol_Table),
                              Source_Location => Source_Loc,
                              I_Type          => Ireps.Empty);
          Division_Check_Args : constant Irep := Make_Argument_List;
          Divisor_Neq_Zero_Expr : constant Irep :=
            Make_Op_Notequal (Rhs             =>
                                Typecast_If_Necessary (Get_Int32_T_Zero,
-                                 Value_Type, Global_Symbol_Table),
+                                 Compare_Type, Global_Symbol_Table),
                              Lhs             => Divisor_Param,
                              Source_Location => Source_Loc,
                              Overflow_Check  => False,
@@ -251,8 +262,16 @@ package body Range_Check is
       Call_Args : constant Irep := Make_Argument_List;
 
    begin
-      Append_Argument (Call_Args, Value);
-      Append_Argument (Call_Args, Divisor);
+      Append_Argument (Call_Args,
+                       Typecast_If_Necessary
+                         (Expr           => Value,
+                          New_Type       => Compare_Type,
+                          A_Symbol_Table => Global_Symbol_Table));
+      Append_Argument (Call_Args,
+                       Typecast_If_Necessary
+                         (Expr           => Divisor,
+                          New_Type       => Compare_Type,
+                          A_Symbol_Table => Global_Symbol_Table));
 
       return Make_Side_Effect_Expr_Function_Call
         (Arguments       => Call_Args,
@@ -337,12 +356,14 @@ package body Range_Check is
         Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
       Underlying_Upper_Type : constant Irep :=
         Follow_Symbol_Type (Get_Type (Upper_Bound), Global_Symbol_Table);
-      Source_Loc : constant Irep := Internal_Source_Location;
+      Source_Loc : constant Irep := Get_Source_Location (N);
       Compare_Type : constant Irep :=
-        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type then
+        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
+         Kind (Underlying_Lower_Type) = I_Floatbv_Type then
               Float64_T else Int64_T);
       Type_String : constant String :=
-        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type then
+        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
+         Kind (Underlying_Lower_Type) = I_Floatbv_Type then
               "_Flt" else "_Int");
 
       function Build_Assert_Function return Symbol;

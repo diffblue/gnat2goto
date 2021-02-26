@@ -4014,7 +4014,8 @@ package body Tree_Walk is
            and then Do_Division_Check (N)
          then
             Maybe_Division_Check := Make_Div_Zero_Assert_Expr
-              (Value   => Maybe_Overflow_Check,
+              (N       => N,
+               Value   => Maybe_Overflow_Check,
                Divisor => Get_Rhs (Unchecked_Result));
          else
             Maybe_Division_Check := Maybe_Overflow_Check;

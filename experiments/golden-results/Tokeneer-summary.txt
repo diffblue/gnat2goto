@@ -1205,17 +1205,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:56|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:56|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1230,12 +1225,17 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:503                    |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:503                    |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1275,17 +1275,17 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 --
 Occurs: 10 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:467
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:503
 
 --
 Occurs: 6 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:55
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:56
 
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:437
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:465
 
 --
 Occurs: 1 times

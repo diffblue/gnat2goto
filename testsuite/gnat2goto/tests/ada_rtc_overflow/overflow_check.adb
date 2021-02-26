@@ -1,46 +1,26 @@
-procedure Overflow_Check is
+procedure Overflow_Check (Val1 : Integer; Val2 : Integer) is
 
-   type Int16 is range -(2**15) .. (2**15 -1);
-   for Int16'Size use 16;
-  
-   
-   var1 : Int16 := Int16'First;
-   var2 : Int16 := 10;
-   var3 : Int16 := Int16'Last;
-   var4 : Int16;
-   var5 : Int16;
+   var1 : Integer := Integer'First;
+   var2 : Integer := 10;
+   var3 : Integer := Integer'Last;
+   var4 : Integer;
+   var5 : Integer;
+   var6 : Integer;
 
-   int1 : Integer := Integer(Int16'First);
-   int2 : Integer := 100;
-   int3 : Integer := Integer(Int16'Last);
-   
-   oor : Integer;
-   
 begin
 
-   --  test in range
+   --  test undetermined will succeed
+   var6 := Val1 + Val2;
+   
+   --  test in range will successed
    var4 := var1 + var2;
 
-   pragma Assert (var4 = -32_758);
+   pragma Assert (var4 = -2_147_483_638);
  
-   -- test out of range
+   -- expect failure check
+   pragma Assert (false);
+
+   -- test out of range will fail
    var5 :=  var2 + var3;
-
-   oor := Integer(var3) + 10;
-   
-   pragma Assert (Integer(var5) = oor);
-
-   -- test in range integers
-   var4 := int16(int1 + int2);
- 
-   pragma Assert (var4 = -32_668);
-
-   -- test out of range integers
-   var5 := int16(int2 + int3);
- 
-   oor := Integer(var3) + 100;
-   
-   pragma Assert (Integer(var5) = oor);
-
 
 end Overflow_Check;

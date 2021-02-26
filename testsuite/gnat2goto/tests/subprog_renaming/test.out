@@ -1,13 +1,16 @@
 Standard_Error from gnat2goto subprog_renaming:
 subprog_renaming.adb:49:18: warning: "+" is being renamed as a different operator
 
-[shift_left.assertion.1] line 8 Ada Check assertion: FAILURE
+Error from cbmc subprog_renaming:
+**** WARNING: no body for function interfaces__shift_left__3
+
+[shift_left.assertion.1] line 8 Ada Check assertion: SUCCESS
 [shift_left.assertion.2] line 8 Ada Check assertion: SUCCESS
 [subprog_renaming.assertion.1] line 61 assertion V = 1: SUCCESS
 [subprog_renaming.assertion.2] line 63 assertion V = 2: SUCCESS
 [subprog_renaming.assertion.3] line 65 assertion V = 3: SUCCESS
 [subprog_renaming.assertion.4] line 67 assertion V = 3: SUCCESS
-[subprog_renaming.assertion.5] line 71 assertion U = 4: SUCCESS
+[subprog_renaming.assertion.5] line 71 assertion U = 4: FAILURE
 [subprog_renaming.assertion.6] line 73 assertion W = 4: SUCCESS
 [subprog_renaming.assertion.7] line 74 assertion E = one: SUCCESS
 [subprog_renaming.assertion.8] line 80 assertion V = 4: SUCCESS

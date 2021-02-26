@@ -1,8 +1,13 @@
-[assertion.1] file division_check.adb line 15 Ada Check assertion: SUCCESS
-[division_check.assertion.1] line 15 Ada Check assertion: FAILURE
-[division_check.assertion.6] line 15 Ada Check assertion: SUCCESS
-[division_check.assertion.2] line 17 assertion Fl1 = 1.0: SUCCESS
-[division_check.assertion.3] line 29 assertion Int1 = 1: SUCCESS
-[division_check.assertion.4] line 41 assertion Int1 = 1: SUCCESS
-[division_check.assertion.5] line 53 assertion Int1 = 1: SUCCESS
+Error from cbmc division_check_int:
+function '__CPROVER_Ada_Overflow_Check' in module '' is shadowed by a definition in module ''
+function '__CPROVER_Ada_Division_Check' in module '' is shadowed by a definition in module ''
+
+[assertion.1] file division_check_float.adb line 15 Ada Check assertion: SUCCESS
+[float_check.assertion.3] line 15 Ada Check assertion: FAILURE
+[float_check.assertion.4] line 15 Ada Check assertion: SUCCESS
+[float_check.assertion.1] line 18 assertion Fl1 = 1.0: SUCCESS
+[float_check.assertion.2] line 23 assertion false: FAILURE
+[int_check.assertion.1] line 16 assertion Int1 = 1: SUCCESS
+[int_check.assertion.2] line 27 assertion Int1 = 1: SUCCESS
+[int_check.assertion.3] line 32 assertion False: FAILURE
 VERIFICATION FAILED
