@@ -1,6 +1,6 @@
 Error from cbmc division_check_int:
-function '__CPROVER_Ada_Overflow_Check' in module '' is shadowed by a definition in module ''
 function '__CPROVER_Ada_Division_Check' in module '' is shadowed by a definition in module ''
+function '__CPROVER_Ada_Overflow_Check' in module '' is shadowed by a definition in module ''
 
 [assertion.1] file division_check_float.adb line 15 Ada Check assertion: SUCCESS
 [float_check.assertion.3] line 15 Ada Check assertion: FAILURE

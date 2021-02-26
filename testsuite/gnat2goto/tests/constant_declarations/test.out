@@ -1,6 +1,6 @@
 Error from cbmc test:
-function '__CPROVER_Ada_Overflow_Check' in module '' is shadowed by a definition in module ''
 function 'range_check__Overflow_Check_Int' in module '' is shadowed by a definition in module ''
+function '__CPROVER_Ada_Overflow_Check' in module '' is shadowed by a definition in module ''
 
 [assertion.1] file const_decs.ads line 8 Ada Check assertion: FAILURE
 [test.assertion.1] line 8 assertion My_P = 50: FAILURE
