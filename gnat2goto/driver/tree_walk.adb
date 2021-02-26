@@ -150,6 +150,8 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Pragma
      and then Kind (Block) = I_Code_Block; -- FIXME: what about decls?
 
+   function Do_Post_Condition (N : Node_Id) return Irep;
+
    function Do_Pre_Condition (N : Node_Id) return Irep;
 
    function Do_Operator_Simple (N : Node_Id) return Irep
@@ -1526,24 +1528,47 @@ package body Tree_Walk is
                   end;
                when Attribute_Old  =>
                   declare
+                     The_Prefix        : constant Node_Id := Prefix (N);
+                     Prefix_Etype      : constant Node_Id :=
+                       Etype (The_Prefix);
+                     Is_Implicit_Deref : constant Boolean :=
+                       Is_Access_Type (Prefix_Etype);
                      Item_Name : constant String :=
-                       Unique_Name (Entity (Prefix (N))) & "___old";
+                       Unique_Name (Entity (The_Prefix)) & "___old";
                      Item : constant Symbol_Id :=
                        Intern (Item_Name);
                      pragma Assert (Global_Symbol_Table.Contains (Item),
                                     "old value not in symbol table " &
-                                   Item_Name);
+                                      Item_Name);
                      Old_Variable : constant Irep :=
                        Global_Symbol_Table (Item).Value;
+
+                     Resolved_Type     : constant Irep :=
+                       (if Is_Implicit_Deref then
+                           Do_Type_Reference (Designated_Type (Prefix_Etype))
+                        else
+                           Do_Type_Reference (Prefix_Etype));
+
+                     Source_Loc : constant Irep := Get_Source_Location (N);
+
+                     Return_Expr : constant Irep :=
+                       Make_Dereference_Expr
+                         (Object          => Old_Variable,
+                          Source_Location => Source_Loc,
+                          I_Type          => Resolved_Type);
                   begin
-                     return Old_Variable;
+                     if Is_Implicit_Deref then
+                        return Return_Expr;
+                     else
+                        return Old_Variable;
+                     end if;
                   end;
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
                      Attribute_Id'Image
                        (Get_Attribute_Id (Attribute_Name (N))) &
-                    " unsupported");
+                       " unsupported");
             end case;
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
@@ -3106,70 +3131,74 @@ package body Tree_Walk is
 
       Source_Loc : constant Irep := Get_Source_Location (N);
 
-      Argument_Associations : constant List_Id :=
-        Pragma_Argument_Associations (N);
+      Cond_Block : constant Irep :=
+        Make_Code_Block (Source_Loc);
+
+      Current_Pragma : Node_Id := N;
+
+      Argument_Associations : List_Id :=
+        Pragma_Argument_Associations (Current_Pragma);
 
       --  first is the identifier to be given the attribute
-      First_Argument : constant Node_Id := First (Argument_Associations);
+      First_Argument : Node_Id := First (Argument_Associations);
 
       --  second is the condition
-      Condition : constant Irep :=
+      Condition : Irep :=
         Do_Expression (Expression (First_Argument));
 
-      Func_Params : constant Irep := Make_Parameter_List;
-      Func_Type : constant Irep :=
-        Make_Code_Type (Parameters  => Func_Params,
-                        Ellipsis    => False,
-                        Return_Type => CProver_Void_T,
-                        Inlined     => False,
-                        Knr         => False);
-      Function_Name : constant String := "__CPROVER_Ada_Post_Condition";
+      function Make_Post_Condition (Expr : Irep) return Irep;
 
-      Post_Call_Arguments : constant Irep := Make_Argument_List;
-      Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+      function Make_Post_Condition (Expr : Irep) return Irep
+      is
+         Post_Con_Args : constant Irep := Make_Argument_List;
+         Condition_Expr_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Post_Con_Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol ("__CPROVER_Ada_Post_Condition",
+                        Global_Symbol_Table, Source_Loc));
+         Post_Con_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Post_Con_Args,
+                                    I_Function      => Post_Con_Sym_Expr,
+                                    Lhs             => Make_Nil (Source_Loc),
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Make_Void_Type);
+      begin
+         Append_Argument (Post_Con_Args, Condition_Expr_As_Int);
+         return Post_Con_Call;
+      end Make_Post_Condition;
 
-      Function_Symbol : constant Symbol :=
-        New_Function_Symbol_Entry (Name           => Function_Name,
-                                   Symbol_Type    => Func_Type,
-                                   Value          => Body_Block,
-                                   A_Symbol_Table => Global_Symbol_Table);
-
-      Assert_Comment : constant Irep :=
-        Make_String_Constant_Expr (Text       => "Ada Post Condition",
-                                   Source_Loc => Source_Loc);
-
-      Assert_State : constant Irep :=
-        Make_Assert_Call (Assertion   =>
-                            Do_Expression (Expression (First_Argument)),
-                          Description => Assert_Comment,
-                          Source_Loc  => Source_Loc,
-                          A_Symbol_Table => Global_Symbol_Table);
-      Assume_State : constant Irep :=
-        Make_Assume_Call (Assumption   =>
-                            Do_Expression (Expression (First_Argument)),
-                          Source_Loc   => Source_Loc,
-                          A_Symbol_Table => Global_Symbol_Table);
    begin
-      Create_Fun_Parameter (Fun_Name        => Function_Name,
-                            Param_Name      => "condition",
-                            Param_Type      => Make_Bool_Type,
-                            Param_List      => Func_Params,
-                            A_Symbol_Table  => Global_Symbol_Table,
-                            Source_Location => Source_Loc);
 
-      Append_Op (Body_Block, Assert_State);
-      Append_Op (Body_Block, Assume_State);
+      Append_Op (Cond_Block,
+                 Make_Post_Condition (Expr => Condition));
 
-      Append_Argument
-        (Post_Call_Arguments,
-         Condition);
+      while Next_Pragma (Current_Pragma) /= Types.Empty
+      loop
 
-      return Make_Code_Function_Call
-        (Arguments       => Post_Call_Arguments,
-         I_Function      => Symbol_Expr (Function_Symbol),
-         Lhs             => Make_Nil (Source_Loc),
-         Source_Location => Source_Loc,
-         I_Type          => CProver_Void_T);
+         Current_Pragma := Next_Pragma (Current_Pragma);
+
+         if  Get_Name_String (Chars (Pragma_Identifier (Current_Pragma))) =
+           "postcondition"
+         then
+            Argument_Associations :=
+              Pragma_Argument_Associations (Current_Pragma);
+
+            --  first is the identifier to be given the attribute
+            First_Argument := First (Argument_Associations);
+
+            Condition := Do_Expression (Expression (First_Argument));
+
+            Append_Op (Cond_Block,
+                       Make_Post_Condition (Expr => Condition));
+
+         end if;
+      end loop;
+
+      --  Print_Irep (Condition);
+
+      return Cond_Block;
    end Do_Post_Condition;
 
    ---------------------------
@@ -3180,70 +3209,73 @@ package body Tree_Walk is
 
       Source_Loc : constant Irep := Get_Source_Location (N);
 
-      Argument_Associations : constant List_Id :=
-        Pragma_Argument_Associations (N);
+      Cond_Block : constant Irep :=
+        Make_Code_Block (Source_Loc);
+
+      Current_Pragma : Node_Id := N;
+
+      Argument_Associations : List_Id :=
+        Pragma_Argument_Associations (Current_Pragma);
 
       --  first is the identifier to be given the attribute
-      First_Argument : constant Node_Id := First (Argument_Associations);
+      First_Argument : Node_Id := First (Argument_Associations);
 
       --  second is the condition
-      Condition : constant Irep :=
+      Condition : Irep :=
         Do_Expression (Expression (First_Argument));
 
-      Func_Params : constant Irep := Make_Parameter_List;
-      Func_Type : constant Irep :=
-        Make_Code_Type (Parameters  => Func_Params,
-                        Ellipsis    => False,
-                        Return_Type => CProver_Void_T,
-                        Inlined     => False,
-                        Knr         => False);
-      Function_Name : constant String := "__CPROVER_Ada_Pre_Condition";
+      function Make_Pre_Condition (Expr : Irep) return Irep;
 
-      Pre_Call_Arguments : constant Irep := Make_Argument_List;
-      Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+      function Make_Pre_Condition (Expr : Irep) return Irep
+      is
+         Pre_Con_Args : constant Irep := Make_Argument_List;
+         Condition_Expr_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Pre_Con_Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol ("__CPROVER_Ada_Pre_Condition",
+                        Global_Symbol_Table, Source_Loc));
+         Pre_Con_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Pre_Con_Args,
+                                    I_Function      => Pre_Con_Sym_Expr,
+                                    Lhs             => Make_Nil (Source_Loc),
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Make_Void_Type);
+      begin
+         Append_Argument (Pre_Con_Args, Condition_Expr_As_Int);
+         return Pre_Con_Call;
+      end Make_Pre_Condition;
 
-      Function_Symbol : constant Symbol :=
-        New_Function_Symbol_Entry (Name           => Function_Name,
-                                   Symbol_Type    => Func_Type,
-                                   Value          => Body_Block,
-                                   A_Symbol_Table => Global_Symbol_Table);
-
-      Assert_Comment : constant Irep :=
-        Make_String_Constant_Expr (Text       => "Ada Pre Condition",
-                                   Source_Loc => Source_Loc);
-
-      Assert_State : constant Irep :=
-        Make_Assert_Call (Assertion   =>
-                            Do_Expression (Expression (First_Argument)),
-                          Description => Assert_Comment,
-                          Source_Loc  => Source_Loc,
-                          A_Symbol_Table => Global_Symbol_Table);
-      Assume_State : constant Irep :=
-        Make_Assume_Call (Assumption   =>
-                            Do_Expression (Expression (First_Argument)),
-                          Source_Loc   => Source_Loc,
-                          A_Symbol_Table => Global_Symbol_Table);
    begin
-      Create_Fun_Parameter (Fun_Name        => Function_Name,
-                            Param_Name      => "condition",
-                            Param_Type      => Make_Bool_Type,
-                            Param_List      => Func_Params,
-                            A_Symbol_Table  => Global_Symbol_Table,
-                            Source_Location => Source_Loc);
 
-      Append_Op (Body_Block, Assert_State);
-      Append_Op (Body_Block, Assume_State);
+      Append_Op (Cond_Block,
+                 Make_Pre_Condition (Expr => Condition));
 
-      Append_Argument
-        (Pre_Call_Arguments,
-         Condition);
+      while Next_Pragma (Current_Pragma) /= Types.Empty
+      loop
 
-      return Make_Code_Function_Call
-        (Arguments       => Pre_Call_Arguments,
-         I_Function      => Symbol_Expr (Function_Symbol),
-         Lhs             => Make_Nil (Source_Loc),
-         Source_Location => Source_Loc,
-         I_Type          => CProver_Void_T);
+         Current_Pragma := Next_Pragma (Current_Pragma);
+
+         if  Get_Name_String (Chars (Pragma_Identifier (Current_Pragma))) =
+           "precondition"
+         then
+            Argument_Associations :=
+              Pragma_Argument_Associations (Current_Pragma);
+
+            --  first is the identifier to be given the attribute
+            First_Argument := First (Argument_Associations);
+
+            Condition := Do_Expression (Expression (First_Argument));
+
+            Append_Op (Cond_Block,
+                       Make_Pre_Condition (Expr => Condition));
+
+            --  Print_Irep (Condition);
+         end if;
+      end loop;
+
+      return Cond_Block;
    end Do_Pre_Condition;
 
    ---------------------------
@@ -5439,13 +5471,27 @@ package body Tree_Walk is
                           Identifier      => Unique_Name (Param_Entity));
 
                      Param_Init : constant Irep :=
-                       Make_Code_Assign
-                         (Rhs             => Param_In,
-                          Lhs             => Param_Var,
-                          Source_Location => Loc,
-                          I_Type          => Do_Type_Reference
-                            (Etype (Param_Entity)),
-                          Range_Check     => False);
+                       (if Ekind (Param_Entity) = E_In_Out_Parameter then
+                            (Make_Code_Assign
+                             (Rhs             =>
+                                    Make_Dereference_Expr
+                                (Object          => Param_In,
+                                 Source_Location => Loc,
+                                 I_Type          => Do_Type_Reference
+                                   (Etype (Param_Entity))),
+                              Lhs             => Param_Var,
+                              Source_Location => Loc,
+                              I_Type          => Do_Type_Reference
+                                (Etype (Param_Entity)),
+                              Range_Check     => False))
+                        else
+                           Make_Code_Assign
+                          (Rhs             => Param_In,
+                           Lhs             => Param_Var,
+                           Source_Location => Loc,
+                           I_Type          => Do_Type_Reference
+                             (Etype (Param_Entity)),
+                           Range_Check     => False));
 
                   begin
                      Global_Symbol_Table (Param_Id).Value :=

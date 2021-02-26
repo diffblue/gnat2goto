@@ -1,10 +1,9 @@
 procedure Post_Condition is
 
-   type count is range 1 .. 20;
+   type count is range 1 .. 100;
    
    function Double (value : count) return count
-     with Pre => value <= 10,
-     Post => Double'Result <=20;
+     with Post => Double'Result <=20;
    
    function Double (value : count) return count
    is
@@ -13,7 +12,7 @@ procedure Post_Condition is
    end Double;
 
    procedure Triple (value : count; output : out count)
-     with Pre => value <= 6,
+     with Pre => value <= 10,
      Post => output <=20 and then output = value * 3;
 
    procedure Triple (value : count; output : out count)
@@ -25,7 +24,7 @@ procedure Post_Condition is
    procedure Triple_Update (value : in out count; 
                             update : in Boolean;
                             output : out count)
-     with Pre => value <= 6,
+     with Pre => value <= 10,
      Post => output <=20 and then output = value'Old * 3;
 
    procedure Triple_Update (value : in out count; 
@@ -42,27 +41,49 @@ procedure Post_Condition is
    I : count := 8;
    
    J : count := 3;
+
+   K : count;
    
+   Bool_1 : Boolean;
+   Bool_2 : Boolean;
+
 begin
 
-   pragma Assert (I = 8);
-   
    --  post condition will pass
    I := Double (I);
    
    pragma Assert (I = 16);
    
-   --  post condition will fail
-   I := Double (i);
-
-   pragma Assert (J = 3);
+   if Bool_1 then
+      --  post condition will fail
+      I := Double (I);
+      pragma Assert (False);  -- will report SUCCESS
+   end if;
    
    --  post condition will pass
    Triple (J,J);
    
    pragma Assert (J = 9);
+
+   if Bool_2 then
+      --  post condition will fail
+      Triple (J,J);
+      pragma Assert (False);  -- will report SUCCESS
+   end if;
    
-   --  post condition will fail
-   Triple (J,J);
+   J := 3;
+
+   -- post condition will pass
+   Triple_Update (J, True, K);
+
+   pragma Assert (J = 9);
+   pragma Assert (K = 9);
+
+   -- check assert fail
+   pragma Assert (False);  -- will report FAILURE
+
+    -- post condition will fail
+   Triple_Update (J, True, K);  
+   pragma Assert (False);  -- will report SUCCESS
 
 end Post_Condition;
