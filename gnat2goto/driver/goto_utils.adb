@@ -839,7 +839,7 @@ package body GOTO_Utils is
    begin
       Create_Fun_Parameter (Fun_Name        => Assert_Name,
                             Param_Name      => "condition",
-                            Param_Type      => Int32_T,
+                            Param_Type      => CProver_Bool_T,
                             Param_List      => Assert_Param_List,
                             A_Symbol_Table  => A_Symbol_Table,
                             Source_Location => Source_Loc);
@@ -880,7 +880,7 @@ package body GOTO_Utils is
    begin
       Create_Fun_Parameter (Fun_Name        => Assume_Name,
                             Param_Name      => "condition",
-                            Param_Type      => Int32_T,
+                            Param_Type      => CProver_Bool_T,
                             Param_List      => Assume_Param_List,
                             A_Symbol_Table  => A_Symbol_Table,
                             Source_Location => Source_Loc);
