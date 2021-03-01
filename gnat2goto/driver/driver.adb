@@ -44,6 +44,7 @@ with Namet;                 use Namet;
 with Lib;                   use Lib;
 with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
+with Binary_To_Hex;         use Binary_To_Hex;
 with Range_Check;           use Range_Check;
 with ASVAT.Size_Model;
 
@@ -173,24 +174,28 @@ package body Driver is
          end if;
       end Declare_Missing_Global;
 
-      procedure Initialize_CProver_Rounding_Mode;
-      procedure Initialize_CProver_Rounding_Mode is
-         Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
-           (I_Type => Int_32_T,
-            Identifier => "__CPROVER_rounding_mode",
+      procedure Initialize_CProver_Alloca_Object;
+      procedure Initialize_CProver_Alloca_Object is
+         Alloca_Object_Type : constant Irep := Make_Pointer_Type
+           (I_Subtype => Make_Void_Type,
+            Width => Pointer_Type_Width);
+         Alloca_Object_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Alloca_Object_Type,
+            Identifier => "__CPROVER_alloca_object",
             Source_Location => Internal_Source_Location);
-         Rounding_Mode_Val_Bits : constant String (1 .. 32) := (others => '0');
-         Rounding_Mode_Val : constant Irep := Make_Constant_Expr
-           (I_Type => Int_32_T,
-            Value => Rounding_Mode_Val_Bits,
-            Source_Location => Internal_Source_Location);
-         Initialization_Statement : constant Irep := Make_Code_Assign
-           (Lhs => Rounding_Mode_Sym,
-            Rhs => Rounding_Mode_Val,
+         Alloca_Object_Val : constant Irep := Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Alloca_Object_Type,
             Source_Location => Internal_Source_Location);
       begin
-         Append_Op (Start_Body, Initialization_Statement);
-      end Initialize_CProver_Rounding_Mode;
+         Declare_Missing_Global (Alloca_Object_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Alloca_Object_Sym,
+               Rhs => Alloca_Object_Val,
+               Source_Location => Internal_Source_Location));
+      end Initialize_CProver_Alloca_Object;
 
       procedure Initialize_CProver_Dead_Object;
       procedure Initialize_CProver_Dead_Object is
@@ -237,6 +242,77 @@ package body Driver is
                Source_Location => Internal_Source_Location));
       end Initialize_CProver_Deallocated;
 
+      procedure Initialize_CProver_Malloc_Failure_Mode;
+      procedure Initialize_CProver_Malloc_Failure_Mode is
+         Malloc_Failure_Mode_Type : constant Irep :=
+           Int_32_T;
+         Malloc_Failure_Mode_Sym : constant Irep :=
+           Make_Symbol_Expr
+           (I_Type => Malloc_Failure_Mode_Type,
+            Identifier => "__CPROVER_malloc_failure_mode",
+            Source_Location => Internal_Source_Location);
+         Malloc_Failure_Mode_Val : constant Irep :=
+           Integer_Constant_To_Expr
+           (Value => Uint_0,
+            Expr_Type => Malloc_Failure_Mode_Type,
+            Source_Location => Internal_Source_Location);
+      begin
+         Declare_Missing_Global (Malloc_Failure_Mode_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Malloc_Failure_Mode_Sym,
+               Rhs => Malloc_Failure_Mode_Val,
+               Source_Location => Internal_Source_Location));
+      end Initialize_CProver_Malloc_Failure_Mode;
+
+      procedure Initialize_CProver_Malloc_Failure_Mode_Assert_Then_Assume;
+      procedure Initialize_CProver_Malloc_Failure_Mode_Assert_Then_Assume is
+         Malloc_Failure_Mode_Assert_Then_Assume_Type : constant Irep :=
+           Int_32_T;
+         Malloc_Failure_Mode_Assert_Then_Assume_Sym : constant Irep :=
+           Make_Symbol_Expr
+           (I_Type => Malloc_Failure_Mode_Assert_Then_Assume_Type,
+            Identifier => "__CPROVER_malloc_failure_mode_assert_then_assume",
+            Source_Location => Internal_Source_Location);
+         Malloc_Failure_Mode_Assert_Then_Assume_Val : constant Irep :=
+           Integer_Constant_To_Expr
+           (Value => Uint_2,
+            Expr_Type => Malloc_Failure_Mode_Assert_Then_Assume_Type,
+            Source_Location => Internal_Source_Location);
+      begin
+         Declare_Missing_Global (Malloc_Failure_Mode_Assert_Then_Assume_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Malloc_Failure_Mode_Assert_Then_Assume_Sym,
+               Rhs => Malloc_Failure_Mode_Assert_Then_Assume_Val,
+               Source_Location => Internal_Source_Location));
+      end Initialize_CProver_Malloc_Failure_Mode_Assert_Then_Assume;
+
+      procedure Initialize_CProver_Malloc_Failure_Mode_Return_Null;
+      procedure Initialize_CProver_Malloc_Failure_Mode_Return_Null is
+         Malloc_Failure_Mode_Return_Null_Type : constant Irep := Int_32_T;
+         Malloc_Failure_Mode_Return_Null_Sym : constant Irep :=
+           Make_Symbol_Expr
+           (I_Type => Malloc_Failure_Mode_Return_Null_Type,
+            Identifier => "__CPROVER_malloc_failure_mode_return_null",
+            Source_Location => Internal_Source_Location);
+         Malloc_Failure_Mode_Return_Null_Val : constant Irep :=
+           Integer_Constant_To_Expr
+           (Value => Uint_1,
+            Expr_Type => Malloc_Failure_Mode_Return_Null_Type,
+            Source_Location => Internal_Source_Location);
+      begin
+         Declare_Missing_Global (Malloc_Failure_Mode_Return_Null_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Malloc_Failure_Mode_Return_Null_Sym,
+               Rhs => Malloc_Failure_Mode_Return_Null_Val,
+               Source_Location => Internal_Source_Location));
+      end Initialize_CProver_Malloc_Failure_Mode_Return_Null;
+
       procedure Initialize_CProver_Malloc_Object;
       procedure Initialize_CProver_Malloc_Object is
          Malloc_Object_Type : constant Irep := Make_Pointer_Type
@@ -259,6 +335,51 @@ package body Driver is
                Rhs => Malloc_Object_Val,
                Source_Location => Internal_Source_Location));
       end Initialize_CProver_Malloc_Object;
+
+      procedure Initialize_CProver_Max_Malloc_Size;
+      procedure Initialize_CProver_Max_Malloc_Size is
+         Max_Malloc_Size_Type : constant Irep := CProver_Size_T;
+         Max_Malloc_Size_Sym : constant Irep :=
+           Make_Symbol_Expr
+           (I_Type => Max_Malloc_Size_Type,
+            Identifier => "__CPROVER_max_malloc_size",
+            Source_Location => Internal_Source_Location);
+         Value_Hex : constant String :=
+           Convert_Uint_To_Hex (Value => Uint_2 ** 23,
+                                Bit_Width => Size_T_Width);
+         Max_Malloc_Size_Val : constant Irep :=
+           Make_Constant_Expr (Source_Location => Internal_Source_Location,
+                               I_Type          => Max_Malloc_Size_Type,
+                               Range_Check     => False,
+                               Value           => Value_Hex);
+      begin
+         Declare_Missing_Global (Max_Malloc_Size_Sym);
+         Append_Op
+           (Start_Body,
+            Make_Code_Assign
+              (Lhs => Max_Malloc_Size_Sym,
+               Rhs => Max_Malloc_Size_Val,
+               Source_Location => Internal_Source_Location));
+      end Initialize_CProver_Max_Malloc_Size;
+
+      procedure Initialize_CProver_Rounding_Mode;
+      procedure Initialize_CProver_Rounding_Mode is
+         Rounding_Mode_Sym : constant Irep := Make_Symbol_Expr
+           (I_Type => Int_32_T,
+            Identifier => "__CPROVER_rounding_mode",
+            Source_Location => Internal_Source_Location);
+         Rounding_Mode_Val_Bits : constant String (1 .. 8) := (others => '0');
+         Rounding_Mode_Val : constant Irep := Make_Constant_Expr
+           (I_Type => Int_32_T,
+            Value => Rounding_Mode_Val_Bits,
+            Source_Location => Internal_Source_Location);
+         Initialization_Statement : constant Irep := Make_Code_Assign
+           (Lhs => Rounding_Mode_Sym,
+            Rhs => Rounding_Mode_Val,
+            Source_Location => Internal_Source_Location);
+      begin
+         Append_Op (Start_Body, Initialization_Statement);
+      end Initialize_CProver_Rounding_Mode;
 
       procedure Initialize_Enum_Values;
       procedure Initialize_Enum_Values is
@@ -344,10 +465,15 @@ package body Driver is
       end Initialize_Boolean_Values;
 
    begin
-      Initialize_CProver_Rounding_Mode;
+      Initialize_CProver_Alloca_Object;
       Initialize_CProver_Dead_Object;
       Initialize_CProver_Deallocated;
+      Initialize_CProver_Malloc_Failure_Mode;
+      Initialize_CProver_Malloc_Failure_Mode_Assert_Then_Assume;
+      Initialize_CProver_Malloc_Failure_Mode_Return_Null;
       Initialize_CProver_Malloc_Object;
+      Initialize_CProver_Max_Malloc_Size;
+      Initialize_CProver_Rounding_Mode;
       Initialize_Enum_Values;
       Initialize_Boolean_Values;
    end Initialize_CProver_Internal_Variables;
@@ -426,8 +552,23 @@ package body Driver is
       if Add_Start
       then
          declare
-            Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
+            Init_Name : constant Symbol_Id := Intern ("__CPROVER_initialize");
+            Init_Type        : constant Irep := Make_Code_Type
+              (Return_Type => CProver_Void_T,
+               Parameters => Make_Parameter_List,
+               Ellipsis => False,
+               Inlined => False,
+               Knr => False);
+            Init_Body        : constant Irep := Make_Code_Block
+              (Source_Location => Internal_Source_Location);
+            Init_Symbol      : constant Symbol :=
+              (Name | PrettyName | BaseName => Init_Name,
+               SymType => Init_Type,
+               Value => Init_Body,
+               Mode => Intern ("C"),
+               others => <>);
 
+            Start_Name : constant Symbol_Id := Intern ("__CPROVER__start");
             Start_Type        : constant Irep := Make_Code_Type
               (Return_Type => CProver_Void_T,
                Parameters => Make_Parameter_List,
@@ -447,7 +588,18 @@ package body Driver is
             Program_Args : constant Irep_List :=
               Get_Parameter (Get_Parameters (Get_Type (Entry_Procedure)));
          begin
-            Initialize_CProver_Internal_Variables (Start_Body);
+            --  Create a __CPROVER_initialize function for all of the
+            --  CPROVER internal variables
+            Initialize_CProver_Internal_Variables (Init_Body);
+            Global_Symbol_Table.Insert (Init_Name, Init_Symbol);
+
+            Append_Op (Start_Body,
+                       Make_Code_Function_Call
+                         (I_Function => Symbol_Expr (Init_Symbol),
+                          Source_Location => Internal_Source_Location,
+                          Lhs => Make_Nil (Internal_Source_Location),
+                          Arguments => Make_Argument_List));
+
             --  Generate a simple _start function that calls the entry point
             declare
                C : List_Cursor := List_First (Program_Args);
