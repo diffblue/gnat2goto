@@ -834,9 +834,24 @@ package body Tree_Walk is
                                          "Kind of actual not in class type");
             return;
          end if;
-         Actual_Irep := Wrap_Argument (
-          Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
-                          Formal_Type, Global_Symbol_Table), Is_Out);
+         if Kind (Formal_Type) in
+           I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+             | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
+               | I_Floatbv_Type | I_C_Enum_Type and then
+               Do_Range_Check (Actual)
+         then
+            Actual_Irep := Wrap_Argument
+              (Make_Range_Assert_Expr
+                 (N,
+                  Typecast_If_Necessary
+                    (Handle_Enum_Symbol_Members (Expression),
+                     Formal_Type, Global_Symbol_Table),
+                  Formal_Type), Is_Out);
+         else
+            Actual_Irep := Wrap_Argument
+              (Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
+               Formal_Type, Global_Symbol_Table), Is_Out);
+         end if;
          Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
@@ -3404,7 +3419,20 @@ package body Tree_Walk is
       Append_Op (Block, Decl);
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
-         Init_Expr := Do_Expression (Expression (N));
+         if Kind (Obj_Type) in
+           I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+             | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
+               | I_Floatbv_Type | I_C_Enum_Type and then
+               Nkind (Expression (N)) in N_Subexpr and then
+               Do_Range_Check (Expression (N))
+         then
+            Init_Expr := Make_Range_Assert_Expr
+              (N,
+               Do_Expression (Expression (N)),
+               Obj_Type);
+         else
+            Init_Expr := Do_Expression (Expression (N));
+         end if;
       elsif Needs_Default_Initialisation (Etype (Defined)) or
         (Present (Object_Definition (N)) and then
          Nkind (Object_Definition (N)) = N_Subtype_Indication)

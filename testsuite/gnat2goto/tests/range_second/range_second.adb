@@ -9,9 +9,14 @@ procedure Range_Second is
 
   subtype Result_Indicator_Type is Indicator_Type range CALIBRATION_PASS .. MEASUREMENT_NOT_PROVEN;
 
-  procedure Testable (Result : Result_Indicator_Type) is
+  procedure Testable_2 (Result : Result_Indicator_Type) is
   begin
     null;
+  end Testable_2;
+
+  procedure Testable (Result : Indicator_Type) is
+  begin
+    Testable_2 (Result);
   end Testable;
 
 begin

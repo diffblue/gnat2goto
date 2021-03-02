@@ -73,30 +73,25 @@ Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
-Occurs: 30 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_COPY_SIGN unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 24 times
 Calling function: Do_Slice
 Error message: Slices of strings are unsupported
 Nkind: N_Slice
 --
-Occurs: 24 times
+Occurs: 22 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
+--
+Occurs: 19 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_COPY_SIGN unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 15 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
---
-Occurs: 12 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_ROUNDING unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 11 times
 Calling function: Do_Operator_General
@@ -109,11 +104,6 @@ Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_SCALING unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 8 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Obsolescent
 Nkind: N_Pragma
@@ -121,11 +111,6 @@ Nkind: N_Pragma
 Occurs: 7 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ENUM_REP unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 6 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 6 times
@@ -145,6 +130,16 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 5 times
 Calling function: Do_Expression
+Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 5 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_SCALING unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 5 times
+Calling function: Do_Expression
 Error message: ATTRIBUTE_TAG unsupported
 Nkind: N_Attribute_Reference
 --
@@ -152,11 +147,6 @@ Occurs: 5 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
 Nkind: N_Pragma
---
-Occurs: 4 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_EXPONENT unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
 Calling function: Do_Aggregate_Literal_Array
@@ -166,11 +156,6 @@ Nkind: N_Aggregate
 Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALID unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
@@ -195,7 +180,7 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_FRACTION unsupported
+Error message: ATTRIBUTE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
@@ -207,6 +192,16 @@ Occurs: 1 times
 Calling function: Do_Base_Range_Constraint
 Error message: unsupported lower range kind
 Nkind: N_Real_Literal
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_EXPONENT unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_VALID unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -2116,6 +2111,16 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:74|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
 Error detected at REDACTED
 --
 Occurs: 1 times

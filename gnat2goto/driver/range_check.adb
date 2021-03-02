@@ -76,9 +76,14 @@ package body Range_Check is
       case Kind (Bound_Type) is
          when I_Bounded_Signedbv_Type
             | I_Bounded_Unsignedbv_Type
-            | I_Bounded_Floatbv_Type
-            | I_C_Enum_Type =>
+            | I_Bounded_Floatbv_Type =>
             return Get_Bound_Of_Bounded_Type (Bound_Type, Pos);
+         when I_C_Enum_Type =>
+            declare
+               Resolved_Type : constant Irep := Get_Subtype (Bound_Type);
+            begin
+               return Get_Bound_Of_Bounded_Type (Resolved_Type, Pos);
+            end;
          when I_Unsignedbv_Type =>
             --  this case is probably unnecessary:
             --  1: how does one create non-bounded unsigned types anyway
@@ -193,7 +198,8 @@ package body Range_Check is
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String := "__division_check" & Type_String;
+         Func_Name : constant String :=
+           "__CPROVER_Ada_Div_Zero" & Type_String;
          Body_Block : constant Irep := Make_Code_Block (Source_Loc);
          Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
@@ -380,7 +386,7 @@ package body Range_Check is
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String := ("range_check__"
+         Func_Name : constant String := ("__CPROVER_Ada_Range_Check__"
                                          & Check_Name & Type_String);
          Body_Block : constant Irep :=
            Make_Code_Block (Get_Source_Location (N));
