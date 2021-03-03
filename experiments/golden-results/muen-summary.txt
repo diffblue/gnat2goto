@@ -395,12 +395,12 @@ Raw compiler error message:
 --
 Occurs: 5 times
 Redacted compiler error message:
-file "REDACTED" not found
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 5 times
 Redacted compiler error message:
-violation of restriction "REDACTED"
+file "REDACTED" not found
 Raw compiler error message:
 --
 Occurs: 5 times
