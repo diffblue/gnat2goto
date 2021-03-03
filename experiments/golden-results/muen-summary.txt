@@ -293,7 +293,7 @@ Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
 Raw compiler error message:
 --
-Occurs: 49 times
+Occurs: 51 times
 Redacted compiler error message:
 violation of restriction "REDACTED"
 Raw compiler error message:
@@ -396,6 +396,11 @@ Raw compiler error message:
 Occurs: 5 times
 Redacted compiler error message:
 file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 5 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 5 times
@@ -521,11 +526,6 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
-Raw compiler error message:
---
-Occurs: 3 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -2816,11 +2816,6 @@ Raw compiler error message:
 Occurs: 1 times
 Redacted compiler error message:
 cannot compile subprogram in file "REDACTED"
-Raw compiler error message:
---
-Occurs: 1 times
-Redacted compiler error message:
-file "REDACTED" not found
 Raw compiler error message:
 --
 Occurs: 1 times
