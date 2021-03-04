@@ -840,13 +840,34 @@ package body Tree_Walk is
                | I_Floatbv_Type | I_C_Enum_Type and then
                Do_Range_Check (Actual)
          then
-            Actual_Irep := Wrap_Argument
-              (Make_Range_Assert_Expr
-                 (N,
-                  Typecast_If_Necessary
-                    (Handle_Enum_Symbol_Members (Expression),
-                     Formal_Type, Global_Symbol_Table),
-                  Formal_Type), Is_Out);
+            if (Kind (Typecast_If_Necessary
+                      (Handle_Enum_Symbol_Members (Expression),
+                       Formal_Type, Global_Symbol_Table)) in Class_Expr)
+              and then
+                (Kind (Get_Type
+                       (Typecast_If_Necessary
+                        (Handle_Enum_Symbol_Members
+                         (Expression),
+                         Formal_Type, Global_Symbol_Table)))
+                 in Class_Type)
+            then
+               Actual_Irep := Wrap_Argument
+                 (Make_Range_Assert_Expr
+                    (N,
+                     Typecast_If_Necessary
+                       (Handle_Enum_Symbol_Members (Expression),
+                        Formal_Type, Global_Symbol_Table),
+                     Formal_Type), Is_Out);
+            else
+               Report_Unhandled_Node_Empty
+                 (Actual,
+                  "Handle_Parameter",
+                  "Kind of Expression not valid for Range_Check");
+               Actual_Irep := Wrap_Argument
+                 (Typecast_If_Necessary (Handle_Enum_Symbol_Members
+                  (Expression),
+                  Formal_Type, Global_Symbol_Table), Is_Out);
+            end if;
          else
             Actual_Irep := Wrap_Argument
               (Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
@@ -3426,10 +3447,21 @@ package body Tree_Walk is
                Nkind (Expression (N)) in N_Subexpr and then
                Do_Range_Check (Expression (N))
          then
-            Init_Expr := Make_Range_Assert_Expr
-              (N,
-               Do_Expression (Expression (N)),
-               Obj_Type);
+            if (Kind (Do_Expression (Expression (N))) in Class_Expr) and then
+              (Kind (Get_Type (Do_Expression (Expression (N))))
+               in Class_Type)
+            then
+               Init_Expr := Make_Range_Assert_Expr
+                 (N,
+                  Do_Expression (Expression (N)),
+                  Obj_Type);
+            else
+               Report_Unhandled_Node_Empty
+                 (Expression (N),
+                  "Do_Object_Declaration_Full",
+                  "Kind of Expression(N) not valid for Range_Check");
+               Init_Expr := Do_Expression (Expression (N));
+            end if;
          else
             Init_Expr := Do_Expression (Expression (N));
          end if;

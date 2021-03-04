@@ -29,14 +29,14 @@ Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
 Occurs: 33 times
-Calling function: Do_Operator_General
-Error message: Concat unsupported
-Nkind: N_Op_Concat
---
-Occurs: 31 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_VALUE unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 33 times
+Calling function: Do_Operator_General
+Error message: Concat unsupported
+Nkind: N_Op_Concat
 --
 Occurs: 27 times
 Calling function: Do_Object_Declaration
@@ -98,7 +98,7 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Obsolescent
 Nkind: N_Pragma
 --
-Occurs: 6 times
+Occurs: 7 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_IMAGE unsupported
 Nkind: N_Attribute_Reference
@@ -106,6 +106,11 @@ Nkind: N_Attribute_Reference
 Occurs: 4 times
 Calling function: Do_Expression
 Error message: First of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
@@ -1180,6 +1185,11 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
 Error detected at REDACTED
 --
@@ -1221,11 +1231,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
 Error detected at REDACTED
 --
 Occurs: 1 times

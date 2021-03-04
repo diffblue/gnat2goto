@@ -108,6 +108,11 @@ Calling function: Process_Declaration
 Error message: Representation clause unsupported: storage_size
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 17 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: Array aggregates of type string are unsupported
+Nkind: N_Aggregate
+--
 Occurs: 16 times
 Calling function: Do_Type_Reference
 Error message: Expected I_Type found I_NIL
@@ -118,15 +123,15 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 14 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: Array aggregates of type string are unsupported
-Nkind: N_Aggregate
---
-Occurs: 10 times
+Occurs: 12 times
 Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 11 times
+Calling function: Do_Attribute_Size
+Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
+Nkind: N_Identifier
 --
 Occurs: 10 times
 Calling function: Do_Itype_Definition
@@ -174,11 +179,6 @@ Error message: Unknown pragma: part_of
 Nkind: N_Pragma
 --
 Occurs: 5 times
-Calling function: Do_Attribute_Size
-Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
-Nkind: N_Identifier
---
-Occurs: 5 times
 Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
@@ -188,15 +188,20 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Allocator
 --
+Occurs: 4 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Object_Renaming_Declaration
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: Last of string unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 3 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: independent_components
 Nkind: N_Pragma
---
-Occurs: 3 times
-Calling function: Process_Statement
-Error message: Unknown expression kind
-Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 3 times
 Calling function: Process_Statement
@@ -216,11 +221,6 @@ Nkind: N_Attribute_Reference
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_UNRESTRICTED_ACCESS unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 2 times
-Calling function: Do_Expression
-Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
@@ -246,6 +246,11 @@ Nkind: N_Attribute_Reference
 Occurs: 1 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MIN unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
@@ -293,7 +298,7 @@ Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
 Raw compiler error message:
 --
-Occurs: 51 times
+Occurs: 49 times
 Redacted compiler error message:
 violation of restriction "REDACTED"
 Raw compiler error message:
@@ -391,11 +396,6 @@ Raw compiler error message:
 Occurs: 5 times
 Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
-Raw compiler error message:
---
-Occurs: 5 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 5 times
@@ -526,6 +526,11 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -2890,6 +2895,11 @@ Raw compiler error message:
 --
 Occurs: 1 times
 Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
 incorrect spec in file "REDACTED" must be removed first
 Raw compiler error message:
 --
@@ -3300,11 +3310,6 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:1183                         |
 Error detected at REDACTED
 --
@@ -3421,4 +3426,9 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb
 Occurs: 2 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
+
+--
+Occurs: 1 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:509
 
