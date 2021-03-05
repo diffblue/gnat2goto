@@ -206,16 +206,15 @@ package body Arrays is
                   Maybe_Others_Choices : constant List_Id :=
                     Choices (Maybe_Others_Node);
                begin
-                  pragma Assert (List_Length (Maybe_Others_Choices) = 1);
-
-                  --  this association does not end with others -> bail
-                  if Nkind (First (Maybe_Others_Choices)) /= N_Others_Choice
+                  if List_Length (Maybe_Others_Choices) > 0
+                    and then
+                    Nkind (First (Maybe_Others_Choices)) = N_Others_Choice
                   then
+                     Others_Expression :=
+                       Do_Expression (Expression (Maybe_Others_Node));
+                  else
                      return;
                   end if;
-
-                  Others_Expression :=
-                    Do_Expression (Expression (Maybe_Others_Node));
                end;
             else
                return;
