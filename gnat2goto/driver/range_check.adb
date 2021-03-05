@@ -506,16 +506,34 @@ package body Range_Check is
       Upper_Bound : constant Irep :=
         Get_Bound (N, Followed_Bound_Type, Bound_High);
    begin
-      pragma Assert (Kind (Value) in Class_Expr and then
-                     Kind (Get_Type (Value)) in Class_Type);
+      if Kind (Bounds_Type) not in
+        I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+          | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
+            | I_Floatbv_Type | I_C_Enum_Type
+      then
+         Report_Unhandled_Node_Empty (N, "Make_Range_Assert_Expr",
+                                      "Kind of Bounds_Type not supported");
+         return Value;
 
-      return Make_Range_Assert_Expr (N           => N,
-                 Value       => Value,
-                 Lower_Bound => Lower_Bound,
-                 Upper_Bound => Upper_Bound,
-                 Expected_Return_Type => Get_Type (Value),
-                 Check_Name  => "Range_Check");
+      else
 
+         if Kind (Value) in Class_Expr and then
+           Kind (Get_Type (Value)) in Class_Type
+         then
+
+            return Make_Range_Assert_Expr
+              (N           => N,
+               Value       => Value,
+               Lower_Bound => Lower_Bound,
+               Upper_Bound => Upper_Bound,
+               Expected_Return_Type => Get_Type (Value),
+               Check_Name  => "Range_Check");
+         else
+            Report_Unhandled_Node_Empty (N, "Make_Range_Assert_Expr",
+                                         "Kind of Value not in class type");
+            return Value;
+         end if;
+      end if;
    end Make_Range_Assert_Expr;
 
    -------------------------------

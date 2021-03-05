@@ -1,13 +1,17 @@
+Standard_Error from gnat2goto division_check_int:
+division_check_int.adb:8:07: warning: variable "Bool_1" is read but never assigned
+division_check_int.adb:9:07: warning: variable "Bool_2" is read but never assigned
+
 Error from cbmc division_check_int:
 function '__CPROVER_Ada_Division_Check' in module '' is shadowed by a definition in module ''
 function '__CPROVER_Ada_Overflow_Check' in module '' is shadowed by a definition in module ''
 
-[assertion.1] file division_check_float.adb line 15 Ada Check assertion: SUCCESS
+[assertion.1] file division_check_float.adb line 15 Ada Check assertion: FAILURE
 [float_check.assertion.3] line 15 Ada Check assertion: FAILURE
 [float_check.assertion.4] line 15 Ada Check assertion: SUCCESS
 [float_check.assertion.1] line 18 assertion Fl1 = 1.0: SUCCESS
 [float_check.assertion.2] line 23 assertion false: FAILURE
-[int_check.assertion.1] line 16 assertion Int1 = 1: SUCCESS
-[int_check.assertion.2] line 27 assertion Int1 = 1: SUCCESS
-[int_check.assertion.3] line 32 assertion False: FAILURE
+[int_check.assertion.1] line 19 assertion Int1 = 1: SUCCESS
+[int_check.assertion.2] line 35 assertion Int1 = 1: SUCCESS
+[int_check.assertion.3] line 45 assertion False: FAILURE
 VERIFICATION FAILED

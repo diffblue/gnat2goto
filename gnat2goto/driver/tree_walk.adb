@@ -748,7 +748,8 @@ package body Tree_Walk is
          begin
             return
               (if Do_Range_Check (N_RHS)
-               then Make_Range_Assert_Expr
+               then
+                  Make_Range_Assert_Expr
                  (N => N,
                   Value => Bare_RHS,
                   Bounds_Type => Get_Type (LHS))
@@ -5395,7 +5396,8 @@ package body Tree_Walk is
                      Kind (New_Type) in Class_Type);
       Maybe_Checked_Op : constant Irep :=
         (if Do_Range_Check (Expression (N))
-         then Make_Range_Assert_Expr
+         then
+            Make_Range_Assert_Expr
            (N => N,
             Value => To_Convert,
             Bounds_Type => New_Type)
