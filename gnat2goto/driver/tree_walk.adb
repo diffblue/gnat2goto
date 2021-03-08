@@ -748,7 +748,8 @@ package body Tree_Walk is
          begin
             return
               (if Do_Range_Check (N_RHS)
-               then Make_Range_Assert_Expr
+               then
+                  Make_Range_Assert_Expr
                  (N => N,
                   Value => Bare_RHS,
                   Bounds_Type => Get_Type (LHS))
@@ -834,9 +835,45 @@ package body Tree_Walk is
                                          "Kind of actual not in class type");
             return;
          end if;
-         Actual_Irep := Wrap_Argument (
-          Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
-                          Formal_Type, Global_Symbol_Table), Is_Out);
+         if Kind (Formal_Type) in
+           I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+             | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
+               | I_Floatbv_Type | I_C_Enum_Type and then
+               Do_Range_Check (Actual)
+         then
+            if (Kind (Typecast_If_Necessary
+                      (Handle_Enum_Symbol_Members (Expression),
+                       Formal_Type, Global_Symbol_Table)) in Class_Expr)
+              and then
+                (Kind (Get_Type
+                       (Typecast_If_Necessary
+                        (Handle_Enum_Symbol_Members
+                         (Expression),
+                         Formal_Type, Global_Symbol_Table)))
+                 in Class_Type)
+            then
+               Actual_Irep := Wrap_Argument
+                 (Make_Range_Assert_Expr
+                    (N,
+                     Typecast_If_Necessary
+                       (Handle_Enum_Symbol_Members (Expression),
+                        Formal_Type, Global_Symbol_Table),
+                     Formal_Type), Is_Out);
+            else
+               Report_Unhandled_Node_Empty
+                 (Actual,
+                  "Handle_Parameter",
+                  "Kind of Expression not valid for Range_Check");
+               Actual_Irep := Wrap_Argument
+                 (Typecast_If_Necessary (Handle_Enum_Symbol_Members
+                  (Expression),
+                  Formal_Type, Global_Symbol_Table), Is_Out);
+            end if;
+         else
+            Actual_Irep := Wrap_Argument
+              (Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
+               Formal_Type, Global_Symbol_Table), Is_Out);
+         end if;
          Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
@@ -3404,7 +3441,31 @@ package body Tree_Walk is
       Append_Op (Block, Decl);
 
       if Has_Init_Expression (N) or Present (Expression (N)) then
-         Init_Expr := Do_Expression (Expression (N));
+         if Kind (Obj_Type) in
+           I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+             | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
+               | I_Floatbv_Type | I_C_Enum_Type and then
+               Nkind (Expression (N)) in N_Subexpr and then
+               Do_Range_Check (Expression (N))
+         then
+            if (Kind (Do_Expression (Expression (N))) in Class_Expr) and then
+              (Kind (Get_Type (Do_Expression (Expression (N))))
+               in Class_Type)
+            then
+               Init_Expr := Make_Range_Assert_Expr
+                 (N,
+                  Do_Expression (Expression (N)),
+                  Obj_Type);
+            else
+               Report_Unhandled_Node_Empty
+                 (Expression (N),
+                  "Do_Object_Declaration_Full",
+                  "Kind of Expression(N) not valid for Range_Check");
+               Init_Expr := Do_Expression (Expression (N));
+            end if;
+         else
+            Init_Expr := Do_Expression (Expression (N));
+         end if;
       elsif Needs_Default_Initialisation (Etype (Defined)) or
         (Present (Object_Definition (N)) and then
          Nkind (Object_Definition (N)) = N_Subtype_Indication)
@@ -5047,7 +5108,7 @@ package body Tree_Walk is
       Do_Subprogram_Body (Proper_Body (Unit ((Library_Unit (N)))));
    end Do_Subprogram_Body_Stub;
 
--------------------------------
+   -------------------------------
    -- Do_Subprogram_Declaration --
    -------------------------------
 
@@ -5089,11 +5150,14 @@ package body Tree_Walk is
          --  in subprogram specification but at present nothing is done.
          --  A missing body will be reported when it is "linked".
          null;
+
       else
          --  It is a normal Ada subprogram.
          --  Nothing more to be done;
          null;
+
       end if;
+
    end Do_Subprogram_Declaration;
 
    ----------------------------
@@ -5332,7 +5396,8 @@ package body Tree_Walk is
                      Kind (New_Type) in Class_Type);
       Maybe_Checked_Op : constant Irep :=
         (if Do_Range_Check (Expression (N))
-         then Make_Range_Assert_Expr
+         then
+            Make_Range_Assert_Expr
            (N => N,
             Value => To_Convert,
             Bounds_Type => New_Type)
@@ -6094,7 +6159,8 @@ package body Tree_Walk is
                                          "Unsupported pragma: Assert/Assume");
          when Name_Precondition =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Precondition");
+                                       "Unsupported pragma: Precondition");
+
          when Name_Postcondition =>
             --  Postcondition will eventually also be translated into
             --  assertions but they should hold elsewhere from where they are

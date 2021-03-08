@@ -108,25 +108,30 @@ Calling function: Process_Declaration
 Error message: Representation clause unsupported: storage_size
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 17 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: Array aggregates of type string are unsupported
+Nkind: N_Aggregate
+--
 Occurs: 16 times
 Calling function: Do_Type_Reference
 Error message: Expected I_Type found I_NIL
 Nkind: N_Defining_Identifier
 --
 Occurs: 15 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: Array aggregates of type string are unsupported
-Nkind: N_Aggregate
---
-Occurs: 15 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 10 times
+Occurs: 12 times
 Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 11 times
+Calling function: Do_Attribute_Size
+Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
+Nkind: N_Identifier
 --
 Occurs: 10 times
 Calling function: Do_Itype_Definition
@@ -142,6 +147,11 @@ Occurs: 9 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Attribute_Reference
+--
+Occurs: 8 times
+Calling function: Do_Expression
+Error message: Index of string unsupported
+Nkind: N_Indexed_Component
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -174,19 +184,14 @@ Error message: Unknown pragma: part_of
 Nkind: N_Pragma
 --
 Occurs: 5 times
-Calling function: Do_Attribute_Size
-Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
-Nkind: N_Identifier
---
-Occurs: 5 times
-Calling function: Do_Expression
-Error message: Index of string unsupported
-Nkind: N_Indexed_Component
---
-Occurs: 5 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Allocator
+--
+Occurs: 5 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Value not in class type
+Nkind: N_Type_Conversion
 --
 Occurs: 4 times
 Calling function: Process_Statement
@@ -195,8 +200,18 @@ Nkind: N_Object_Renaming_Declaration
 --
 Occurs: 3 times
 Calling function: Do_Expression
+Error message: ATTRIBUTE_MIN unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 3 times
+Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 3 times
+Calling function: Do_Slice
+Error message: Slices of strings are unsupported
+Nkind: N_Slice
 --
 Occurs: 3 times
 Calling function: Process_Pragma_Declaration
@@ -244,19 +259,14 @@ Error message: ATTRIBUTE_ASM_INPUT unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MIN unsupported
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
---
-Occurs: 1 times
-Calling function: Do_Slice
-Error message: Slices of strings are unsupported
-Nkind: N_Slice
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
@@ -3290,16 +3300,6 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:467                    |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:1183                         |
 Error detected at REDACTED
 --
@@ -3416,9 +3416,4 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb
 Occurs: 2 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
-
---
-Occurs: 1 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:467
 

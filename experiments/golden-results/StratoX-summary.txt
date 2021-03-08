@@ -58,7 +58,7 @@ Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
 --
-Occurs: 46 times
+Occurs: 52 times
 Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
@@ -73,7 +73,7 @@ Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
-Occurs: 30 times
+Occurs: 34 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_COPY_SIGN unsupported
 Nkind: N_Attribute_Reference
@@ -88,6 +88,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
+Occurs: 16 times
+Calling function: Get_Bound
+Error message: Unsupported range type
+Nkind: N_Type_Conversion
+--
 Occurs: 15 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
@@ -96,6 +101,11 @@ Nkind: N_Object_Renaming_Declaration
 Occurs: 12 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ROUNDING unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 12 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_SCALING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 11 times
@@ -110,8 +120,13 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_SCALING unsupported
+Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 8 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Bounds_Type not supported
+Nkind: N_Type_Conversion
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -123,9 +138,14 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_ENUM_REP unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 7 times
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
+Nkind: N_Attribute_Reference
+--
 Occurs: 6 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
+Error message: ATTRIBUTE_FRACTION unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 6 times
@@ -191,11 +211,6 @@ Nkind: N_Attribute_Definition_Clause
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_FLOOR unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 2 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_FRACTION unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
@@ -2110,11 +2125,6 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:55|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:74|
 Error detected at REDACTED
 --
@@ -2186,11 +2196,6 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 Occurs: 6 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
-
---
-Occurs: 6 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:55
 
 --
 Occurs: 6 times

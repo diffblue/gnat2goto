@@ -1,2 +1,0 @@
-ALL XFAIL Doesn't crash anymore but cbmc does not perform range assertion checks 
-

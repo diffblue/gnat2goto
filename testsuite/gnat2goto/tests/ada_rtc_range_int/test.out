@@ -1,0 +1,13 @@
+Error from cbmc test:
+function '__CPROVER_Ada_Range_Check' in module '' is shadowed by a definition in module ''
+
+[check_float.assertion.2] line 15 Ada Check assertion: FAILURE
+[check_float.assertion.3] line 17 assertion var3 = 5.0: SUCCESS
+[check_float.assertion.1] line 20 Ada Check assertion: SUCCESS
+[check_float.assertion.4] line 22 assertion var3 = 6.0: SUCCESS
+[check_float.assertion.5] line 25 assertion False: FAILURE
+[check_int.assertion.1] line 18 assertion var3 = 5: SUCCESS
+[check_int.assertion.2] line 23 assertion var3 = 6: SUCCESS
+[check_int.assertion.3] line 28 assertion var4 = 1: SUCCESS
+[check_int.assertion.4] line 31 assertion False: FAILURE
+VERIFICATION FAILED

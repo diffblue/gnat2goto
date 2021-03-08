@@ -20,12 +20,8 @@ package Range_Check is
    function Store_Symbol_Bound (Number : Bound_Type_Symbol) return Integer;
 
    function Get_Bound (N : Node_Id; Bound_Type : Irep; Pos : Bound_Low_Or_High)
-                             return Irep
-     with Pre => Kind (Bound_Type) in
-     I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
-       | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
-         | I_Floatbv_Type | I_C_Enum_Type,
-     Post => Kind (Get_Bound'Result) in Class_Expr;
+                       return Irep
+     with Post => Kind (Get_Bound'Result) in Class_Expr;
 
    function Get_Bound_Of_Bounded_Type (Bound_Type : Irep;
                                        Pos : Bound_Low_Or_High) return Irep
@@ -36,7 +32,8 @@ package Range_Check is
        | I_C_Enum_Type,
        Post => Kind (Get_Bound_Of_Bounded_Type'Result) in Class_Expr;
 
-   function Make_Div_Zero_Assert_Expr (N : Node_Id; Value : Irep;
+   function Make_Div_Zero_Assert_Expr (N : Node_Id;
+                                       Value : Irep;
                                        Divisor : Irep) return Irep;
 
    function Make_Index_Assert_Expr (N : Node_Id; Index : Irep;
@@ -51,11 +48,7 @@ package Range_Check is
                                     Check_Name : String)
                                     return Irep;
    function Make_Range_Assert_Expr (N : Node_Id; Value : Irep;
-                                    Bounds_Type : Irep) return Irep
-     with Pre => Kind (Bounds_Type) in
-     I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
-       | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
-       | I_Floatbv_Type;
+                                    Bounds_Type : Irep) return Irep;
 
    function Make_Range_Expression (Value_Expr : Irep; Lower_Bound : Irep;
                                    Upper_Bound : Irep)
