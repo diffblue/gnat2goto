@@ -88,6 +88,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
+Occurs: 16 times
+Calling function: Get_Bound
+Error message: Unsupported range type
+Nkind: N_Type_Conversion
+--
 Occurs: 15 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
@@ -117,6 +122,11 @@ Occurs: 8 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 8 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Bounds_Type not supported
+Nkind: N_Type_Conversion
 --
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
@@ -2115,11 +2125,6 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:56|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:74|
 Error detected at REDACTED
 --
@@ -2191,11 +2196,6 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 Occurs: 6 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
-
---
-Occurs: 6 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:56
 
 --
 Occurs: 6 times

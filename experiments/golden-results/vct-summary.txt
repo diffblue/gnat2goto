@@ -3,7 +3,7 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 186 times
+Occurs: 188 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_IMAGE unsupported
 Nkind: N_Attribute_Reference
@@ -38,7 +38,7 @@ Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 48 times
+Occurs: 50 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
@@ -113,6 +113,11 @@ Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
 --
+Occurs: 1 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Value not in class type
+Nkind: N_Assignment_Statement
+--
 Occurs: 7 times
 Redacted compiler error message:
 expected private type "REDACTED"
@@ -157,11 +162,6 @@ Occurs: 1 times
 Redacted compiler error message:
 non-visible declaration
 Raw compiler error message:
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
-Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+

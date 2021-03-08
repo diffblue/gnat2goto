@@ -3,7 +3,7 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 181 times
+Occurs: 186 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: Array aggregates of type string are unsupported
 Nkind: N_Aggregate
@@ -23,17 +23,22 @@ Calling function: Process_Declaration
 Error message: Enumeration representation clauses are unsupported
 Nkind: N_Enumeration_Representation_Clause
 --
+Occurs: 62 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_VALUE unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 46 times
+Calling function: Get_Bound
+Error message: Unsupported range type
+Nkind: N_Type_Conversion
+--
 Occurs: 45 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 33 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALUE unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 33 times
+Occurs: 34 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
@@ -48,10 +53,25 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: stream_convert
 Nkind: N_Pragma
 --
-Occurs: 20 times
+Occurs: 25 times
 Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
+--
+Occurs: 25 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Value not in class type
+Nkind: N_Assignment_Statement
+--
+Occurs: 23 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Bounds_Type not supported
+Nkind: N_Type_Conversion
+--
+Occurs: 18 times
+Calling function: Do_Slice
+Error message: Slices of strings are unsupported
+Nkind: N_Slice
 --
 Occurs: 17 times
 Calling function: Process_Declaration
@@ -68,11 +88,6 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 15 times
-Calling function: Do_Slice
-Error message: Slices of strings are unsupported
-Nkind: N_Slice
---
 Occurs: 13 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: storage_size
@@ -81,6 +96,11 @@ Nkind: N_Attribute_Definition_Clause
 Occurs: 11 times
 Calling function: Do_Expression
 Error message: Last of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 10 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_IMAGE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 9 times
@@ -98,15 +118,15 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Obsolescent
 Nkind: N_Pragma
 --
-Occurs: 7 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_IMAGE unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 4 times
 Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Value not in class type
+Nkind: N_Type_Conversion
 --
 Occurs: 1 times
 Calling function: Do_Object_Declaration_Full
@@ -1190,7 +1210,7 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
+| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1210,12 +1230,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:56|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from range_check.ads:56|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1231,16 +1251,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:509                    |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -1268,27 +1278,17 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
 Error detected at REDACTED
 --
-Occurs: 13 times
+Occurs: 14 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
 
 --
-Occurs: 10 times
+Occurs: 11 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 
 --
-Occurs: 10 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:509
-
---
-Occurs: 6 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from range_check.ads:56
-
---
-Occurs: 2 times
+Occurs: 3 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:471
 
