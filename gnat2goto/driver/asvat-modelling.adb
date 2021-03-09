@@ -24,6 +24,10 @@ package body ASVAT.Modelling is
    --  The Nondet_Function model must be a parameterless function with
    --  a scalar result subtype.
 
+   function Make_Unchecked_Conversion_Function (E : Entity_Id) return Irep;
+   --  The Unchecked_Conversion_Function model has a single parameter s of
+   --  Source_Type of mode in, performs checks and returns a Target_Type.
+
    ----------------
    -- Find_Model --
    ----------------
@@ -116,14 +120,18 @@ package body ASVAT.Modelling is
    function Get_Model_Sort (E : Entity_Id) return Model_Sorts is
       Anno           : constant Node_Id := Find_Aspect (E, Aspect_Annotate);
 
-      Anno_Model     : constant Model_Sorts :=
-          (if Present (Anno) then
-              Get_Model_From_Anno (Anno)
-         else
-            Not_A_Model);
-
    begin
-      return Anno_Model;
+      if Present (Anno) then
+         return Get_Model_From_Anno (Anno);
+      elsif Is_Generic_Instance (E) and then
+        Get_Name_String
+          (Chars (Next_Entity (E))) =
+        "unchecked_conversion"
+      then
+         return Unchecked_Conversion;
+      else
+         return Not_A_Model;
+      end if;
    end Get_Model_Sort;
 
    --------------------------
@@ -266,11 +274,13 @@ package body ASVAT.Modelling is
       --  in the subprogram text.
       --  Make an appropriate body for the model subprogram.
       Subprog_Body : constant Irep :=
-      (case Model is
-         when Nondet_Function  => Make_Nondet_Function (E),
-         when In_Type_Function => Make_In_Type_Function (E),
-         when others =>
-            Report_Unhandled_Node_Irep
+        (case Model is
+            when Nondet_Function  => Make_Nondet_Function (E),
+            when In_Type_Function => Make_In_Type_Function (E),
+            when Unchecked_Conversion =>
+               Make_Unchecked_Conversion_Function (E),
+            when others =>
+               Report_Unhandled_Node_Irep
               (N        => E,
                Fun_Name => "Make_Model",
                Message  => "ASVAT model " & Model_Sorts'Image (Model) &
@@ -342,6 +352,27 @@ package body ASVAT.Modelling is
       return Function_Body;
 
    end Make_Nondet_Function;
+
+   ----------------------------------------
+   -- Make_Unchecked_Conversion_Function --
+   ----------------------------------------
+
+   function Make_Unchecked_Conversion_Function (E : Entity_Id) return Irep
+   is
+      Temp : constant Irep := Make_Code_Block (Get_Source_Location (E));
+   begin
+
+      --  check sizes are compatible
+      --  report CPROVER_Ada_Ubchecked_Conversion_Size if not
+
+      --  do a mem copy from source to target
+
+      Report_Unhandled_Node_Empty
+        (E, "Make_Unchecked_Conversion_Function",
+         "unsupported unchecked conversion");
+
+      return Temp;
+   end Make_Unchecked_Conversion_Function;
 
    -----------------------------
    -- Print_Modelling_Message --
