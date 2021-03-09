@@ -113,36 +113,25 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-<<<<<<< HEAD
-<<<<<<< HEAD
 Occurs: 12 times
 Calling function: Do_Expression
-Error message: First of string unsupported
-Nkind: N_Attribute_Reference
+Error message: Quantified
+Nkind: N_Quantified_Expression
 --
 Occurs: 11 times
 Calling function: Do_Attribute_Size
 Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
 Nkind: N_Identifier
 --
-=======
->>>>>>> code and test cases updated
-=======
-Occurs: 12 times
+Occurs: 11 times
 Calling function: Do_Expression
-Error message: Quantified
-Nkind: N_Quantified_Expression
+Error message: First of string unsupported
+Nkind: N_Attribute_Reference
 --
->>>>>>> added statement for each condition
 Occurs: 10 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind E_RECORD_SUBTYPE_WITH_PRIVATE
 Nkind: N_Defining_Identifier
---
-Occurs: 9 times
-Calling function: Do_Expression
-Error message: First of string unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 9 times
 Calling function: Do_Object_Declaration
@@ -414,16 +403,6 @@ Redacted compiler error message:
 file "REDACTED" not found
 Raw compiler error message:
 --
-Occurs: 5 times
-Redacted compiler error message:
-file "REDACTED" not found
-Raw compiler error message:
---
-Occurs: 5 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
-Raw compiler error message:
---
 Occurs: 4 times
 Redacted compiler error message:
 "REDACTED" depends on "REDACTED"
@@ -442,11 +421,6 @@ Raw compiler error message:
 Occurs: 4 times
 Redacted compiler error message:
 file "REDACTED" not found
-Raw compiler error message:
---
-Occurs: 3 times
-Redacted compiler error message:
-"REDACTED" depends on "REDACTED"
 Raw compiler error message:
 --
 Occurs: 3 times
@@ -542,6 +516,11 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -1027,11 +1006,6 @@ Raw compiler error message:
 Occurs: 1 times
 Redacted compiler error message:
 "REDACTED" is not a predefined library unit
-Raw compiler error message:
---
-Occurs: 1 times
-Redacted compiler error message:
-"REDACTED" depends on "REDACTED"
 Raw compiler error message:
 --
 Occurs: 1 times
@@ -2832,6 +2806,11 @@ Raw compiler error message:
 Occurs: 1 times
 Redacted compiler error message:
 cannot compile subprogram in file "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+file "REDACTED" not found
 Raw compiler error message:
 --
 Occurs: 1 times

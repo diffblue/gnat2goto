@@ -1,9 +1,3 @@
-Occurs: 1096 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Precondition
-Nkind: N_Pragma
---
-<<<<<<< HEAD
 Occurs: 696 times
 Calling function: Get_Bound
 Error message: Unsupported range type
@@ -19,20 +13,12 @@ Calling function: Make_Range_Assert_Expr
 Error message: Kind of Bounds_Type not supported
 Nkind: N_Type_Conversion
 --
-Occurs: 344 times
-=======
-Occurs: 57 times
->>>>>>> code and test cases updated
+Occurs: 335 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 244 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
---
-Occurs: 178 times
+Occurs: 174 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: depends
 Nkind: N_Pragma
@@ -42,25 +28,15 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Extension_Aggregate
 --
-Occurs: 51 times
-Calling function: Do_Type_Reference
-Error message: Expected I_Type found I_NIL
-Nkind: N_Defining_Identifier
---
-Occurs: 42 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Private_Extension_Declaration
---
 Occurs: 40 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: export_procedure
 Nkind: N_Pragma
 --
-Occurs: 34 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: ghost
-Nkind: N_Pragma
+Occurs: 36 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Private_Extension_Declaration
 --
 Occurs: 32 times
 Calling function: Process_Declaration
@@ -102,15 +78,10 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: stream_convert
 Nkind: N_Pragma
 --
-Occurs: 28 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: contract_cases
-Nkind: N_Pragma
---
 Occurs: 26 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Allocator
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: ghost
+Nkind: N_Pragma
 --
 Occurs: 23 times
 Calling function: Do_Op_Expon
@@ -122,40 +93,40 @@ Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
 --
-Occurs: 23 times
+Occurs: 22 times
 Calling function: Do_Pragma
 Error message: Unknown pragma name: loop_variant
 Nkind: N_Pragma
 --
-Occurs: 23 times
-Calling function: Do_Procedure_Call_Statement
-Error message: sym id not in symbol table
-Nkind: N_Procedure_Call_Statement
+Occurs: 19 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Allocator
 --
-Occurs: 21 times
+Occurs: 18 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
+--
+Occurs: 17 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
 --
 Occurs: 16 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 15 times
+Occurs: 12 times
 Calling function: Do_Type_Reference
 Error message: Type name is not in the symbol table
 Nkind: N_Defining_Identifier
 --
-Occurs: 15 times
+Occurs: 12 times
 Calling function: Do_Type_Reference
 Error message: Unexpected node kind N_PRIVATE_EXTENSION_DECLARATION
 Nkind: N_Private_Extension_Declaration
---
-Occurs: 12 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 11 times
 Calling function: Do_Expression
@@ -166,6 +137,11 @@ Occurs: 10 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: Array aggregates of type string are unsupported
 Nkind: N_Aggregate
+--
+Occurs: 9 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 8 times
 Calling function: Do_Base_Range_Constraint
@@ -183,14 +159,19 @@ Error message: Unknown pragma: volatile_function
 Nkind: N_Pragma
 --
 Occurs: 6 times
-Calling function: Do_Itype_Definition
-Error message: Unknown Ekind E_PRIVATE_SUBTYPE
-Nkind: N_Defining_Identifier
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: contract_cases
+Nkind: N_Pragma
 --
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+Calling function: Do_In
+Error message: gnat2goto currently only supports one mebership_choice
+Nkind: N_In
 --
 Occurs: 3 times
 Redacted compiler error message:
@@ -199,7 +180,12 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -357,7 +343,7 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
 --
-Occurs: 6 times
+Occurs: 2 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.ads:108
 

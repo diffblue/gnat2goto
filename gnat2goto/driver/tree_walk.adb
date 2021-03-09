@@ -1515,7 +1515,7 @@ package body Tree_Walk is
                when Attribute_Result =>
                   declare
                      Item_Name : constant String :=
-                       "rv__" & Unique_Name (Entity (Prefix (N)));
+                       Unique_Name (Entity (Prefix (N))) & "___result";
                      Item : constant Symbol_Id :=
                        Intern (Item_Name);
                      pragma Assert (Global_Symbol_Table.Contains (Item),
@@ -5159,6 +5159,8 @@ package body Tree_Walk is
       Location     : constant Irep := Get_Source_Location (N);
       Return_Expr  : constant Node_Id := Expression (N);
       Return_Value : Irep := CProver_Nil;
+      Spec         : constant Node_Id :=
+        Return_Applies_To (Return_Statement_Entity (N));
    begin
       if Present (Return_Expr) then
          --  It is a function return.
@@ -5197,6 +5199,11 @@ package body Tree_Walk is
             Return_Value := Result_Var;
          end;
       end if;
+      if ASVAT.Pragma_Info.Has_Post_Condition (Spec) then
+         Append_Op (Block, Do_Post_Condition
+                    (ASVAT.Pragma_Info.Get_Post_Condition (Spec)));
+      end if;
+
       Append_Op (Block,
                  Make_Code_Return
                    (Return_Value => Return_Value,
@@ -5564,7 +5571,8 @@ package body Tree_Walk is
         ASVAT.Pragma_Info.Has_Post_Condition (Spec) and then
         Nkind (Specification (N)) = N_Procedure_Specification
       then
-         Do_Pragma (ASVAT.Pragma_Info.Get_Post_Condition (Spec), Reps);
+         Append_Op (Reps, Do_Post_Condition
+                    (ASVAT.Pragma_Info.Get_Post_Condition (Spec)));
       end if;
 
       if Present (HSS) and then Present (Exception_Handlers (HSS)) then
