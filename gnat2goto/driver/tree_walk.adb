@@ -6549,6 +6549,10 @@ package body Tree_Walk is
                Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                             "Unsupported null statement");
             end if;
+         when N_Validate_Unchecked_Conversion =>
+            Report_Unhandled_Node_Empty (N, "Process_Declaration",
+                                         "Unsupported Validate " &
+                                           "Unchecked Conversion");
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");
@@ -7344,4 +7348,5 @@ package body Tree_Walk is
         (I_Type => Pointer_Type,
          Source_Location => Get_Source_Location (N));
    end Do_Null_Expression;
+
 end Tree_Walk;

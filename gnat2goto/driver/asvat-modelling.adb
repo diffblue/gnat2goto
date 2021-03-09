@@ -24,6 +24,10 @@ package body ASVAT.Modelling is
    --  The Nondet_Function model must be a parameterless function with
    --  a scalar result subtype.
 
+   function Make_Unchecked_Conversion_Function (E : Entity_Id) return Irep;
+   --  The Unchecked_Conversion_Function model has a single parameter s of
+   --  Source_Type of mode in, performs checks and returns a Target_Type.
+
    ----------------
    -- Find_Model --
    ----------------
@@ -116,14 +120,18 @@ package body ASVAT.Modelling is
    function Get_Model_Sort (E : Entity_Id) return Model_Sorts is
       Anno           : constant Node_Id := Find_Aspect (E, Aspect_Annotate);
 
-      Anno_Model     : constant Model_Sorts :=
-          (if Present (Anno) then
-              Get_Model_From_Anno (Anno)
-         else
-            Not_A_Model);
-
    begin
-      return Anno_Model;
+      if Present (Anno) then
+         return Get_Model_From_Anno (Anno);
+      elsif Is_Generic_Instance (E) and then
+        Get_Name_String
+          (Chars (Next_Entity (E))) =
+        "unchecked_conversion"
+      then
+         return Unchecked_Conversion;
+      else
+         return Not_A_Model;
+      end if;
    end Get_Model_Sort;
 
    --------------------------
@@ -266,11 +274,13 @@ package body ASVAT.Modelling is
       --  in the subprogram text.
       --  Make an appropriate body for the model subprogram.
       Subprog_Body : constant Irep :=
-      (case Model is
-         when Nondet_Function  => Make_Nondet_Function (E),
-         when In_Type_Function => Make_In_Type_Function (E),
-         when others =>
-            Report_Unhandled_Node_Irep
+        (case Model is
+            when Nondet_Function  => Make_Nondet_Function (E),
+            when In_Type_Function => Make_In_Type_Function (E),
+            when Unchecked_Conversion =>
+               Make_Unchecked_Conversion_Function (E),
+            when others =>
+               Report_Unhandled_Node_Irep
               (N        => E,
                Fun_Name => "Make_Model",
                Message  => "ASVAT model " & Model_Sorts'Image (Model) &
@@ -342,6 +352,74 @@ package body ASVAT.Modelling is
       return Function_Body;
 
    end Make_Nondet_Function;
+
+   ----------------------------------------
+   -- Make_Unchecked_Conversion_Function --
+   ----------------------------------------
+
+   function Make_Unchecked_Conversion_Function (E : Entity_Id) return Irep
+   is
+      Source_Location : constant Irep := Get_Source_Location (E);
+      Function_Name   : constant String := Unique_Name (E);
+      Function_Id     : constant Symbol_Id := Intern (Function_Name);
+      --  Make a function body which takes a source and copies it to
+      --  a return value of Target_Type.
+      Function_Symbol   : constant Symbol := Global_Symbol_Table (Function_Id);
+      Function_Body     : constant Irep := Make_Code_Block (Source_Location);
+      Return_Type_Irep  : constant Irep :=
+        Get_Return_Type (Function_Symbol.SymType);
+
+      Target_Var : constant String := "target___" & Function_Name;
+      --  Target_Id            : constant Symbol_Id := Intern (Target_Var);
+      Target_Expr          : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier      => Target_Var,
+         I_Type          => Return_Type_Irep);
+      Return_Statement  : constant Irep := Make_Code_Return
+        (Return_Value    => Target_Expr,
+         Source_Location => Source_Location);
+
+      --  Destination : Irep;
+      --  Target'address
+
+      --  Source : Irep;
+      --  Source'address
+
+      --  Element_Count : Irep;
+      --  Source'size in bytes
+
+      --  Element_Size : Uint;
+      --  Source'size in bytes
+
+      --  Mem_Copy : Irep;
+
+   begin
+
+      --  check sizes are compatible
+      --  report CPROVER_Ada_Unchecked_Conversion_Size if not
+
+      --  do a mem copy from source to target
+      --  Mem_Copy :=
+      --  Make_Memcpy_Function_Call_Expr
+      --    (Destination       => Destination,
+      --     Source            => Source,
+      --     Num_Elem          => Element_Count,
+      --     Element_Type_Size => Element_Size,
+      --     Source_Loc        => Get_Source_Location (E));
+
+      --  Append_Op (Function_Body, Mem_Copy);
+
+      Append_Op (Function_Body, Return_Statement);
+
+      Report_Unhandled_Node_Empty
+        (E, "Make_Unchecked_Conversion_Function",
+         "unsupported unchecked conversion");
+
+      Print_Irep (Function_Body);
+      Print_Irep (Return_Statement);
+
+      return Function_Body;
+   end Make_Unchecked_Conversion_Function;
 
    -----------------------------
    -- Print_Modelling_Message --
