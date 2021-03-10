@@ -359,19 +359,66 @@ package body ASVAT.Modelling is
 
    function Make_Unchecked_Conversion_Function (E : Entity_Id) return Irep
    is
-      Temp : constant Irep := Make_Code_Block (Get_Source_Location (E));
+      Source_Location : constant Irep := Get_Source_Location (E);
+      Function_Name   : constant String := Unique_Name (E);
+      Function_Id     : constant Symbol_Id := Intern (Function_Name);
+      --  Make a function body which takes a source and copies it to
+      --  a return value of Target_Type.
+      Function_Symbol   : constant Symbol := Global_Symbol_Table (Function_Id);
+      Function_Body     : constant Irep := Make_Code_Block (Source_Location);
+      Return_Type_Irep  : constant Irep :=
+        Get_Return_Type (Function_Symbol.SymType);
+
+      Target_Var : constant String := "target___" & Function_Name;
+      --  Target_Id            : constant Symbol_Id := Intern (Target_Var);
+      Target_Expr          : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier      => Target_Var,
+         I_Type          => Return_Type_Irep);
+      Return_Statement  : constant Irep := Make_Code_Return
+        (Return_Value    => Target_Expr,
+         Source_Location => Source_Location);
+
+      --  Destination : Irep;
+      --  Target'address
+
+      --  Source : Irep;
+      --  Source'address
+
+      --  Element_Count : Irep;
+      --  Source'size in bytes
+
+      --  Element_Size : Uint;
+      --  Source'size in bytes
+
+      --  Mem_Copy : Irep;
+
    begin
 
       --  check sizes are compatible
-      --  report CPROVER_Ada_Ubchecked_Conversion_Size if not
+      --  report CPROVER_Ada_Unchecked_Conversion_Size if not
 
       --  do a mem copy from source to target
+      --  Mem_Copy :=
+      --  Make_Memcpy_Function_Call_Expr
+      --    (Destination       => Destination,
+      --     Source            => Source,
+      --     Num_Elem          => Element_Count,
+      --     Element_Type_Size => Element_Size,
+      --     Source_Loc        => Get_Source_Location (E));
+
+      --  Append_Op (Function_Body, Mem_Copy);
+
+      Append_Op (Function_Body, Return_Statement);
 
       Report_Unhandled_Node_Empty
         (E, "Make_Unchecked_Conversion_Function",
          "unsupported unchecked conversion");
 
-      return Temp;
+      Print_Irep (Function_Body);
+      Print_Irep (Return_Statement);
+
+      return Function_Body;
    end Make_Unchecked_Conversion_Function;
 
    -----------------------------
