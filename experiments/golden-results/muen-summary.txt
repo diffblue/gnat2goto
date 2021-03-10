@@ -65,11 +65,6 @@ Nkind: N_Pragma
 --
 Occurs: 36 times
 Calling function: Do_Expression
-Error message: Quantified
-Nkind: N_Quantified_Expression
---
-Occurs: 36 times
-Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Extension_Aggregate
 --
@@ -118,7 +113,6 @@ Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-<<<<<<< HEAD
 Occurs: 12 times
 Calling function: Do_Expression
 Error message: Quantified
@@ -134,17 +128,10 @@ Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
 --
-=======
->>>>>>> c8ce191... code and test cases updated
 Occurs: 10 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind E_RECORD_SUBTYPE_WITH_PRIVATE
 Nkind: N_Defining_Identifier
---
-Occurs: 9 times
-Calling function: Do_Expression
-Error message: First of string unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 9 times
 Calling function: Do_Object_Declaration
@@ -311,7 +298,7 @@ Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
 Raw compiler error message:
 --
-Occurs: 51 times
+Occurs: 49 times
 Redacted compiler error message:
 violation of restriction "REDACTED"
 Raw compiler error message:
@@ -416,31 +403,11 @@ Redacted compiler error message:
 file "REDACTED" not found
 Raw compiler error message:
 --
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 35f56bc... fix test results
 Occurs: 5 times
 Redacted compiler error message:
 file "REDACTED" not found
 Raw compiler error message:
 --
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> c8ce191... code and test cases updated
-=======
-Occurs: 5 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
-Raw compiler error message:
---
->>>>>>> 5ba9e4a... corrected golden results
-=======
->>>>>>> 35f56bc... fix test results
-=======
->>>>>>> 254d107... fixed muen
 Occurs: 4 times
 Redacted compiler error message:
 "REDACTED" depends on "REDACTED"
@@ -459,6 +426,11 @@ Raw compiler error message:
 Occurs: 4 times
 Redacted compiler error message:
 file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
 Raw compiler error message:
 --
 Occurs: 3 times
@@ -554,6 +526,11 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -1039,6 +1016,11 @@ Raw compiler error message:
 Occurs: 1 times
 Redacted compiler error message:
 "REDACTED" is not a predefined library unit
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" depends on "REDACTED"
 Raw compiler error message:
 --
 Occurs: 1 times
@@ -2913,6 +2895,11 @@ Raw compiler error message:
 --
 Occurs: 1 times
 Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
 incorrect spec in file "REDACTED" must be removed first
 Raw compiler error message:
 --
@@ -3433,18 +3420,5 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb
 --
 Occurs: 2 times
 <========================>
-<<<<<<< HEAD
-<<<<<<< HEAD
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
-=======
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:745
-=======
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
->>>>>>> c8ce191... code and test cases updated
-
---
-Occurs: 1 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:467
->>>>>>> ad75731... Update golden results.
 
