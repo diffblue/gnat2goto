@@ -3,7 +3,7 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 328 times
+Occurs: 329 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
@@ -108,7 +108,7 @@ Calling function: Do_Type_Reference
 Error message: Expected I_Type found I_NIL
 Nkind: N_Defining_Identifier
 --
-Occurs: 15 times
+Occurs: 16 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
@@ -3146,16 +3146,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
 Error detected at REDACTED
 --
 Occurs: 1 times
