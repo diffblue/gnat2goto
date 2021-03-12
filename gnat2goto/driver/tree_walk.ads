@@ -109,8 +109,9 @@ package Tree_Walk is
      Post => Kind (Do_Expression'Result) in Class_Expr;
 
    function Do_In (N : Node_Id) return Irep
-     with Pre => Nkind (N) in N_In | N_Not_In;
-     -- Post => Kind (Do_In'Result) = I_Op_And; --  will also report unhandled
+     with Pre => Nkind (N) in N_In | N_Not_In,
+     Post => Kind (Do_In'Result) in I_Op_And | I_Empty;
+   --  includes I_Empty as currently has unsupported functionality
 
    function Make_Memcpy_Function_Call_Expr (Destination : Irep;
                                             Source : Irep;
