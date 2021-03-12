@@ -1046,6 +1046,38 @@ package body GOTO_Utils is
               (Chars
                  (Defining_Unit_Name
                       (Intermediate_Node)));
+         when N_Pragma =>
+            if Get_Name_String
+              (Chars (Pragma_Identifier (Intermediate_Node))) =
+              "postcondition"
+              or else
+                Get_Name_String
+                  (Chars (Pragma_Identifier (Intermediate_Node))) =
+              "precondition"
+            then
+               if Nkind (Parent (Corresponding_Aspect
+                         (Intermediate_Node))) in N_Entry_Declaration |
+               N_Generic_Package_Declaration  |
+               N_Generic_Subprogram_Declaration |
+               N_Package_Body_Stub |
+               N_Package_Declaration |
+               N_Protected_Body_Stub |
+               N_Protected_Type_Declaration |
+               N_Subprogram_Body_Stub |
+               N_Subprogram_Declaration |
+               N_Task_Body_Stub |
+               N_Task_Type_Declaration
+               then
+                  return Get_Context_Name
+                    (Corresponding_Body
+                       (Parent (Corresponding_Aspect
+                        (Intermediate_Node))));
+               else
+                  return Get_Context_Name (Parent (Intermediate_Node));
+               end if;
+            else
+               return Get_Context_Name (Parent (Intermediate_Node));
+            end if;
          when others =>
             return Get_Context_Name (Parent (Intermediate_Node));
       end case;
