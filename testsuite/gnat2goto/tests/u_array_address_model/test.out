@@ -3,6 +3,8 @@ u_array_address_model.adb:10:04: warning: in instantiation at s-atacco.ads:43
 u_array_address_model.adb:10:04: warning: Object is unconstrained array type
 u_array_address_model.adb:10:04: warning: To_Pointer results may not have bounds
 
+[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
+[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
 [u_array_address_model.assertion.1] line 18 Ada Check assertion: SUCCESS
 [u_array_address_model.assertion.2] line 24 assertion PV.all (I) = My_Int (I): SUCCESS
 [u_array_address_model.assertion.3] line 32 assertion V (I) = My_Int (V'Last - I + 1): SUCCESS
