@@ -108,6 +108,8 @@ N_Identifier "vsf3_ns" (Node_Id=3890) (source,analyzed)
  Entity = N_Defining_Identifier "vsf3_ns" (Entity_Id=3340)
  Associated_Node = N_Defining_Identifier "vsf3_ns" (Entity_Id=3340)
 
+[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
+[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS

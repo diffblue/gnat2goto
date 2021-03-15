@@ -124,6 +124,8 @@ N_Slice (Node_Id=3915) (source,analyzed)
  Prefix = N_Identifier "va" (Node_Id=3910)
  Discrete_Range = N_Range (Node_Id=3913)
 
+[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
+[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
 [precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
 [precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
 [precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS

@@ -1,3 +1,5 @@
+[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
+[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
 [for_loop_sub_int.assertion.1] line 17 Ada Check assertion: SUCCESS
 [for_loop_sub_int.assertion.2] line 23 assertion Arr (E) = I: SUCCESS
 [inc.assertion.1] line 9 Ada Check assertion: SUCCESS
