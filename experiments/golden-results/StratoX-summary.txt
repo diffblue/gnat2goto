@@ -2080,6 +2080,11 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Storage_Error System.Memory.Alloc: heap exhausted     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Storage_Error stack overflow or erroneous memory access|
 Error detected at REDACTED
 --
