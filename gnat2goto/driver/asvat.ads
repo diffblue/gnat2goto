@@ -4,6 +4,7 @@ with GNATCOLL.Symbols;
 with Symbol_Table_Info;         use Symbol_Table_Info;
 with Uintp;                     use Uintp;
 with Ireps;                     use Ireps;
+with Types;                     use Types;
 package ASVAT is
 private
    type Entity_Info is record
@@ -11,13 +12,17 @@ private
       Specified_Rep_Component_Size : Uint;
       Model_Size                   : Natural;
       Computed_Model_Size          : Irep;
+      Pre_Condition                : Node_Id;
+      Post_Condition               : Node_Id;
    end record;
 
    Empty_Entity_Info : constant Entity_Info :=
      (Specified_Rep_Size           => Uint_0,
       Specified_Rep_Component_Size => Uint_0,
       Model_Size                   => 0,
-      Computed_Model_Size          => Ireps.Empty);
+      Computed_Model_Size          => Ireps.Empty,
+      Pre_Condition                => Types.Empty,
+      Post_Condition               => Types.Empty);
 
    use type GNATCOLL.Symbols.Symbol;  --  for "=" operator
 

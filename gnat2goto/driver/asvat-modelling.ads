@@ -99,7 +99,6 @@
 --  Only Annotate aspect specifications are supported.
 --  Pragma Annotate is not currently supported.
 
-with Types;                   use Types;
 with Atree;                   use Atree;
 with Sinfo;                   use Sinfo;
 

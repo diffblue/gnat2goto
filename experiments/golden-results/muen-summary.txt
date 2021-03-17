@@ -3,7 +3,7 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 331 times
+Occurs: 329 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
@@ -18,7 +18,7 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 140 times
+Occurs: 138 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
@@ -88,16 +88,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: finalize_storage_only
 Nkind: N_Pragma
 --
-Occurs: 27 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Precondition
-Nkind: N_Pragma
---
-Occurs: 25 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
---
 Occurs: 20 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
@@ -118,20 +108,25 @@ Calling function: Do_Type_Reference
 Error message: Expected I_Type found I_NIL
 Nkind: N_Defining_Identifier
 --
-Occurs: 15 times
+Occurs: 16 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 12 times
 Calling function: Do_Expression
-Error message: First of string unsupported
-Nkind: N_Attribute_Reference
+Error message: Quantified
+Nkind: N_Quantified_Expression
 --
 Occurs: 11 times
 Calling function: Do_Attribute_Size
 Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
 Nkind: N_Identifier
+--
+Occurs: 11 times
+Calling function: Do_Expression
+Error message: First of string unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 10 times
 Calling function: Do_Itype_Definition
@@ -3138,9 +3133,9 @@ Occurs: 2 times
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
-Occurs: 1 times
+Occurs: 2 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -3150,12 +3145,7 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
+| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -3410,10 +3400,10 @@ Error detected at REDACTED
 --
 Occurs: 6 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb:74
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb:75
 
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
 

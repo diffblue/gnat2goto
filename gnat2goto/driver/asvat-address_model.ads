@@ -1,4 +1,3 @@
-with Types;               use Types;
 with Atree;               use Atree;
 with Sinfo;               use Sinfo;
 with Snames;              use Snames;

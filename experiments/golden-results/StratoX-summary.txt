@@ -1,37 +1,57 @@
-Occurs: 2240 times
+Occurs: 2524 times
 Calling function: Process_Declaration
 Error message: Record representation clauses are unsupported
 Nkind: N_Record_Representation_Clause
 --
-Occurs: 1824 times
+Occurs: 2035 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_full_access
 Nkind: N_Pragma
 --
-Occurs: 646 times
+Occurs: 489 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Precondition
+Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 378 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
---
-Occurs: 275 times
+Occurs: 396 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
 --
-Occurs: 224 times
-Calling function: Process_Pragma_Declaration
-Error message: pragma Export: Multi-language analysis unsupported
+Occurs: 280 times
+Calling function: Do_Record_Component
+Error message: Wrong component nkind
 Nkind: N_Pragma
 --
 Occurs: 192 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: unchecked_union
 Nkind: N_Pragma
+--
+Occurs: 138 times
+Calling function: Do_Type_Reference
+Error message: Expected I_Type found I_NIL
+Nkind: N_Defining_Identifier
+--
+Occurs: 133 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
+--
+Occurs: 122 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: ghost
+Nkind: N_Pragma
+--
+Occurs: 106 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Suppress initialization
+Nkind: N_Pragma
+--
+Occurs: 102 times
+Calling function: Do_Type_Reference
+Error message: Type name is not in the symbol table
+Nkind: N_Defining_Identifier
 --
 Occurs: 101 times
 Calling function: Do_Full_Type_Declaration
@@ -43,60 +63,100 @@ Calling function: Do_Type_Definition
 Error message: Wrong Nkind or wrong discs
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 100 times
-Calling function: Do_Type_Reference
-Error message: Type name is not in the symbol table
-Nkind: N_Defining_Identifier
+Occurs: 83 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: volatile_function
+Nkind: N_Pragma
 --
-Occurs: 69 times
-Calling function: Process_Declaration
-Error message: Enumeration representation clauses are unsupported
-Nkind: N_Enumeration_Representation_Clause
---
-Occurs: 66 times
+Occurs: 72 times
 Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
 --
-Occurs: 52 times
+Occurs: 72 times
+Calling function: Process_Declaration
+Error message: Enumeration representation clauses are unsupported
+Nkind: N_Enumeration_Representation_Clause
+--
+Occurs: 67 times
 Calling function: Do_Expression
 Error message: First of string unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 46 times
+Occurs: 64 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind E_ANONYMOUS_ACCESS_SUBPROGRAM_TYPE
+Nkind: N_Defining_Identifier
+--
+Occurs: 58 times
+Calling function: Do_Aggregate_Literal_Record
+Error message: Actual iter not present
+Nkind: N_Aggregate
+--
+Occurs: 56 times
 Calling function: Do_Expression
 Error message: Last of string unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 44 times
+Occurs: 47 times
 Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
 --
-Occurs: 34 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_COPY_SIGN unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 24 times
-Calling function: Do_Slice
-Error message: Slices of strings are unsupported
-Nkind: N_Slice
---
-Occurs: 24 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
-Nkind: N_Pragma
---
-Occurs: 16 times
+Occurs: 42 times
 Calling function: Get_Bound
 Error message: Unsupported range type
 Nkind: N_Type_Conversion
 --
-Occurs: 15 times
+Occurs: 35 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_COPY_SIGN unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 34 times
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Ordinary_Fixed_Point_Definition
+--
+Occurs: 28 times
+Calling function: Do_Slice
+Error message: Slices of strings are unsupported
+Nkind: N_Slice
+--
+Occurs: 27 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
+--
+Occurs: 24 times
+Calling function: Process_Statement
+Error message: Extended return statement
+Nkind: N_Extended_Return_Statement
+--
+Occurs: 21 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Bounds_Type not supported
+Nkind: N_Type_Conversion
+--
+Occurs: 20 times
+Calling function: Do_Operator_General
+Error message: Concat unsupported
+Nkind: N_Op_Concat
+--
+Occurs: 19 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ENUM_REP unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 19 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Obsolescent
+Nkind: N_Pragma
+--
+Occurs: 17 times
+Calling function: Do_Expression
+Error message: Quantified
+Nkind: N_Quantified_Expression
 --
 Occurs: 12 times
 Calling function: Do_Expression
@@ -108,15 +168,35 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_SCALING unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 12 times
+Calling function: Do_Op_Expon
+Error message: Exponentiation unhandled for non mod types at the moment
+Nkind: N_Op_Expon
+--
 Occurs: 11 times
-Calling function: Do_Operator_General
-Error message: Concat unsupported
-Nkind: N_Op_Concat
+Calling function: Do_Base_Range_Constraint
+Error message: unsupported lower range kind
+Nkind: N_Real_Literal
+--
+Occurs: 10 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_FLOOR unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 10 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MACHINE unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 9 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ASM_INPUT unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 9 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: contract_cases
+Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Do_Expression
@@ -124,23 +204,28 @@ Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
-Calling function: Make_Range_Assert_Expr
-Error message: Kind of Bounds_Type not supported
-Nkind: N_Type_Conversion
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
+Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Obsolescent
-Nkind: N_Pragma
+Calling function: Get_Bound
+Error message: Unsupported range type
+Nkind: N_Assignment_Statement
 --
 Occurs: 7 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_ENUM_REP unsupported
-Nkind: N_Attribute_Reference
+Error message: Unknown expression kind
+Nkind: N_Unchecked_Type_Conversion
 --
 Occurs: 7 times
-Calling function: Do_Object_Declaration_Full
-Error message: Kind of Expression(N) not valid for Range_Check
+Calling function: Process_Pragma_Declaration
+Error message: pragma Import: Multi-language analysis unsupported
+Nkind: N_Pragma
+--
+Occurs: 6 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 6 times
@@ -148,10 +233,10 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_FRACTION unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 6 times
-Calling function: Do_Op_Expon
-Error message: Exponentiation unhandled for non mod types at the moment
-Nkind: N_Op_Expon
+Occurs: 5 times
+Calling function: Do_Aggregate_Literal_Array
+Error message: Array aggregates of type string are unsupported
+Nkind: N_Aggregate
 --
 Occurs: 5 times
 Calling function: Do_Derived_Type_Definition
@@ -160,7 +245,7 @@ Nkind: N_Derived_Type_Definition
 --
 Occurs: 5 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_ASM_INPUT unsupported
+Error message: ATTRIBUTE_EXPONENT unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 5 times
@@ -168,25 +253,25 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_TAG unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 5 times
+Occurs: 4 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MIN unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 4 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Bounds_Type not supported
+Nkind: N_Assignment_Statement
+--
+Occurs: 4 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: ghost
+Error message: Unsupported pragma: Refine
 Nkind: N_Pragma
 --
 Occurs: 4 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_EXPONENT unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: Array aggregates of type string are unsupported
-Nkind: N_Aggregate
---
-Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_ASM_OUTPUT unsupported
-Nkind: N_Attribute_Reference
+Calling function: Process_Statement
+Error message: Delay statement
+Nkind: N_Delay_Until_Statement
 --
 Occurs: 3 times
 Calling function: Do_Expression
@@ -208,29 +293,54 @@ Calling function: Process_Declaration
 Error message: Address representation clauses are not currently supported
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 3 times
+Calling function: Process_Statement
+Error message: Entry call statement
+Nkind: N_Entry_Call_Statement
+--
 Occurs: 2 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_FLOOR unsupported
+Error message: ATTRIBUTE_TRUNCATION unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
-Calling function: Process_Pragma_Declaration
-Error message: pragma Import: Multi-language analysis unsupported
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Do_Base_Range_Constraint
-Error message: unsupported lower range kind
-Nkind: N_Real_Literal
---
-Occurs: 1 times
-Calling function: Do_Expression
-Error message: Unknown expression kind
-Nkind: N_Unchecked_Type_Conversion
---
-Occurs: 1 times
 Calling function: Do_Pragma
 Error message: Unsupported pragma: Unreferenced
+Nkind: N_Pragma
+--
+Occurs: 2 times
+Calling function: Do_Type_Reference
+Error message: Unexpected node kind N_PROTECTED_TYPE_DECLARATION
+Nkind: N_Protected_Type_Declaration
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Protected body declaration
+Nkind: N_Protected_Body
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Protected_Type_Declaration
+--
+Occurs: 1 times
+Calling function: Do_Attribute_Size
+Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
+Nkind: N_Identifier
+--
+Occurs: 1 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind E_ACCESS_SUBTYPE
+Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
+Calling function: Do_Operator_General
+Error message: Wrong node kind
+Nkind: N_Op_Plus
+--
+Occurs: 1 times
+Calling function: Make_Record_Default_Initialiser
+Error message: Wrong component iter nkind
 Nkind: N_Pragma
 --
 Occurs: 1 times
@@ -242,6 +352,11 @@ Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
+--
+Occurs: 1 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: compile_time_error
+Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
@@ -260,12 +375,7 @@ Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Refine
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Suppress initialization
+Error message: Unsupported pragma: Machine Attribute naked
 Nkind: N_Pragma
 --
 Occurs: 290 times
@@ -1790,22 +1900,12 @@ Raw compiler error message:
 --
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 3 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 3 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 3 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
+Error detected at REDACTED
+--
+Occurs: 3 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 3 times
@@ -1825,292 +1925,22 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure atree.adb:992                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads:52|
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from tree_walk.ads:113|
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads:52|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2125,7 +1955,22 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:74|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1571|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1571|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:75|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2150,6 +1995,41 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:2534                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:2534                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
 --
@@ -2165,17 +2045,22 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:394                          |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:503                          |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2183,12 +2068,52 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
 Error detected at REDACTED
 --
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Constraint_Error Symbol_Table_Info.Symbol_Maps.Constant_Reference: key not in map|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Storage_Error System.Memory.Alloc: heap exhausted     |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Storage_Error stack overflow or erroneous memory access|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Storage_Error stack overflow or erroneous memory access|
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Storage_Error stack overflow or erroneous memory access|
+Error detected at REDACTED
+--
 Occurs: 22 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
 
 --
-Occurs: 11 times
+Occurs: 17 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : sinfo.adb:1113
+
+--
+Occurs: 16 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed postcondition from arrays.ads:52
+
+--
+Occurs: 13 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
 
@@ -2198,12 +2123,17 @@ Occurs: 6 times
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
 
 --
-Occurs: 6 times
+Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : sinfo.adb:1113
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from ireps.ads:1571
 
 --
 Occurs: 1 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb:74
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed postcondition from tree_walk.adb:309
+
+--
+Occurs: 1 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb:75
 

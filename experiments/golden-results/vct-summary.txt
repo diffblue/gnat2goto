@@ -43,11 +43,6 @@ Calling function: Do_Operator_General
 Error message: Concat unsupported
 Nkind: N_Op_Concat
 --
-Occurs: 40 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Postcondition
-Nkind: N_Pragma
---
 Occurs: 38 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: Array aggregates of type string are unsupported
@@ -79,11 +74,6 @@ Error message: Record representation clauses are unsupported
 Nkind: N_Record_Representation_Clause
 --
 Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_REMAINDER unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind E_RECORD_TYPE
 Nkind: N_Defining_Identifier
@@ -92,6 +82,11 @@ Occurs: 3 times
 Calling function: Do_Private_Type_Declaration
 Error message: Full view of private_type_declaration Does not yield a full_type_declaration node
 Nkind: N_Subtype_Declaration
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_REMAINDER unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Expression
@@ -177,3 +172,13 @@ Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) exception ureal_to_binary.adb:258                     |
+Error detected at REDACTED
+--
+Occurs: 1 times
+<========================>
+raised UREAL_TO_BINARY.NEGATIVE_EXPONENT : ureal_to_binary.adb:258
+

@@ -31,6 +31,7 @@ with ASVAT.Address_Model;    use type
   ASVAT.Address_Model.Address_To_Access_Functions;
 with ASVAT.Size_Model;
 with ASVAT.Modelling;
+with ASVAT.Pragma_Info;
 
 package body Tree_Walk is
 
@@ -149,6 +150,10 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Pragma
      and then Kind (Block) = I_Code_Block; -- FIXME: what about decls?
 
+   function Do_Post_Condition (N : Node_Id) return Irep;
+
+   function Do_Pre_Condition (N : Node_Id) return Irep;
+
    function Do_Operator_Simple (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Op,
         Post => Kind (Do_Operator_Simple'Result) in Class_Expr;
@@ -247,9 +252,8 @@ package body Tree_Walk is
      Post => Kind (Do_Floating_Point_Definition'Result) in
      I_Floatbv_Type | I_Bounded_Floatbv_Type;
 
-   function Do_Simple_Return_Statement (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Simple_Return_Statement,
-        Post => Kind (Do_Simple_Return_Statement'Result) = I_Code_Return;
+   procedure Do_Simple_Return_Statement (Block : Irep; N : Node_Id)
+   with Pre  => Nkind (N) = N_Simple_Return_Statement;
 
    function Do_Raise_Statement (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Raise_Statement;
@@ -1508,12 +1512,63 @@ package body Tree_Walk is
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
                      "Component_Size unsupported");
+               when Attribute_Result =>
+                  declare
+                     Item_Name : constant String :=
+                       Unique_Name (Entity (Prefix (N))) & "___result";
+                     Item : constant Symbol_Id :=
+                       Intern (Item_Name);
+                     pragma Assert (Global_Symbol_Table.Contains (Item),
+                                    "return value not in symbol table " &
+                                   Item_Name);
+                     Return_Variable : constant Irep :=
+                       Global_Symbol_Table (Item).Value;
+                  begin
+                     return Return_Variable;
+                  end;
+               when Attribute_Old  =>
+                  declare
+                     The_Prefix        : constant Node_Id := Prefix (N);
+                     Prefix_Etype      : constant Node_Id :=
+                       Etype (The_Prefix);
+                     Is_Implicit_Deref : constant Boolean :=
+                       Is_Access_Type (Prefix_Etype);
+                     Item_Name : constant String :=
+                       Unique_Name (Entity (The_Prefix)) & "___old";
+                     Item : constant Symbol_Id :=
+                       Intern (Item_Name);
+                     pragma Assert (Global_Symbol_Table.Contains (Item),
+                                    "old value not in symbol table " &
+                                      Item_Name);
+                     Old_Variable : constant Irep :=
+                       Global_Symbol_Table (Item).Value;
+
+                     Resolved_Type     : constant Irep :=
+                       (if Is_Implicit_Deref then
+                           Do_Type_Reference (Designated_Type (Prefix_Etype))
+                        else
+                           Do_Type_Reference (Prefix_Etype));
+
+                     Source_Loc : constant Irep := Get_Source_Location (N);
+
+                     Return_Expr : constant Irep :=
+                       Make_Dereference_Expr
+                         (Object          => Old_Variable,
+                          Source_Location => Source_Loc,
+                          I_Type          => Resolved_Type);
+                  begin
+                     if Is_Implicit_Deref then
+                        return Return_Expr;
+                     else
+                        return Old_Variable;
+                     end if;
+                  end;
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
                      Attribute_Id'Image
                        (Get_Attribute_Id (Attribute_Name (N))) &
-                    " unsupported");
+                       " unsupported");
             end case;
          when N_Explicit_Dereference => return Do_Dereference (N);
          when N_Case_Expression      => return Do_Case_Expression (N);
@@ -2829,11 +2884,7 @@ package body Tree_Walk is
          when Name_Precondition =>
             Do_Pragma_Assert_or_Assume (N_Orig, Block);
          when Name_Postcondition =>
-            --  Postcondition will eventually also be translated into
-            --  assertions but they should hold elsewhere from where they are
-            --  defined and they refer to 'Result variables
-            Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                         "Unsupported pragma: Postcondition");
+            Do_Pragma_Assert_or_Assume (N_Orig, Block);
          when Name_Refined_State |
               Name_Refined_Global |
               Name_Refined_Depends =>
@@ -3072,6 +3123,160 @@ package body Tree_Walk is
       end case;
    end Do_Pragma;
 
+   ---------------------------
+   -- Do_Post_Condition     --
+   ---------------------------
+
+   function Do_Post_Condition (N : Node_Id) return Irep is
+
+      Source_Loc : constant Irep := Get_Source_Location (N);
+
+      Cond_Block : constant Irep :=
+        Make_Code_Block (Source_Loc);
+
+      Current_Pragma : Node_Id := N;
+
+      Argument_Associations : List_Id :=
+        Pragma_Argument_Associations (Current_Pragma);
+
+      --  first is the identifier to be given the attribute
+      First_Argument : Node_Id := First (Argument_Associations);
+
+      --  second is the condition
+      Condition : Irep :=
+        Do_Expression (Expression (First_Argument));
+
+      function Make_Post_Condition (Expr : Irep) return Irep;
+
+      function Make_Post_Condition (Expr : Irep) return Irep
+      is
+         Post_Con_Args : constant Irep := Make_Argument_List;
+         Condition_Expr_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Post_Con_Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol ("__CPROVER_Ada_Post_Condition",
+                        Global_Symbol_Table, Source_Loc));
+         Post_Con_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Post_Con_Args,
+                                    I_Function      => Post_Con_Sym_Expr,
+                                    Lhs             => Make_Nil (Source_Loc),
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Make_Void_Type);
+      begin
+         Append_Argument (Post_Con_Args, Condition_Expr_As_Int);
+         return Post_Con_Call;
+      end Make_Post_Condition;
+
+   begin
+
+      Append_Op (Cond_Block,
+                 Make_Post_Condition (Expr => Condition));
+
+      while Next_Pragma (Current_Pragma) /= Types.Empty
+      loop
+
+         Current_Pragma := Next_Pragma (Current_Pragma);
+
+         if  Get_Name_String (Chars (Pragma_Identifier (Current_Pragma))) =
+           "postcondition"
+         then
+            Argument_Associations :=
+              Pragma_Argument_Associations (Current_Pragma);
+
+            --  first is the identifier to be given the attribute
+            First_Argument := First (Argument_Associations);
+
+            Condition := Do_Expression (Expression (First_Argument));
+
+            Append_Op (Cond_Block,
+                       Make_Post_Condition (Expr => Condition));
+
+         end if;
+      end loop;
+
+      --  Print_Irep (Condition);
+
+      return Cond_Block;
+   end Do_Post_Condition;
+
+   ---------------------------
+   -- Do_Pre_Condition      --
+   ---------------------------
+
+   function Do_Pre_Condition (N : Node_Id) return Irep is
+
+      Source_Loc : constant Irep := Get_Source_Location (N);
+
+      Cond_Block : constant Irep :=
+        Make_Code_Block (Source_Loc);
+
+      Current_Pragma : Node_Id := N;
+
+      Argument_Associations : List_Id :=
+        Pragma_Argument_Associations (Current_Pragma);
+
+      --  first is the identifier to be given the attribute
+      First_Argument : Node_Id := First (Argument_Associations);
+
+      --  second is the condition
+      Condition : Irep :=
+        Do_Expression (Expression (First_Argument));
+
+      function Make_Pre_Condition (Expr : Irep) return Irep;
+
+      function Make_Pre_Condition (Expr : Irep) return Irep
+      is
+         Pre_Con_Args : constant Irep := Make_Argument_List;
+         Condition_Expr_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Pre_Con_Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol ("__CPROVER_Ada_Pre_Condition",
+                        Global_Symbol_Table, Source_Loc));
+         Pre_Con_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Pre_Con_Args,
+                                    I_Function      => Pre_Con_Sym_Expr,
+                                    Lhs             => Make_Nil (Source_Loc),
+                                    Source_Location => Source_Loc,
+                                    I_Type          => Make_Void_Type);
+      begin
+         Append_Argument (Pre_Con_Args, Condition_Expr_As_Int);
+         return Pre_Con_Call;
+      end Make_Pre_Condition;
+
+   begin
+
+      Append_Op (Cond_Block,
+                 Make_Pre_Condition (Expr => Condition));
+
+      while Next_Pragma (Current_Pragma) /= Types.Empty
+      loop
+
+         Current_Pragma := Next_Pragma (Current_Pragma);
+
+         if  Get_Name_String (Chars (Pragma_Identifier (Current_Pragma))) =
+           "precondition"
+         then
+            Argument_Associations :=
+              Pragma_Argument_Associations (Current_Pragma);
+
+            --  first is the identifier to be given the attribute
+            First_Argument := First (Argument_Associations);
+
+            Condition := Do_Expression (Expression (First_Argument));
+
+            Append_Op (Cond_Block,
+                       Make_Pre_Condition (Expr => Condition));
+
+            --  Print_Irep (Condition);
+         end if;
+      end loop;
+
+      return Cond_Block;
+   end Do_Pre_Condition;
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
@@ -4948,15 +5153,60 @@ package body Tree_Walk is
    -- Do_Simple_Return_Statement --
    --------------------------------
 
-   function Do_Simple_Return_Statement (N : Node_Id) return Irep is
-      Return_Value : constant Irep :=
-        (if Present (Expression (N))
-         then Do_Expression (Expression (N))
-         else CProver_Nil);
+   procedure Do_Simple_Return_Statement (Block : Irep; N : Node_Id)
+   is
+      Location     : constant Irep := Get_Source_Location (N);
+      Return_Expr  : constant Node_Id := Expression (N);
+      Return_Value : Irep := CProver_Nil;
+      Spec         : constant Node_Id :=
+        Return_Applies_To (Return_Statement_Entity (N));
    begin
-      return Make_Code_Return
-        (Return_Value => Return_Value,
-         Source_Location => Get_Source_Location (N));
+      if Present (Return_Expr) then
+         --  It is a function return.
+         --  Set the return variable.
+         declare
+            Return_Entity : constant Entity_Id := Return_Statement_Entity (N);
+            Applies_To    : constant Node_Id :=
+              Return_Applies_To (Return_Entity);
+            Return_Type   : constant Entity_Id := Etype (Applies_To);
+            Return_I_Type : constant Irep := Do_Type_Reference (Return_Type);
+            pragma Assert (Nkind (Applies_To) in N_Defining_Identifier |
+                                                 N_Defining_Operator_Symbol,
+                           "Simple return statement " &
+                             Node_Kind'Image (Nkind (Applies_To)));
+            Fun_Name      : constant String := Unique_Name (Applies_To);
+            Result_Name   : constant String := Fun_Name & "___result";
+            Result_Var    : constant Irep :=
+              Make_Symbol_Expr
+                (Source_Location => Location,
+                 I_Type          => Return_I_Type,
+                 Range_Check     => False,
+                 Identifier      => Result_Name);
+         begin
+            Global_Symbol_Table (Intern (Result_Name)).Value :=
+              Result_Var;
+            Append_Op (Block,
+                       Make_Code_Assign
+                         (Rhs             => Typecast_If_Necessary
+                            (Expr           => Do_Expression (Return_Expr),
+                             New_Type       => Return_I_Type,
+                             A_Symbol_Table => Global_Symbol_Table),
+                          Lhs             => Result_Var,
+                          Source_Location => Location,
+                          I_Type          => Return_I_Type,
+                          Range_Check     => False));
+            Return_Value := Result_Var;
+         end;
+      end if;
+      if ASVAT.Pragma_Info.Has_Post_Condition (Spec) then
+         Append_Op (Block, Do_Post_Condition
+                    (ASVAT.Pragma_Info.Get_Post_Condition (Spec)));
+      end if;
+
+      Append_Op (Block,
+                 Make_Code_Return
+                   (Return_Value => Return_Value,
+                    Source_Location => Get_Source_Location (N)));
    end Do_Simple_Return_Statement;
 
    function Do_Raise_Statement (N : Node_Id) return Irep is
@@ -5165,19 +5415,163 @@ package body Tree_Walk is
    ----------------------------
 
    function Do_Subprogram_Or_Block (N : Node_Id) return Irep is
+      Loc   : constant Irep := Get_Source_Location (N);
       Decls : constant List_Id := Declarations (N);
       HSS   : constant Node_Id := Handled_Statement_Sequence (N);
-      Reps : constant Irep := Make_Code_Block
-        (Source_Location => Get_Source_Location (N));
-      All_Handlers : constant Irep := Make_Code_Block
-        (Source_Location => Get_Source_Location (N));
+      Reps  : constant Irep := Make_Code_Block (Source_Location => Loc);
+      All_Handlers : constant Irep :=
+        Make_Code_Block (Source_Location => Loc);
+      Spec : Node_Id;
    begin
+      if Nkind (N) = N_Subprogram_Body then
+         Spec := Corresponding_Spec (N);
+      end if;
+      if Nkind (N) = N_Subprogram_Body and then
+        not Acts_As_Spec (N) and then
+        ASVAT.Pragma_Info.Has_Post_Condition (Spec)
+      then
+         --  create variables for any in or in/out parameters
+         --  get list of parameters from Spec and create local vars
+         declare
+            Param_Id : Symbol_Id;
+            Param_Entity : Node_Id :=
+              First_Entity (Defining_Unit_Name (Specification (N)));
+         begin
+            loop
+               --  only interested in in/out and in parameters
+               if Ekind (Param_Entity) in
+                 E_In_Out_Parameter .. E_In_Parameter
+               then
+                  Param_Id := Intern
+                    (Unique_Name (Param_Entity) & "___old");
+                  --  add parameter to global symbol table
+                  New_Object_Symbol_Entry
+                    (Object_Name       => Param_Id,
+                     Object_Type       =>
+                       Do_Type_Reference (Etype (Param_Entity)),
+                     Object_Init_Value => Ireps.Empty,
+                     A_Symbol_Table    => Global_Symbol_Table);
+
+                  --  declare a variable and initialise
+                  declare
+                     Param_Var  : constant Irep :=
+                       Make_Symbol_Expr
+                         (Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False,
+                          Identifier      => Unintern (Param_Id));
+                     Param_Dec  : constant Irep :=
+                       Make_Code_Decl
+                         (Symbol          => Param_Var,
+                          Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False);
+                     Param_In    : constant Irep :=
+                       Make_Symbol_Expr
+                         (Source_Location => Loc,
+                          I_Type          => Do_Type_Reference
+                            (Etype (Param_Entity)),
+                          Range_Check     => False,
+                          Identifier      => Unique_Name (Param_Entity));
+
+                     Param_Init : constant Irep :=
+                       (if Ekind (Param_Entity) = E_In_Out_Parameter then
+                            (Make_Code_Assign
+                             (Rhs             =>
+                                    Make_Dereference_Expr
+                                (Object          => Param_In,
+                                 Source_Location => Loc,
+                                 I_Type          => Do_Type_Reference
+                                   (Etype (Param_Entity))),
+                              Lhs             => Param_Var,
+                              Source_Location => Loc,
+                              I_Type          => Do_Type_Reference
+                                (Etype (Param_Entity)),
+                              Range_Check     => False))
+                        else
+                           Make_Code_Assign
+                          (Rhs             => Param_In,
+                           Lhs             => Param_Var,
+                           Source_Location => Loc,
+                           I_Type          => Do_Type_Reference
+                             (Etype (Param_Entity)),
+                           Range_Check     => False));
+
+                  begin
+                     Global_Symbol_Table (Param_Id).Value :=
+                       Param_Var;
+                     Append_Op (Reps, Param_Dec);
+                     Append_Op (Reps, Param_Init);
+                  end;
+               end if;
+               --  get the next parameter
+               Param_Entity := Next_Entity (Param_Entity);
+               --  exit when last parameter processed
+               exit when Param_Entity = Types.Empty;
+            end loop;
+         end;
+      end if;
+
+      if Nkind (N) = N_Subprogram_Body and then
+        not Acts_As_Spec (N) and then
+        ASVAT.Pragma_Info.Has_Pre_Condition (Spec)
+      then
+         Append_Op (Reps, Do_Pre_Condition
+                    (ASVAT.Pragma_Info.Get_Pre_Condition (Spec)));
+      end if;
+
+      if Nkind (N) = N_Subprogram_Body then
+         declare
+            Subprog_Spec   : constant Node_Id := Specification (N);
+         begin
+            if Nkind (Subprog_Spec) = N_Function_Specification then
+               --  Create and declare a goto result variable.
+               declare
+                  Subprog_Name   : constant String :=
+                    Unique_Name (Defining_Entity (N));
+                  Subprog_Entity : constant Entity_Id :=
+                    Defining_Entity (Subprog_Spec);
+                  Result      : constant String :=
+                    Subprog_Name & "___result";
+                  Result_Type : constant Irep :=
+                    Do_Type_Reference (Etype (Subprog_Entity));
+                  Result_Var  : constant Irep :=
+                    Make_Symbol_Expr
+                      (Source_Location => Loc,
+                       I_Type          => Result_Type,
+                       Range_Check     => False,
+                       Identifier      => Result);
+                  Result_Dec  : constant Irep :=
+                    Make_Code_Decl
+                      (Symbol          => Result_Var,
+                       Source_Location => Loc,
+                       I_Type          => Result_Type,
+                       Range_Check     => False);
+
+               begin
+                  Append_Op (Reps, Result_Dec);
+               end;
+            end if;
+         end;
+      end if;
+
       if Present (Decls) then
          Process_Declarations (Decls, Reps);
       end if;
 
       if Present (HSS) then
          Process_Statement (HSS, Reps);
+      end if;
+
+      if Nkind (N) = N_Subprogram_Body and then
+        not Acts_As_Spec (N) and then
+        ASVAT.Pragma_Info.Has_Post_Condition (Spec) and then
+        Nkind (Specification (N)) = N_Procedure_Specification
+      then
+         Append_Op (Reps, Do_Post_Condition
+                    (ASVAT.Pragma_Info.Get_Post_Condition (Spec)));
       end if;
 
       if Present (HSS) and then Present (Exception_Handlers (HSS)) then
@@ -5260,8 +5654,21 @@ package body Tree_Walk is
    --------------------------------
 
    function Do_Subprogram_Specification (N : Node_Id) return Irep is
-      Param_List : constant Irep := Make_Parameter_List;
-      Param_Iter : Node_Id := First (Parameter_Specifications (N));
+      Is_Function   : constant Boolean :=
+        Nkind (N) in N_Function_Specification | N_Access_Function_Definition;
+      Ret_Type_Node : constant Node_Id :=
+        (if Is_Function then
+            Etype (Result_Definition (N))
+         else
+            Types.Empty);
+      Ret_Type      : constant Irep :=
+        (if Is_Function then
+            Do_Type_Reference (Ret_Type_Node)
+         else
+            CProver_Void_T);
+
+      Param_List   : constant Irep := Make_Parameter_List;
+      Param_Iter   : Node_Id := First (Parameter_Specifications (N));
    begin
       while Present (Param_Iter) loop
          declare
@@ -5323,16 +5730,30 @@ package body Tree_Walk is
             end;
          end;
       end loop;
+      --  if the subprogram is a function declare a result variable.
+      --  This may be referenced by <function_name>'Result in a postcondition.
+      --  It also resolves a problem when the result is obtained from an
+      --  array assignment which has its bounds specified by variables.
+      if Nkind (N) = N_Function_Specification then
+         declare
+            Fun_Name  : constant String :=
+              Unique_Name (Defining_Unit_Name (N));
+            Result    : constant String := Fun_Name & "___result";
+            Result_Id : constant Symbol_Id := Intern (Result);
+         begin
+            New_Object_Symbol_Entry
+              (Object_Name       => Result_Id,
+               Object_Type       => Ret_Type,
+               Object_Init_Value => Ireps.Empty,
+               A_Symbol_Table    => Global_Symbol_Table);
+         end;
+      end if;
       return Make_Code_Type
-        (Parameters => Param_List,
-         Ellipsis => False,
-         Return_Type =>
-           (if Nkind (N) in N_Function_Specification |
-               N_Access_Function_Definition
-            then Do_Type_Reference (Etype (Result_Definition (N)))
-            else CProver_Void_T),
-         Inlined => False,
-         Knr => False);
+        (Parameters  => Param_List,
+         Ellipsis    => False,
+         Return_Type => Ret_Type,
+         Inlined     => False,
+         Knr         => False);
    end Do_Subprogram_Specification;
 
    ----------------------------
@@ -6158,15 +6579,36 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                          "Unsupported pragma: Assert/Assume");
          when Name_Precondition =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                       "Unsupported pragma: Precondition");
+            --  Used to save a reference to the pargama in the ASVAT model.
+            declare
+               --  get the aspect from the node
+               The_Aspect : constant Node_Id := Corresponding_Aspect (N);
+               --  identify the entity that the pre condition belongs to
+               Enclosing : constant Node_Id := Entity (The_Aspect);
+
+            begin
+
+               ASVAT.Pragma_Info.Set_Pre_Condition (Enclosing, N);
+
+            end;
 
          when Name_Postcondition =>
-            --  Postcondition will eventually also be translated into
-            --  assertions but they should hold elsewhere from where they are
-            --  defined and they refer to 'Result variables
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Postcondition");
+            --  Used to save a reference to the pargama in the ASVAT model.
+            declare
+               --  get the aspect from the node
+               The_Aspect : constant Node_Id := Corresponding_Aspect (N);
+               --  identify the entity that the pre condition belongs to
+               Enclosing : constant Node_Id := Entity (The_Aspect);
+
+            begin
+
+               ASVAT.Pragma_Info.Set_Post_Condition (Enclosing, N);
+
+               --  Report_Unhandled_Node_Empty
+               --  (N, "Process_Pragma_Declaration",
+               --                               "Post condition");
+
+            end;
          when Name_Refined_State |
               Name_Refined_Global |
               Name_Refined_Depends =>
@@ -6563,7 +7005,7 @@ package body Tree_Walk is
             then
                Append_Op (Block, Get_No_Return_Check);
             end if;
-            Append_Op (Block, Do_Simple_Return_Statement (N));
+            Do_Simple_Return_Statement (Block, N);
 
          when N_Entry_Call_Statement =>
             Report_Unhandled_Node_Empty (N, "Process_Statement",
