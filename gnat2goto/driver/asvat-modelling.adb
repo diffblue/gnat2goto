@@ -359,63 +359,243 @@ package body ASVAT.Modelling is
 
    function Make_Unchecked_Conversion_Function (E : Entity_Id) return Irep
    is
+      function Make_Unchecked (Expr : Irep; Check : String) return Irep;
+      function Get_Type_Size (N : Node_Id) return Irep;
+
       Source_Location : constant Irep := Get_Source_Location (E);
       Function_Name   : constant String := Unique_Name (E);
-      Function_Id     : constant Symbol_Id := Intern (Function_Name);
       --  Make a function body which takes a source and copies it to
       --  a return value of Target_Type.
-      Function_Symbol   : constant Symbol := Global_Symbol_Table (Function_Id);
       Function_Body     : constant Irep := Make_Code_Block (Source_Location);
+      Target_Type_Node  : constant Node_Id := Etype (Etype (Etype (E)));
       Return_Type_Irep  : constant Irep :=
-        Get_Return_Type (Function_Symbol.SymType);
+        Follow_Symbol_Type (Do_Type_Reference (Target_Type_Node),
+                            Global_Symbol_Table);
 
       Target_Var : constant String := "target___" & Function_Name;
-      --  Target_Id            : constant Symbol_Id := Intern (Target_Var);
-      Target_Expr          : constant Irep := Make_Symbol_Expr
+      Destination_Type  : constant Irep :=
+        Make_Pointer_Type (Return_Type_Irep);
+
+      Destination : constant Irep := Make_Symbol_Expr
         (Source_Location => Source_Location,
-         Identifier      => Target_Var,
-         I_Type          => Return_Type_Irep);
-      Return_Statement  : constant Irep := Make_Code_Return
-        (Return_Value    => Target_Expr,
+         Identifier => Target_Var,
+         I_Type => Destination_Type);
+
+      Return_Var : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier => Target_Var,
+         I_Type => Return_Type_Irep);
+
+      Decl_Statement  : constant Irep := Make_Code_Decl
+        (Symbol          => Return_Var,
          Source_Location => Source_Location);
 
-      --  Destination : Irep;
-      --  Target'address
+      Return_Statement  : constant Irep := Make_Code_Return
+        (Return_Value    => Return_Var,
+         Source_Location => Source_Location);
 
-      --  Source : Irep;
-      --  Source'address
+      Source_Var : constant String := Unique_Name (First_Entity (E));
+      Source_Type_Node  : constant Node_Id := Etype (Etype (First_Entity (E)));
 
-      --  Element_Count : Irep;
-      --  Source'size in bytes
+      Source_Type_Irep  : constant Irep :=
+        Follow_Symbol_Type (Do_Type_Reference (Source_Type_Node),
+                            Global_Symbol_Table);
 
-      --  Element_Size : Uint;
-      --  Source'size in bytes
+      Source_Type  : constant Irep :=
+        Make_Pointer_Type (Source_Type_Irep);
 
-      --  Mem_Copy : Irep;
+      Source : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier => Source_Var,
+         I_Type => Source_Type);
+
+      Target_Size_String : constant String := "target_size___" & Function_Name;
+      Target_Size_Sym : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier => Target_Size_String,
+         I_Type => CProver_Size_T);
+
+      Target_Size_Decl  : constant Irep := Make_Code_Decl
+        (Symbol          => Target_Size_Sym,
+         Source_Location => Source_Location);
+
+      Target_Size_Statement  : Irep;
+
+      Source_Size_String : constant String := "source_size___" & Function_Name;
+      Source_Size_Sym : constant Irep := Make_Symbol_Expr
+        (Source_Location => Source_Location,
+         Identifier => Source_Size_String,
+         I_Type => CProver_Size_T);
+
+      Source_Size_Decl  : constant Irep := Make_Code_Decl
+        (Symbol          => Source_Size_Sym,
+         Source_Location => Source_Location);
+
+      Source_Size_Statement  : Irep;
+
+      Target_Size : Irep;
+      Source_Size : Irep;
+
+      Element_Size : constant Uint := Uint_8;
+
+      Mem_Copy : Irep;
+
+      function Make_Unchecked (Expr : Irep; Check : String) return Irep
+      is
+         Args : constant Irep := Make_Argument_List;
+         Expr_As_Int : constant Irep :=
+           Typecast_If_Necessary (Expr           => Expr,
+                                  New_Type       => Int32_T,
+                                  A_Symbol_Table => Global_Symbol_Table);
+         Sym_Expr : constant Irep :=
+           Symbol_Expr (Get_Ada_Check_Symbol
+                        ("__CPROVER_Ada_Unchecked_Conversion_" & Check,
+                        Global_Symbol_Table, Internal_Source_Location));
+         Function_Call : constant Irep :=
+           Make_Code_Function_Call (Arguments       => Args,
+                                    I_Function      => Sym_Expr,
+                                    Lhs             =>
+                                      Make_Nil (Internal_Source_Location),
+                                    Source_Location =>
+                                      Internal_Source_Location,
+                                    I_Type          => Make_Void_Type);
+      begin
+         Append_Argument (Args, Expr_As_Int);
+         return Function_Call;
+      end Make_Unchecked;
+
+--        function Get_Type_Size (N : Node_Id) return Irep
+--        is
+--        begin
+--           if Has_Size (N) then
+--              return
+--                Typecast_If_Necessary (Computed_Size (N),
+--                                       CProver_Size_T, Global_Symbol_Table);
+--           elsif Has_Static_Size (N) then
+--              return
+--                Typecast_If_Necessary (Integer_Constant_To_Expr
+--                                       (Value           =>
+--                                            UI_From_Int
+--        (Int (Static_Size (N))),
+--                                        Expr_Type       => Int32_T,
+--                                        Source_Location =>
+--                                          Internal_Source_Location),
+--                                       CProver_Size_T, Global_Symbol_Table);
+--           else
+--              Report_Unhandled_Node_Empty
+--                (N, "Get_Type_Size",
+--                 "Type has no valid size");
+--              return Typecast_If_Necessary
+--                (Get_Int32_T_Zero,
+--                 CProver_Size_T, Global_Symbol_Table);
+--           end if;
+--        end Get_Type_Size;
+      function Get_Type_Size (N : Node_Id) return Irep
+      is
+      begin
+         if RM_Size (N) /= 0 then
+            return
+              Typecast_If_Necessary (Integer_Constant_To_Expr
+                                     (Value           => RM_Size (N),
+                                      Expr_Type       => Int32_T,
+                                      Source_Location =>
+                                        Internal_Source_Location),
+                                     CProver_Size_T, Global_Symbol_Table);
+         elsif Esize (N) /= 0 then
+            return
+              Typecast_If_Necessary (Integer_Constant_To_Expr
+                                     (Value           => Esize (N),
+                                      Expr_Type       => Int32_T,
+                                      Source_Location =>
+                                        Internal_Source_Location),
+                                     CProver_Size_T, Global_Symbol_Table);
+         else
+            Report_Unhandled_Node_Empty
+              (N, "Get_Type_Size",
+               "Type has no valid size");
+            return Typecast_If_Necessary
+              (Get_Int32_T_Zero,
+               CProver_Size_T, Global_Symbol_Table);
+         end if;
+      end Get_Type_Size;
 
    begin
 
+      Append_Op (Function_Body, Target_Size_Decl);
+      Append_Op (Function_Body, Source_Size_Decl);
+      Append_Op (Function_Body, Decl_Statement);
+
+      --  get target and source sizes
+      Target_Size := Get_Type_Size (Target_Type_Node);
+      Print_Irep (Get_Op0 (Target_Size));
+      Source_Size := Get_Type_Size (Source_Type_Node);
+      Print_Irep (Get_Op0 (Source_Size));
+
+      Target_Size_Statement := Make_Code_Assign
+        (Rhs             => Get_Type_Size (Target_Type_Node),
+         Lhs             => Target_Size_Sym,
+         Source_Location => Source_Location,
+         I_Type          => CProver_Size_T);
+
+      Append_Op (Function_Body, Target_Size_Statement);
+
+      Source_Size_Statement := Make_Code_Assign
+        (Rhs             => Get_Type_Size (Source_Type_Node),
+         Lhs             => Source_Size_Sym,
+         Source_Location => Source_Location,
+         I_Type          => CProver_Size_T);
+
+      Append_Op (Function_Body, Source_Size_Statement);
+
       --  check sizes are compatible
       --  report CPROVER_Ada_Unchecked_Conversion_Size if not
+      Append_Op (Function_Body, Make_Unchecked
+                 (Make_Op_Eq (Rhs             => Target_Size_Sym,
+                              Lhs             => Source_Size_Sym,
+                              Source_Location => Get_Source_Location (E),
+                              I_Type          => CProver_Size_T), "Size"));
+
+      --  convert target size to bytes
+      Append_Op (Function_Body, Make_Code_Assign
+                 (Rhs             => Make_Op_Div
+                  (Rhs            => Typecast_If_Necessary
+                   (Integer_Constant_To_Expr
+                      (Value           => Element_Size,
+                       Expr_Type       => Int32_T,
+                       Source_Location => Source_Location),
+                      CProver_Size_T, Global_Symbol_Table),
+                   Lhs               => Target_Size_Sym,
+                   Div_By_Zero_Check => False,
+                   Source_Location   => Source_Location,
+                   I_Type            => CProver_Size_T),
+                  Lhs             => Target_Size_Sym,
+                  Source_Location => Source_Location,
+                  I_Type          => CProver_Size_T));
 
       --  do a mem copy from source to target
-      --  Mem_Copy :=
-      --  Make_Memcpy_Function_Call_Expr
-      --    (Destination       => Destination,
-      --     Source            => Source,
-      --     Num_Elem          => Element_Count,
-      --     Element_Type_Size => Element_Size,
-      --     Source_Loc        => Get_Source_Location (E));
+      Mem_Copy :=
+        Make_Memcpy_Function_Call_Expr
+          (Destination       => Destination,
+           Source            => Source,
+           Num_Elem          => Target_Size_Sym,
+           Element_Type_Size => Element_Size,
+           Source_Loc        => Get_Source_Location (E));
 
-      --  Append_Op (Function_Body, Mem_Copy);
+      Append_Op (Function_Body,
+                 Make_Code_Assign
+                   (Rhs             => Mem_Copy,
+                    Lhs             => Destination,
+                    Source_Location => Get_Source_Location (E)));
+
+      --  check validity of resulting target
+      --  report CPROVER_Ada_Unchecked_Conversion_Valid if not vaid
+      Append_Op (Function_Body, Make_Unchecked (CProver_True, "Valid"));
 
       Append_Op (Function_Body, Return_Statement);
 
-      Report_Unhandled_Node_Empty
-        (E, "Make_Unchecked_Conversion_Function",
-         "unsupported unchecked conversion");
-
       Print_Irep (Function_Body);
+      Print_Irep (Mem_Copy);
+      Print_Irep (Get_Arguments (Mem_Copy));
       Print_Irep (Return_Statement);
 
       return Function_Body;
