@@ -274,6 +274,11 @@ Error message: Delay statement
 Nkind: N_Delay_Until_Statement
 --
 Occurs: 3 times
+Calling function: Do_Aggregate_Literal_Record
+Error message: Actual iter expression empty node
+Nkind: N_Aggregate
+--
+Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_VALID unsupported
 Nkind: N_Attribute_Reference
@@ -1910,7 +1915,7 @@ Error detected at REDACTED
 --
 Occurs: 3 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1113                         |
 Error detected at REDACTED
 --
 Occurs: 3 times
@@ -2055,12 +2060,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:756                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:750                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:756                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2100,7 +2105,7 @@ Error detected at REDACTED
 --
 Occurs: 22 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:750
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:756
 
 --
 Occurs: 17 times

@@ -643,7 +643,13 @@ package body Tree_Walk is
                                             "Component actual iter mismatch");
                return Struct_Expr;
             end if;
-
+            if Nkind (Expression (Actual_Iter)) = N_Empty then
+               Report_Unhandled_Node_Empty
+                 (N,
+                  "Do_Aggregate_Literal_Record",
+                  "Actual iter expression empty node");
+               return Struct_Expr;
+            end if;
             Append_Struct_Member (Struct_Expr,
                                   Do_Expression (Expression (Actual_Iter)));
             if Ekind (Component_Iter) = E_Component then
@@ -1453,7 +1459,7 @@ package body Tree_Walk is
       Declare_Itype (Etype (N));
       case Nkind (N) is
          when N_Identifier |
-            N_Expanded_Name          => return Do_Identifier (N);
+              N_Expanded_Name          => return Do_Identifier (N);
          when N_Selected_Component   => return Do_Selected_Component (N);
          when N_Op                   => return Do_Operator_General (N);
          when N_Integer_Literal      => return Do_Constant (N);
@@ -1474,15 +1480,17 @@ package body Tree_Walk is
                                                      "Range attribute");
                when Attribute_First  =>
                   if Is_String_Type (Etype (Prefix (N))) then
-                     return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                "First of string unsupported");
+                     return Report_Unhandled_Node_Irep
+                       (N, "Do_Expression",
+                        "First of string unsupported");
                   else
                      return Do_Array_First (N);
                   end if;
                when Attribute_Last   =>
                   if Is_String_Type (Etype (Prefix (N))) then
-                     return Report_Unhandled_Node_Irep (N, "Do_Expression",
-                                                 "Last of string unsupported");
+                     return Report_Unhandled_Node_Irep
+                       (N, "Do_Expression",
+                        "Last of string unsupported");
                   else
                      return Do_Array_Last (N);
                   end if;
@@ -1520,7 +1528,7 @@ package body Tree_Walk is
                        Intern (Item_Name);
                      pragma Assert (Global_Symbol_Table.Contains (Item),
                                     "return value not in symbol table " &
-                                   Item_Name);
+                                      Item_Name);
                      Return_Variable : constant Irep :=
                        Global_Symbol_Table (Item).Value;
                   begin
