@@ -324,6 +324,11 @@ Error message: Unknown declaration kind
 Nkind: N_Protected_Type_Declaration
 --
 Occurs: 1 times
+Calling function: Do_Aggregate_Literal_Array_Main
+Error message: Unsupported Others for component node
+Nkind: N_Aggregate
+--
+Occurs: 1 times
 Calling function: Do_Attribute_Size
 Error message: The size of the composite is not known by the front-end. Use a size representation clause on its declaration
 Nkind: N_Identifier
@@ -1966,11 +1971,6 @@ Error detected at REDACTED
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.adb:75|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
 Error detected at REDACTED
 --
 Occurs: 1 times
