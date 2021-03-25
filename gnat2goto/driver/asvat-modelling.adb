@@ -28,6 +28,10 @@ package body ASVAT.Modelling is
    --  The Unchecked_Conversion_Function model has a single parameter s of
    --  Source_Type of mode in, performs checks and returns a Target_Type.
 
+   function Build_In_Type_Function (N          : Node_Id;
+                                    Param      : Irep;
+                                    Param_Type : Irep) return Irep;
+
    ----------------
    -- Find_Model --
    ----------------
@@ -158,10 +162,6 @@ package body ASVAT.Modelling is
       --  The subprogram is declared from the source text.
       pragma Assert (Global_Symbol_Table.Contains (Function_Id));
 
-      --  Make a function body which is just a return statement with
-      --  an and expression which is the in type condition
-      Function_Body     : constant Irep :=
-        Make_Code_Block (Source_Location);
       Param_Name : constant String :=
         Unique_Name (Defining_Identifier (Parameter));
       Param_Type        : constant Node_Id := Etype (Param_Entity);
@@ -174,94 +174,134 @@ package body ASVAT.Modelling is
            I_Type          => Followed_Type,
            Range_Check     => False,
            Identifier      => Param_Name);
-      Resolved_Var : constant Irep :=
-        Cast_Enum (Param_Irep, Global_Symbol_Table);
    begin
-      if Kind (Followed_Type) in
-        I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
-          | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
-            | I_Floatbv_Type | I_C_Enum_Type
-      then
-         declare
-            Resolved_Type : constant Irep :=
-              (if Kind (Followed_Type) = I_C_Enum_Type then
-                    Get_Subtype (Followed_Type)
-               else
-                  Followed_Type);
-
-            Low_Bound_Irep : constant Irep :=
-              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
-                         Global_Symbol_Table);
-
-            High_Bound_Irep : constant Irep :=
-              Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
-                         Global_Symbol_Table);
-
-            Low_Bound_Condition : constant Irep :=
-              Make_Op_Geq
-                (Rhs =>
-                   Typecast_If_Necessary
-                     (Low_Bound_Irep,
-                      Get_Type (Resolved_Var),
-                      Global_Symbol_Table),
-                 Lhs             => Resolved_Var,
-                 Source_Location => Source_Location,
-                 Overflow_Check  => False,
-                 I_Type          => Make_Bool_Type,
-                 Range_Check     => False);
-
-            High_Bound_Condition : constant Irep :=
-              Make_Op_Leq
-                (Rhs             =>
-                   Typecast_If_Necessary
-                     (High_Bound_Irep,
-                      Get_Type (Resolved_Var),
-                      Global_Symbol_Table),
-                 Lhs             => Resolved_Var,
-                 Source_Location => Source_Location,
-                 Overflow_Check  => False,
-                 I_Type          => Make_Bool_Type,
-                 Range_Check     => False);
-
-            And_Conditions : constant Irep :=
-              Make_Op_And
-                (Source_Location => Source_Location,
-                 I_Type          => Make_Bool_Type,
-                 Range_Check     => False);
-
-            Return_Statement : constant Irep :=
-              Make_Code_Return
-                (Return_Value    => And_Conditions,
-                 Source_Location => Source_Location,
-                 I_Type          => Make_Bool_Type,
-                 Range_Check     => False);
-         begin
-            Print_Modelling_Message
-              ("Making in type function " & Function_Name &
-                 " (" & Get_Name_String
-                 (Chars (Defining_Identifier (Parameter))) &
-                 " : " & Unique_Name (Param_Type) &
-                 ") return Boolean)", Sloc (E));
-            Print_Modelling_Message
-              ("Check (" &
-                 Param_Name & " >= " & Unique_Name (Param_Type)
-               & "'First and " &
-                 Param_Name & " <= " & Unique_Name (Param_Type) & "'Last);",
-               Sloc (E));
-
-            Append_Op (And_Conditions, Low_Bound_Condition);
-            Append_Op (And_Conditions, High_Bound_Condition);
-            Append_Op (Function_Body, Return_Statement);
-            return Function_Body;
-         end;
-      else
-         return Report_Unhandled_Node_Irep
-           (E,
-            "Make_In_Type_Function",
-            Irep_Kind'Image (Kind (Followed_Type)) &
-              " objects not supported");
-      end if;
+      return Build_In_Type_Function
+        (E, Param_Irep, Do_Type_Reference (Param_Type));
    end Make_In_Type_Function;
+--     function Make_In_Type_Function (E : Entity_Id) return Irep is
+--        Source_Location : constant Irep := Get_Source_Location (E);
+--        Function_Name   : constant String := Unique_Name (E);
+--        Function_Id     : constant Symbol_Id := Intern (Function_Name);
+--        Parameter       : constant Node_Id :=
+--          First (Parameter_Specifications (Declaration_Node (E)));
+--     Param_Entity    : constant Node_Id := Defining_Identifier (Parameter);
+--
+--        pragma Assert
+--          ((Ekind (E) = E_Function and
+--             Present (Parameter)) and then
+--             (not (Out_Present (Parameter) or Present (Next (Parameter))) and
+--                  Is_Scalar_Type (Etype (Param_Entity)) and
+--                Is_Boolean_Type (Etype (E))),
+--           "In_Type_Function model must have a single scalar " &
+--             "mode in parameter and a Boolean return subtype");
+--
+--        --  The subprogram is declared from the source text.
+--        pragma Assert (Global_Symbol_Table.Contains (Function_Id));
+--
+--        --  Make a function body which is just a return statement with
+--        --  an and expression which is the in type condition
+--        Function_Body     : constant Irep :=
+--          Make_Code_Block (Source_Location);
+--        Param_Name : constant String :=
+--          Unique_Name (Defining_Identifier (Parameter));
+--        Param_Type        : constant Node_Id := Etype (Param_Entity);
+--        Followed_Type     : constant Irep :=
+--          Follow_Symbol_Type (Do_Type_Reference (Param_Type),
+--                              Global_Symbol_Table);
+--        Param_Irep        : constant Irep :=
+--          Make_Symbol_Expr
+--            (Source_Location => Source_Location,
+--             I_Type          => Followed_Type,
+--             Range_Check     => False,
+--             Identifier      => Param_Name);
+--        Resolved_Var : constant Irep :=
+--          Cast_Enum (Param_Irep, Global_Symbol_Table);
+--     begin
+--        if Kind (Followed_Type) in
+--          I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
+--            | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
+--              | I_Floatbv_Type | I_C_Enum_Type
+--        then
+--           declare
+--              Resolved_Type : constant Irep :=
+--                (if Kind (Followed_Type) = I_C_Enum_Type then
+--                      Get_Subtype (Followed_Type)
+--                 else
+--                    Followed_Type);
+--
+--              Low_Bound_Irep : constant Irep :=
+--                Cast_Enum (Get_Bound (E, Resolved_Type, Bound_Low),
+--                           Global_Symbol_Table);
+--
+--              High_Bound_Irep : constant Irep :=
+--                Cast_Enum (Get_Bound (E, Resolved_Type, Bound_High),
+--                           Global_Symbol_Table);
+--
+--              Low_Bound_Condition : constant Irep :=
+--                Make_Op_Geq
+--                  (Rhs =>
+--                     Typecast_If_Necessary
+--                       (Low_Bound_Irep,
+--                        Get_Type (Resolved_Var),
+--                        Global_Symbol_Table),
+--                   Lhs             => Resolved_Var,
+--                   Source_Location => Source_Location,
+--                   Overflow_Check  => False,
+--                   I_Type          => Make_Bool_Type,
+--                   Range_Check     => False);
+--
+--              High_Bound_Condition : constant Irep :=
+--                Make_Op_Leq
+--                  (Rhs             =>
+--                     Typecast_If_Necessary
+--                       (High_Bound_Irep,
+--                        Get_Type (Resolved_Var),
+--                        Global_Symbol_Table),
+--                   Lhs             => Resolved_Var,
+--                   Source_Location => Source_Location,
+--                   Overflow_Check  => False,
+--                   I_Type          => Make_Bool_Type,
+--                   Range_Check     => False);
+--
+--              And_Conditions : constant Irep :=
+--                Make_Op_And
+--                  (Source_Location => Source_Location,
+--                   I_Type          => Make_Bool_Type,
+--                   Range_Check     => False);
+--
+--              Return_Statement : constant Irep :=
+--                Make_Code_Return
+--                  (Return_Value    => And_Conditions,
+--                   Source_Location => Source_Location,
+--                   I_Type          => Make_Bool_Type,
+--                   Range_Check     => False);
+--           begin
+--              Print_Modelling_Message
+--                ("Making in type function " & Function_Name &
+--                   " (" & Get_Name_String
+--                   (Chars (Defining_Identifier (Parameter))) &
+--                   " : " & Unique_Name (Param_Type) &
+--                   ") return Boolean)", Sloc (E));
+--              Print_Modelling_Message
+--                ("Check (" &
+--                   Param_Name & " >= " & Unique_Name (Param_Type)
+--                 & "'First and " &
+--                Param_Name & " <= " & Unique_Name (Param_Type) & "'Last);",
+--                 Sloc (E));
+--
+--              Append_Op (And_Conditions, Low_Bound_Condition);
+--              Append_Op (And_Conditions, High_Bound_Condition);
+--              Append_Op (Function_Body, Return_Statement);
+--              return Function_Body;
+--           end;
+--        else
+--           return Report_Unhandled_Node_Irep
+--             (E,
+--              "Make_In_Type_Function",
+--              Irep_Kind'Image (Kind (Followed_Type)) &
+--                " objects not supported");
+--        end if;
+--     end Make_In_Type_Function;
 
    ----------------
    -- Make_Model --
@@ -600,6 +640,154 @@ package body ASVAT.Modelling is
 
       return Function_Body;
    end Make_Unchecked_Conversion_Function;
+
+   -------------------------
+   -- Make_Valid_Function --
+   -------------------------
+
+   function Make_Valid_Function (N : Node_Id; Value : Node_Id) return Irep is
+      Source_Loc : constant Irep := Get_Source_Location (N);
+
+      Prefix_Type : constant Node_Id := Etype (Value);
+
+      Value_Type : constant Irep := Do_Type_Reference (Prefix_Type);
+
+      function Make_Valid return Symbol;
+
+      function Make_Valid return Symbol
+      is
+         Func_Name : constant String :=
+         "__CPROVER_valid_" & Unique_Name (Prefix_Type);
+         Body_Block : constant Irep := Make_Code_Block (Source_Loc);
+         Func_Params : constant Irep := Make_Parameter_List;
+         Value_Arg : constant Irep :=
+           Create_Fun_Parameter (Fun_Name        => Func_Name,
+                                 Param_Name      => "value",
+                                 Param_Type      => Value_Type,
+                                 Param_List      => Func_Params,
+                                 A_Symbol_Table  => Global_Symbol_Table,
+                                 Source_Location => Source_Loc);
+         Func_Type : constant Irep :=
+           Make_Code_Type (Parameters  => Func_Params,
+                           Ellipsis    => False,
+                           Return_Type => CProver_Bool_T,
+                           Inlined     => False,
+                           Knr         => False);
+         Value_Param : constant Irep := Param_Symbol (Value_Arg);
+      begin
+         Append_Op (Body_Block, Build_In_Type_Function
+                    (N, Value_Param, Do_Type_Reference (Prefix_Type)));
+
+         return New_Function_Symbol_Entry
+           (Name        => Func_Name,
+            Symbol_Type => Func_Type,
+            Value       => Body_Block,
+            A_Symbol_Table => Global_Symbol_Table);
+      end Make_Valid;
+
+      Call_Args : constant Irep := Make_Argument_List;
+   begin
+      Append_Argument (Call_Args, Do_Expression (Value));
+
+      return Make_Side_Effect_Expr_Function_Call
+        (Arguments       => Call_Args,
+         I_Function      => Symbol_Expr (Make_Valid),
+         Source_Location => Source_Loc,
+         I_Type          => CProver_Bool_T);
+
+   end Make_Valid_Function;
+
+   ----------------------------
+   -- Build_In_Type_Function --
+   ----------------------------
+
+   function Build_In_Type_Function (N          : Node_Id;
+                                    Param      : Irep;
+                                    Param_Type : Irep) return Irep is
+      Source_Location : constant Irep := Get_Source_Location (N);
+
+      --  Make a function body which is just a return statement with
+      --  an and expression which is the in type condition
+      Function_Body     : constant Irep :=
+        Make_Code_Block (Source_Location);
+      Followed_Type     : constant Irep :=
+        Follow_Symbol_Type (Param_Type,
+                            Global_Symbol_Table);
+      Resolved_Var : constant Irep :=
+        Cast_Enum (Param, Global_Symbol_Table);
+   begin
+      if Kind (Followed_Type) in
+        I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
+          | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
+            | I_Floatbv_Type | I_C_Enum_Type
+      then
+         declare
+            Resolved_Type : constant Irep :=
+              (if Kind (Followed_Type) = I_C_Enum_Type then
+                    Get_Subtype (Followed_Type)
+               else
+                  Followed_Type);
+
+            Low_Bound_Irep : constant Irep :=
+              Cast_Enum (Get_Bound (N, Resolved_Type, Bound_Low),
+                         Global_Symbol_Table);
+
+            High_Bound_Irep : constant Irep :=
+              Cast_Enum (Get_Bound (N, Resolved_Type, Bound_High),
+                         Global_Symbol_Table);
+
+            Low_Bound_Condition : constant Irep :=
+              Make_Op_Geq
+                (Rhs =>
+                   Typecast_If_Necessary
+                     (Low_Bound_Irep,
+                      Get_Type (Resolved_Var),
+                      Global_Symbol_Table),
+                 Lhs             => Resolved_Var,
+                 Source_Location => Source_Location,
+                 Overflow_Check  => False,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
+
+            High_Bound_Condition : constant Irep :=
+              Make_Op_Leq
+                (Rhs             =>
+                   Typecast_If_Necessary
+                     (High_Bound_Irep,
+                      Get_Type (Resolved_Var),
+                      Global_Symbol_Table),
+                 Lhs             => Resolved_Var,
+                 Source_Location => Source_Location,
+                 Overflow_Check  => False,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
+
+            And_Conditions : constant Irep :=
+              Make_Op_And
+                (Source_Location => Source_Location,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
+
+            Return_Statement : constant Irep :=
+              Make_Code_Return
+                (Return_Value    => And_Conditions,
+                 Source_Location => Source_Location,
+                 I_Type          => Make_Bool_Type,
+                 Range_Check     => False);
+         begin
+            Append_Op (And_Conditions, Low_Bound_Condition);
+            Append_Op (And_Conditions, High_Bound_Condition);
+            Append_Op (Function_Body, Return_Statement);
+            return Function_Body;
+         end;
+      else
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Make_In_Type_Function",
+            Irep_Kind'Image (Kind (Followed_Type)) &
+              " objects not supported");
+      end if;
+   end Build_In_Type_Function;
 
    -----------------------------
    -- Print_Modelling_Message --
