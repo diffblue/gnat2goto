@@ -390,12 +390,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Storage_Error System.Memory.Alloc: heap exhausted     |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
+| GNU Ada (ada2goto) Storage_Error System.Memory.Alloc: heap exhausted     |
 Error detected at REDACTED
 --
 Occurs: 28 times
