@@ -501,6 +501,11 @@ package body Driver is
           (Get_Name_String (Unit_File_Name (Main_Unit)));
 
       Sanitised_Symbol_Table : Symbol_Table;
+
+      --  This controls whether the JSON output is compact or not
+      --  True -> Compact, False -> multi-line
+      Compact_JSON : constant Boolean := True;
+
    begin
       if Nkind (The_Unit) not in  N_Subprogram_Body | N_Package_Body or else
         not Global_Symbol_Table.Contains (Unit_Name)
@@ -680,7 +685,8 @@ package body Driver is
       Sanitise_Type_Declarations (Global_Symbol_Table,
                                   Sanitised_Symbol_Table);
       Put_Line (Sym_Tab_File,
-                SymbolTable2Json (Sanitised_Symbol_Table).Write (False));
+                SymbolTable2Json (Sanitised_Symbol_Table)
+                  .Write (Compact_JSON));
       Close (Sym_Tab_File);
 
    end Translate_Compilation_Unit;
