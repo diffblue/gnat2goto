@@ -115,7 +115,7 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
+Error message: Unsupported Validate Unchecked Conversion
 Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 3 times

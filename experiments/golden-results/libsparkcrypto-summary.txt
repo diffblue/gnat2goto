@@ -38,6 +38,11 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_LOOP_ENTRY unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 12 times
+Calling function: Get_Type_Size
+Error message: Type has no valid size
+Nkind: N_Defining_Identifier
+--
 Occurs: 8 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
@@ -45,7 +50,7 @@ Nkind: N_Op_Expon
 --
 Occurs: 6 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
+Error message: Unsupported Validate Unchecked Conversion
 Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 3 times

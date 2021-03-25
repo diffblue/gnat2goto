@@ -13,6 +13,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Precondition
 Nkind: N_Pragma
 --
+Occurs: 444 times
+Calling function: Get_Type_Size
+Error message: Type has no valid size
+Nkind: N_Defining_Identifier
+--
 Occurs: 378 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
@@ -20,7 +25,7 @@ Nkind: N_Pragma
 --
 Occurs: 275 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
+Error message: Unsupported Validate Unchecked Conversion
 Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 224 times
@@ -166,11 +171,6 @@ Nkind: N_Aggregate
 Occurs: 3 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALID unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
@@ -2160,12 +2160,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:752                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:746                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:752                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2175,7 +2175,7 @@ Error detected at REDACTED
 --
 Occurs: 22 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:752
 
 --
 Occurs: 11 times

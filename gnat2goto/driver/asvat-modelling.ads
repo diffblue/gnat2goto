@@ -124,6 +124,9 @@ package ASVAT.Modelling is
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts);
 
+   function Make_Valid_Function (N : Node_Id; Value : Node_Id) return Irep;
+   --  Creates an In Type check function for Value.
+
 private
    Print_Message : constant Boolean := False;
 

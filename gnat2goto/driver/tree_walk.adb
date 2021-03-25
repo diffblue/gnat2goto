@@ -399,6 +399,12 @@ package body Tree_Walk is
                  and then List_Length (Expressions (N)) = 1),
           Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
 
+   function Do_Attribute_Valid (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Valid),
+          Post => Kind (Do_Attribute_Valid'Result) in Class_Expr;
+
    function Do_Access_Function_Definition (N : Node_Id) return Irep
      with Pre => Nkind (N) in N_Access_Function_Definition |
      N_Access_Procedure_Definition;
@@ -1401,6 +1407,15 @@ package body Tree_Walk is
                           I_Type          => Result_Type);
    end Do_Attribute_Succ_Discrete;
 
+   function Do_Attribute_Valid (N : Node_Id) return Irep is
+
+      --  get prefix
+      Prefix_Value : constant Node_Id :=
+        Prefix (N);
+   begin
+      return ASVAT.Modelling.Make_Valid_Function (N, Prefix_Value);
+   end Do_Attribute_Valid;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1471,6 +1486,8 @@ package body Tree_Walk is
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
                      "Component_Size unsupported");
+               when Attribute_Valid =>
+                  return Do_Attribute_Valid (N);
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",

@@ -98,6 +98,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Postcondition
 Nkind: N_Pragma
 --
+Occurs: 24 times
+Calling function: Get_Type_Size
+Error message: Type has no valid size
+Nkind: N_Defining_Identifier
+--
 Occurs: 20 times
 Calling function: Do_Operator_General
 Error message: Concat unsupported
@@ -120,7 +125,7 @@ Nkind: N_Aggregate
 --
 Occurs: 15 times
 Calling function: Process_Declaration
-Error message: Unknown declaration kind
+Error message: Unsupported Validate Unchecked Conversion
 Nkind: N_Validate_Unchecked_Conversion
 --
 Occurs: 10 times
@@ -293,7 +298,7 @@ Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
 Raw compiler error message:
 --
-Occurs: 51 times
+Occurs: 49 times
 Redacted compiler error message:
 violation of restriction "REDACTED"
 Raw compiler error message:
@@ -401,11 +406,6 @@ Raw compiler error message:
 Occurs: 5 times
 Redacted compiler error message:
 file "REDACTED" not found
-Raw compiler error message:
---
-Occurs: 5 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 4 times
@@ -526,6 +526,11 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -2890,6 +2895,11 @@ Raw compiler error message:
 --
 Occurs: 1 times
 Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
 incorrect spec in file "REDACTED" must be removed first
 Raw compiler error message:
 --
@@ -3415,7 +3425,7 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:746
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:752
 
 --
 Occurs: 1 times
