@@ -18,9 +18,34 @@ Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 178 times
+Occurs: 338 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: depends
+Nkind: N_Pragma
+--
+Occurs: 111 times
+Calling function: Do_Type_Reference
+Error message: Expected I_Type found I_NIL
+Nkind: N_Defining_Identifier
+--
+Occurs: 109 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Check
+Nkind: N_Pragma
+--
+Occurs: 98 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MAX unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 91 times
+Calling function: Do_Op_Expon
+Error message: Exponentiation unhandled for non mod types at the moment
+Nkind: N_Op_Expon
+--
+Occurs: 74 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: contract_cases
 Nkind: N_Pragma
 --
 Occurs: 60 times
@@ -28,10 +53,25 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Extension_Aggregate
 --
-Occurs: 51 times
-Calling function: Do_Type_Reference
-Error message: Expected I_Type found I_NIL
-Nkind: N_Defining_Identifier
+Occurs: 56 times
+Calling function: Do_Expression
+Error message: First of string unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 52 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: ghost
+Nkind: N_Pragma
+--
+Occurs: 49 times
+Calling function: Do_Pragma
+Error message: Unknown pragma name: loop_variant
+Nkind: N_Pragma
+--
+Occurs: 42 times
+Calling function: Do_Expression
+Error message: Last of string unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 42 times
 Calling function: Process_Declaration
@@ -41,11 +81,6 @@ Nkind: N_Private_Extension_Declaration
 Occurs: 40 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: export_procedure
-Nkind: N_Pragma
---
-Occurs: 34 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: ghost
 Nkind: N_Pragma
 --
 Occurs: 32 times
@@ -88,20 +123,25 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: stream_convert
 Nkind: N_Pragma
 --
-Occurs: 28 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: contract_cases
-Nkind: N_Pragma
+Occurs: 29 times
+Calling function: Do_In
+Error message: gnat2goto currently only supports one mebership_choice
+Nkind: N_In
 --
-Occurs: 26 times
+Occurs: 28 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_MIN unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 28 times
+Calling function: Do_Slice
+Error message: Slices of strings are unsupported
+Nkind: N_Slice
+--
+Occurs: 27 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Allocator
---
-Occurs: 23 times
-Calling function: Do_Op_Expon
-Error message: Exponentiation unhandled for non mod types at the moment
-Nkind: N_Op_Expon
 --
 Occurs: 23 times
 Calling function: Do_Operator_General
@@ -109,21 +149,16 @@ Error message: Concat unsupported
 Nkind: N_Op_Concat
 --
 Occurs: 23 times
-Calling function: Do_Pragma
-Error message: Unknown pragma name: loop_variant
-Nkind: N_Pragma
---
-Occurs: 23 times
 Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
 --
-Occurs: 21 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
-Nkind: N_Pragma
+Occurs: 17 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_LOOP_ENTRY unsupported
+Nkind: N_Attribute_Reference
 --
-Occurs: 16 times
+Occurs: 17 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
@@ -138,25 +173,45 @@ Calling function: Do_Type_Reference
 Error message: Unexpected node kind N_PRIVATE_EXTENSION_DECLARATION
 Nkind: N_Private_Extension_Declaration
 --
+Occurs: 14 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_INTEGER_VALUE unsupported
+Nkind: N_Attribute_Reference
+--
+Occurs: 14 times
+Calling function: Do_Expression
+Error message: Index of string unsupported
+Nkind: N_Indexed_Component
+--
+Occurs: 14 times
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
+Nkind: N_Attribute_Reference
+--
+Occurs: 12 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind E_PRIVATE_SUBTYPE
+Nkind: N_Defining_Identifier
+--
 Occurs: 12 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
---
-Occurs: 11 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_LOOP_ENTRY unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 10 times
 Calling function: Do_Aggregate_Literal_Array
 Error message: Array aggregates of type string are unsupported
 Nkind: N_Aggregate
 --
+Occurs: 10 times
+Calling function: Do_Aggregate_Literal_Array_Main
+Error message: Unsupported Others for component node
+Nkind: N_Aggregate
+--
 Occurs: 9 times
-Calling function: Do_In
-Error message: gnat2goto currently only supports one mebership_choice
-Nkind: N_In
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Ordinary_Fixed_Point_Definition
 --
 Occurs: 8 times
 Calling function: Do_Base_Range_Constraint
@@ -164,34 +219,24 @@ Error message: range expression not bitvector type
 Nkind: N_Range
 --
 Occurs: 8 times
-Calling function: Do_Type_Definition
-Error message: Unknown expression kind
-Nkind: N_Ordinary_Fixed_Point_Definition
---
-Occurs: 8 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_function
 Nkind: N_Pragma
---
-Occurs: 6 times
-Calling function: Do_Itype_Definition
-Error message: Unknown Ekind E_PRIVATE_SUBTYPE
-Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 1 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Subtype_Declaration
+--
 Occurs: 3 times
 Redacted compiler error message:
 generic parameter "REDACTED" is missing from input dependence list
 Raw compiler error message:
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from tree_walk.ads:108|
-Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
@@ -348,7 +393,17 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
 --
-Occurs: 6 times
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Storage_Error System.Memory.Alloc: heap exhausted     |
+Error detected at REDACTED
+--
+Occurs: 28 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.ads:108
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
+
+--
+Occurs: 14 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:756
 

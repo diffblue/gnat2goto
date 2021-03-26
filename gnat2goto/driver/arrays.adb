@@ -291,41 +291,54 @@ package body Arrays is
                                      "More than one choice in component node");
                end if;
                while Present (Component_Node) loop
-                  declare
-                     Expr : constant Irep :=
-                       Do_Expression (Expression (Component_Node));
-                     Choice_Id : constant Irep :=
-                       Do_Expression (First (Choices (Component_Node)));
-                     Component_Index : constant Irep :=
-                       Typecast_If_Necessary (Choice_Id, CProver_Size_T,
-                                              Global_Symbol_Table);
-                     Zero_Based_Index : constant Irep :=
-                       Make_Op_Sub (Rhs             => Low_Expr,
-                                    Lhs             => Component_Index,
-                                    Source_Location => Source_Loc,
-                                    Overflow_Check  => False,
-                                    I_Type          => CProver_Size_T);
-                     Array_As_Pointer : constant Irep :=
-                       Typecast_If_Necessary (Literal_Temp, PElement_Type,
-                                              Global_Symbol_Table);
-                     Lhs_Ptr : constant Irep :=
-                       Make_Op_Add (Rhs             => Zero_Based_Index,
-                                    Lhs             => Array_As_Pointer,
-                                    Source_Location => Source_Loc,
-                                    Overflow_Check  => False,
-                                    I_Type          => PElement_Type);
-                     Lhs_Irep : constant Irep :=
-                       Make_Dereference_Expr (Object          => Lhs_Ptr,
-                                              Source_Location => Source_Loc,
-                                              I_Type          => Element_Type);
-                  begin
-                     Append_Op (Result_Block,
-                                Make_Code_Assign (Rhs             =>
-               Typecast_If_Necessary (Expr, Element_Type, Global_Symbol_Table),
-                                            Lhs             => Lhs_Irep,
-                                            Source_Location => Source_Loc,
-                                            I_Type          => Element_Type));
-                  end;
+                  if Nkind (First (Choices (Component_Node))) = N_Others_Choice
+                  then
+                     Report_Unhandled_Node_Empty
+                       (N,
+                        "Do_Aggregate_Literal_Array_Main",
+                        "Unsupported Others for component node");
+                  else
+                     declare
+                        Expr : constant Irep :=
+                          Do_Expression (Expression (Component_Node));
+                        Choice_Id : constant Irep :=
+                          Do_Expression (First (Choices (Component_Node)));
+                        Component_Index : constant Irep :=
+                          Typecast_If_Necessary (Choice_Id, CProver_Size_T,
+                                                 Global_Symbol_Table);
+                        Zero_Based_Index : constant Irep :=
+                          Make_Op_Sub (Rhs             => Low_Expr,
+                                       Lhs             => Component_Index,
+                                       Source_Location => Source_Loc,
+                                       Overflow_Check  => False,
+                                       I_Type          => CProver_Size_T);
+                        Array_As_Pointer : constant Irep :=
+                          Typecast_If_Necessary (Literal_Temp, PElement_Type,
+                                                 Global_Symbol_Table);
+                        Lhs_Ptr : constant Irep :=
+                          Make_Op_Add (Rhs             => Zero_Based_Index,
+                                       Lhs             => Array_As_Pointer,
+                                       Source_Location => Source_Loc,
+                                       Overflow_Check  => False,
+                                       I_Type          => PElement_Type);
+                        Lhs_Irep : constant Irep :=
+                          Make_Dereference_Expr
+                            (Object          => Lhs_Ptr,
+                             Source_Location => Source_Loc,
+                             I_Type          => Element_Type);
+                     begin
+                        Append_Op (Result_Block,
+                                   Make_Code_Assign
+                                     (Rhs             =>
+                                        Typecast_If_Necessary
+                                          (Expr,
+                                           Element_Type,
+                                           Global_Symbol_Table),
+                                      Lhs             => Lhs_Irep,
+                                      Source_Location => Source_Loc,
+                                      I_Type          => Element_Type));
+                     end;
+                  end if;
                   Component_Node := Next (Component_Node);
                end loop;
             end;
