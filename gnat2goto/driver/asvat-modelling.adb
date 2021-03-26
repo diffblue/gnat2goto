@@ -29,8 +29,13 @@ package body ASVAT.Modelling is
    --  Source_Type of mode in, performs checks and returns a Target_Type.
 
    function Build_In_Type_Function (N          : Node_Id;
-                                    Param      : Irep;
-                                    Param_Type : Irep) return Irep;
+                                    Param      : Irep) return Irep;
+
+   --  ensures that Value is valid. If not scalar will recursivly validate
+   --  components. Returns a boolean (True if valid)
+   function Validate_Value (N : Node_Id;
+                            Value : Irep;
+                            Type_String : String) return Irep;
 
    ----------------
    -- Find_Model --
@@ -176,7 +181,7 @@ package body ASVAT.Modelling is
            Identifier      => Param_Name);
    begin
       return Build_In_Type_Function
-        (E, Param_Irep, Do_Type_Reference (Param_Type));
+        (E, Param_Irep);
    end Make_In_Type_Function;
 --     function Make_In_Type_Function (E : Entity_Id) return Irep is
 --        Source_Location : constant Irep := Get_Source_Location (E);
@@ -629,7 +634,9 @@ package body ASVAT.Modelling is
 
       --  check validity of resulting target
       --  report CPROVER_Ada_Unchecked_Conversion_Valid if not vaid
-      Append_Op (Function_Body, Make_Unchecked (CProver_True, "Valid"));
+      Append_Op (Function_Body, Make_Unchecked
+                 (Validate_Value (E, Destination,
+                    Unique_Name (Target_Type_Node)), "Valid"));
 
       Append_Op (Function_Body, Return_Statement);
 
@@ -645,19 +652,19 @@ package body ASVAT.Modelling is
    -- Make_Valid_Function --
    -------------------------
 
-   function Make_Valid_Function (N : Node_Id; Value : Node_Id) return Irep is
+   function Make_Valid_Function (N : Node_Id;
+                                 Value : Irep;
+                                 Type_Name : String) return Irep is
       Source_Loc : constant Irep := Get_Source_Location (N);
 
-      Prefix_Type : constant Node_Id := Etype (Value);
-
-      Value_Type : constant Irep := Do_Type_Reference (Prefix_Type);
+      Value_Type : constant Irep := Get_Type (Value);
 
       function Make_Valid return Symbol;
 
       function Make_Valid return Symbol
       is
          Func_Name : constant String :=
-         "__CPROVER_valid_" & Unique_Name (Prefix_Type);
+         "__CPROVER_valid_" & Type_Name;
          Body_Block : constant Irep := Make_Code_Block (Source_Loc);
          Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
@@ -676,7 +683,7 @@ package body ASVAT.Modelling is
          Value_Param : constant Irep := Param_Symbol (Value_Arg);
       begin
          Append_Op (Body_Block, Build_In_Type_Function
-                    (N, Value_Param, Do_Type_Reference (Prefix_Type)));
+                    (N, Value_Param));
 
          return New_Function_Symbol_Entry
            (Name        => Func_Name,
@@ -687,7 +694,7 @@ package body ASVAT.Modelling is
 
       Call_Args : constant Irep := Make_Argument_List;
    begin
-      Append_Argument (Call_Args, Do_Expression (Value));
+      Append_Argument (Call_Args, Value);
 
       return Make_Side_Effect_Expr_Function_Call
         (Arguments       => Call_Args,
@@ -702,20 +709,23 @@ package body ASVAT.Modelling is
    ----------------------------
 
    function Build_In_Type_Function (N          : Node_Id;
-                                    Param      : Irep;
-                                    Param_Type : Irep) return Irep is
+                                    Param      : Irep) return Irep is
       Source_Location : constant Irep := Get_Source_Location (N);
 
       --  Make a function body which is just a return statement with
       --  an and expression which is the in type condition
       Function_Body     : constant Irep :=
         Make_Code_Block (Source_Location);
-      Followed_Type     : constant Irep :=
-        Follow_Symbol_Type (Param_Type,
+      Followed_Type     : Irep :=
+        Follow_Symbol_Type (Get_Type (Param),
                             Global_Symbol_Table);
       Resolved_Var : constant Irep :=
         Cast_Enum (Param, Global_Symbol_Table);
    begin
+      if Kind (Followed_Type) = I_Pointer_Type then
+         Followed_Type := Follow_Symbol_Type (Get_Subtype (Followed_Type),
+                                              Global_Symbol_Table);
+      end if;
       if Kind (Followed_Type) in
         I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
           | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
@@ -783,11 +793,54 @@ package body ASVAT.Modelling is
       else
          return Report_Unhandled_Node_Irep
            (N,
-            "Make_In_Type_Function",
+            "Build_In_Type_Function",
             Irep_Kind'Image (Kind (Followed_Type)) &
               " objects not supported");
       end if;
    end Build_In_Type_Function;
+
+   --------------------
+   -- Validate_Value --
+   --------------------
+   function Validate_Value (N : Node_Id;
+                            Value : Irep;
+                            Type_String : String) return Irep is
+      Value_Type : constant Irep :=
+        (if Kind (Get_Type (Value)) = I_Pointer_Type then
+            Get_Subtype (Get_Type (Value))
+         else
+            Get_Type (Value));
+      Followed_Type : constant Irep := Follow_Symbol_Type
+        (Value_Type,
+         Global_Symbol_Table);
+
+      --  TODO
+      --  need to work out how to handle pointers either in this operation
+      --  or in calling operation
+   begin
+      if Kind (Followed_Type) in
+        I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
+          | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
+            | I_Floatbv_Type | I_C_Enum_Type
+      then
+         Print_Irep (Value_Type);
+         return Make_Valid_Function (N, Value, Type_String);
+      elsif Kind (Followed_Type) = I_Struct_Type then
+         Print_Irep (Value_Type);
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Validate_Value",
+            Irep_Kind'Image (Kind (Followed_Type)) &
+              " objects not supported");
+      else
+         Print_Irep (Value_Type);
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Validate_Value",
+            Irep_Kind'Image (Kind (Followed_Type)) &
+              " objects not supported");
+      end if;
+   end Validate_Value;
 
    -----------------------------
    -- Print_Modelling_Message --
