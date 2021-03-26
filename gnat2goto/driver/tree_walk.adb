@@ -1495,10 +1495,11 @@ package body Tree_Walk is
    function Do_Attribute_Valid (N : Node_Id) return Irep is
 
       --  get prefix
-      Prefix_Value : constant Node_Id :=
-        Prefix (N);
+      Prefix_Value : constant Irep := Do_Expression
+        (Prefix (N));
    begin
-      return ASVAT.Modelling.Make_Valid_Function (N, Prefix_Value);
+      return ASVAT.Modelling.Make_Valid_Function
+        (N, Prefix_Value, Unique_Name (Etype (Prefix (N))));
    end Do_Attribute_Valid;
 
 
