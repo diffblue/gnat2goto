@@ -826,19 +826,34 @@ package body ASVAT.Modelling is
          Print_Irep (Value_Type);
          return Make_Valid_Function (N, Value, Type_String);
       elsif Kind (Followed_Type) = I_Struct_Type then
-         Print_Irep (Value_Type);
-         return Report_Unhandled_Node_Irep
-           (N,
-            "Validate_Value",
-            Irep_Kind'Image (Kind (Followed_Type)) &
-              " objects not supported");
+         declare
+            Comp_List : Irep_List;
+            Current_Element : List_Cursor;
+            Record_Block : constant Irep :=
+              Make_Code_Block (Get_Source_Location (N));
+         begin
+            Print_Irep (Followed_Type);
+            Print_Irep (Get_Components (Followed_Type));
+            Comp_List := Get_Component (Get_Components (Followed_Type));
+            Current_Element := List_First (Comp_List);
+            loop
+               Append_Op (Record_Block,
+                          Validate_Value (N, List_Element (Comp_List,
+                            Current_Element),
+                            Type_String));
+               Current_Element := List_Next (Comp_List, Current_Element);
+               exit when not List_Has_Element (Comp_List, Current_Element);
+            end loop;
+            return Record_Block;
+         end;
       else
          Print_Irep (Value_Type);
-         return Report_Unhandled_Node_Irep
+         Report_Unhandled_Node_Empty
            (N,
             "Validate_Value",
             Irep_Kind'Image (Kind (Followed_Type)) &
               " objects not supported");
+         return CProver_False;
       end if;
    end Validate_Value;
 
