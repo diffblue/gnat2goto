@@ -6031,9 +6031,9 @@ package body Tree_Walk is
                                             "Unsupported null statement");
             end if;
          when N_Validate_Unchecked_Conversion =>
-            Report_Unhandled_Node_Empty (N, "Process_Declaration",
-                                         "Unsupported Validate " &
-                                           "Unchecked Conversion");
+            --  validation of the unchecked converstion is performed in the
+            --  Make_Unchecked_Conversion_Function.
+            null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");

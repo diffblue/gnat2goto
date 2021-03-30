@@ -478,9 +478,6 @@ package body ASVAT.Modelling is
 
       Source_Size_Statement  : Irep;
 
-      Target_Size : Irep;
-      Source_Size : Irep;
-
       Element_Size : constant Uint := Uint_8;
 
       Mem_Copy : Irep;
@@ -570,12 +567,6 @@ package body ASVAT.Modelling is
       Append_Op (Function_Body, Source_Size_Decl);
       Append_Op (Function_Body, Decl_Statement);
 
-      --  get target and source sizes
-      Target_Size := Get_Type_Size (Target_Type_Node);
-      Print_Irep (Get_Op0 (Target_Size));
-      Source_Size := Get_Type_Size (Source_Type_Node);
-      Print_Irep (Get_Op0 (Source_Size));
-
       Target_Size_Statement := Make_Code_Assign
         (Rhs             => Get_Type_Size (Target_Type_Node),
          Lhs             => Target_Size_Sym,
@@ -639,11 +630,6 @@ package body ASVAT.Modelling is
                     Unique_Name (Target_Type_Node)), "Valid"));
 
       Append_Op (Function_Body, Return_Statement);
-
-      Print_Irep (Function_Body);
-      Print_Irep (Mem_Copy);
-      Print_Irep (Get_Arguments (Mem_Copy));
-      Print_Irep (Return_Statement);
 
       return Function_Body;
    end Make_Unchecked_Conversion_Function;
@@ -805,6 +791,9 @@ package body ASVAT.Modelling is
    function Validate_Value (N : Node_Id;
                             Value : Irep;
                             Type_String : String) return Irep is
+      --  TODO
+      --  need to work out how to handle pointers either in this operation
+      --  or in calling operation
       Value_Type : constant Irep :=
         (if Kind (Get_Type (Value)) = I_Pointer_Type then
             Get_Subtype (Get_Type (Value))
@@ -814,9 +803,6 @@ package body ASVAT.Modelling is
         (Value_Type,
          Global_Symbol_Table);
 
-      --  TODO
-      --  need to work out how to handle pointers either in this operation
-      --  or in calling operation
    begin
       if Kind (Followed_Type) in
         I_Bounded_Unsignedbv_Type | I_Bounded_Signedbv_Type
@@ -829,22 +815,32 @@ package body ASVAT.Modelling is
          declare
             Comp_List : Irep_List;
             Current_Element : List_Cursor;
-            Record_Block : constant Irep :=
-              Make_Code_Block (Get_Source_Location (N));
+            Return_Irep : Irep;
          begin
-            Print_Irep (Followed_Type);
-            Print_Irep (Get_Components (Followed_Type));
             Comp_List := Get_Component (Get_Components (Followed_Type));
             Current_Element := List_First (Comp_List);
+            Return_Irep :=
+              Validate_Value (N, List_Element (Comp_List,
+                              Current_Element),
+                              Type_String);
             loop
-               Append_Op (Record_Block,
-                          Validate_Value (N, List_Element (Comp_List,
-                            Current_Element),
-                            Type_String));
                Current_Element := List_Next (Comp_List, Current_Element);
                exit when not List_Has_Element (Comp_List, Current_Element);
+               declare
+                  And_Irep : constant Irep :=
+                    Make_Op_And
+                      (Source_Location => Get_Source_Location (N),
+                       I_Type => CProver_Bool_T);
+               begin
+                  Append_Op (And_Irep, Return_Irep);
+                  Append_Op (And_Irep, Validate_Value
+                             (N, List_Element (Comp_List,
+                                Current_Element),
+                                Type_String));
+                  Return_Irep := And_Irep;
+               end;
             end loop;
-            return Record_Block;
+            return Return_Irep;
          end;
       else
          Print_Irep (Value_Type);
