@@ -1,0 +1,8 @@
+Standard_Error from gnat2goto test:
+test.adb:3:03: warning: variable "Val1" is read but never assigned
+test.adb:4:03: warning: variable "Val2" is read but never assigned
+
+[test.assertion.1] line 10 assertion Integer'Min(Val1, Val2) = Val2: SUCCESS
+[test.assertion.2] line 12 assertion Integer'Min(Val1, Val2) = Val1: SUCCESS
+[test.assertion.3] line 15 assertion Integer'Max(Val1, Val2) = Integer'Min(Val1, Val2): SUCCESS
+VERIFICATION SUCCESSFUL
