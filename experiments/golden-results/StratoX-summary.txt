@@ -204,11 +204,6 @@ Error message: ATTRIBUTE_MACHINE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 8 times
-Calling function: Do_Object_Declaration_Full
-Error message: Kind of Expression(N) not valid for Range_Check
-Nkind: N_Attribute_Reference
---
-Occurs: 8 times
 Calling function: Get_Bound
 Error message: Unsupported range type
 Nkind: N_Assignment_Statement
@@ -217,6 +212,11 @@ Occurs: 7 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Unchecked_Type_Conversion
+--
+Occurs: 7 times
+Calling function: Do_Object_Declaration_Full
+Error message: Kind of Expression(N) not valid for Range_Check
+Nkind: N_Attribute_Reference
 --
 Occurs: 7 times
 Calling function: Process_Pragma_Declaration
@@ -251,11 +251,6 @@ Nkind: N_Attribute_Reference
 Occurs: 5 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_TAG unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 4 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MIN unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 4 times
@@ -2060,12 +2055,12 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:756                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:758                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:756                      |
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:758                      |
 Error detected at REDACTED
 --
 Occurs: 1 times
@@ -2100,7 +2095,7 @@ Error detected at REDACTED
 --
 Occurs: 22 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:756
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:758
 
 --
 Occurs: 17 times

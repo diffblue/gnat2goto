@@ -33,11 +33,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
-Occurs: 98 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MAX unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 91 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
@@ -129,11 +124,6 @@ Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
 --
 Occurs: 28 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MIN unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 28 times
 Calling function: Do_Slice
 Error message: Slices of strings are unsupported
 Nkind: N_Slice
@@ -182,11 +172,6 @@ Occurs: 14 times
 Calling function: Do_Expression
 Error message: Index of string unsupported
 Nkind: N_Indexed_Component
---
-Occurs: 14 times
-Calling function: Do_Object_Declaration_Full
-Error message: Kind of Expression(N) not valid for Range_Check
-Nkind: N_Attribute_Reference
 --
 Occurs: 12 times
 Calling function: Do_Itype_Definition
@@ -393,11 +378,6 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
 Error detected at REDACTED
 --
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Storage_Error System.Memory.Alloc: heap exhausted     |
-Error detected at REDACTED
---
 Occurs: 28 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
@@ -405,5 +385,5 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
 --
 Occurs: 14 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:756
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:758
 

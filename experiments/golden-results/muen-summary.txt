@@ -203,11 +203,6 @@ Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Allocator
 --
-Occurs: 5 times
-Calling function: Make_Range_Assert_Expr
-Error message: Kind of Value not in class type
-Nkind: N_Type_Conversion
---
 Occurs: 4 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: independent_components
@@ -217,11 +212,6 @@ Occurs: 4 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Object_Renaming_Declaration
---
-Occurs: 3 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_MIN unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
 Calling function: Do_Expression
@@ -262,6 +252,11 @@ Occurs: 2 times
 Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
+--
+Occurs: 2 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Value not in class type
+Nkind: N_Type_Conversion
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -308,7 +303,7 @@ Redacted compiler error message:
 "REDACTED" not declared in "REDACTED"
 Raw compiler error message:
 --
-Occurs: 51 times
+Occurs: 49 times
 Redacted compiler error message:
 violation of restriction "REDACTED"
 Raw compiler error message:
@@ -416,11 +411,6 @@ Raw compiler error message:
 Occurs: 5 times
 Redacted compiler error message:
 file "REDACTED" not found
-Raw compiler error message:
---
-Occurs: 5 times
-Redacted compiler error message:
-violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 4 times
@@ -541,6 +531,11 @@ Raw compiler error message:
 Occurs: 3 times
 Redacted compiler error message:
 missing case values: 3 .. 16#7FFF_FFFF_FFFF_FFFF#
+Raw compiler error message:
+--
+Occurs: 3 times
+Redacted compiler error message:
+violation of restriction "REDACTED"
 Raw compiler error message:
 --
 Occurs: 2 times
@@ -2905,6 +2900,11 @@ Raw compiler error message:
 --
 Occurs: 1 times
 Redacted compiler error message:
+file "REDACTED" not found
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
 incorrect spec in file "REDACTED" must be removed first
 Raw compiler error message:
 --
@@ -3380,5 +3380,5 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from tree_walk.adb
 --
 Occurs: 2 times
 <========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:756
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:758
 
