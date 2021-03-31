@@ -809,8 +809,14 @@ package body ASVAT.Modelling is
           | I_Bounded_Floatbv_Type | I_Unsignedbv_Type | I_Signedbv_Type
             | I_Floatbv_Type | I_C_Enum_Type
       then
-         Print_Irep (Value_Type);
-         return Make_Valid_Function (N, Value, Type_String);
+         if Kind (Value) = I_Struct_Union_Component then
+            return Make_Valid_Function
+              (N,
+               Value,
+               Get_Name (Value));
+         else
+            return Make_Valid_Function (N, Value, Type_String);
+         end if;
       elsif Kind (Followed_Type) = I_Struct_Type then
          declare
             Comp_List : Irep_List;
@@ -832,6 +838,7 @@ package body ASVAT.Modelling is
                       (Source_Location => Get_Source_Location (N),
                        I_Type => CProver_Bool_T);
                begin
+                  --  combine current state Return_Irep with the new state.
                   Append_Op (And_Irep, Return_Irep);
                   Append_Op (And_Irep, Validate_Value
                              (N, List_Element (Comp_List,
@@ -843,7 +850,6 @@ package body ASVAT.Modelling is
             return Return_Irep;
          end;
       else
-         Print_Irep (Value_Type);
          Report_Unhandled_Node_Empty
            (N,
             "Validate_Value",
