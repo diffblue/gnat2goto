@@ -403,6 +403,8 @@ package body Tree_Walk is
                  and then List_Length (Expressions (N)) = 1),
           Post => Kind (Do_Attribute_Succ_Discrete'Result) in Class_Expr;
 
+   function Do_Attribute_Max_Min (N : Node_Id; Is_Max : Boolean) return Irep;
+
    function Do_Access_Function_Definition (N : Node_Id) return Irep
      with Pre => Nkind (N) in N_Access_Function_Definition |
      N_Access_Procedure_Definition;
@@ -1448,6 +1450,41 @@ package body Tree_Walk is
                           I_Type          => Result_Type);
    end Do_Attribute_Succ_Discrete;
 
+   function Do_Attribute_Max_Min (N : Node_Id; Is_Max : Boolean) return Irep is
+
+      LHS : constant Node_Id :=
+        First (Expressions (N));
+      RHS : constant Node_Id :=
+        Next (LHS);
+      Test_Type : constant Node_Id :=
+        Etype (LHS);
+
+      Test_Expr : constant Irep :=
+        (if Is_Max then
+            Make_Op_Gt
+           (Rhs             => Do_Expression (RHS),
+            Lhs             => Do_Expression (LHS),
+            Source_Location => Get_Source_Location (N),
+            I_Type          => Make_Bool_Type)
+         else
+            Make_Op_Lt
+           (Rhs             => Do_Expression (RHS),
+            Lhs             => Do_Expression (LHS),
+            Source_Location => Get_Source_Location (N),
+            I_Type          => Make_Bool_Type));
+
+      Test_Rep : constant Irep :=
+        Make_If_Expr (Cond            => Test_Expr,
+                      False_Case      => Do_Expression (RHS),
+                      True_Case       => Do_Expression (LHS),
+                      Source_Location => Get_Source_Location (N),
+                      I_Type          => Do_Type_Reference (Test_Type),
+                      Range_Check     => False);
+
+   begin
+      return Test_Rep;
+   end Do_Attribute_Max_Min;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1571,6 +1608,12 @@ package body Tree_Walk is
                         return Old_Variable;
                      end if;
                   end;
+               when Attribute_Max =>
+                  return Do_Attribute_Max_Min (N      => N,
+                                               Is_Max => True);
+               when Attribute_Min =>
+                  return Do_Attribute_Max_Min (N      => N,
+                                               Is_Max => False);
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
