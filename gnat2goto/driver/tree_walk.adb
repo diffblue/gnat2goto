@@ -1491,7 +1491,6 @@ package body Tree_Walk is
       return Test_Rep;
    end Do_Attribute_Max_Min;
 
-
    function Do_Attribute_Valid (N : Node_Id) return Irep is
 
       --  get prefix
@@ -1501,7 +1500,6 @@ package body Tree_Walk is
       return ASVAT.Modelling.Make_Valid_Function
         (N, Prefix_Value, Unique_Name (Etype (Prefix (N))));
    end Do_Attribute_Valid;
-
 
    -------------------
    -- Do_Expression --
