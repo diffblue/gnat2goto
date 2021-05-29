@@ -105,7 +105,7 @@ with Sinfo;                   use Sinfo;
 package ASVAT.Modelling is
    type Model_Sorts is
      (Not_A_Model, Nondet_Function, In_Type_Function,
-      Nondet_Vars, Nondet_In_Type_Vars, Represents);
+      Nondet_Vars, Nondet_In_Type_Vars, Represents, Unchecked_Conversion);
    subtype Valid_Model is Model_Sorts range
      Nondet_Function .. Model_Sorts'Last;
 
@@ -122,6 +122,11 @@ package ASVAT.Modelling is
      (Model /= Not_A_Model);
 
    procedure Make_Model (E : Entity_Id; Model : Model_Sorts);
+
+   function Make_Valid_Function (N : Node_Id;
+                                 Value : Irep;
+                                 Type_Name : String) return Irep;
+   --  Creates an In Type check function for Value.
 
 private
    Print_Message : constant Boolean := False;

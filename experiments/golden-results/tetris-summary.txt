@@ -1,0 +1,19 @@
+Occurs: 4 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: ghost
+Nkind: N_Pragma
+--
+Occurs: 1 times
+Redacted compiler error message:
+"REDACTED" not declared in "REDACTED"
+Raw compiler error message:
+--
+Occurs: 1 times
+Redacted compiler error message:
+ghost entity cannot appear in this context
+Raw compiler error message:
+--
+Occurs: 5 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads:52|
+Error detected at REDACTED

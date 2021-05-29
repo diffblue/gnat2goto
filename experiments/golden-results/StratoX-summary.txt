@@ -13,15 +13,15 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 396 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
 Occurs: 280 times
 Calling function: Do_Record_Component
 Error message: Wrong component nkind
 Nkind: N_Pragma
+--
+Occurs: 222 times
+Calling function: Get_Type_Size
+Error message: Type has no valid size
+Nkind: N_Defining_Identifier
 --
 Occurs: 192 times
 Calling function: Process_Pragma_Declaration
@@ -109,6 +109,11 @@ Error message: Unsupported range type
 Nkind: N_Type_Conversion
 --
 Occurs: 35 times
+Calling function: Validate_Value
+Error message: I_BOOL_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
+Occurs: 30 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_COPY_SIGN unsupported
 Nkind: N_Attribute_Reference
@@ -157,6 +162,11 @@ Occurs: 17 times
 Calling function: Do_Expression
 Error message: Quantified
 Nkind: N_Quantified_Expression
+--
+Occurs: 15 times
+Calling function: Validate_Value
+Error message: I_STRING_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 12 times
 Calling function: Do_Expression
@@ -263,6 +273,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Refine
 Nkind: N_Pragma
 --
+Occurs: 5 times
+Calling function: Validate_Value
+Error message: I_ADA_MOD_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
 Occurs: 4 times
 Calling function: Process_Statement
 Error message: Delay statement
@@ -275,7 +290,7 @@ Nkind: N_Aggregate
 --
 Occurs: 3 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_VALID unsupported
+Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
@@ -297,6 +312,16 @@ Occurs: 3 times
 Calling function: Process_Statement
 Error message: Entry call statement
 Nkind: N_Entry_Call_Statement
+--
+Occurs: 3 times
+Calling function: Validate_Value
+Error message: I_UNION_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
+Occurs: 2 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_FLOOR unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 2 times
 Calling function: Do_Expression
@@ -2097,6 +2122,13 @@ Occurs: 22 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:758
 
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:752                      |
+Error detected at REDACTED
+--
+Occurs: 1 times
++===========================GNAT BUG DETECTED==============================+
+| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:752                      |
+Error detected at REDACTED
 --
 Occurs: 17 times
 <========================>

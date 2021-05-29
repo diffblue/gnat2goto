@@ -13,11 +13,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: export_procedure
 Nkind: N_Pragma
 --
-Occurs: 136 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALID unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 134 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_VALUE unsupported

@@ -405,6 +405,12 @@ package body Tree_Walk is
 
    function Do_Attribute_Max_Min (N : Node_Id; Is_Max : Boolean) return Irep;
 
+   function Do_Attribute_Valid (N : Node_Id) return Irep
+     with Pre => (Nkind (N) = N_Attribute_Reference
+                  and then Get_Attribute_Id (Attribute_Name (N)) =
+                    Attribute_Valid),
+          Post => Kind (Do_Attribute_Valid'Result) in Class_Expr;
+
    function Do_Access_Function_Definition (N : Node_Id) return Irep
      with Pre => Nkind (N) in N_Access_Function_Definition |
      N_Access_Procedure_Definition;
@@ -1485,6 +1491,16 @@ package body Tree_Walk is
       return Test_Rep;
    end Do_Attribute_Max_Min;
 
+   function Do_Attribute_Valid (N : Node_Id) return Irep is
+
+      --  get prefix
+      Prefix_Value : constant Irep := Do_Expression
+        (Prefix (N));
+   begin
+      return ASVAT.Modelling.Make_Valid_Function
+        (N, Prefix_Value, Unique_Name (Etype (Prefix (N))));
+   end Do_Attribute_Valid;
+
    -------------------
    -- Do_Expression --
    -------------------
@@ -1614,6 +1630,8 @@ package body Tree_Walk is
                when Attribute_Min =>
                   return Do_Attribute_Max_Min (N      => N,
                                                Is_Max => False);
+               when Attribute_Valid =>
+                  return Do_Attribute_Valid (N);
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
@@ -6549,6 +6567,10 @@ package body Tree_Walk is
                Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                             "Unsupported null statement");
             end if;
+         when N_Validate_Unchecked_Conversion =>
+            --  validation of the unchecked converstion is performed in the
+            --  Make_Unchecked_Conversion_Function.
+            null;
          when others =>
             Report_Unhandled_Node_Empty (N, "Process_Declaration",
                                          "Unknown declaration kind");
@@ -7344,4 +7366,5 @@ package body Tree_Walk is
         (I_Type => Pointer_Type,
          Source_Location => Get_Source_Location (N));
    end Do_Null_Expression;
+
 end Tree_Walk;
