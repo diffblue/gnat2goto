@@ -1,0 +1,3 @@
+[cfg_test_07.assertion.1] line 6 Ada Check assertion: FAILURE
+[cfg_test_07.assertion.2] line 9 assertion I /= 0: SUCCESS
+VERIFICATION FAILED
