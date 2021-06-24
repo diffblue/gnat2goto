@@ -1,0 +1,126 @@
+name: gnat2goto
+
+# Activate CI when pushed to master or upon a pull request
+# that wants to merge with master.
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  GNAT: "https://community.download.adacore.com/v1/845147a8c6ef6af29a68144d6b3d228fd226268e?filename=gnat-gpl-2016-x86_64-linux-bin.tar.gz"
+  GNATCOLL: "https://community.download.adacore.com/v1/18ce6dfd017b4d4005aa6a9284a4a09ee16f88c3?filename=gnatcoll-gpl-2016-src-m1.tar.gz"
+
+jobs:
+  CI_BUILD:
+    runs-on: ubuntu-latest
+    # We need to use old Ubuntu Trusty as we use an old version of GnatColl.
+    container: ubuntu:14.04
+
+    steps:
+    - uses: actions/checkout@v1
+
+    # Cancel any prior ongoing runs.
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+      if: ${{ github.event_name == 'pull_request' }}
+
+    - name: install-dependencies
+      run: |
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt-get install -y build-essential software-properties-common flex bison \
+                                make git wget libwww-perl patch python curl ccache \
+                                python-gnatpython
+        # Install g++ 7.
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+        sudo apt-get update
+        sudo apt-get install -y gcc-7 g++-7
+        # Get submodules.
+        git submodule update --init --recursive
+    
+    # Prepare Cache.
+    - name: prepare-ccache
+      uses: actions/cache@v1.1.0
+      with:
+          path: .ccache
+          key: ${{ runner.os }}-make-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+              ${{ runner.os }}-make-${{ github.ref }}
+              ${{ runner.os }}-make
+
+    - name: set-ccache-env
+      run: |
+          echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$PWD/.ccache" >> $GITHUB_ENV
+
+    - name: create-gnat-dir
+      run: |
+        mkdir ${GITHUB_WORKSPACE}/gnat
+        echo "GNAT_TOOL=${GITHUB_WORKSPACE}/gnat" >> $GITHUB_ENV
+
+    - name: build-gnat-gpl
+      run: |
+        wget -qO- "${GNAT}" | tar xz
+        cd gnat-gpl-2016-x86_64-linux-bin
+        make ins-basic prefix=${GNAT_TOOL}
+
+        echo "GPR_PROJECT_PATH=${GITHUB_WORKSPACE}/gnat/lib/gnat" >> $GITHUB_ENV
+        echo "${GITHUB_WORKSPACE}/gnat/bin" >> $GITHUB_PATH
+
+    - name: build-gnatcoll
+      run: |
+        wget -qO- ${GNATCOLL} | tar xz
+        cd gnatcoll-gpl-2016-src
+        ./configure --prefix=${GNAT_TOOL} --disable-shared --enable-build=Debug --without-postgresql
+        make
+        make install
+
+    - name: build-gnat2goto
+      run: |
+        cd gnat2goto
+        make
+        gprbuild -P unit_tests.gpr -cargs -largs
+                
+        echo "${GITHUB_WORKSPACE}/gnat2goto/install/bin" >> $GITHUB_PATH
+
+   # Build CBMC (with caching).
+    - name: build-cbmc
+      run: |
+        cd lib/cbmc
+        make CXX=g++-7 -C src minisat2-download
+        make CXX='ccache g++-7' -C src -j 4
+
+        echo "${GITHUB_WORKSPACE}/lib/cbmc/src/cbmc" >> $GITHUB_PATH
+        
+    # Print stats of ccache.
+    - name: show-ccache-stats
+      run: ccache -s
+
+    - name: run-regression-tests
+      run: |
+          cd testsuite/gnat2goto
+          ./testsuite.py --timeout 60 --diffs --enable-color -j 2
+
+    - name: run-unit-tests
+      run: |
+          gnat2goto/install/bin/unit_tests
+
+    # The CI-list_unsupported script uses a C++ program which builds with C++14.
+    # Unfortunately, compilers that come with GNAT do not support the program's build.
+    # We therefore arrange the paths here.
+    - name: fix-g++-path
+      run: |
+          mkdir bin
+          ln -s /usr/bin/gcc-7 bin/gcc
+          ln -s /usr/bin/g++-7 bin/g++
+          echo "${GITHUB_WORKSPACE}/bin" >> $GITHUB_PATH
+
+    - name: run-list-unsupported
+      run: |
+          export TERM=xterm
+          cd experiments;
+          ./CI-list_unsupported.sh;
