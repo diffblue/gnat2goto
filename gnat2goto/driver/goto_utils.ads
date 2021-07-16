@@ -244,4 +244,9 @@ package GOTO_Utils is
    --  (whichever comes earlier)
    function Get_Context_Name (Intermediate_Node : Node_Id)
                               return String;
+
+   --  Convert a type to a string
+   --  Useful for creating multiple, type specific, versions of a function.
+   function Type_To_String (Type_Irep : Irep) return String;
+
 end GOTO_Utils;

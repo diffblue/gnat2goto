@@ -179,10 +179,7 @@ package body Range_Check is
         (if Kind (Value_Type) = I_Bounded_Floatbv_Type or else
          Kind (Value_Type) = I_Floatbv_Type then
               Float64_T else Int64_T);
-      Type_String : constant String :=
-        (if Kind (Value_Type) = I_Bounded_Floatbv_Type or else
-         Kind (Value_Type) = I_Floatbv_Type then
-              "_Flt" else "_Int");
+      Type_String : constant String := Type_To_String (Value_Type);
 
       function Build_Assert_Function return Symbol;
 
@@ -367,10 +364,7 @@ package body Range_Check is
         (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
          Kind (Underlying_Lower_Type) = I_Floatbv_Type then
               Float64_T else Int64_T);
-      Type_String : constant String :=
-        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
-         Kind (Underlying_Lower_Type) = I_Floatbv_Type then
-              "_Flt" else "_Int");
+      Type_String : constant String := Type_To_String (Underlying_Lower_Type);
 
       function Build_Assert_Function return Symbol;
 

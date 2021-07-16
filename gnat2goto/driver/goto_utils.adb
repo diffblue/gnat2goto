@@ -1082,4 +1082,12 @@ package body GOTO_Utils is
             return Get_Context_Name (Parent (Intermediate_Node));
       end case;
    end Get_Context_Name;
+
+   function Type_To_String (Type_Irep : Irep) return String is
+   begin
+      return (if Kind (Type_Irep) = I_Bounded_Floatbv_Type or else
+         Kind (Type_Irep) = I_Floatbv_Type then
+              "_Flt" else "_Int");
+   end Type_To_String;
+
 end GOTO_Utils;
