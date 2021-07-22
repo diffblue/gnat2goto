@@ -244,4 +244,13 @@ package GOTO_Utils is
    --  (whichever comes earlier)
    function Get_Context_Name (Intermediate_Node : Node_Id)
                               return String;
+
+   --  Convert a type to a string
+   --  Useful for creating multiple, type specific, versions of a function.
+   --  At the moment only supports bitvectors but could be extended.
+   function Type_To_String (Type_Irep : Irep) return String
+     with Pre => Kind (Type_Irep) in Class_Bitvector_Type;
+     --  ideal precondition...
+     --  with Pre => Kind (Type_Irep) in Class_Type;
+
 end GOTO_Utils;

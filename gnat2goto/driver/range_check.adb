@@ -179,10 +179,7 @@ package body Range_Check is
         (if Kind (Value_Type) = I_Bounded_Floatbv_Type or else
          Kind (Value_Type) = I_Floatbv_Type then
               Float64_T else Int64_T);
-      Type_String : constant String :=
-        (if Kind (Value_Type) = I_Bounded_Floatbv_Type or else
-         Kind (Value_Type) = I_Floatbv_Type then
-              "_Flt" else "_Int");
+      Type_String : constant String := Type_To_String (Value_Type);
 
       function Build_Assert_Function return Symbol;
 
@@ -199,7 +196,7 @@ package body Range_Check is
       function Build_Assert_Function return Symbol
       is
          Func_Name : constant String :=
-           "__CPROVER_Ada_Div_Zero" & Type_String;
+           "__CPROVER_Ada_Div_Zero_" & Type_String;
          Body_Block : constant Irep := Make_Code_Block (Source_Loc);
          Func_Params : constant Irep := Make_Parameter_List;
          Value_Arg : constant Irep :=
@@ -367,10 +364,9 @@ package body Range_Check is
         (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
          Kind (Underlying_Lower_Type) = I_Floatbv_Type then
               Float64_T else Int64_T);
-      Type_String : constant String :=
-        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
-         Kind (Underlying_Lower_Type) = I_Floatbv_Type then
-              "_Flt" else "_Int");
+      Arg_Type_String : constant String := Type_To_String (Compare_Type);
+      Ret_Type_String : constant String :=
+          Type_To_String (Expected_Return_Type);
 
       function Build_Assert_Function return Symbol;
 
@@ -379,15 +375,17 @@ package body Range_Check is
       ---------------------------
 
       --  Build a symbol for the following function
-      --  Actual_Type range_check(Actual_Type value, Actual_Type lower_bound,
-      --                          Actual_Type upper_bound) {
+      --  Return_Type range_check(Compare_Type value, Compare_Type lower_bound,
+      --                          Compare_Type upper_bound) {
       --    `Check_Name` (value >= lower_bound && value <= upper_bound);
       --    return value;
       --  }
       function Build_Assert_Function return Symbol
       is
-         Func_Name : constant String := ("__CPROVER_Ada_Range_Check__"
-                                         & Check_Name & Type_String);
+         Func_Name : constant String := ("__CPROVER_Ada_Range_Check__" &
+                                           Check_Name &
+                                           "_" & Arg_Type_String &
+                                           "_" & Ret_Type_String);
          Body_Block : constant Irep :=
            Make_Code_Block (Get_Source_Location (N));
          Func_Params : constant Irep := Make_Parameter_List;

@@ -1082,4 +1082,24 @@ package body GOTO_Utils is
             return Get_Context_Name (Parent (Intermediate_Node));
       end case;
    end Get_Context_Name;
+
+   function Type_To_String (Type_Irep : Irep) return String is
+      Type_Kind : constant Irep_Kind := Kind (Type_Irep);
+   begin
+      if Type_Kind in Class_Bitvector_Type
+      then
+         --  This does not distinguish between instances of 2D
+         --  types such as floats, that have the same total width.
+         --  I don't think it is possible to create these from Ada.
+         return Id (Type_Irep) & "_" &
+           Ada.Strings.Fixed.Trim (Get_Width (Type_Irep)'Image,
+                                   Ada.Strings.Left);
+         --  The trim is for a lead space where the sign would be.
+      else
+         --  Considerably more could be done here but is not needed
+         --  for the current use-case
+         return "type_to_string_unhandled_case";
+      end if;
+   end Type_To_String;
+
 end GOTO_Utils;
