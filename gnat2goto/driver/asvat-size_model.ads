@@ -41,17 +41,49 @@ package ASVAT.Size_Model is
    --  rather than the compiler size.
    --  These subprograms are used to set and get the model size
    --  of a type.
+   --  These subprograms are overloaded with both an entity_Id and a
+   --  Symbol_Id as when creating modeling arrays, e.g. for concatinations
+   --  an Entity_Id is not available from the Atree and a Symbol_Id is
+   --  used instead.
    procedure Set_Static_Size (E : Entity_Id; Model_Size : Natural);
+   procedure Set_Static_Size (Id : Symbol_Id; Model_Size : Natural);
    procedure Set_Computed_Size (E : Entity_Id; Size_Expr : Irep);
+   procedure Set_Computed_Size (Id : Symbol_Id; Size_Expr : Irep);
    function Has_Static_Size (E : Entity_Id) return Boolean;
+   function Has_Static_Size (Id : Symbol_Id) return Boolean;
    function Has_Size (E : Entity_Id) return Boolean;
-   function Static_Size (E : Entity_Id) return Natural
-     with Pre => Has_Static_Size (E);
-   function Computed_Size (E : Entity_Id) return Irep
-     with Pre => Has_Size (E);
+   function Has_Size (Id : Symbol_Id) return Boolean;
+
+   function Static_Size (E : Entity_Id) return Natural;
+   --       with Pre => Has_Static_Size (E);
+   --       Temporarily remove precondition and report unhamdled node.
+   function Computed_Size (E : Entity_Id) return Irep;
+   --       with Pre => Has_Size (E);
+   --       Temporarily remove precondition and report unhamdled node.
+
+   procedure Set_Size_From_Entity (Target, Source : Entity_Id);
+   --  Set the the size of the Target Entity from the size of the
+   --  Source Entity.
 
    --  Model representations of entities are byte aligned.
    function Make_Byte_Aligned_Size (S : Uint) return Uint;
    function Make_Byte_Aligned_Size (S : Integer) return Integer;
+   function Make_Byte_Aligned_Size (S : Irep) return Irep;
+
+   procedure Accumumulate_Size (Is_Static     : in out Boolean;
+                                Accum_Static  : in out Natural;
+                                Accum_Dynamic : in out Irep;
+                                Entity_To_Add :        Entity_Id);
+   --  Accumulates a size.  Basically performs the operation
+   --  Accum := Accum + Size (Entity_To_Add).
+   --  However, while the sum is statically determinable, indicated by
+   --  Is_Static, the summation uses simple arithmetic operators but if
+   --  If Is_Static is False, or the Entity_To_Add does not have a static size,
+   --  then the addition has to be performed at analysis time using Irep
+   --  operations.  If Is_Static is True but the Entity to add does not have
+   --  a static size, Is_Static is set to False.
+   --  After each call, Is_Static True indicates the accumulated sum is
+   --  available in Accum_Static.  The accumulated sum is available from
+   --  Accum_Dynamic regardless of the state of Is_Static.
 
 end ASVAT.Size_Model;

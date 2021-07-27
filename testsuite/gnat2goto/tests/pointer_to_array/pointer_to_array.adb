@@ -14,8 +14,6 @@ procedure Pointer_To_Array is
    U_Arr : aliased U_Arr_T := (1, 2, 3, 4);
    U_Ptr : U_Arr_P;
 
-   C_dummy : Count;
-
 begin
    for I in Index loop
       Arr (I) := Index'Last - I + 1;
@@ -71,11 +69,12 @@ begin
    pragma Assert (Ptr'Length = Index'Last);
 
    U_Ptr := U_Arr'Access;
-   C_dummy := U_Ptr'Length;
-   C_dummy := Ptr'Length;
+   pragma Assert (U_Ptr'Length = 4);
+   pragma Assert (Ptr'Length = Arr'Last - Arr'First + 1);
 
-   C_Dummy := Count (U_Ptr'First);
-   C_Dummy := Count (U_Ptr'Last);
-
+   pragma Assert (U_Ptr'First = U_Arr'First);
+   pragma Assert (U_Ptr'Last  = U_Arr'Last);
+   pragma Assert (U_Ptr'Length = U_Arr'Length); 
 
 end Pointer_To_Array;
+

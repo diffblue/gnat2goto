@@ -1,6 +1,5 @@
 --  This example is run with the configuration pragma Use_VADS_Size.
 --
---  with Text_IO; use Text_IO;
 procedure Iss_131 is
    type SI is range 0 .. 3;
    for SI'Size use 2;
@@ -24,11 +23,6 @@ procedure Iss_131 is
    TYPE neigh_array_NS IS ARRAY (neighbours) OF boolean;
 
    VnaNS : neigh_array_NS := (others => False);
-
-   --  Declaration and initialisation causes cbmc to give a precondition
-   --  failure.
---   S : constant String := "Hello World";
---     for S'Size use 88;
 
    type R1 is record
       A : Integer;
@@ -125,9 +119,6 @@ procedure Iss_131 is
    pragma Pack (V2);
    for V2'Size use 39;
 
-   --  Declaration of this variable causes cbmc to give a precondition failure.
---     VV2 : V2;
-
    type V3 (B : Boolean) is record
       case B is
          when True =>
@@ -162,9 +153,6 @@ procedure Iss_131 is
       end case;
    end record;
 
-   --  Declaration of this variable causes cbmc to give a precondition failure.
-   --     VV4 : V4;
-
    type A_T is array (SI) of SI;
    pragma Pack (A_T);
 
@@ -172,74 +160,6 @@ procedure Iss_131 is
    for VA'Size use 8;
 
 begin
---     Put_Line ("Boolean'Size =" & Integer'Image (Boolean'Size));
---     Put_Line ("neighbours'Size = " & Integer'Image (neighbours'Size));
---     Put_Line ("Natural size = " & Integer'Image (Natural'Size));
---     Put_Line ("VSI size " & Integer'Image (VSI'Size));
---     Put_Line ("VOS size " & Integer'Image (VOS'Size));
---     Put_Line ("VSIS size " & Integer'Image (VSIS'Size));
---     Put_Line ("neigh_array size" & Integer'Image (neigh_array'Size));
---     Put_Line ("na component size " & Integer'Image (neigh_array'Component_Size));
---     Put_Line ("Vna size " & Integer'Image (Vna'Size));
---     Put_Line ("Vna component  size " & Integer'Image (Vna'Component_Size));
---     Put_Line ("Vna (barbara) size " & Integer'Image (Vna (barbara)'Size));
---     Put_Line ("Vna (barbara..margo)'Size " &
---               Integer'Image (Vna (barbara .. margo)'Size));
---     Put_Line ("Vna (barbara..margo)'Component_Size " &
---               Integer'Image (Vna (barbara .. margo)'Component_Size));
---     Put_Line ("neigh_array_NS " & Integer'Image (neigh_array_NS'Size));
---     Put_Line ("naNS component size " & Integer'Image (neigh_array_NS'Component_Size));
---     Put_Line ("VnaNS size " & Integer'Image (VnaNS'Size));
---     Put_Line ("VnaNS component  size " & Integer'Image (VnaNS'Component_Size));
---     Put_Line ("VnaNS (barbara) size " & Integer'Image (VnaNS (barbara)'Size));
---     Put_Line ("VnaNS (barbara..margo)'Size " &
---               Integer'Image (VnaNS (barbara .. margo)'Size));
---     Put_Line ("VnaNS (barbara..margo)'Component_Size " &
---               Integer'Image (VnaNS (barbara .. margo)'Component_Size));
---  --     Put_Line ("S size " & Integer'Image (S'Size));
---
---     Put_Line ("R1'Size " & Integer'Image (R1'Size));
---     Put_Line ("R2'Size " & Integer'Image (R2'Size));
---     Put_Line ("R3'Size " & Integer'Image (R3'Size));
---     Put_Line ("VR1'Size " & Integer'Image (VR1'Size));
---     Put_Line ("VR2'Size " & Integer'Image (VR2'Size));
---     Put_Line ("VR3'Size " & Integer'Image (VR3'Size));
---     Put_Line ("R4'Size " & Integer'Image (R4'Size));
---     Put_Line ("R5'Size " & Integer'Image (R5'Size));
---     Put_Line ("R6'Size " & Integer'Image (R6'Size));
---     Put_Line ("VR4'Size " & Integer'Image (VR4'Size));
---     Put_Line ("VR5'Size " & Integer'Image (VR5'Size));
---     Put_Line ("VR6'Size " & Integer'Image (VR6'Size));
---
---     Put_Line ("r'Size " & Integer'Image (r'Size));
---     Put_Line ("Vr'Size " & Integer'Image (Vr'Size));
---     Put_Line ("rNS'Size " & Integer'Image (rNS'Size));
---     Put_Line ("VrNS'Size " & Integer'Image (VrNS'Size));
---
---     Put_Line ("V1'Size " & Integer'Image (V1'Size));
---     Put_Line ("V2'Size " & Integer'Image (V2'Size));
---     Put_Line ("STV1'Size " & Integer'Image (STV1'Size));
---     Put_Line ("SFV1'Size " & Integer'Image (SFV1'Size));
---     Put_Line ("VST'Size " & Integer'Image (VST'Size));
---     Put_Line ("VSF'Size " & Integer'Image (VSF'Size));
---  --     Put_Line ("VV2'Size " & Integer'Image (VV2'Size));
---     Put_Line ("V3'Size " & Integer'Image (V3'Size));
---     Put_Line ("V4'Size " & Integer'Image (V4'Size));
---     Put_Line ("STV3'Size " & Integer'Image (STV3'Size));
---     Put_Line ("SFV3'Size " & Integer'Image (SFV3'Size));
---     Put_Line ("VST3'Size " & Integer'Image (VST3'Size));
---     Put_Line ("VSF3'Size " & Integer'Image (VSF3'Size));
---     Put_Line ("STV3_No_Size_Rep'Size " & Integer'Image (STV3_No_Size_Rep'Size));
---     Put_Line ("SFV3_No_Size_Rep'Size" & Integer'Image (SFV3_No_Size_Rep'Size));
---     Put_Line ("VST3_NS'Size " & Integer'Image (VST3_NS'Size));
---     Put_Line ("VSF3_NS'Size " & Integer'Image (VSF3_NS'Size));
---     --     Put_Line ("VV4'Size " & Integer'Image (VV4'Size));
---
---     Put_Line ("A_T'Size = " & Integer'Image (A_T'Size));
---     Put_Line ("VA'Size = " & Integer'Image (VA'Size));
---     Put_Line ("VA (1)'Size = " & Integer'Image (VA (1)'Size));
---     Put_Line ("VA (0 .. 2)'Size = " & Integer'Image (VA (0 .. 2)'Size));
-
    pragma Assert (Boolean'Size = 8);
    pragma Assert (neighbours'Size = 8);
    pragma Assert (Natural'Size = 32);
@@ -262,7 +182,6 @@ begin
    pragma Assert (VnaNS (barbara)'Size = 8);
    pragma Assert (VnaNS (barbara .. margo)'Size = 16);
    pragma Assert (VnaNS (barbara .. margo)'Component_Size = 8);
---     pragma Assert (S'Size = 88);
 
    pragma Assert (R1'Size = 64);
    pragma Assert (R2'Size = 132);
@@ -273,27 +192,26 @@ begin
    pragma Assert (r'Size = 16);
    pragma Assert (Vr'Size = 16);
 
-   --  The following 3 assertions fail because the size is not known
-   --  by the front-end (attribute_size has the value 0).
-   --  A unsupported message is reported by gnat2goto.
    pragma Assert (R4'Size = 64);
+   
+   --  The following assertion fails because ASVAT does not support
+   --  the packing of arrays within records, so the unpacked size is 160.
    pragma Assert (R5'Size = 132);
+   pragma Assert (R5'Size = 160);
+   
    pragma Assert (R6'Size = 80);
 
    pragma Assert (VR4'Size = 64);
    pragma Assert (VR5'Size = 132);
    pragma Assert (VR6'Size = 66);
 
-   --  The following 2 assertions fail because the size is not known
-   --  by the front-end (attribute_size has the value 0).
-   --  A unsupported message is reported by gnat2goto.
    pragma Assert (rNS'Size = 72);
    pragma Assert (VrNS'Size = 72);
 
    --  The following assertion fails because the size_attibute is applied
    --  to an indefinite type (without a size representation clause).
    --  The Ada RM states that the results of this are implementation
-   --  dependent.  The front-end returns 0.
+   --  dependent.
    --  Gnat2goto reports an unhandled node.
    pragma Assert (V1'Size = 40);
 
@@ -302,34 +220,34 @@ begin
    pragma Assert (SFV1'Size = 1);
    pragma Assert (VST'Size = 40);
    pragma Assert (VSF'Size = 1);
-   --   pragma Assert (VV2'Size = 64);
-
+ 
    --  The following assertion fails because the size_attibute is applied
    --  to an indefinite type (without a size representation clause).
    --  The Ada RM states that the results of this are implementation
-   --  dependent.  The front-end returns 0.
+   --  dependent.
    --  Gnat2goto reports an unhandled node.
    pragma Assert (V3'Size = 64);
 
-   --  The following assertion fails because the size is not known
-   --  by the front-end (attribute_size has the value 0).
-   --  A unsupported message is reported by gnat2goto.
-   pragma Assert (V4'Size = 64);
-
+   pragma Assert (V4'Size = 40);
    pragma Assert (STV3'Size = 64);
    pragma Assert (SFV3'Size = 8);
    pragma Assert (VST3'Size = 64);
    pragma Assert (VSF3'Size = 8);
 
-   --  The following 4 assertions fail because the size is not known
-   --  by the front-end (attribute_size has the value 0).
-   --  A unsupported message is reported by gnat2goto.
-   pragma Assert (STV3_No_Size_Rep'Size = 64);
+   pragma Assert (STV3_No_Size_Rep'Size = 40);
+   
+   --  The following assertion fails because ASVAT does not support
+   --  the packing of record types. The unpacked size is 40.
    pragma Assert (SFV3_No_Size_Rep'Size = 8);
-   pragma Assert (VST3_NS'Size = 64);
-   pragma Assert (VSF3_NS'Size = 8);
-   --   pragma Assert (VV2'Size = 64);
+   pragma Assert (SFV3_No_Size_Rep'Size = 40);
+   
+   pragma Assert (VST3_NS'Size = 40);
 
+   --  The following assertion fails because ASVAT does not support
+   --  the packing of record types. The unpacked size is 40.
+   pragma Assert (VSF3_NS'Size = 8);
+   pragma Assert (VSF3_NS'Size = 40);
+ 
    pragma Assert (A_T'Size = 8);
    pragma Assert (VA'Size = 8);
    pragma Assert (VA (1)'Size = 2);

@@ -78,6 +78,18 @@ package Tree_Walk is
    function Do_Compilation_Unit (N : Node_Id) return Symbol
      with Pre => Nkind (N) = N_Compilation_Unit;
 
+   function Do_Defining_Identifier (E : Entity_Id) return Irep
+   with Pre  => Nkind (E) = N_Defining_Identifier,
+        Post => Kind (Do_Defining_Identifier'Result) in
+           I_Symbol_Expr | I_Dereference_Expr;
+
+   procedure Do_Plain_Object_Declaration (Block          : Irep;
+                                          Object_Sym     : Irep;
+                                          Object_Name    : String;
+                                          Object_Def     : Entity_Id;
+                                          Init_Expr_Irep : Irep)
+     with Pre => Get_Identifier (Object_Sym) = Object_Name;
+
    function Do_Type_Reference (E : Entity_Id) return Irep
      with Pre  => Is_Type (E),
      Post => Kind (Do_Type_Reference'Result) in Class_Type;
@@ -86,7 +98,8 @@ package Tree_Walk is
      with Pre => Is_Type (E) and then
      Kind (New_Type_In) in Class_Type;
 
-   function Do_Subtype_Indication (N : Node_Id) return Irep
+   function Do_Subtype_Indication (Subtype_Entity : Entity_Id;
+                                   N : Node_Id) return Irep
      with Pre  => Nkind (N) in N_Subtype_Indication | N_Identifier
      | N_Expanded_Name,
      Post => Kind (Do_Subtype_Indication'Result) in Class_Type;
@@ -105,8 +118,12 @@ package Tree_Walk is
    with Pre  => Nkind (N) = N_Attribute_Reference;
 
    function Do_Expression (N : Node_Id) return Irep
-     with Pre  => Nkind (N) in N_Subexpr,
-     Post => Kind (Do_Expression'Result) in Class_Expr;
+   with Pre  => Nkind (N) in N_Subexpr,
+        Post => Kind (Do_Expression'Result) in Class_Expr;
+
+   function Do_Function_Call (N : Node_Id) return Irep
+     with Pre  => Nkind (N) = N_Function_Call,
+     Post => Kind (Do_Function_Call'Result) in Class_Expr;
 
    function Do_In (N : Node_Id) return Irep
      with Pre => Nkind (N) in N_In | N_Not_In,
@@ -154,14 +171,28 @@ package Tree_Walk is
    function Do_Identifier (N : Node_Id) return Irep
      with Pre  => Nkind (N) in N_Identifier | N_Expanded_Name;
 
-   function Do_Selected_Component (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Selected_Component,
-        Post => Kind (Do_Selected_Component'Result) in
-                I_Member_Expr | I_Op_Comma;
-
    --  Required by Gnat2goto.Itpes.Declare_Itype
    function Do_Enumeration_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Enumeration_Type_Definition,
         Post => Kind (Do_Enumeration_Definition'Result) = I_C_Enum_Type;
+
+   --  A higer-level assignment operration than Ireps.Make_Code_Assign.
+   --  It is declared here as it used in other packages such as arrays
+   --  but not placed in Goto_Utils as it calls subprograms from other
+   --  high-level packages.  It may be called recursively from these other
+   --  packages.
+   procedure Do_Assignment_Op (Block       : Irep;
+                               Destination : Irep;
+                               Dest_Type   : Entity_Id;
+                               Source_Expr : Node_Id);
+
+   --  If a type is an enumeration it needs to be converted to an unsignedbv.
+   function Make_Resolved_I_Type (E : Entity_Id) return Irep
+   with Pre  => Is_Type (E);
+
+   function Make_Runtime_Check (Condition : Irep) return Irep
+   with Pre  => Kind (Get_Type (Condition)) = I_Bool_Type,
+        Post => Kind (Make_Runtime_Check'Result) =
+                I_Side_Effect_Expr_Function_Call;
 
 end Tree_Walk;
