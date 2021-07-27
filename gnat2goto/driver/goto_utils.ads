@@ -2,6 +2,7 @@ with Ireps;             use Ireps;
 with Types;             use Types;
 with Atree;             use Atree;
 with Sinfo;             use Sinfo;
+with Einfo;             use Einfo;
 with Symbol_Table_Info; use Symbol_Table_Info;
 with Uintp;                 use Uintp;
 
@@ -82,9 +83,9 @@ package GOTO_Utils is
       Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
       Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table);
 
-   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
-                                         BaseName :              String;
-                                         Symbol_Type :           Irep;
+   procedure New_Parameter_Symbol_Entry (Name_Id        :        Symbol_Id;
+                                         BaseName       :        String;
+                                         Symbol_Type    :        Irep;
                                          A_Symbol_Table : in out Symbol_Table)
      with Pre => Kind (Symbol_Type) in Class_Type | I_Address_Of_Expr;
 
@@ -219,6 +220,9 @@ package GOTO_Utils is
                               A_Symbol_Table : in out Symbol_Table)
                               return Irep;
    function Get_Int32_T_Zero return Irep;
+   function Get_Int64_T_Zero return Irep;
+   function Get_Int32_T_One return Irep;
+   function Get_Int64_T_One return Irep;
    function Get_Ada_Check_Symbol (Name : String;
                                   A_Symbol_Table : in out Symbol_Table;
                                   Source_Loc : Irep)
@@ -249,5 +253,15 @@ package GOTO_Utils is
    --  Useful for creating multiple, type specific, versions of a function.
    function Type_To_String (Type_Irep : Irep) return String
      with Pre => Kind (Type_Irep) in Class_Type;
+  
+   function Non_Private_Ekind (E : Entity_Id) return Entity_Kind;
+   --  If Ekind (E) is not in E_Incomplete_Or_Private_Kind, returns Ekind (E),
+   --  otherwise recurses through private type entities until the entity of the
+   --  full type is located and returns Ekind (full type).
+
+   function Non_Private_Type (E : Entity_Id) return Entity_Id;
+   --  If Ekind (E) is not in E_Incomplete_Or_Private_Kind, returns E,
+   --  otherwise recurses through private type declarations until a full type
+   --  declaration is encountered then Etype (full type) is returned.
 
 end GOTO_Utils;

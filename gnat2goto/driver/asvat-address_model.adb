@@ -1,6 +1,7 @@
 with GOTO_Utils;        use GOTO_Utils;
 with Nlists;            use Nlists;
 with Tree_Walk;         use Tree_Walk;
+with Arrays;            use Arrays;
 with Sem_Util;          use Sem_Util;
 with Einfo;             use Einfo;
 with Namet;             use Namet;
@@ -12,14 +13,21 @@ package body ASVAT.Address_Model is
    -------------------------
 
    function Do_ASVAT_Address_Of (N : Node_Id) return Irep is
+      Ada_Type : constant Entity_Id := Underlying_Type (Etype (N));
    begin
-      return Make_Op_Typecast
-        (Op0             => Do_Address_Of (N),
-         Source_Location => Get_Source_Location (N),
-         I_Type          => Make_Pointer_Type
-           (I_Subtype => Make_Unsignedbv_Type (8),
-            Width     => Pointer_Type_Width),
-         Range_Check     => False);
+      if Is_Array_Type (Ada_Type) and then
+        not Is_Constrained (Underlying_Type (Etype (N)))
+      then
+         return Make_Address_Of (Make_Unconstrained_Array_Result (N));
+      else
+         return Make_Op_Typecast
+           (Op0             => Do_Address_Of (N),
+            Source_Location => Get_Source_Location (N),
+            I_Type          => Make_Pointer_Type
+              (I_Subtype => Make_Unsignedbv_Type (8),
+               Width     => Pointer_Type_Width),
+            Range_Check     => False);
+      end if;
    end Do_ASVAT_Address_Of;
 
    ------------------------------------
@@ -120,7 +128,7 @@ package body ASVAT.Address_Model is
                        I_Pointer_Type
                      and then Unique_Name (Function_Type) = "system__address",
                      "The function To_Address must have a single in mode " &
-                       "parameter of an access type");
+                       "parameter of an  type");
 
       declare
          Source_Location : constant Irep := Get_Source_Location (E);

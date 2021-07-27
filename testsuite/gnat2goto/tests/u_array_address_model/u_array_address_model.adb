@@ -20,14 +20,20 @@ begin
 
    PV := Pointer (To_Pointer (V'Address));
 
+   --  The index check should fail here as the bounds of PV.all are unknown
    for I in V'Range loop
       pragma Assert (PV.all (I) = My_Int (I));
    end loop;
 
+   --  The index check should fail here as the bounds of PV.all are unknown.
+   --  Currently it does not fail.
    for I in V'Range loop
       PV.all (I) := My_Int (V'Last - I + 1);
    end loop;
 
+   --  This succeeds despite the bounds of PV being unknown because PV
+   --  points to V and the index range of V is used to fill the array in
+   --  above loop.
    for I in V'Range loop
       pragma Assert (V (I) = My_Int (V'Last - I + 1));
    end loop;

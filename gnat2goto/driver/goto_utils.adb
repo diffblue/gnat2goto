@@ -310,8 +310,10 @@ package body GOTO_Utils is
          IsLValue => True,
          others => <>);
    begin
-      pragma Assert (not A_Symbol_Table.Contains (Object_Name));
-      A_Symbol_Table.Insert (Object_Name, Object_Symbol);
+      --  The symbol may be in the table if it is a derived type declaration.
+      if not A_Symbol_Table.Contains (Object_Name) then
+         A_Symbol_Table.Insert (Object_Name, Object_Symbol);
+      end if;
    end New_Object_Symbol_Entry;
 
    procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
@@ -369,9 +371,6 @@ package body GOTO_Utils is
          IsStateVar => True,
          others => <>);
    begin
-      if A_Symbol_Table.Contains (Member_Symbol.Name) then
-         Put_Line ("Already in table " & Unintern (Member_Symbol.Name));
-      end if;
       pragma Assert (not A_Symbol_Table.Contains (Member_Symbol.Name));
       A_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
    end New_Enum_Member_Symbol_Entry;
@@ -380,9 +379,9 @@ package body GOTO_Utils is
    -- New_Parameter_Symbol_Entry --
    --------------------------------
 
-   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
-                                         BaseName :              String;
-                                         Symbol_Type :           Irep;
+   procedure New_Parameter_Symbol_Entry (Name_Id        :        Symbol_Id;
+                                         BaseName       :        String;
+                                         Symbol_Type    :        Irep;
                                          A_Symbol_Table : in out Symbol_Table)
    is
       New_Symbol : constant Symbol :=
@@ -527,9 +526,10 @@ package body GOTO_Utils is
       if Followed_Old_Type = Followed_New_Type then
          return Expr;
       else
-         return Make_Op_Typecast (Op0             => Expr,
-                                 Source_Location => Get_Source_Location (Expr),
-                                  I_Type          => New_Type);
+         return Make_Op_Typecast
+           (Op0             => Expr,
+            Source_Location => Get_Source_Location (Expr),
+            I_Type          => New_Type);
       end if;
    end Typecast_If_Necessary;
 
@@ -904,6 +904,33 @@ package body GOTO_Utils is
          Source_Location => Internal_Source_Location);
    end Get_Int32_T_Zero;
 
+   function Get_Int64_T_Zero return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_0,
+         Expr_Type       => Int64_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int64_T_Zero;
+
+   function Get_Int32_T_One return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_1,
+         Expr_Type       => Int32_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int32_T_One;
+
+   function Get_Int64_T_One return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_1,
+         Expr_Type       => Int64_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int64_T_One;
+
    function Get_Ada_Check_Symbol (Name : String;
                                   A_Symbol_Table : in out Symbol_Table;
                                   Source_Loc : Irep)
@@ -1119,5 +1146,14 @@ package body GOTO_Utils is
          return Id (Type_Irep);
       end if;
    end Type_To_String;
+
+   function Non_Private_Ekind (E : Entity_Id) return Entity_Kind is
+     (Ekind (Non_Private_Type (E)));
+
+   function Non_Private_Type (E : Entity_Id) return Entity_Id is
+     (if Ekind (E) in Incomplete_Or_Private_Kind then
+           Non_Private_Type (Full_View (E))
+      else
+         E);
 
 end GOTO_Utils;

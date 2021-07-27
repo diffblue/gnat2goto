@@ -16,9 +16,18 @@ procedure Enum_In is
    procedure P_Enum_In (E : Enum) is
    begin
       if E > Two then
+         pragma Assert (E > Two);
          pragma Assert (E in More_Than_Two);
+      else
+         pragma Assert (E <= Two);
+         pragma Assert (E not in More_Than_Two);
       end if;
    end P_Enum_In;
+
 begin
+   pragma Assert (Number_Array (4) = Four);
+   pragma Assert (Number_Array (2) = Two);
    P_Enum_In (Number_Array (4));
+   P_Enum_In (Number_Array (2));
 end Enum_In;
+

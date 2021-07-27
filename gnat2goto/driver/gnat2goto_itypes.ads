@@ -16,7 +16,7 @@ private
      with Pre => Nkind (N) = N_Defining_Identifier;
 
    function Do_Itype_Array_Subtype (N : Entity_Id) return Irep
-     with Pre => Is_Itype (N) and then Ekind (N) = E_Array_Subtype;
+      with Pre => Is_Itype (N) and then Ekind (N) in Array_Kind;
 
    function Do_Itype_Enumeration_Subtype (N : Entity_Id) return Irep
      with Pre => Is_Itype (N) and then
