@@ -32,7 +32,6 @@ procedure Post_Condition is
                             output : out count)
    is 
    begin
-   	   pragma Assert (value <= 10);
       output := value * 3;
       if update then
          value := output;

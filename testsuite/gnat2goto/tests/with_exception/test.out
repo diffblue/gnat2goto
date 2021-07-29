@@ -49,14 +49,6 @@ N_Pragma (Node_Id=4854) (source,analyzed)
  Sloc = 55341  s-stalib.ads:211:4
  Pragma_Argument_Associations = List (List_Id=-99999633)
  Pragma_Identifier = N_Identifier "export" (Node_Id=4855)
-----------At: Do_Aggregate_Literal_Array----------
-----------Array aggregates of type string are unsupported----------
-N_Aggregate (Node_Id=5961) (source,analyzed)
- Parent = N_Component_Association (Node_Id=5963)
- Sloc = 32299  a-except.ads:343:28
- Etype = N_Defining_Identifier "T10s" (Entity_Id=5954)
- Component_Associations = List (List_Id=-99999840)
- Aggregate_Bounds = N_Range (Node_Id=5946)
 ----------At: Process_Pragma_Declaration----------
 ----------Unknown pragma: stream_convert----------
 N_Pragma (Node_Id=2768) (source,analyzed)
@@ -101,3 +93,4 @@ N_Pragma (Node_Id=3239) (source,analyzed)
  Pragma_Identifier = N_Identifier "stream_convert" (Node_Id=3240)
 
 VERIFICATION SUCCESSFUL
+

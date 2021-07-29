@@ -723,24 +723,52 @@ package body Tree_Walk is
               not (Kind (Get_Type (Expression)) in Class_Type)
             then
                Report_Unhandled_Node_Empty
-                 (Actual,
-                  "Handle_Parameter",
-                  "Kind of Expression not valid for Range_Check");
-               Actual_Irep := Wrap_Argument
-                 (Make_Range_Assert_Expr
-                    (N,
-                     Typecast_If_Necessary
-                       (Handle_Enum_Symbol_Members (Expression),
-                        Formal_Type, Global_Symbol_Table),
-                     Formal_Type), Is_Out);
+                 (Actual, "Handle_Parameter",
+                  "Kind of actual not in class type");
+               return;
+            end if;
+            if Kind (Formal_Type) in
+              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+                | I_Unsignedbv_Type | I_Signedbv_Type
+                  | I_Bounded_Unsignedbv_Type | I_Floatbv_Type | I_C_Enum_Type
+                  and then Do_Range_Check (Actual)
+            then
+               if (Kind (Typecast_If_Necessary
+                         (Handle_Enum_Symbol_Members (Expression),
+                          Formal_Type, Global_Symbol_Table)) in Class_Expr)
+                 and then
+                   (Kind (Get_Type
+                          (Typecast_If_Necessary
+                           (Handle_Enum_Symbol_Members
+                            (Expression),
+                            Formal_Type, Global_Symbol_Table)))
+                    in Class_Type)
+               then
+                  Actual_Irep := Wrap_Argument
+                    (Make_Range_Assert_Expr
+                       (N,
+                        Typecast_If_Necessary
+                          (Handle_Enum_Symbol_Members (Expression),
+                           Formal_Type, Global_Symbol_Table),
+                        Formal_Type), Is_Out);
+               else
+                  Report_Unhandled_Node_Empty
+                    (Actual,
+                     "Handle_Parameter",
+                     "Kind of Expression not valid for Range_Check");
+                  Actual_Irep := Wrap_Argument
+                    (Typecast_If_Necessary (Handle_Enum_Symbol_Members
+                     (Expression),
+                     Formal_Type, Global_Symbol_Table), Is_Out);
+               end if;
             else
                Actual_Irep := Wrap_Argument
-                 (Typecast_If_Necessary (Handle_Enum_Symbol_Members
-                  (Expression),
+                 (Typecast_If_Necessary
+                    (Handle_Enum_Symbol_Members (Expression),
                   Formal_Type, Global_Symbol_Table), Is_Out);
             end if;
+            Append_Argument (Args, Actual_Irep);
          end if;
-         Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
       procedure Handle_Parameters is new
@@ -3308,6 +3336,7 @@ package body Tree_Walk is
 
       return Cond_Block;
    end Do_Pre_Condition;
+
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
@@ -3397,8 +3426,8 @@ package body Tree_Walk is
       else
          declare
             --  Check for if initialization is required.
-            Init_Expr_Irep : constant Irep :=
-              (if Present (Expression (N)) then
+            Init_Expr_Pre : constant Irep :=
+              (if Has_Init_Expression (N) or Present (Expression (N)) then
                   Do_Expression (Expression (N))
                else
                   Ireps.Empty);
@@ -3413,6 +3442,27 @@ package body Tree_Walk is
                  Range_Check     => False,
                  Identifier      => Obj_Name);
 
+            Needs_Range_Check  : constant Boolean :=
+              Init_Expr_Pre /= Ireps.Empty and then
+              Kind (Obj_Type) in
+              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+                | I_Unsignedbv_Type | I_Signedbv_Type
+                  | I_Bounded_Unsignedbv_Type | I_Floatbv_Type
+                    | I_C_Enum_Type
+                    and then
+                      Nkind (Expression (N)) in N_Subexpr and then
+                      Do_Range_Check (Expression (N));
+
+            Expr_In_Type_Class : constant Boolean :=
+              Needs_Range_Check and then
+              Kind (Init_Expr_Pre) in Class_Expr and then
+              Kind (Get_Type (Init_Expr_Pre)) in Class_Type;
+
+            Init_Expr_Irep     : constant Irep :=
+              (if Needs_Range_Check and Expr_In_Type_Class then
+                  Make_Range_Assert_Expr (N, Init_Expr_Pre, Obj_Type)
+               else
+                  Init_Expr_Pre);
          begin
             Do_Plain_Object_Declaration
               (Block       => Block,
@@ -3423,6 +3473,14 @@ package body Tree_Walk is
 
             --  Assign the initialization, if any.
             if Init_Expr_Irep /= Ireps.Empty then
+               --  First check that any required range check is valid.
+               if Needs_Range_Check and not Expr_In_Type_Class then
+                  Report_Unhandled_Node_Empty
+                    (Expression (N),
+                     "Do_Object_Declaration_Full",
+                     "Kind of Expression(N) not valid for Range_Check");
+               end if;
+
                Append_Op (Block, Make_Code_Assign
                           (Lhs => Id,
                            Rhs =>

@@ -159,8 +159,7 @@ package body Gnat2goto_Itypes is
    function Do_Itype_Enumeration_Subtype (N : Entity_Id) return Irep is
    begin
       Declare_Itype (Etype (N));
-      return Make_Symbol_Type
-        (Identifier => Unique_Name (Etype (N)));
+      return Do_Subtype_Indication (Subtype_Indication (N), N);
    end Do_Itype_Enumeration_Subtype;
 
    -------------------------------
@@ -203,13 +202,17 @@ package body Gnat2goto_Itypes is
             when others =>
                Store_Symbol_Bound (Bound_Type_Symbol (
            Do_Expression (Upper_Bound))));
-
+      Width             : constant Positive :=
+        Positive (UI_To_Int (Esize (N)));
    begin
+      ASVAT.Size_Model.Set_Static_Size
+        (E          => N,
+         Model_Size => Width);
       return
         Make_Bounded_Signedbv_Type (
                        Lower_Bound => Lower_Bound_Value,
                        Upper_Bound => Upper_Bound_Value,
-                       Width       => Positive (UI_To_Int (Esize (N))));
+                       Width       => Width);
    end Do_Itype_Integer_Subtype;
 
    ------------------------------
@@ -217,12 +220,20 @@ package body Gnat2goto_Itypes is
    ------------------------------
 
    function Do_Itype_Integer_Type (N : Entity_Id) return Irep is
-     (Make_Bounded_Signedbv_Type (
-                       Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                                      Low_Bound (Scalar_Range (N))))),
-                       Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                                      High_Bound (Scalar_Range (N))))),
-                       Width       => Positive (UI_To_Int (Esize (N)))));
+      Width             : constant Positive :=
+        Positive (UI_To_Int (Esize (N)));
+   begin
+      ASVAT.Size_Model.Set_Static_Size
+        (E          => N,
+         Model_Size => Width);
+      return
+        Make_Bounded_Signedbv_Type
+          (Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
+           Low_Bound (Scalar_Range (N))))),
+           Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
+             High_Bound (Scalar_Range (N))))),
+           Width       => Width);
+   end Do_Itype_Integer_Type;
 
    -----------------------------
    -- Do_Itype_Record_Subtype --
@@ -275,6 +286,8 @@ package body Gnat2goto_Itypes is
    begin
       pragma Assert (Kind (Followed_Mod_Type) in I_Unsignedbv_Type
                        | I_Ada_Mod_Type);
+
+      ASVAT.Size_Model.Set_Static_Size (N, Get_Width (Followed_Mod_Type));
 
       if Kind (Followed_Mod_Type) = I_Ada_Mod_Type then
          return Make_Bounded_Mod_Type (Width       =>

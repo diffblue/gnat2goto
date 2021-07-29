@@ -865,7 +865,6 @@ package body Arrays is
                                              Bounds     : Dimension_Bounds;
                                              Block      : Irep)
    is
-      Source_Loc      : constant Irep := Internal_Source_Location;
       First_Name      : constant String :=
         Prefix & First_Var_Str & Dimension;
       First_Name_Id   : constant Symbol_Id := Intern (First_Name);
@@ -875,13 +874,13 @@ package body Arrays is
 
       First_Sym : constant Irep :=
         Make_Symbol_Expr
-          (Source_Location => Source_Loc,
+          (Source_Location => Internal_Source_Location,
            I_Type          => Index_Type,
            Range_Check     => False,
            Identifier      => First_Name);
       Last_Sym : constant Irep :=
         Make_Symbol_Expr
-          (Source_Location => Source_Loc,
+          (Source_Location => Internal_Source_Location,
            I_Type          => Index_Type,
            Range_Check     => False,
            Identifier      => Last_Name);
@@ -915,12 +914,12 @@ package body Arrays is
         (Symbol     => First_Sym,
          Value      => First_Val,
          Block      => Block,
-         Source_Loc => Source_Loc);
+         Source_Loc => Internal_Source_Location);
       Append_Declare_And_Init
         (Symbol     => Last_Sym,
          Value      => Last_Val,
          Block      => Block,
-         Source_Loc => Source_Loc);
+         Source_Loc => Internal_Source_Location);
    end Declare_First_Last_From_Bounds;
 
    -----------------------------------------
@@ -935,7 +934,6 @@ package body Arrays is
       Dim_String_Pre  : constant String := Integer'Image (Dimension);
       Dim_String      : constant String :=
         Dim_String_Pre (2 .. Dim_String_Pre'Last);
-      Source_Loc      : constant Irep := Internal_Source_Location;
       Target_First    : constant String :=
         Target_Name & First_Var_Str & Dim_String;
       Target_First_Id : constant Symbol_Id := Intern (Target_First);
@@ -958,26 +956,26 @@ package body Arrays is
 
       Target_First_Sym : constant Irep :=
         Make_Symbol_Expr
-          (Source_Location => Source_Loc,
+          (Source_Location => Internal_Source_Location,
            I_Type          => Index_Type,
            Range_Check     => False,
            Identifier      => Target_First);
       Target_Last_Sym : constant Irep :=
         Make_Symbol_Expr
-          (Source_Location => Source_Loc,
+          (Source_Location => Internal_Source_Location,
            I_Type          => Index_Type,
            Range_Check     => False,
            Identifier      => Target_Last);
 
       Object_First_Sym : constant Irep :=
         Make_Symbol_Expr
-          (Source_Location => Source_Loc,
+          (Source_Location => Internal_Source_Location,
            I_Type          => Index_Type,
            Range_Check     => False,
            Identifier      => Object_First);
       Object_Last_Sym : constant Irep :=
         Make_Symbol_Expr
-          (Source_Location => Source_Loc,
+          (Source_Location => Internal_Source_Location,
            I_Type          => Index_Type,
            Range_Check     => False,
            Identifier      => Object_Last);
@@ -1000,12 +998,12 @@ package body Arrays is
         (Symbol     => Target_First_Sym,
          Value      => Object_First_Sym,
          Block      => Block,
-         Source_Loc => Source_Loc);
+         Source_Loc => Internal_Source_Location);
       Append_Declare_And_Init
         (Symbol     => Target_Last_Sym,
          Value      => Object_Last_Sym,
          Block      => Block,
-         Source_Loc => Source_Loc);
+         Source_Loc => Internal_Source_Location);
    end Declare_First_Last_From_Object;
 
    -----------------------------------
