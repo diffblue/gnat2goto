@@ -5,6 +5,7 @@ post_condition.adb:48:04: warning: variable "Bool_2" is read but never assigned
 [assertion.1] file post_condition.adb line 6 Ada Check assertion: FAILURE
 [assertion.2] file post_condition.adb line 15 Ada Check assertion: SUCCESS
 [double.assertion.1] line 11 Ada Check assertion: SUCCESS
+[double.assertion.2] line 11 Ada Check assertion: SUCCESS
 [post_condition.assertion.1] line 55 assertion I = 16: SUCCESS
 [post_condition.assertion.2] line 60 assertion False: SUCCESS
 [post_condition.assertion.3] line 66 assertion J = 9: SUCCESS
@@ -13,5 +14,4 @@ post_condition.adb:48:04: warning: variable "Bool_2" is read but never assigned
 [post_condition.assertion.6] line 80 assertion K = 9: SUCCESS
 [post_condition.assertion.7] line 83 assertion False: FAILURE
 [post_condition.assertion.8] line 87 assertion False: SUCCESS
-[triple.assertion.1] line 21 Ada Check assertion: SUCCESS
 VERIFICATION FAILED

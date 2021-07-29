@@ -1,5 +1,5 @@
+[array_consumer.assertion.2] line 6 Ada Check assertion: FAILURE
 [array_consumer.assertion.1] line 8 Ada Check assertion: SUCCESS
-[array_consumer.assertion.2] line 8 Ada Check assertion: FAILURE
 [array_consumer.assertion.3] line 9 assertion An_Index = 2: SUCCESS
 [array_consumer.assertion.4] line 11 assertion An_Index = 4: SUCCESS
 [array_consumer.assertion.5] line 13 assertion An_Index = -1: SUCCESS
