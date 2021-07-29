@@ -1,0 +1,1 @@
+ALL XFAIL cbmc fails with: Invariant check failed, Reason: member expression type must match component type
