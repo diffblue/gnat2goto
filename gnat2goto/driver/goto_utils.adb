@@ -79,16 +79,19 @@ package body GOTO_Utils is
       return True_V;
    end CProver_True;
 
+   --  ToDo - why does this produce a corrupt Internal source location
+   --  if it is not generated anew each time it is called?
+   --  Is something corrupting this string somehow?
    Internal_Source_Location_V : Irep := Ireps.Empty;
    function Internal_Source_Location return Irep is
    begin
-      if Internal_Source_Location_V = Ireps.Empty then
+--        if Internal_Source_Location_V = Ireps.Empty then
          Internal_Source_Location_V := Make_Source_Location
            (File => "<internal>",
             Line => "",
             Column => "",
             Comment => "");
-      end if;
+--        end if;
       return Internal_Source_Location_V;
    end Internal_Source_Location;
 
