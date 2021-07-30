@@ -3,9 +3,14 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
+Occurs: 246 times
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
+Nkind: N_Defining_Identifier
+--
 Occurs: 188 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_IMAGE unsupported
+Error message: Attribute Image is unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 152 times
@@ -20,7 +25,7 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 134 times
 Calling function: Do_Expression
-Error message: ATTRIBUTE_VALUE unsupported
+Error message: Attribute_Value is unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 114 times
@@ -38,15 +43,15 @@ Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 50 times
-Calling function: Do_Operator_General
-Error message: Concat unsupported
-Nkind: N_Op_Concat
+Occurs: 54 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
 --
-Occurs: 38 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: Array aggregates of type string are unsupported
-Nkind: N_Aggregate
+Occurs: 53 times
+Calling function: Do_Array_Concatination
+Error message: Array concatitination operator currenly unsupported
+Nkind: N_Op_Concat
 --
 Occurs: 38 times
 Calling function: Process_Declaration
@@ -58,15 +63,30 @@ Calling function: Process_Declaration
 Error message: Representation clause unsupported: write
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 16 times
+Calling function: Computed_Size
+Error message: Entity does not have ASVAT model size
+Nkind: N_Defining_Identifier
+--
+Occurs: 9 times
+Calling function: Do_Type_Reference
+Error message: Expected I_Type found I_NIL
+Nkind: N_Defining_Identifier
+--
 Occurs: 8 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_COPY_SIGN unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 6 times
-Calling function: Do_Type_Reference
-Error message: Expected I_Type found I_NIL
-Nkind: N_Defining_Identifier
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_slice not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 6 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_to_string not in symbol table
+Nkind: N_Function_Call
 --
 Occurs: 6 times
 Calling function: Process_Declaration
@@ -74,14 +94,289 @@ Error message: Record representation clauses are unsupported
 Nkind: N_Record_Representation_Clause
 --
 Occurs: 3 times
+Calling function: Add_Record_Component
+Error message: Unconstrained array (sub)type components are unsupported
+Nkind: N_Component_Declaration
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__concat not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__concat__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__concat__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__concat__4 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__concat__5 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__equal not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__equal__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__equal__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__greater not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__greater__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__greater__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__greater_or_equal not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__greater_or_equal__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__greater_or_equal__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__less not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__less__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__less__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__less_or_equal not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__less_or_equal__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__less_or_equal__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_append not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_append__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_append__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_append__4 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_append__5 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_count not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_count__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_count__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_delete not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_element not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_head not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index__4 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index__5 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index__6 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index_non_blank not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_index_non_blank__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_insert not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_length not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_overwrite not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_replace_slice not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_replicate__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_slice__2 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_tail not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_translate not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_translate__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_trim not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__super_trim__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Do_Function_Call
+Error message: function logging_cfg__log_string_ops__times__3 not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 3 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind E_RECORD_TYPE
+Nkind: N_Defining_Identifier
+--
+Occurs: 3 times
+Calling function: Do_Itype_Record_Subtype
+Error message: Supertype of Itype_Record_Subtype has no ASVAT size
 Nkind: N_Defining_Identifier
 --
 Occurs: 3 times
 Calling function: Do_Private_Type_Declaration
 Error message: Full view of private_type_declaration Does not yield a full_type_declaration node
 Nkind: N_Subtype_Declaration
+--
+Occurs: 3 times
+Calling function: Make_Range_Assert_Expr
+Error message: Kind of Value not in class type
+Nkind: N_Function_Call
+--
+Occurs: 3 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: stream_convert
+Nkind: N_Pragma
 --
 Occurs: 2 times
 Calling function: Do_Expression
@@ -99,19 +394,9 @@ Error message: ATTRIBUTE_ROUNDING unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 1 times
-Calling function: Do_Expression
-Error message: Last of string unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 1 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
---
-Occurs: 1 times
-Calling function: Make_Range_Assert_Expr
-Error message: Kind of Value not in class type
-Nkind: N_Assignment_Statement
 --
 Occurs: 7 times
 Redacted compiler error message:
@@ -160,23 +445,23 @@ Raw compiler error message:
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
+| GNU Ada (ada2goto) Assert_Failure einfo.adb:1397                         |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
 Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) exception ureal_to_binary.adb:258                     |
 Error detected at REDACTED
+--
+Occurs: 2 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : einfo.adb:1397
+
 --
 Occurs: 1 times
 <========================>

@@ -1,12 +1,7 @@
-Occurs: 1261 times
+Occurs: 1264 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
---
-Occurs: 203 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: Array aggregates of type string are unsupported
-Nkind: N_Aggregate
 --
 Occurs: 143 times
 Calling function: Process_Pragma_Declaration
@@ -18,30 +13,45 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: export_procedure
 Nkind: N_Pragma
 --
+Occurs: 97 times
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
+Nkind: N_Defining_Identifier
+--
+Occurs: 80 times
+Calling function: Do_Expression
+Error message: Attribute_Value is unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 79 times
 Calling function: Process_Declaration
 Error message: Enumeration representation clauses are unsupported
 Nkind: N_Enumeration_Representation_Clause
 --
 Occurs: 62 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALUE unsupported
-Nkind: N_Attribute_Reference
+Calling function: Computed_Size
+Error message: Entity does not have ASVAT model size
+Nkind: N_Defining_Identifier
+--
+Occurs: 53 times
+Calling function: Do_Array_Concatination
+Error message: Array concatitination operator currenly unsupported
+Nkind: N_Op_Concat
 --
 Occurs: 52 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
 --
-Occurs: 46 times
-Calling function: Get_Bound
-Error message: Unsupported range type
-Nkind: N_Type_Conversion
+Occurs: 48 times
+Calling function: Do_Expression
+Error message: Attribute Image is unsupported
+Nkind: N_Attribute_Reference
 --
-Occurs: 34 times
-Calling function: Do_Operator_General
-Error message: Concat unsupported
-Nkind: N_Op_Concat
+Occurs: 38 times
+Calling function: Multi_Dimension_Flat_Bounds
+Error message: The attribute Image is unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 30 times
 Calling function: Do_Object_Declaration
@@ -49,24 +59,34 @@ Error message: Record definition of wrong nkind
 Nkind: N_Object_Declaration
 --
 Occurs: 27 times
-Calling function: Do_Expression
-Error message: Index of string unsupported
-Nkind: N_Indexed_Component
+Calling function: Multi_Dimension_Flat_Bounds
+Error message: Unsupported array node kind
+Nkind: 
+--
+Occurs: 27 times
+Calling function: Process_Catination
+Error message: Unconstrained array expressions in concatinations are unsupported
+Nkind: N_Attribute_Reference
 --
 Occurs: 26 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: stream_convert
 Nkind: N_Pragma
 --
-Occurs: 25 times
-Calling function: Make_Range_Assert_Expr
-Error message: Kind of Value not in class type
-Nkind: N_Assignment_Statement
+Occurs: 21 times
+Calling function: Get_Dimension_Bounds
+Error message: Unconstrained array has no defined bounds
+Nkind: N_Defining_Identifier
 --
-Occurs: 23 times
-Calling function: Make_Range_Assert_Expr
-Error message: Kind of Bounds_Type not supported
-Nkind: N_Type_Conversion
+Occurs: 21 times
+Calling function: Get_Dimension_Bounds
+Error message: Unconstrained array has no defined bounds
+Nkind: N_Identifier
+--
+Occurs: 21 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Attribute_Reference
 --
 Occurs: 20 times
 Calling function: Process_Declaration
@@ -78,35 +98,35 @@ Calling function: Process_Declaration
 Error message: Representation clause unsupported: write
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 18 times
-Calling function: Do_Slice
-Error message: Slices of strings are unsupported
-Nkind: N_Slice
---
 Occurs: 17 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
---
-Occurs: 15 times
-Calling function: Do_Aggregate_Literal_Array_Main
-Error message: Unsupported Others for component node
-Nkind: N_Aggregate
 --
 Occurs: 13 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: storage_size
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 12 times
+Calling function: Add_Record_Component
+Error message: Unconstrained array (sub)type components are unsupported
+Nkind: N_Component_Declaration
+--
 Occurs: 11 times
-Calling function: Do_Expression
-Error message: Last of string unsupported
-Nkind: N_Attribute_Reference
+Calling function: Do_Type_Reference
+Error message: Expected I_Type found I_NIL
+Nkind: N_Defining_Identifier
 --
 Occurs: 10 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_IMAGE unsupported
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
 Nkind: N_Attribute_Reference
+--
+Occurs: 9 times
+Calling function: Declare_Array_Friends
+Error message: Cannot create First and Last from unconstrained array
+Nkind: N_Defining_Identifier
 --
 Occurs: 9 times
 Calling function: Do_Expression
@@ -123,25 +143,135 @@ Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Obsolescent
 Nkind: N_Pragma
 --
-Occurs: 4 times
-Calling function: Do_Expression
-Error message: First of string unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 2 times
-Calling function: Make_Range_Assert_Expr
-Error message: Kind of Value not in class type
+Occurs: 8 times
+Calling function: Make_Constrained_Array_From_Initialization
+Error message: Unsupported unconstrained array initialization by N_TYPE_CONVERSION
 Nkind: N_Type_Conversion
 --
-Occurs: 1 times
-Calling function: Do_Object_Declaration_Full
-Error message: Kind of Expression(N) not valid for Range_Check
-Nkind: N_Attribute_Reference
+Occurs: 8 times
+Calling function: Process_Statement
+Error message: Unknown expression kind
+Nkind: N_Subtype_Declaration
 --
-Occurs: 1 times
+Occurs: 6 times
+Calling function: Process_Catination
+Error message: Unconstrained array expressions in concatinations are unsupported
+Nkind: N_Function_Call
+--
+Occurs: 6 times
+Calling function: Update_Array_From_Aggregate
+Error message: Aggregates with non-scalar components are unsupported
+Nkind: N_Aggregate
+--
+Occurs: 5 times
+Calling function: Do_Array_Assignment_Op
+Error message: Assignment expression cannot be unconstrained
+Nkind: N_Function_Call
+--
+Occurs: 4 times
+Calling function: Array_Object_And_Friends
+Error message: Unexpected unconstrained array result
+Nkind: N_Type_Conversion
+--
+Occurs: 3 times
+Calling function: Do_Base_Range_Constraint
+Error message: range expression not bitvector type
+Nkind: N_Range
+--
+Occurs: 3 times
+Calling function: Do_Expression
+Error message: Unknown expression kind
+Nkind: N_Unchecked_Type_Conversion
+--
+Occurs: 3 times
+Calling function: Do_Itype_Definition
+Error message: Unknown Ekind E_PRIVATE_SUBTYPE
+Nkind: N_Defining_Identifier
+--
+Occurs: 3 times
+Calling function: Do_Type_Definition
+Error message: Unknown expression kind
+Nkind: N_Ordinary_Fixed_Point_Definition
+--
+Occurs: 3 times
 Calling function: Do_Type_Reference
 Error message: Type name is not in the symbol table
 Nkind: N_Defining_Identifier
+--
+Occurs: 2 times
+Calling function: Do_Type_Conversion
+Error message: Type conversion of a slice is currently unsupported
+Nkind: N_Type_Conversion
+--
+Occurs: 2 times
+Calling function: Do_Type_Reference
+Error message: Unexpected node kind N_TASK_TYPE_DECLARATION
+Nkind: N_Task_Type_Declaration
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Task body declaration
+Nkind: N_Task_Body
+--
+Occurs: 2 times
+Calling function: Process_Declaration
+Error message: Unknown declaration kind
+Nkind: N_Task_Type_Declaration
+--
+Occurs: 2 times
+Calling function: Process_Statement
+Error message: Abort statement
+Nkind: N_Abort_Statement
+--
+Occurs: 2 times
+Calling function: Process_Statement
+Error message: Entry call statement
+Nkind: N_Entry_Call_Statement
+--
+Occurs: 1 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object certproc__checkcertlength__thecertdata is unsupported
+Nkind: 
+--
+Occurs: 1 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object crypto__digestfinal__certdict is unsupported
+Nkind: 
+--
+Occurs: 1 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object displaysim__settext__text is unsupported
+Nkind: 
+--
+Occurs: 1 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object msgproc__getdictionarybykey__localmsg is unsupported
+Nkind: 
+--
+Occurs: 1 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object msgproc__getstringbykey__localmsg is unsupported
+Nkind: 
+--
+Occurs: 1 times
+Calling function: Do_Array_Assignment_Op
+Error message: Assignment expression cannot be unconstrained
+Nkind: N_Aggregate
+--
+Occurs: 1 times
+Calling function: Do_Array_Assignment_Op
+Error message: Assignment expression cannot be unconstrained
+Nkind: N_Identifier
+--
+Occurs: 1 times
+Calling function: Do_Function_Call
+Error message: function cert__id__theissuer not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 1 times
+Calling function: Do_Procedure_Call_Statement
+Error message: sym id not in symbol table
+Nkind: N_Procedure_Call_Statement
 --
 Occurs: 1 times
 Calling function: Do_Type_Reference
@@ -1178,107 +1308,12 @@ Redacted compiler error message:
 range must be preceded by subtype mark
 Raw compiler error message:
 --
-Occurs: 2 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
+| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
 Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:51 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays.ads:71 |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:758                      |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure tree_walk.adb:758                      |
-Error detected at REDACTED
---
-Occurs: 14 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:71
-
---
-Occurs: 11 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:51
-
 --
 Occurs: 3 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:469
-
---
-Occurs: 1 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : sinfo.adb:1113
 

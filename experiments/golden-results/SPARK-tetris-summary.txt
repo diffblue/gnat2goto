@@ -1,7 +1,17 @@
-Occurs: 4 times
+Occurs: 8 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: ghost
 Nkind: N_Pragma
+--
+Occurs: 5 times
+Calling function: Update_Array_From_Aggregate
+Error message: Aggregates with non-scalar components are unsupported
+Nkind: N_Aggregate
+--
+Occurs: 5 times
+Calling function: Update_Array_From_Aggregate
+Error message: Multi-dimensional aggregates unsupported
+Nkind: N_Aggregate
 --
 Occurs: 1 times
 Redacted compiler error message:
@@ -15,5 +25,5 @@ Raw compiler error message:
 --
 Occurs: 5 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads:52|
+| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1571|
 Error detected at REDACTED
