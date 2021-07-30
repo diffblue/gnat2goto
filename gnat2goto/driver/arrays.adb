@@ -1109,7 +1109,8 @@ package body Arrays is
       Has_Static_Bounds : constant Boolean :=
         Is_OK_Static_Range (Aggregate_Bounds (N));
       Aggregate_Subtype : constant Entity_Id := Etype (N);
-      New_Name          : constant String := Fresh_Var_Name ("aggregate_");
+      New_Name          : constant String :=
+        Fresh_Var_Name (Get_File (Source_Location) & "aggregate_");
       Aggregate_Obj     : constant String := New_Name & "_obj";
       Aggregate_Func    : constant String := New_Name & "_fun";
 --        Aggregate_Loop    : constant String := New_Name & "_loop";
@@ -1261,7 +1262,8 @@ package body Arrays is
           (I_Subtype => Component_Irep,
            Size      => Str_Lit_Size_Irep);
 
-      New_Name          : constant String := Fresh_Var_Name ("string_");
+      New_Name          : constant String :=
+        Fresh_Var_Name (Get_File (Source_Location) & "string_");
       String_Obj        : constant String := New_Name & "_obj";
       String_Func       : constant String := New_Name & "_fun";
       Obj_Irep          : constant Irep := Make_Symbol_Expr
