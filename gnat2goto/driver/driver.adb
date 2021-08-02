@@ -655,7 +655,9 @@ package body Driver is
               /= I_Empty
             then
                declare
-                  Return_Id   : constant Symbol_Id := Intern ("return'");
+                  Return_Name : constant String := "__CPROVER__start_" &
+                    Get_Identifier (Entry_Procedure) & "_return";
+                  Return_Id   : constant Symbol_Id := Intern (Return_Name);
                   Return_Symbol : constant Symbol :=
                     (Name | BaseName | PrettyName => Return_Id,
                      Mode => Intern ("C"),
