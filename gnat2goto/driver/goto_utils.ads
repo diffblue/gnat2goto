@@ -253,7 +253,7 @@ package GOTO_Utils is
    --  Useful for creating multiple, type specific, versions of a function.
    function Type_To_String (Type_Irep : Irep) return String
      with Pre => Kind (Type_Irep) in Class_Type;
-  
+
    function Non_Private_Ekind (E : Entity_Id) return Entity_Kind;
    --  If Ekind (E) is not in E_Incomplete_Or_Private_Kind, returns Ekind (E),
    --  otherwise recurses through private type entities until the entity of the
