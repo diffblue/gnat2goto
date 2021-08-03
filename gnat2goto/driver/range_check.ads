@@ -54,7 +54,13 @@ package Range_Check is
                                    Upper_Bound : Irep)
                                    return Irep
      with Pre => Kind (Get_Type (Lower_Bound)) = Kind (Get_Type (Lower_Bound)),
-       Post => Kind (Make_Range_Expression'Result) in Class_Expr;
+     Post => Kind (Make_Range_Expression'Result) in Class_Expr;
+
+   function Do_Attribute_Valid (N : Node_Id) return Irep;
+   --  Creates a goto function which is a boolean expression testing
+   --  whether the given expression represented by N, is within the
+   --  upper and lower bounds of the type of the expression.
+   --  N is the prefix of a 'Valid attribute.
 
 private
    type Bound_Type is (Nat_Bound, Real_Bound, Symb_Bound);

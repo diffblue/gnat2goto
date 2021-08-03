@@ -4,6 +4,9 @@ with Binary_To_Hex;         use Binary_To_Hex;
 with Follow;                use Follow;
 with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
+with Sinfo; use Sinfo;
+with Einfo; use Einfo;
+with Atree; use Atree;
 
 package body Range_Check is
 
@@ -564,7 +567,7 @@ package body Range_Check is
          else
             Value_Expr_Type_Raw);
 
-      Resolved_Value_Expr : constant Irep :=
+      Resolved_Value_Expr  : constant Irep :=
         (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
               Typecast_If_Necessary
            (Expr           => Value_Expr,
@@ -572,6 +575,12 @@ package body Range_Check is
             A_Symbol_Table => Global_Symbol_Table)
          else
             Value_Expr);
+
+      Resolved_Lower_Bound : constant Irep :=
+        Typecast_If_Necessary (Lower_Bound, Bound_Type, Global_Symbol_Table);
+
+      Resolved_Upper_Bound : constant Irep :=
+        Typecast_If_Necessary (Upper_Bound, Bound_Type, Global_Symbol_Table);
 
       type Adjusted_Value_And_Bounds_T is
         record
@@ -592,8 +601,8 @@ package body Range_Check is
             return (
                     Value_Expr => Typecast_If_Necessary
                       (Resolved_Value_Expr, Bound_Type, Global_Symbol_Table),
-                    Upper_Bound => Upper_Bound,
-                    Lower_Bound => Lower_Bound);
+                    Upper_Bound => Resolved_Upper_Bound,
+                    Lower_Bound => Resolved_Lower_Bound);
          else
             return (
                     Value_Expr => Resolved_Value_Expr,
@@ -637,6 +646,47 @@ package body Range_Check is
          Append_Op (R, Op_Leq);
       end return;
    end Make_Range_Expression;
+
+   ------------------------
+   -- Do_Attribute_Valid --
+   ------------------------
+
+   function Do_Attribute_Valid (N : Node_Id) return Irep is
+      Node_Type_Pre     : constant Entity_Id := Etype (N);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Node_Type_Pre);
+      Node_Type         : constant Entity_Id :=
+        (if Is_Implicit_Deref then
+            Designated_Type (Node_Type_Pre)
+         else
+            Node_Type_Pre);
+      Range_Of_Type_Pre : constant Node_Id := Scalar_Range (Node_Type);
+      Range_Of_Type     : constant Node_Id :=
+        (if Nkind (Range_Of_Type_Pre) = N_Subtype_Indication then
+              Range_Expression (Range_Constraint (Range_Of_Type_Pre))
+         else
+            Range_Of_Type_Pre);
+      --  Currently the range attribute is unsupported.
+      pragma Assert (Nkind (Range_Of_Type) /= N_Attribute_Reference);
+      Lower_Bound        : constant Irep :=
+        Do_Expression (Low_Bound (Range_Of_Type));
+      Upper_Bound        : constant Irep :=
+        Do_Expression (High_Bound (Range_Of_Type));
+      Expr_Irep_Pre      : constant Irep := Do_Expression (N);
+      Expr_Irep          : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (Object          => Expr_Irep_Pre,
+            Source_Location => Get_Source_Location (N),
+            I_Type          => Do_Type_Reference (Node_Type))
+         else
+            Expr_Irep_Pre);
+
+   begin
+      return Make_Range_Expression
+        (Value_Expr  => Expr_Irep,
+         Lower_Bound => Lower_Bound,
+         Upper_Bound => Upper_Bound);
+   end Do_Attribute_Valid;
 
    -----------------------
    -- Load_Bound_In_Hex --

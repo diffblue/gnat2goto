@@ -1608,6 +1608,8 @@ package body Tree_Walk is
                when Attribute_Min =>
                   return Do_Attribute_Max_Min (N      => N,
                                                Is_Max => False);
+               when Attribute_Valid =>
+                  return Do_Attribute_Valid (Prefix (N));
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
