@@ -469,7 +469,8 @@ package body Range_Check is
          I_Type => Expected_Return_Type);
    begin
       Set_Function (Source_Loc, Get_Context_Name (N));
-      pragma Assert (Underlying_Lower_Type = Underlying_Upper_Type);
+      pragma Assert (Kind (Underlying_Lower_Type) =
+                       Kind (Underlying_Upper_Type));
 
       Append_Argument (Call_Args,
                        Typecast_If_Necessary
