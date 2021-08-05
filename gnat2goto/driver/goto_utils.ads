@@ -264,4 +264,22 @@ package GOTO_Utils is
    --  otherwise recurses through private type declarations until a full type
    --  declaration is encountered then Etype (full type) is returned.
 
+   function Cast_To_Max_Width (May_Be_Cast, Model : Irep) return Irep
+   with Pre => Kind (May_Be_Cast) in Class_Expr;
+   --  If May_Be_Cast is a bit vector type, then Model must be a bit vector
+   --  type of the same kind.  When this is true May_Be_Cast will be cast
+   --  to the same type as Model if the width of Model is greater than
+   --  the width of May_Be_Cast.  Otherwise May_Be_Cast is returned unchanged.
+
+   function Make_Corresponding_Unbounded_Type (I_Type : Irep) return Irep
+   with Pre => Kind (I_Type) in Class_Type;
+   --  If I_Type is a boundedbv type returns the corresponding
+   --  unbounded bv type with the same width.  Otherwise returns I_Type.
+
+   function Strip_Irep_Bounds (I_Expr : Irep) return Irep
+   with Pre => Kind (I_Expr) in Class_Expr;
+   --  If I is of a boundedbv type returns the value of I
+   --  Typecast to the corresponding unbounded bv type with the same width.
+   --  Otherwise returns I.
+
 end GOTO_Utils;

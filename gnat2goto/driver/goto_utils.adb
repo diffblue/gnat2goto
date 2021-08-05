@@ -1159,4 +1159,58 @@ package body GOTO_Utils is
       else
          E);
 
+   function Cast_To_Max_Width (May_Be_Cast, Model : Irep) return Irep is
+      Expr_Type  : constant Irep := Get_Type (May_Be_Cast);
+      Model_Type : constant Irep :=
+        (if Kind (Model) in Class_Type then
+              Model
+         else
+            Get_Type (Model));
+      pragma Assert (Kind (Expr_Type) = Kind (Model_Type));
+   begin
+      return
+        (if Kind (Model_Type) in Class_Bitvector_Type and then
+         Get_Width (Model_Type) > Get_Width (Expr_Type)
+         then
+            Make_Op_Typecast
+           (Op0             => May_Be_Cast,
+            Source_Location => Get_Source_Location (May_Be_Cast),
+            I_Type          => Model_Type)
+         else
+            May_Be_Cast);
+   end Cast_To_Max_Width;
+
+   function Make_Corresponding_Unbounded_Type (I_Type : Irep) return Irep is
+      I_Kind : constant Irep_Kind := Kind (I_Type);
+      Width  : constant Integer :=
+        (if I_Kind in Class_Bitvector_Type then
+            Get_Width (I_Type)
+         else
+            0);
+   begin
+      return
+        (case I_Kind is
+            when I_Bounded_Unsignedbv_Type => Make_Unsignedbv_Type (Width),
+            when I_Bounded_Signedbv_Type   => Make_Signedbv_Type (Width),
+            when I_Bounded_Floatbv_Type    =>
+               Make_Floatbv_Type (Width, Get_F (I_Type)),
+            when others => I_Type);
+   end Make_Corresponding_Unbounded_Type;
+
+   function Strip_Irep_Bounds (I_Expr : Irep) return Irep is
+      Stripped_Type : constant Irep := Get_Type (I_Expr);
+   begin
+      return
+        (if Kind (Stripped_Type) in I_Bounded_Unsignedbv_Type
+             | I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+         then
+            Make_Op_Typecast
+           (Op0             => I_Expr,
+            Source_Location => Get_Source_Location (I_Expr),
+            I_Type          =>
+              Make_Corresponding_Unbounded_Type (Stripped_Type))
+         else
+            I_Expr);
+   end Strip_Irep_Bounds;
+
 end GOTO_Utils;

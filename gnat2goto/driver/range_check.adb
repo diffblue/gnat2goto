@@ -357,16 +357,23 @@ package body Range_Check is
                                     Check_Name : String)
                                     return Irep
    is
-      Call_Args : constant Irep := Make_Argument_List;
-      Underlying_Lower_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
-      Underlying_Upper_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Upper_Bound), Global_Symbol_Table);
       Source_Loc : constant Irep := Get_Source_Location (N);
+      Call_Args : constant Irep := Make_Argument_List;
+      --  The underlying lower and upper types may not be the same and
+      --  may not be the same type as the value.
+      --  Therefore use the type of the value to determine the compare type.
+      --  The funtion Make_Range_Expression deals with ensuring
+      --  All the sub-expressions of the range check are consistent.
+      Underlying_Value_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Value), Global_Symbol_Table);
       Compare_Type : constant Irep :=
-        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
-         Kind (Underlying_Lower_Type) = I_Floatbv_Type then
-              Float64_T else Int64_T);
+        (case Kind (Underlying_Value_Type) is
+            when I_Bounded_Floatbv_Type | I_Floatbv_Type =>
+               Float64_T,
+            when I_Bounded_Unsignedbv_Type | I_Unsignedbv_Type =>
+               Uint64_T,
+            when others =>
+               Int64_T);
       Arg_Type_String : constant String := Type_To_String (Compare_Type);
       Ret_Type_String : constant String :=
           Type_To_String (Expected_Return_Type);
@@ -469,9 +476,6 @@ package body Range_Check is
          I_Type => Expected_Return_Type);
    begin
       Set_Function (Source_Loc, Get_Context_Name (N));
-      pragma Assert (Kind (Underlying_Lower_Type) =
-                       Kind (Underlying_Upper_Type));
-
       Append_Argument (Call_Args,
                        Typecast_If_Necessary
                          (Expr           => Value,
@@ -547,24 +551,38 @@ package body Range_Check is
                                    Upper_Bound : Irep)
                                    return Irep
    is
+      Unbounded_Lower_Type : constant Irep :=
+        Make_Corresponding_Unbounded_Type
+          (Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table));
+      Unbounded_Upper_Type : constant Irep :=
+        Make_Corresponding_Unbounded_Type
+          (Follow_Symbol_Type (Get_Type (Upper_Bound), Global_Symbol_Table));
+      Lower_Type_Kind      : constant Irep_Kind := Kind (Unbounded_Lower_Type);
+      Upper_Type_Kind      : constant Irep_Kind := Kind (Unbounded_Upper_Type);
+
+      pragma Assert (Lower_Type_Kind = Upper_Type_Kind);
+
       --  The bounds and or the value may be enumeration types.
       --  If so, they are converted to a bitvector type.
-      --  When the enumeration is declared each literal s given the
+      --  When the enumeration is declared each literal is given the
       --  value of its position (starting from 0).
-      Bound_Type_Raw      : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
-      Value_Expr_Type_Raw : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Value_Expr), Global_Symbol_Table);
-
-      Bound_Type : constant Irep :=
-        (if Kind (Bound_Type_Raw) = I_C_Enum_Type then
-              Int32_T
+      Bound_Type           : constant Irep :=
+        (if Lower_Type_Kind in Class_Bitvector_Type and then
+         Get_Width (Unbounded_Upper_Type) > Get_Width (Unbounded_Lower_Type)
+         then
+            Unbounded_Upper_Type
+         elsif Lower_Type_Kind = I_C_Enum_Type then
+            Uint32_T
          else
-            Bound_Type_Raw);
+            Unbounded_Lower_Type);
+
+      Value_Expr_Type_Raw  : constant Irep :=
+        Make_Corresponding_Unbounded_Type
+          (Follow_Symbol_Type (Get_Type (Value_Expr), Global_Symbol_Table));
 
       Value_Expr_Type : constant Irep :=
         (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
-              Int32_T
+              Uint32_T
          else
             Value_Expr_Type_Raw);
 
@@ -572,7 +590,7 @@ package body Range_Check is
         (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
               Typecast_If_Necessary
            (Expr           => Value_Expr,
-            New_Type       => Int32_T,
+            New_Type       => Uint32_T,
             A_Symbol_Table => Global_Symbol_Table)
          else
             Value_Expr);
