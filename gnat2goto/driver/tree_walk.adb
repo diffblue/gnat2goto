@@ -4079,24 +4079,64 @@ package body Tree_Walk is
               when N_Op_Lt => Make_Op_Lt'Access,
               when others => Make_Unsupported_Op'Access);
 
-         LHS : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
-                                           Global_Symbol_Table);
-         RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
-                                           Global_Symbol_Table);
+         LHS_Raw : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
+                                               Global_Symbol_Table);
+         RHS_Raw : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
+                                               Global_Symbol_Table);
 
-         --  Guard against LHS not having a type
-         Tgt : constant Irep :=
-           (if Kind (Get_Type (LHS)) in Class_Type then
-                 Get_Type (LHS)
+         --  For All basic operators the LHS and RHS I_Types
+         --  should be the same.
+         --  An Irep operand may be a pointer type, e.g., if it is
+         --  an indexed component, so the I_Type should be obtained
+         --  from the Ada type
+         LHS_Type_Pre_1 : constant Irep :=
+           Do_Type_Reference (Etype (Left_Opnd (N)));
+         RHS_Type_Pre_1 : constant Irep :=
+           Do_Type_Reference (Etype (Right_Opnd (N)));
+
+         LHS_Type_Pre_2 : constant Irep :=
+           (if Kind (Follow_Symbol_Type (LHS_Type_Pre_1, Global_Symbol_Table))
+            = I_C_Enum_Type
+            then
+                 Uint32_T
             else
-               Ret_Type);
+               LHS_Type_Pre_1);
+
+         RHS_Type_Pre_2 : constant Irep :=
+           (if Kind (Follow_Symbol_Type (RHS_Type_Pre_1, Global_Symbol_Table))
+            = I_C_Enum_Type then
+                 Uint32_T
+            else
+               RHS_Type_Pre_1);
+
+         --  If one of the operands is a literal the I_Types might
+         --  not be the same
+         LHS_Type_Unbounded : constant Irep :=
+           Make_Corresponding_Unbounded_Type (LHS_Type_Pre_2);
+         RHS_Type_Unbounded : constant Irep :=
+           Make_Corresponding_Unbounded_Type (RHS_Type_Pre_2);
+
+         --  The width may not be the same.
+         Tgt_Type           : constant Irep :=
+           (if Kind (LHS_Type_Unbounded) in Class_Bitvector_Type and then
+            Get_Width (RHS_Type_Unbounded) > Get_Width (LHS_Type_Unbounded)
+            then
+               RHS_Type_Unbounded
+            else
+               LHS_Type_Unbounded);
+
+         LHS                : constant Irep :=
+           Typecast_If_Necessary
+             (LHS_Raw, Tgt_Type, Global_Symbol_Table);
+         RHS                : constant Irep :=
+           Typecast_If_Necessary
+             (RHS_Raw, Tgt_Type, Global_Symbol_Table);
 
          --  Start of processing for Do_Operator_Simple
 
          Unchecked_Result : constant Irep := Make_Binary_Operation
               (Lhs => LHS,
-               Rhs => Typecast_If_Necessary
-                 (RHS, Tgt, Global_Symbol_Table),
+               Rhs => RHS,
                I_Type => Ret_Type,
                Overflow_Check => Do_Overflow_Check (N),
                Source_Location => Get_Source_Location (N));

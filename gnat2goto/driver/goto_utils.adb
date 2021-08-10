@@ -396,11 +396,9 @@ package body GOTO_Utils is
          others => <>);
    begin
       if A_Symbol_Table.Contains (Key => Name_Id) then
-         Put_Line (Standard_Error,
-                   "----------At: New_Parameter_Symbol_Entry----------");
-         Put_Line (Standard_Error,
-                   "----------Trying to create known symbol.----------");
-         Put_Line (Standard_Error, "----------" & BaseName & "----------");
+         Put_Line ("----------At: New_Parameter_Symbol_Entry----------");
+         Put_Line ("----------Trying to create known symbol " &
+                     BaseName & "----------");
       else
          A_Symbol_Table.Insert (Name_Id, New_Symbol);
       end if;
