@@ -125,11 +125,13 @@ package body Arrays.Low_Level is
 
       function Is_Bounded (Arr_Type : Irep) return Boolean;
       function Is_Bounded (Arr_Type : Irep) return Boolean is
-         Arr_Type_Kind : constant Irep_Kind := Kind (Arr_Type);
+         Base_I_Type   : constant Irep :=
+           Get_Base_I_Type (Arr_Type, Global_Symbol_Table);
+         Base_Type_Kind : constant Irep_Kind := Kind (Base_I_Type);
       begin
          return
-           Arr_Type_Kind = I_Struct_Type and then
-           Get_Tag (Arr_Type) = Array_Struc_Tag;
+           Base_Type_Kind = I_Struct_Type and then
+           Get_Tag (Base_I_Type) = Array_Struc_Tag;
       end Is_Bounded;
 
    begin
@@ -1052,12 +1054,7 @@ package body Arrays.Low_Level is
       N_Kind           : constant Node_Kind := Nkind (Array_Node);
       N_Entity         : constant Entity_Id :=
         (if N_Kind = N_Attribute_Reference then
-            (if Get_Attribute_Id (Attribute_Name (Array_Node)) =
-                Attribute_Image
-            then
-               Standard_String
-            else
-               Types.Empty)
+            Etype (Array_Node)
          elsif N_Kind = N_Defining_Identifier then
               Array_Node
          elsif N_Kind in N_Has_Entity then
@@ -1066,7 +1063,6 @@ package body Arrays.Low_Level is
             Etype (Array_Node)
          else
             Defining_Identifier (Array_Node));
-      pragma Assert (Present (N_Entity));
 
       Pre_1_Array_Type : constant Entity_Id :=
         (if Is_Type (N_Entity) then
@@ -1265,7 +1261,9 @@ package body Arrays.Low_Level is
                   Message  => "Not getting ponter from A_Pointer_To_Elem");
             end if;
          when A_Bounded =>
-            if Kind (Get_Type (The_Array)) /= I_Struct_Type then
+            if Kind (Get_Base_I_Type (The_Array, Global_Symbol_Table)) /=
+              I_Struct_Type
+            then
                Report_Unhandled_Node_Empty
                  (N        => Types.Empty,
                   Fun_Name => "Get_Pointer_To_Array",
@@ -1285,7 +1283,7 @@ package body Arrays.Low_Level is
                          Source_Location => Source_Location,
                          I_Type          =>
                            Make_Pointer_Type (Make_Void_Type))))
-              /= I_Struct_Type
+              /= I_Struct_Tag_Type
             then
                Report_Unhandled_Node_Empty
               (N        => Types.Empty,
@@ -1343,7 +1341,8 @@ package body Arrays.Low_Level is
                                    return Dimension_Bounds
    is
       Source_Location : constant Irep := Get_Source_Location (Array_Struc);
-      Unconstr_I_Type : constant Irep := Get_Type (Array_Struc);
+      Unconstr_I_Type : constant Irep :=
+        Get_Base_I_Type (Array_Struc, Global_Symbol_Table);
       Comp_List  : constant Irep_List :=
         Get_Component (Get_Components (Unconstr_I_Type));
       List_Cur        : constant List_Cursor := List_First (Comp_List);
@@ -1961,7 +1960,8 @@ package body Arrays.Low_Level is
    is
       Source_Location : constant Irep :=
         Get_Source_Location (Array_Struc);
-      Unconstr_I_Type : constant Irep := Get_Type (Array_Struc);
+      Unconstr_I_Type : constant Irep :=
+        Get_Base_I_Type (Array_Struc, Global_Symbol_Table);
       Comp_List  : constant Irep_List :=
         Get_Component (Get_Components (Unconstr_I_Type));
       List_Cur   : constant List_Cursor := List_First (Comp_List);

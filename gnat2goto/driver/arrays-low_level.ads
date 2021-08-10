@@ -249,11 +249,11 @@ package Arrays.Low_Level is
    function Flat_Bounds_From_Array_Struc (Array_Struc  : Irep;
                                           N_Dimensions : Pos)
                                           return Static_And_Dynamic_Bounds
-     with Pre => Kind (Get_Type (Array_Struc)) = I_Struct_Type;
+     with Pre => Kind (Get_Type (Array_Struc)) = I_Struct_Tag_Type;
 
    function Get_Array_From_Struc (Array_Struc : Irep;
                                   Comp_Type   : Irep) return Irep
-     with Pre  => Kind (Get_Type (Array_Struc)) = I_Struct_Type and
+     with Pre  => Kind (Get_Type (Array_Struc)) = I_Struct_Tag_Type and
                   Kind (Comp_Type) in Class_Type,
           post => Kind (Get_Type (Get_Array_From_Struc'Result)) =
                   I_Pointer_Type;
@@ -267,7 +267,7 @@ package Arrays.Low_Level is
 
    function Get_Bounds_From_Struc (Array_Struc : Irep; Dimension : Pos)
                                    return Dimension_Bounds
-     with Pre => Kind (Get_Type (Array_Struc)) = I_Struct_Type;
+     with Pre => Kind (Get_Type (Array_Struc)) = I_Struct_Tag_Type;
 
    function Get_Bounds_From_Index (Index : Node_Id) return Dimension_Bounds;
    --  If the array Index is constrained, returns the lower and upper bounds of
@@ -287,7 +287,7 @@ package Arrays.Low_Level is
    function Get_Pointer_To_Array (The_Array : Irep; Comp_I_Type : Irep)
                                   return Irep
      with Pre  => Kind (Get_Type (The_Array)) in
-                     I_Array_Type | I_Pointer_Type | I_Struct_Type |
+                     I_Array_Type | I_Pointer_Type | I_Struct_Tag_Type |
                      I_String_Type,
        Post => Kind (Get_Type (Get_Pointer_To_Array'Result)) =
                                                              I_Pointer_Type;
@@ -297,7 +297,7 @@ package Arrays.Low_Level is
    function Get_Size_From_Array_Struc (Array_Struc  : Irep;
                                        N_Dimensions : Pos) return Irep
      with Pre => Kind (Array_Struc) in Class_Expr and then
-     Kind (Get_Type (Array_Struc)) = I_Struct_Type;
+     Kind (Get_Type (Array_Struc)) = I_Struct_Tag_Type;
 
    procedure Init_Array_Struc (Block       : Irep;
                                Array_Struc : Irep;
@@ -305,7 +305,7 @@ package Arrays.Low_Level is
                                Location    : Irep;
                                Bounds      : Bounds_Array)
      with Pre => Kind (Array_Struc) in Class_Expr and
-                 Kind (Get_Type (Array_Struc)) = I_Struct_Type and
+                 Kind (Get_Type (Array_Struc)) = I_Struct_Tag_Type and
                  Kind (Get_Type (Array_Ptr)) = I_Pointer_Type and
                  Bounds'Length > 1 and Bounds'Length mod 2 = 0 and
                  Bounds'First = 0;

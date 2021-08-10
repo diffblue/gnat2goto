@@ -728,7 +728,8 @@ package body Arrays is
                else
                   Src_Irep_Pre);
             --  Determine the I_Type of the bounds array
-            Src_I_Type : constant Irep := Get_Type (Src_Irep);
+            Src_I_Type : constant Irep :=
+              Get_Base_I_Type (Src_Irep, Global_Symbol_Table);
          begin
             if Is_Unconstrained_Array_Result (Src_Irep) then
                declare

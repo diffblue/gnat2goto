@@ -271,6 +271,12 @@ package GOTO_Utils is
    --  to the same type as Model if the width of Model is greater than
    --  the width of May_Be_Cast.  Otherwise May_Be_Cast is returned unchanged.
 
+   function Get_Base_I_Type (I : Irep;
+                             A_Symbol_Table : Symbol_Table) return Irep;
+   --  Variables representing a structure or enum type are given a struc_tag
+   --  enum_tag type.  Sometimes the corresponding actual type is required.
+   --  This function obtains the actual (aka base_I_Type) of the vaariable.
+
    function Make_Corresponding_Unbounded_Type (I_Type : Irep) return Irep
    with Pre => Kind (I_Type) in Class_Type;
    --  If I_Type is a boundedbv type returns the corresponding

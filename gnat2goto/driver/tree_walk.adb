@@ -4730,7 +4730,7 @@ package body Tree_Walk is
             --  The result variable is declared when the subprogram
             --  specification is processed
             if Is_Array_Type (Return_Type) and then
-              Kind (Return_I_Type) = I_Struct_Type and then
+              Kind (Return_I_Type) = I_Struct_Tag_Type and then
               not Is_Bounded_Array (Do_Expression (Return_Expr))
             then
                --  It is an unconstrained array result type
@@ -5563,6 +5563,7 @@ package body Tree_Walk is
       --  because the type might be an gnat Itype which has not been entered
       --  into the symbol table yet.
       Type_Irep : Irep;
+      Type_Kind : Irep_Kind;
       use Symbol_Maps;
       In_Table    : Cursor;
    begin
@@ -5575,14 +5576,21 @@ package body Tree_Walk is
       In_Table := Find (Global_Symbol_Table, Type_Id);
       if In_Table /= No_Element then
          Type_Irep := Element (In_Table).SymType;
+         Type_Kind := Kind (Type_Irep);
 
-         if Kind (Type_Irep) not in Class_Type then
+         if Type_Kind not in Class_Type then
             return Report_Unhandled_Node_Type
               (E, "Do_Type_Reference",
                "Expected I_Type found " &
-                 Irep_Kind'Image (Kind (Type_Irep)));
+                 Irep_Kind'Image (Type_Kind));
          else
-            return Type_Irep;
+            return
+              (if Type_Kind = I_Struct_Type then
+               --  I_Struct_Types should not appear in the goto code.
+               --  The coresponding I_Struct_Tag_Type should be used.
+                  Make_Struct_Tag_Type (Type_Name)
+               else
+                  Type_Irep);
          end if;
       end if;
       --

@@ -1123,6 +1123,8 @@ package body GOTO_Utils is
            Ada.Strings.Fixed.Trim (Get_Width (Type_Irep)'Image,
                                    Ada.Strings.Left);
          --  The trim is for a lead space where the sign would be.
+      elsif Type_Kind = I_Struct_Tag_Type then
+         return Id (Type_Irep) & "_" & Get_Identifier (Type_Irep);
       elsif Type_Kind = I_Struct_Type or
         Type_Kind = I_Union_Type or
         Type_Kind = I_Class_Type
@@ -1177,6 +1179,22 @@ package body GOTO_Utils is
          else
             May_Be_Cast);
    end Cast_To_Max_Width;
+
+   function Get_Base_I_Type (I : Irep;
+                             A_Symbol_Table : Symbol_Table) return Irep is
+      I_Type      : constant Irep :=
+        (if Kind (I) in Class_Type then
+              I
+         else
+            Get_Type (I));
+      I_Type_Kind : constant Irep_Kind := Kind (I_Type);
+   begin
+      return
+        (if I_Type_Kind = I_Struct_Tag_Type then
+           (A_Symbol_Table (Intern (Get_Identifier (I_Type))).SymType)
+            else
+            I_Type);
+   end Get_Base_I_Type;
 
    function Make_Corresponding_Unbounded_Type (I_Type : Irep) return Irep is
       I_Kind : constant Irep_Kind := Kind (I_Type);
