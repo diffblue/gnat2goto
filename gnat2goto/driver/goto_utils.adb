@@ -1123,7 +1123,7 @@ package body GOTO_Utils is
            Ada.Strings.Fixed.Trim (Get_Width (Type_Irep)'Image,
                                    Ada.Strings.Left);
          --  The trim is for a lead space where the sign would be.
-      elsif Type_Kind = I_Struct_Tag_Type then
+      elsif Type_Kind in Class_Tag_Type then
          return Id (Type_Irep) & "_" & Get_Identifier (Type_Irep);
       elsif Type_Kind = I_Struct_Type or
         Type_Kind = I_Union_Type or
@@ -1193,7 +1193,7 @@ package body GOTO_Utils is
       I_Type_Kind : constant Irep_Kind := Kind (I_Type);
    begin
       return
-        (if I_Type_Kind = I_Struct_Tag_Type then
+        (if I_Type_Kind in I_Struct_Tag_Type | I_Union_Tag_Type then
            (A_Symbol_Table (Intern (Get_Identifier (I_Type))).SymType)
             else
             I_Type);

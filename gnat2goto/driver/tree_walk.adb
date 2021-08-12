@@ -5590,6 +5590,8 @@ package body Tree_Walk is
                --  I_Struct_Types should not appear in the goto code.
                --  The coresponding I_Struct_Tag_Type should be used.
                   Make_Struct_Tag_Type (Type_Name)
+               elsif Type_Kind = I_Union_Type then
+                  Make_Union_Tag_Type (Type_Name)
                else
                   Type_Irep);
          end if;

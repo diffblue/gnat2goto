@@ -8,6 +8,9 @@ with Uintp;                 use Uintp;
 
 package GOTO_Utils is
 
+   subtype Class_Tag_Type is Irep_Kind range
+     I_C_Enum_Tag_Type .. I_Union_Tag_Type;
+
    type Irep_Array is array (Integer range <>) of Irep;
 
    function CProver_Size_T return Irep;
