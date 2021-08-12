@@ -173,6 +173,11 @@ Calling function: Do_Expression
 Error message: ATTRIBUTE_INTEGER_VALUE unsupported
 Nkind: N_Attribute_Reference
 --
+Occurs: 14 times
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
+Nkind: N_Attribute_Reference
+--
 Occurs: 12 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind E_PRIVATE_SUBTYPE
@@ -257,11 +262,6 @@ Occurs: 3 times
 Redacted compiler error message:
 generic parameter "REDACTED" is missing from input dependence list
 Raw compiler error message:
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure arrays-low_level.adb:1069              |
-Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+

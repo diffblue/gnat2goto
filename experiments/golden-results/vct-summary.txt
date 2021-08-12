@@ -18,11 +18,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: export_procedure
 Nkind: N_Pragma
 --
-Occurs: 136 times
-Calling function: Do_Expression
-Error message: ATTRIBUTE_VALID unsupported
-Nkind: N_Attribute_Reference
---
 Occurs: 134 times
 Calling function: Do_Expression
 Error message: Attribute_Value is unsupported
@@ -379,6 +374,11 @@ Error message: Unknown pragma: stream_convert
 Nkind: N_Pragma
 --
 Occurs: 2 times
+Calling function: Convert_Ureal_To_Binary_IEEE
+Error message: Negative exponents are unsupported.
+Nkind: 
+--
+Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_REMAINDER unsupported
 Nkind: N_Attribute_Reference
@@ -387,6 +387,11 @@ Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_SCALING unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_REMAINDER unsupported
+Nkind: 8388608.0*2**(-172)8388608.0*2**(-172)N_Attribute_Reference
 --
 Occurs: 1 times
 Calling function: Do_Expression
@@ -448,22 +453,7 @@ Occurs: 1 times
 | GNU Ada (ada2goto) Assert_Failure einfo.adb:1397                         |
 Error detected at REDACTED
 --
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) exception ureal_to_binary.adb:258                     |
-Error detected at REDACTED
---
 Occurs: 2 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : einfo.adb:1397
-
---
-Occurs: 1 times
-<========================>
-raised UREAL_TO_BINARY.NEGATIVE_EXPONENT : ureal_to_binary.adb:258
 

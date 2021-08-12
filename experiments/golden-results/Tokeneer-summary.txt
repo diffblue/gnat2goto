@@ -18,7 +18,7 @@ Calling function: Get_Dimension_Bounds
 Error message: Unhandled node sort
 Nkind: N_Defining_Identifier
 --
-Occurs: 80 times
+Occurs: 81 times
 Calling function: Do_Expression
 Error message: Attribute_Value is unsupported
 Nkind: N_Attribute_Reference
@@ -48,7 +48,7 @@ Calling function: Do_Expression
 Error message: Attribute Image is unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 38 times
+Occurs: 39 times
 Calling function: Multi_Dimension_Flat_Bounds
 Error message: The attribute Image is unsupported
 Nkind: N_Attribute_Reference
@@ -58,15 +58,20 @@ Calling function: Do_Object_Declaration
 Error message: Record definition of wrong nkind
 Nkind: N_Object_Declaration
 --
-Occurs: 27 times
+Occurs: 28 times
 Calling function: Multi_Dimension_Flat_Bounds
 Error message: Unsupported array node kind
 Nkind: 
 --
-Occurs: 27 times
+Occurs: 28 times
 Calling function: Process_Catination
 Error message: Unconstrained array expressions in concatinations are unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 27 times
+Calling function: Process_Catination
+Error message: Unconstrained array expressions in concatinations are unsupported
+Nkind: N_Function_Call
 --
 Occurs: 26 times
 Calling function: Process_Pragma_Declaration
@@ -152,11 +157,6 @@ Occurs: 8 times
 Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Subtype_Declaration
---
-Occurs: 6 times
-Calling function: Process_Catination
-Error message: Unconstrained array expressions in concatinations are unsupported
-Nkind: N_Function_Call
 --
 Occurs: 6 times
 Calling function: Update_Array_From_Aggregate
@@ -277,6 +277,16 @@ Occurs: 1 times
 Calling function: Do_Type_Reference
 Error message: Unexpected node kind N_PROTECTED_TYPE_DECLARATION
 Nkind: N_Protected_Type_Declaration
+--
+Occurs: 1 times
+Calling function: Follow_Symbol_Type
+Error message: Type of symbol spre_interface__tisstateT not found
+Nkind: [build.sh]
+--
+Occurs: 1 times
+Calling function: Follow_Symbol_Type
+Error message: Type of symbol tcpip__sim__monitornonadminconnectionsTK not found
+Nkind: 
 --
 Occurs: 1 times
 Calling function: Process_Declaration
@@ -1307,13 +1317,3 @@ Occurs: 1 times
 Redacted compiler error message:
 range must be preceded by subtype mark
 Raw compiler error message:
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure range_check.adb:469                    |
-Error detected at REDACTED
---
-Occurs: 3 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : range_check.adb:469
-
