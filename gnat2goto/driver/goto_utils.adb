@@ -1185,8 +1185,11 @@ package body GOTO_Utils is
       I_Type      : constant Irep :=
         (if Kind (I) in Class_Type then
               I
+         elsif Kind (I) in Class_Expr
+         then
+            Get_Type (I)
          else
-            Get_Type (I));
+            I);
       I_Type_Kind : constant Irep_Kind := Kind (I_Type);
    begin
       return

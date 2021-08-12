@@ -4119,6 +4119,7 @@ package body Tree_Walk is
          --  The width may not be the same.
          Tgt_Type           : constant Irep :=
            (if Kind (LHS_Type_Unbounded) in Class_Bitvector_Type and then
+            Kind (RHS_Type_Unbounded) in Class_Bitvector_Type and then
             Get_Width (RHS_Type_Unbounded) > Get_Width (LHS_Type_Unbounded)
             then
                RHS_Type_Unbounded

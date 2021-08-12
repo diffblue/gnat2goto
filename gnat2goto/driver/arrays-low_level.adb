@@ -1054,7 +1054,12 @@ package body Arrays.Low_Level is
       N_Kind           : constant Node_Kind := Nkind (Array_Node);
       N_Entity         : constant Entity_Id :=
         (if N_Kind = N_Attribute_Reference then
-            Etype (Array_Node)
+           (if Get_Attribute_Id (Attribute_Name (Array_Node)) =
+                Attribute_Image
+            then
+               Standard_String
+            else
+               Etype (Array_Node))
          elsif N_Kind = N_Defining_Identifier then
               Array_Node
          elsif N_Kind in N_Has_Entity then
@@ -1064,13 +1069,13 @@ package body Arrays.Low_Level is
          else
             Defining_Identifier (Array_Node));
 
-      Pre_1_Array_Type : constant Entity_Id :=
+      Pre_1_Array_Type  : constant Entity_Id :=
         (if Is_Type (N_Entity) then
               N_Entity
          else
             Etype (N_Entity));
       Pre_2_Array_Type : constant Entity_Id :=
-        (if Is_Access_Type (Pre_1_Array_Type)  then
+        (if Is_Access_Type (Pre_1_Array_Type) then
               Designated_Type (Pre_1_Array_Type)
          else
             Pre_1_Array_Type);
