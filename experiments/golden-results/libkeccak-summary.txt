@@ -1,4 +1,4 @@
-Occurs: 696 times
+Occurs: 708 times
 Calling function: Get_Bound
 Error message: Unsupported range type
 Nkind: N_Type_Conversion
@@ -8,12 +8,12 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 348 times
+Occurs: 354 times
 Calling function: Make_Range_Assert_Expr
 Error message: Kind of Bounds_Type not supported
 Nkind: N_Type_Conversion
 --
-Occurs: 344 times
+Occurs: 353 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
 Nkind: N_Derived_Type_Definition
@@ -23,35 +23,35 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: depends
 Nkind: N_Pragma
 --
-Occurs: 111 times
-Calling function: Do_Type_Reference
-Error message: Expected I_Type found I_NIL
-Nkind: N_Defining_Identifier
---
 Occurs: 109 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
+--
+Occurs: 105 times
+Calling function: Do_Type_Reference
+Error message: Expected I_Type found I_NIL
+Nkind: N_Defining_Identifier
 --
 Occurs: 91 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
 Nkind: N_Op_Expon
 --
+Occurs: 86 times
+Calling function: Computed_Size
+Error message: Entity does not have ASVAT model size
+Nkind: N_Defining_Identifier
+--
 Occurs: 74 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: contract_cases
 Nkind: N_Pragma
 --
-Occurs: 60 times
+Occurs: 62 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Extension_Aggregate
---
-Occurs: 56 times
-Calling function: Do_Expression
-Error message: First of string unsupported
-Nkind: N_Attribute_Reference
 --
 Occurs: 52 times
 Calling function: Process_Pragma_Declaration
@@ -64,11 +64,6 @@ Error message: Unknown pragma name: loop_variant
 Nkind: N_Pragma
 --
 Occurs: 42 times
-Calling function: Do_Expression
-Error message: Last of string unsupported
-Nkind: N_Attribute_Reference
---
-Occurs: 42 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
@@ -77,6 +72,11 @@ Occurs: 40 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: export_procedure
 Nkind: N_Pragma
+--
+Occurs: 32 times
+Calling function: Add_Record_Component
+Error message: Unconstrained array (sub)type components are unsupported
+Nkind: N_Component_Declaration
 --
 Occurs: 32 times
 Calling function: Process_Declaration
@@ -88,45 +88,40 @@ Calling function: Process_Declaration
 Error message: Representation clause unsupported: write
 Nkind: N_Attribute_Definition_Clause
 --
+Occurs: 31 times
+Calling function: Do_Record_Component
+Error message: Wrong component nkind
+Nkind: N_Pragma
+--
+Occurs: 31 times
+Calling function: Process_Declaration
+Error message: Representation clause unsupported: storage_size
+Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 31 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: finalize_storage_only
+Nkind: N_Pragma
+--
+Occurs: 31 times
+Calling function: Process_Pragma_Declaration
+Error message: Unknown pragma: stream_convert
+Nkind: N_Pragma
+--
 Occurs: 30 times
 Calling function: Do_Object_Declaration
 Error message: Record definition of wrong nkind
 Nkind: N_Object_Declaration
 --
 Occurs: 30 times
-Calling function: Do_Record_Component
-Error message: Wrong component nkind
-Nkind: N_Pragma
---
-Occurs: 30 times
 Calling function: Process_Declaration
 Error message: Enumeration representation clauses are unsupported
 Nkind: N_Enumeration_Representation_Clause
---
-Occurs: 30 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: storage_size
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 30 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: finalize_storage_only
-Nkind: N_Pragma
---
-Occurs: 30 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: stream_convert
-Nkind: N_Pragma
 --
 Occurs: 29 times
 Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
---
-Occurs: 28 times
-Calling function: Do_Slice
-Error message: Slices of strings are unsupported
-Nkind: N_Slice
 --
 Occurs: 27 times
 Calling function: Do_Expression
@@ -134,14 +129,24 @@ Error message: Unknown expression kind
 Nkind: N_Allocator
 --
 Occurs: 23 times
-Calling function: Do_Operator_General
-Error message: Concat unsupported
+Calling function: Do_Array_Concatination
+Error message: Array concatitination operator currenly unsupported
 Nkind: N_Op_Concat
 --
 Occurs: 23 times
 Calling function: Do_Procedure_Call_Statement
 Error message: sym id not in symbol table
 Nkind: N_Procedure_Call_Statement
+--
+Occurs: 23 times
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
+Nkind: N_Defining_Identifier
+--
+Occurs: 18 times
+Calling function: Do_Array_Assignment_Op
+Error message: Assignment expression cannot be unconstrained
+Nkind: N_Aggregate
 --
 Occurs: 17 times
 Calling function: Do_Expression
@@ -169,9 +174,9 @@ Error message: ATTRIBUTE_INTEGER_VALUE unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 14 times
-Calling function: Do_Expression
-Error message: Index of string unsupported
-Nkind: N_Indexed_Component
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
+Nkind: N_Attribute_Reference
 --
 Occurs: 12 times
 Calling function: Do_Itype_Definition
@@ -182,16 +187,6 @@ Occurs: 12 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Validate_Unchecked_Conversion
---
-Occurs: 10 times
-Calling function: Do_Aggregate_Literal_Array
-Error message: Array aggregates of type string are unsupported
-Nkind: N_Aggregate
---
-Occurs: 10 times
-Calling function: Do_Aggregate_Literal_Array_Main
-Error message: Unsupported Others for component node
-Nkind: N_Aggregate
 --
 Occurs: 9 times
 Calling function: Do_Type_Definition
@@ -208,10 +203,55 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: volatile_function
 Nkind: N_Pragma
 --
+Occurs: 3 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_1600__rounds_24__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_100__rounds_16__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_1600__rounds_12__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_200__rounds_18__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_25__rounds_12__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_400__rounds_20__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_50__rounds_14__sponge__squeeze__digest is unsupported
+Nkind: 
+--
+Occurs: 2 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__keccak_800__rounds_22__sponge__squeeze__digest is unsupported
+Nkind: 
+--
 Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_OUTPUT unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 1 times
+Calling function: Assign_Array
+Error message: Assignment to an unconstrained array object keccak__padding__pad101_multi_blocks__next_block is unsupported
+Nkind: 
 --
 Occurs: 1 times
 Calling function: Process_Statement
@@ -375,15 +415,5 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure sinfo.adb:3253                         |
+| GNU Ada (ada2goto) Assert_Failure sinfo.adb:1183                         |
 Error detected at REDACTED
---
-Occurs: 28 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from arrays.ads:57
-
---
-Occurs: 14 times
-<========================>
-raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : tree_walk.adb:758
-

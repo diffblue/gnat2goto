@@ -2,10 +2,14 @@ with Ireps;             use Ireps;
 with Types;             use Types;
 with Atree;             use Atree;
 with Sinfo;             use Sinfo;
+with Einfo;             use Einfo;
 with Symbol_Table_Info; use Symbol_Table_Info;
 with Uintp;                 use Uintp;
 
 package GOTO_Utils is
+
+   subtype Class_Tag_Type is Irep_Kind range
+     I_C_Enum_Tag_Type .. I_Union_Tag_Type;
 
    type Irep_Array is array (Integer range <>) of Irep;
 
@@ -82,9 +86,9 @@ package GOTO_Utils is
       Member_Name : Symbol_Id; Base_Name : Symbol_Id; Enum_Type : Irep;
       Value_Expr : Irep; A_Symbol_Table : in out Symbol_Table);
 
-   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
-                                         BaseName :              String;
-                                         Symbol_Type :           Irep;
+   procedure New_Parameter_Symbol_Entry (Name_Id        :        Symbol_Id;
+                                         BaseName       :        String;
+                                         Symbol_Type    :        Irep;
                                          A_Symbol_Table : in out Symbol_Table)
      with Pre => Kind (Symbol_Type) in Class_Type | I_Address_Of_Expr;
 
@@ -219,6 +223,9 @@ package GOTO_Utils is
                               A_Symbol_Table : in out Symbol_Table)
                               return Irep;
    function Get_Int32_T_Zero return Irep;
+   function Get_Int64_T_Zero return Irep;
+   function Get_Int32_T_One return Irep;
+   function Get_Int64_T_One return Irep;
    function Get_Ada_Check_Symbol (Name : String;
                                   A_Symbol_Table : in out Symbol_Table;
                                   Source_Loc : Irep)
@@ -249,5 +256,39 @@ package GOTO_Utils is
    --  Useful for creating multiple, type specific, versions of a function.
    function Type_To_String (Type_Irep : Irep) return String
      with Pre => Kind (Type_Irep) in Class_Type;
+
+   function Non_Private_Ekind (E : Entity_Id) return Entity_Kind;
+   --  If Ekind (E) is not in E_Incomplete_Or_Private_Kind, returns Ekind (E),
+   --  otherwise recurses through private type entities until the entity of the
+   --  full type is located and returns Ekind (full type).
+
+   function Non_Private_Type (E : Entity_Id) return Entity_Id;
+   --  If Ekind (E) is not in E_Incomplete_Or_Private_Kind, returns E,
+   --  otherwise recurses through private type declarations until a full type
+   --  declaration is encountered then Etype (full type) is returned.
+
+   function Cast_To_Max_Width (May_Be_Cast, Model : Irep) return Irep
+   with Pre => Kind (May_Be_Cast) in Class_Expr;
+   --  If May_Be_Cast is a bit vector type, then Model must be a bit vector
+   --  type of the same kind.  When this is true May_Be_Cast will be cast
+   --  to the same type as Model if the width of Model is greater than
+   --  the width of May_Be_Cast.  Otherwise May_Be_Cast is returned unchanged.
+
+   function Get_Base_I_Type (I : Irep;
+                             A_Symbol_Table : Symbol_Table) return Irep;
+   --  Variables representing a structure or enum type are given a struc_tag
+   --  enum_tag type.  Sometimes the corresponding actual type is required.
+   --  This function obtains the actual (aka base_I_Type) of the vaariable.
+
+   function Make_Corresponding_Unbounded_Type (I_Type : Irep) return Irep
+   with Pre => Kind (I_Type) in Class_Type;
+   --  If I_Type is a boundedbv type returns the corresponding
+   --  unbounded bv type with the same width.  Otherwise returns I_Type.
+
+   function Strip_Irep_Bounds (I_Expr : Irep) return Irep
+   with Pre => Kind (I_Expr) in Class_Expr;
+   --  If I is of a boundedbv type returns the value of I
+   --  Typecast to the corresponding unbounded bv type with the same width.
+   --  Otherwise returns I.
 
 end GOTO_Utils;

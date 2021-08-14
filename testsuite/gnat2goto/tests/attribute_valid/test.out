@@ -1,0 +1,9 @@
+Standard_Error from gnat2goto attribute_valid:
+attribute_valid.adb:22:28: warning: value not in range of type "Valid_Action_Types" defined at line 3
+attribute_valid.adb:22:28: warning: "Constraint_Error" will be raised at run time
+
+[attribute_valid.assertion.1] line 20 assertion Result: SUCCESS
+[attribute_valid.assertion.2] line 23 assertion not Result: SUCCESS
+[check_action.assertion.1] line 9 assertion A in Valid_Action_Types: SUCCESS
+[check_action.assertion.2] line 12 assertion A in Valid_Action_Types: FAILURE
+VERIFICATION FAILED

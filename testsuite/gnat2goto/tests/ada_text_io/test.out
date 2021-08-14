@@ -1,0 +1,479 @@
+Standard_Output from gnat2goto bug:
+----------At: Process_Declaration----------
+----------Representation clause unsupported: read----------
+N_Attribute_Definition_Clause "read" (Node_Id=4897) (source,analyzed)
+ Sloc = 45223  a-stream.ads:84:4
+ Chars = "read" (Name_Id=300000954)
+ Name = N_Identifier "stream_element_array" (Node_Id=4894)
+ Expression = N_Identifier "read_sea" (Node_Id=4898)
+ Entity = N_Defining_Identifier "stream_element_arraySR" (Entity_Id=10834)
+----------At: Process_Declaration----------
+----------Representation clause unsupported: write----------
+N_Attribute_Definition_Clause "write" (Node_Id=4903) (source,analyzed)
+ Sloc = 45270  a-stream.ads:85:4
+ Chars = "write" (Name_Id=300000955)
+ Name = N_Identifier "stream_element_array" (Node_Id=4900)
+ Expression = N_Identifier "write_sea" (Node_Id=4904)
+ Entity = N_Defining_Identifier "stream_element_arraySW" (Entity_Id=10906)
+ Next_Rep_Item = N_Attribute_Definition_Clause "read" (Node_Id=4897)
+----------At: Process_Declaration----------
+----------Enumeration representation clauses are unsupported----------
+N_Enumeration_Representation_Clause (Node_Id=8648) (source,analyzed)
+ Sloc = 89849  s-crtl.ads:73:4
+ Identifier = N_Identifier "filename_encoding" (Node_Id=8647)
+ Array_Aggregate = N_Aggregate (Node_Id=8650)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8762) (source,analyzed)
+ Sloc = 90670  s-crtl.ads:96:4
+ Pragma_Argument_Associations = List (List_Id=-99999259)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8763)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8788) (source,analyzed)
+ Sloc = 90747  s-crtl.ads:99:4
+ Pragma_Argument_Associations = List (List_Id=-99999255)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8789)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8815) (source,analyzed)
+ Sloc = 90836  s-crtl.ads:102:4
+ Pragma_Argument_Associations = List (List_Id=-99999251)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8816)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8850) (source,analyzed)
+ Sloc = 90917  s-crtl.ads:105:4
+ Pragma_Argument_Associations = List (List_Id=-99999247)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8851)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8877) (source,analyzed)
+ Sloc = 91002  s-crtl.ads:108:4
+ Pragma_Argument_Associations = List (List_Id=-99999243)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8878)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8913) (source,analyzed)
+ Sloc = 91105  s-crtl.ads:111:4
+ Pragma_Argument_Associations = List (List_Id=-99999239)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8914)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8940) (source,analyzed)
+ Sloc = 91194  s-crtl.ads:114:4
+ Pragma_Argument_Associations = List (List_Id=-99999235)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8941)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8967) (source,analyzed)
+ Sloc = 91282  s-crtl.ads:117:4
+ Pragma_Argument_Associations = List (List_Id=-99999231)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8968)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9012) (source,analyzed)
+ Sloc = 91394  s-crtl.ads:120:4
+ Pragma_Argument_Associations = List (List_Id=-99999227)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9013)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9058) (source,analyzed)
+ Sloc = 91564  s-crtl.ads:126:4
+ Pragma_Argument_Associations = List (List_Id=-99999223)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9059)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9094) (source,analyzed)
+ Sloc = 91666  s-crtl.ads:129:4
+ Pragma_Argument_Associations = List (List_Id=-99999219)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9095)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9130) (source,analyzed)
+ Sloc = 91762  s-crtl.ads:132:4
+ Pragma_Argument_Associations = List (List_Id=-99999215)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9131)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9166) (source,analyzed)
+ Sloc = 91872  s-crtl.ads:135:4
+ Pragma_Argument_Associations = List (List_Id=-99999211)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9167)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9194) (source,analyzed)
+ Sloc = 91953  s-crtl.ads:138:4
+ Pragma_Argument_Associations = List (List_Id=-99999207)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9195)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9249) (source,analyzed)
+ Sloc = 92147  s-crtl.ads:145:4
+ Pragma_Argument_Associations = List (List_Id=-99999203)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9250)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9294) (source,analyzed)
+ Sloc = 92290  s-crtl.ads:151:4
+ Pragma_Argument_Associations = List (List_Id=-99999199)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9295)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9339) (source,analyzed)
+ Sloc = 92425  s-crtl.ads:157:4
+ Pragma_Argument_Associations = List (List_Id=-99999195)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9340)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9366) (source,analyzed)
+ Sloc = 92523  s-crtl.ads:160:4
+ Pragma_Argument_Associations = List (List_Id=-99999191)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9367)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9393) (source,analyzed)
+ Sloc = 92613  s-crtl.ads:163:4
+ Pragma_Argument_Associations = List (List_Id=-99999187)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9394)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9422) (source,analyzed)
+ Sloc = 92718  s-crtl.ads:166:4
+ Pragma_Argument_Associations = List (List_Id=-99999183)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9423)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9449) (source,analyzed)
+ Sloc = 92805  s-crtl.ads:169:4
+ Pragma_Argument_Associations = List (List_Id=-99999179)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9450)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9494) (source,analyzed)
+ Sloc = 92922  s-crtl.ads:172:4
+ Pragma_Argument_Associations = List (List_Id=-99999175)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9495)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9523) (source,analyzed)
+ Sloc = 93019  s-crtl.ads:175:4
+ Pragma_Argument_Associations = List (List_Id=-99999171)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9524)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9571) (source,analyzed)
+ Sloc = 93136  s-crtl.ads:178:4
+ Pragma_Argument_Associations = List (List_Id=-99999167)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9572)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9619) (source,analyzed)
+ Sloc = 93254  s-crtl.ads:181:4
+ Pragma_Argument_Associations = List (List_Id=-99999163)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9620)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9645) (source,analyzed)
+ Sloc = 93337  s-crtl.ads:184:4
+ Pragma_Argument_Associations = List (List_Id=-99999159)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9646)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9674) (source,analyzed)
+ Sloc = 93435  s-crtl.ads:187:4
+ Pragma_Argument_Associations = List (List_Id=-99999155)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9675)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9715) (source,analyzed)
+ Sloc = 93550  s-crtl.ads:190:4
+ Pragma_Argument_Associations = List (List_Id=-99999151)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9716)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9755) (source,analyzed)
+ Sloc = 93675  s-crtl.ads:194:4
+ Pragma_Argument_Associations = List (List_Id=-99999147)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9756)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9781) (source,analyzed)
+ Sloc = 93756  s-crtl.ads:197:4
+ Pragma_Argument_Associations = List (List_Id=-99999143)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9782)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9808) (source,analyzed)
+ Sloc = 93847  s-crtl.ads:200:4
+ Pragma_Argument_Associations = List (List_Id=-99999139)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9809)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9835) (source,analyzed)
+ Sloc = 93943  s-crtl.ads:203:4
+ Pragma_Argument_Associations = List (List_Id=-99999135)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9836)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9872) (source,analyzed)
+ Sloc = 94095  s-crtl.ads:208:4
+ Pragma_Argument_Associations = List (List_Id=-99999131)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9873)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9926) (source,analyzed)
+ Sloc = 94260  s-crtl.ads:215:4
+ Pragma_Argument_Associations = List (List_Id=-99999127)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9927)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9952) (source,analyzed)
+ Sloc = 94338  s-crtl.ads:218:4
+ Pragma_Argument_Associations = List (List_Id=-99999123)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9953)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=9970) (source,analyzed)
+ Sloc = 94413  s-crtl.ads:221:4
+ Pragma_Argument_Associations = List (List_Id=-99999120)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=9971)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=10006) (source,analyzed)
+ Sloc = 94513  s-crtl.ads:224:4
+ Pragma_Argument_Associations = List (List_Id=-99999116)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=10007)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=10033) (source,analyzed)
+ Sloc = 94604  s-crtl.ads:227:4
+ Pragma_Argument_Associations = List (List_Id=-99999112)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=10034)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=10069) (source,analyzed)
+ Sloc = 94713  s-crtl.ads:230:4
+ Pragma_Argument_Associations = List (List_Id=-99999108)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=10070)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=10096) (source,analyzed)
+ Sloc = 94798  s-crtl.ads:233:4
+ Pragma_Argument_Associations = List (List_Id=-99999104)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=10097)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=10141) (source,analyzed)
+ Sloc = 94913  s-crtl.ads:236:4
+ Pragma_Argument_Associations = List (List_Id=-99999100)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=10142)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=10186) (source,analyzed)
+ Sloc = 95027  s-crtl.ads:239:4
+ Pragma_Argument_Associations = List (List_Id=-99999096)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=10187)
+----------At: Process_Declaration----------
+----------Enumeration representation clauses are unsupported----------
+N_Enumeration_Representation_Clause (Node_Id=8153) (source,analyzed)
+ Sloc = 78771  i-cstrea.ads:231:4
+ Identifier = N_Identifier "content_encoding" (Node_Id=8152)
+ Array_Aggregate = N_Aggregate (Node_Id=8155)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8273) (source,analyzed)
+ Sloc = 81060  i-cstrea.ads:283:4
+ Pragma_Argument_Associations = List (List_Id=-99999311)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8274)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8281) (source,analyzed)
+ Sloc = 81117  i-cstrea.ads:284:4
+ Pragma_Argument_Associations = List (List_Id=-99999310)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8282)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8289) (source,analyzed)
+ Sloc = 81186  i-cstrea.ads:286:4
+ Pragma_Argument_Associations = List (List_Id=-99999309)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8290)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8297) (source,analyzed)
+ Sloc = 81251  i-cstrea.ads:287:4
+ Pragma_Argument_Associations = List (List_Id=-99999308)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8298)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8305) (source,analyzed)
+ Sloc = 81312  i-cstrea.ads:288:4
+ Pragma_Argument_Associations = List (List_Id=-99999307)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8306)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8313) (source,analyzed)
+ Sloc = 81364  i-cstrea.ads:290:4
+ Pragma_Argument_Associations = List (List_Id=-99999306)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8314)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8321) (source,analyzed)
+ Sloc = 81423  i-cstrea.ads:291:4
+ Pragma_Argument_Associations = List (List_Id=-99999305)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8322)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8329) (source,analyzed)
+ Sloc = 81607  i-cstrea.ads:296:4
+ Pragma_Argument_Associations = List (List_Id=-99999304)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8330)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8337) (source,analyzed)
+ Sloc = 81652  i-cstrea.ads:297:4
+ Pragma_Argument_Associations = List (List_Id=-99999303)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8338)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8345) (source,analyzed)
+ Sloc = 81699  i-cstrea.ads:298:4
+ Pragma_Argument_Associations = List (List_Id=-99999302)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8346)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8353) (source,analyzed)
+ Sloc = 81747  i-cstrea.ads:300:4
+ Pragma_Argument_Associations = List (List_Id=-99999301)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8354)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8361) (source,analyzed)
+ Sloc = 81797  i-cstrea.ads:301:4
+ Pragma_Argument_Associations = List (List_Id=-99999300)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8362)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8369) (source,analyzed)
+ Sloc = 81851  i-cstrea.ads:302:4
+ Pragma_Argument_Associations = List (List_Id=-99999299)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8370)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8377) (source,analyzed)
+ Sloc = 81905  i-cstrea.ads:303:4
+ Pragma_Argument_Associations = List (List_Id=-99999298)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8378)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8385) (source,analyzed)
+ Sloc = 81959  i-cstrea.ads:304:4
+ Pragma_Argument_Associations = List (List_Id=-99999297)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8386)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8393) (source,analyzed)
+ Sloc = 82019  i-cstrea.ads:305:4
+ Pragma_Argument_Associations = List (List_Id=-99999296)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8394)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8401) (source,analyzed)
+ Sloc = 82079  i-cstrea.ads:306:4
+ Pragma_Argument_Associations = List (List_Id=-99999295)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8402)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8409) (source,analyzed)
+ Sloc = 82139  i-cstrea.ads:307:4
+ Pragma_Argument_Associations = List (List_Id=-99999294)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8410)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8417) (source,analyzed)
+ Sloc = 82200  i-cstrea.ads:309:4
+ Pragma_Argument_Associations = List (List_Id=-99999293)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8418)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8425) (source,analyzed)
+ Sloc = 82256  i-cstrea.ads:310:4
+ Pragma_Argument_Associations = List (List_Id=-99999292)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8426)
+----------At: Process_Pragma_Declaration----------
+----------pragma Import: Multi-language analysis unsupported----------
+N_Pragma (Node_Id=8433) (source,analyzed)
+ Sloc = 82311  i-cstrea.ads:311:4
+ Pragma_Argument_Associations = List (List_Id=-99999291)
+ Pragma_Identifier = N_Identifier "import" (Node_Id=8434)
+----------At: Do_Derived_Type_Definition----------
+----------record extension unsupported----------
+N_Derived_Type_Definition (Node_Id=5813) (source)
+ Parent = N_Full_Type_Declaration (Node_Id=5965)
+ Sloc = 54054  s-ficobl.ads:84:26
+ Abstract_Present = True
+ Subtype_Indication = N_Expanded_Name "root_stream_type" (Node_Id=5818)
+ Record_Extension_Part = N_Record_Definition (Node_Id=5819)
+----------At: Process_Declaration----------
+----------Enumeration representation clauses are unsupported----------
+N_Enumeration_Representation_Clause (Node_Id=2359) (source,analyzed)
+ Sloc = 19893  a-textio.ads:59:4
+ Identifier = N_Identifier "file_mode" (Node_Id=2358)
+ Array_Aggregate = N_Aggregate (Node_Id=2361)
+----------At: Process_Pragma_Declaration----------
+----------Unknown pragma: export_procedure----------
+N_Pragma (Node_Id=4070) (source,analyzed)
+ Sloc = 27957  a-textio.ads:309:4
+ Pragma_Argument_Associations = List (List_Id=-99999736)
+ Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4071)
+----------At: Process_Pragma_Declaration----------
+----------Unknown pragma: export_procedure----------
+N_Pragma (Node_Id=4081) (source,analyzed)
+ Sloc = 28064  a-textio.ads:313:4
+ Pragma_Argument_Associations = List (List_Id=-99999735)
+ Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4082)
+----------At: Process_Pragma_Declaration----------
+----------Unknown pragma: export_procedure----------
+N_Pragma (Node_Id=4092) (source,analyzed)
+ Sloc = 28172  a-textio.ads:317:4
+ Pragma_Argument_Associations = List (List_Id=-99999734)
+ Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4093)
+----------At: Process_Pragma_Declaration----------
+----------Unknown pragma: export_procedure----------
+N_Pragma (Node_Id=4106) (source,analyzed)
+ Sloc = 28335  a-textio.ads:322:4
+ Pragma_Argument_Associations = List (List_Id=-99999733)
+ Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4107)
+----------At: Do_Derived_Type_Definition----------
+----------record extension unsupported----------
+N_Derived_Type_Definition (Node_Id=4208) (source)
+ Parent = N_Full_Type_Declaration (Node_Id=4339)
+ Sloc = 30522  a-textio.ads:372:22
+ Subtype_Indication = N_Expanded_Name "afcb" (Node_Id=4211)
+ Record_Extension_Part = N_Record_Definition (Node_Id=4212)
+----------At: Do_Object_Declaration----------
+----------Record definition of wrong nkind----------
+N_Object_Declaration (Node_Id=4485) (source,analyzed)
+ Sloc = 34110  a-textio.ads:446:4
+ Defining_Identifier = N_Defining_Identifier "standard_in_afcb" (Entity_Id=4477)
+ Aliased_Present = True
+ Object_Definition = N_Identifier "text_afcb" (Node_Id=4484)
+----------At: Do_Object_Declaration----------
+----------Record definition of wrong nkind----------
+N_Object_Declaration (Node_Id=4494) (source,analyzed)
+ Sloc = 34152  a-textio.ads:447:4
+ Defining_Identifier = N_Defining_Identifier "standard_out_afcb" (Entity_Id=4486)
+ Aliased_Present = True
+ Object_Definition = N_Identifier "text_afcb" (Node_Id=4493)
+----------At: Do_Object_Declaration----------
+----------Record definition of wrong nkind----------
+N_Object_Declaration (Node_Id=4503) (source,analyzed)
+ Sloc = 34194  a-textio.ads:448:4
+ Defining_Identifier = N_Defining_Identifier "standard_err_afcb" (Entity_Id=4495)
+ Aliased_Present = True
+ Object_Definition = N_Identifier "text_afcb" (Node_Id=4502)
+
+Error from cbmc bug:
+**** WARNING: no body for function ada__text_io__put_line__2
+
+VERIFICATION SUCCESSFUL

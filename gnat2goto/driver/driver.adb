@@ -35,6 +35,7 @@ with Ireps;                 use Ireps;
 with Symbol_Table_Info;     use Symbol_Table_Info;
 
 with Tree_Walk;             use Tree_Walk;
+with Arrays;                use Arrays;
 with Gather_Irep_Symbols;
 
 with GNATCOLL.JSON;         use GNATCOLL.JSON;
@@ -723,13 +724,21 @@ package body Driver is
    ------------------------------
 
    procedure Translate_Standard_Types is
+      function Make_Char_Type return Irep is (Make_Unsignedbv_Type (8));
       procedure Add_Standard_String;
       procedure Add_Standard_String is
+         function Make_Ada_String_Type return Irep is
+           (Make_Bounded_Array_Type
+              (Dimensions => 1,
+               Comp_Type  => Make_Char_Type));
          Builtin   : Symbol;
          Builtin_Node : constant Node_Id := Standard_String;
-         Type_Irep : constant Irep := Make_String_Type;
+         Type_Irep : constant Irep := Make_Ada_String_Type;
+
+         Str_Name       : constant String := Unique_Name (Builtin_Node);
+
       begin
-         Builtin.Name       := Intern (Unique_Name (Builtin_Node));
+         Builtin.Name       := Intern (Str_Name);
          Builtin.PrettyName := Builtin.Name;
          Builtin.BaseName   := Builtin.Name;
          Builtin.SymType    := Type_Irep;

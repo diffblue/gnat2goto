@@ -79,16 +79,19 @@ package body GOTO_Utils is
       return True_V;
    end CProver_True;
 
+   --  ToDo - why does this produce a corrupt Internal source location
+   --  if it is not generated anew each time it is called?
+   --  Is something corrupting this string somehow?
    Internal_Source_Location_V : Irep := Ireps.Empty;
    function Internal_Source_Location return Irep is
    begin
-      if Internal_Source_Location_V = Ireps.Empty then
+--        if Internal_Source_Location_V = Ireps.Empty then
          Internal_Source_Location_V := Make_Source_Location
            (File => "<internal>",
             Line => "",
             Column => "",
             Comment => "");
-      end if;
+--        end if;
       return Internal_Source_Location_V;
    end Internal_Source_Location;
 
@@ -310,8 +313,10 @@ package body GOTO_Utils is
          IsLValue => True,
          others => <>);
    begin
-      pragma Assert (not A_Symbol_Table.Contains (Object_Name));
-      A_Symbol_Table.Insert (Object_Name, Object_Symbol);
+      --  The symbol may be in the table if it is a derived type declaration.
+      if not A_Symbol_Table.Contains (Object_Name) then
+         A_Symbol_Table.Insert (Object_Name, Object_Symbol);
+      end if;
    end New_Object_Symbol_Entry;
 
    procedure New_Subprogram_Symbol_Entry (Subprog_Name : Symbol_Id;
@@ -369,9 +374,6 @@ package body GOTO_Utils is
          IsStateVar => True,
          others => <>);
    begin
-      if A_Symbol_Table.Contains (Member_Symbol.Name) then
-         Put_Line ("Already in table " & Unintern (Member_Symbol.Name));
-      end if;
       pragma Assert (not A_Symbol_Table.Contains (Member_Symbol.Name));
       A_Symbol_Table.Insert (Member_Symbol.Name, Member_Symbol);
    end New_Enum_Member_Symbol_Entry;
@@ -380,9 +382,9 @@ package body GOTO_Utils is
    -- New_Parameter_Symbol_Entry --
    --------------------------------
 
-   procedure New_Parameter_Symbol_Entry (Name_Id :               Symbol_Id;
-                                         BaseName :              String;
-                                         Symbol_Type :           Irep;
+   procedure New_Parameter_Symbol_Entry (Name_Id        :        Symbol_Id;
+                                         BaseName       :        String;
+                                         Symbol_Type    :        Irep;
                                          A_Symbol_Table : in out Symbol_Table)
    is
       New_Symbol : constant Symbol :=
@@ -394,11 +396,9 @@ package body GOTO_Utils is
          others => <>);
    begin
       if A_Symbol_Table.Contains (Key => Name_Id) then
-         Put_Line (Standard_Error,
-                   "----------At: New_Parameter_Symbol_Entry----------");
-         Put_Line (Standard_Error,
-                   "----------Trying to create known symbol.----------");
-         Put_Line (Standard_Error, "----------" & BaseName & "----------");
+         Put_Line ("----------At: New_Parameter_Symbol_Entry----------");
+         Put_Line ("----------Trying to create known symbol " &
+                     BaseName & "----------");
       else
          A_Symbol_Table.Insert (Name_Id, New_Symbol);
       end if;
@@ -527,9 +527,10 @@ package body GOTO_Utils is
       if Followed_Old_Type = Followed_New_Type then
          return Expr;
       else
-         return Make_Op_Typecast (Op0             => Expr,
-                                 Source_Location => Get_Source_Location (Expr),
-                                  I_Type          => New_Type);
+         return Make_Op_Typecast
+           (Op0             => Expr,
+            Source_Location => Get_Source_Location (Expr),
+            I_Type          => New_Type);
       end if;
    end Typecast_If_Necessary;
 
@@ -904,6 +905,33 @@ package body GOTO_Utils is
          Source_Location => Internal_Source_Location);
    end Get_Int32_T_Zero;
 
+   function Get_Int64_T_Zero return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_0,
+         Expr_Type       => Int64_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int64_T_Zero;
+
+   function Get_Int32_T_One return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_1,
+         Expr_Type       => Int32_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int32_T_One;
+
+   function Get_Int64_T_One return Irep
+   is
+   begin
+      return Integer_Constant_To_Expr
+        (Value           => Uint_1,
+         Expr_Type       => Int64_T,
+         Source_Location => Internal_Source_Location);
+   end Get_Int64_T_One;
+
    function Get_Ada_Check_Symbol (Name : String;
                                   A_Symbol_Table : in out Symbol_Table;
                                   Source_Loc : Irep)
@@ -1095,6 +1123,8 @@ package body GOTO_Utils is
            Ada.Strings.Fixed.Trim (Get_Width (Type_Irep)'Image,
                                    Ada.Strings.Left);
          --  The trim is for a lead space where the sign would be.
+      elsif Type_Kind in Class_Tag_Type then
+         return Id (Type_Irep) & "_" & Get_Identifier (Type_Irep);
       elsif Type_Kind = I_Struct_Type or
         Type_Kind = I_Union_Type or
         Type_Kind = I_Class_Type
@@ -1119,5 +1149,87 @@ package body GOTO_Utils is
          return Id (Type_Irep);
       end if;
    end Type_To_String;
+
+   function Non_Private_Ekind (E : Entity_Id) return Entity_Kind is
+     (Ekind (Non_Private_Type (E)));
+
+   function Non_Private_Type (E : Entity_Id) return Entity_Id is
+     (if Ekind (E) in Incomplete_Or_Private_Kind then
+           Non_Private_Type (Full_View (E))
+      else
+         E);
+
+   function Cast_To_Max_Width (May_Be_Cast, Model : Irep) return Irep is
+      Expr_Type  : constant Irep := Get_Type (May_Be_Cast);
+      Model_Type : constant Irep :=
+        (if Kind (Model) in Class_Type then
+              Model
+         else
+            Get_Type (Model));
+      pragma Assert (Kind (Expr_Type) = Kind (Model_Type));
+   begin
+      return
+        (if Kind (Model_Type) in Class_Bitvector_Type and then
+         Get_Width (Model_Type) > Get_Width (Expr_Type)
+         then
+            Make_Op_Typecast
+           (Op0             => May_Be_Cast,
+            Source_Location => Get_Source_Location (May_Be_Cast),
+            I_Type          => Model_Type)
+         else
+            May_Be_Cast);
+   end Cast_To_Max_Width;
+
+   function Get_Base_I_Type (I : Irep;
+                             A_Symbol_Table : Symbol_Table) return Irep is
+      I_Type      : constant Irep :=
+        (if Kind (I) in Class_Type then
+              I
+         elsif Kind (I) in Class_Expr
+         then
+            Get_Type (I)
+         else
+            I);
+      I_Type_Kind : constant Irep_Kind := Kind (I_Type);
+   begin
+      return
+        (if I_Type_Kind in I_Struct_Tag_Type | I_Union_Tag_Type then
+           (A_Symbol_Table (Intern (Get_Identifier (I_Type))).SymType)
+            else
+            I_Type);
+   end Get_Base_I_Type;
+
+   function Make_Corresponding_Unbounded_Type (I_Type : Irep) return Irep is
+      I_Kind : constant Irep_Kind := Kind (I_Type);
+      Width  : constant Integer :=
+        (if I_Kind in Class_Bitvector_Type then
+            Get_Width (I_Type)
+         else
+            0);
+   begin
+      return
+        (case I_Kind is
+            when I_Bounded_Unsignedbv_Type => Make_Unsignedbv_Type (Width),
+            when I_Bounded_Signedbv_Type   => Make_Signedbv_Type (Width),
+            when I_Bounded_Floatbv_Type    =>
+               Make_Floatbv_Type (Width, Get_F (I_Type)),
+            when others => I_Type);
+   end Make_Corresponding_Unbounded_Type;
+
+   function Strip_Irep_Bounds (I_Expr : Irep) return Irep is
+      Stripped_Type : constant Irep := Get_Type (I_Expr);
+   begin
+      return
+        (if Kind (Stripped_Type) in I_Bounded_Unsignedbv_Type
+             | I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type
+         then
+            Make_Op_Typecast
+           (Op0             => I_Expr,
+            Source_Location => Get_Source_Location (I_Expr),
+            I_Type          =>
+              Make_Corresponding_Unbounded_Type (Stripped_Type))
+         else
+            I_Expr);
+   end Strip_Irep_Bounds;
 
 end GOTO_Utils;

@@ -1,181 +1,90 @@
 Standard_Output from gnat2goto iss_131:
 ----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "r4" (Node_Id=3673) (source)
- Parent = N_Attribute_Reference (Node_Id=6741)
- Sloc = 17642  iss_131.adb:281:19
- Chars = "r4" (Name_Id=300001470)
- Etype = N_Defining_Identifier "r4" (Entity_Id=2613)
- Entity = N_Defining_Identifier "r4" (Entity_Id=2613)
- Associated_Node = N_Defining_Identifier "r4" (Entity_Id=2613)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "r5" (Node_Id=3682) (source)
- Parent = N_Attribute_Reference (Node_Id=6751)
- Sloc = 17675  iss_131.adb:282:19
- Chars = "r5" (Name_Id=300001471)
- Etype = N_Defining_Identifier "r5" (Entity_Id=2645)
- Entity = N_Defining_Identifier "r5" (Entity_Id=2645)
- Associated_Node = N_Defining_Identifier "r5" (Entity_Id=2645)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "r6" (Node_Id=3691) (source)
- Parent = N_Attribute_Reference (Node_Id=6761)
- Sloc = 17709  iss_131.adb:283:19
- Chars = "r6" (Name_Id=300001472)
- Etype = N_Defining_Identifier "r6" (Entity_Id=2697)
- Entity = N_Defining_Identifier "r6" (Entity_Id=2697)
- Associated_Node = N_Defining_Identifier "r6" (Entity_Id=2697)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "rns" (Node_Id=3727) (source)
- Parent = N_Attribute_Reference (Node_Id=6801)
- Sloc = 18029  iss_131.adb:292:19
- Chars = "rns" (Name_Id=300001478)
- Etype = N_Defining_Identifier "rns" (Entity_Id=2907)
- Entity = N_Defining_Identifier "rns" (Entity_Id=2907)
- Associated_Node = N_Defining_Identifier "rns" (Entity_Id=2907)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "vrns" (Node_Id=3736) (source,analyzed)
- Parent = N_Attribute_Reference (Node_Id=6811)
- Sloc = 18063  iss_131.adb:293:19
- Chars = "vrns" (Name_Id=300001479)
- Etype = N_Defining_Identifier "rns" (Entity_Id=2907)
- Entity = N_Defining_Identifier "vrns" (Entity_Id=3009)
- Associated_Node = N_Defining_Identifier "vrns" (Entity_Id=3009)
-----------At: Do_Attribute_Size----------
 ----------Size attribute applied to indefinite type is implementation defined----------
-N_Identifier "v1" (Node_Id=3745) (source)
- Parent = N_Attribute_Reference (Node_Id=6821)
- Sloc = 18399  iss_131.adb:300:19
+N_Identifier "v1" (Node_Id=3808) (source)
+ Parent = N_Attribute_Reference (Node_Id=6981)
+ Sloc = 15133  iss_131.adb:252:19
  Chars = "v1" (Name_Id=300001480)
  Etype = N_Defining_Identifier "v1" (Entity_Id=3024)
  Entity = N_Defining_Identifier "v1" (Entity_Id=3024)
  Associated_Node = N_Defining_Identifier "v1" (Entity_Id=3024)
 ----------At: Do_Attribute_Size----------
 ----------Size attribute applied to indefinite type is implementation defined----------
-N_Identifier "v3" (Node_Id=3799) (source)
- Parent = N_Attribute_Reference (Node_Id=6881)
- Sloc = 18942  iss_131.adb:314:19
+N_Identifier "v3" (Node_Id=3871) (source)
+ Parent = N_Attribute_Reference (Node_Id=7051)
+ Sloc = 15807  iss_131.adb:270:19
  Chars = "v3" (Name_Id=300001486)
  Etype = N_Defining_Identifier "v3" (Entity_Id=3185)
  Entity = N_Defining_Identifier "v3" (Entity_Id=3185)
  Associated_Node = N_Defining_Identifier "v3" (Entity_Id=3185)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "v4" (Node_Id=3808) (source)
- Parent = N_Attribute_Reference (Node_Id=6891)
- Sloc = 19156  iss_131.adb:319:19
- Chars = "v4" (Name_Id=300001495)
- Etype = N_Defining_Identifier "v4" (Entity_Id=3345)
- Entity = N_Defining_Identifier "v4" (Entity_Id=3345)
- Associated_Node = N_Defining_Identifier "v4" (Entity_Id=3345)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "stv3_no_size_rep" (Node_Id=3853) (source)
- Parent = N_Attribute_Reference (Node_Id=6941)
- Sloc = 19511  iss_131.adb:329:19
- Chars = "stv3_no_size_rep" (Name_Id=300001489)
- Etype = N_Defining_Identifier "stv3_no_size_rep" (Entity_Id=3262)
- Entity = N_Defining_Identifier "stv3_no_size_rep" (Entity_Id=3262)
- Associated_Node = N_Defining_Identifier "stv3_no_size_rep" (Entity_Id=3262)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "sfv3_no_size_rep" (Node_Id=3862) (source)
- Parent = N_Attribute_Reference (Node_Id=6951)
- Sloc = 19558  iss_131.adb:330:19
- Chars = "sfv3_no_size_rep" (Name_Id=300001490)
- Etype = N_Defining_Identifier "sfv3_no_size_rep" (Entity_Id=3274)
- Entity = N_Defining_Identifier "sfv3_no_size_rep" (Entity_Id=3274)
- Associated_Node = N_Defining_Identifier "sfv3_no_size_rep" (Entity_Id=3274)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "vst3_ns" (Node_Id=3871) (source,analyzed)
- Parent = N_Attribute_Reference (Node_Id=6961)
- Sloc = 19604  iss_131.adb:331:19
- Chars = "vst3_ns" (Name_Id=300001493)
- Etype = N_Defining_Identifier "stv3_no_size_rep" (Entity_Id=3262)
- Entity = N_Defining_Identifier "vst3_ns" (Entity_Id=3315)
- Associated_Node = N_Defining_Identifier "vst3_ns" (Entity_Id=3315)
-----------At: Do_Attribute_Size----------
-----------The size of the composite is not known by the front-end. Use a size representation clause on its declaration----------
-N_Identifier "vsf3_ns" (Node_Id=3880) (source,analyzed)
- Parent = N_Attribute_Reference (Node_Id=6971)
- Sloc = 19642  iss_131.adb:332:19
- Chars = "vsf3_ns" (Name_Id=300001494)
- Etype = N_Defining_Identifier "sfv3_no_size_rep" (Entity_Id=3274)
- Entity = N_Defining_Identifier "vsf3_ns" (Entity_Id=3330)
- Associated_Node = N_Defining_Identifier "vsf3_ns" (Entity_Id=3330)
 
-[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
-[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
-[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
-[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
-[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[precondition_instance.4] file <internal> memcpy src/dst overlap: SUCCESS
-[precondition_instance.5] file <internal> memcpy source region readable: SUCCESS
-[precondition_instance.6] file <internal> memcpy destination region writeable: SUCCESS
-[precondition_instance.7] file <internal> memcpy src/dst overlap: SUCCESS
-[precondition_instance.8] file <internal> memcpy source region readable: SUCCESS
-[precondition_instance.9] file <internal> memcpy destination region writeable: SUCCESS
-[iss_131.assertion.1] line 242 assertion Boolean'Size = 1: SUCCESS
-[iss_131.assertion.2] line 243 assertion neighbours'Size = 2: SUCCESS
-[iss_131.assertion.3] line 244 assertion Natural'Size = 31: SUCCESS
-[iss_131.assertion.4] line 245 assertion VSI'Size = 8: SUCCESS
-[iss_131.assertion.5] line 246 assertion VOS'size = 16: SUCCESS
-[iss_131.assertion.6] line 247 assertion VSIS'size = 16: SUCCESS
-[iss_131.assertion.7] line 248 assertion neigh_array'size = 4: SUCCESS
-[iss_131.assertion.8] line 249 assertion Vna'size = 8: SUCCESS
-[iss_131.assertion.9] line 251 assertion Vna (barbara)'size = 1: FAILURE
-[iss_131.assertion.10] line 253 assertion Vna (barbara)'size = 8: SUCCESS
-[iss_131.assertion.11] line 259 assertion Vna (barbara .. margo)'Size = 8: FAILURE
-[iss_131.assertion.12] line 260 assertion Vna (barbara .. margo)'Component_Size = 1: FAILURE
-[iss_131.assertion.13] line 262 assertion neigh_array_NS'size = 32: SUCCESS
-[iss_131.assertion.14] line 263 assertion VnaNS'size = 32: SUCCESS
-[iss_131.assertion.15] line 264 assertion VnaNS (barbara)'Size = 8: SUCCESS
-[iss_131.assertion.16] line 265 assertion VnaNS (barbara .. margo)'Size = 16: SUCCESS
-[iss_131.assertion.17] line 266 assertion VnaNS (barbara .. margo)'Component_Size = 8: SUCCESS
-[iss_131.assertion.18] line 269 assertion R1'Size = 64: SUCCESS
-[iss_131.assertion.19] line 270 assertion R2'Size = 132: SUCCESS
-[iss_131.assertion.20] line 271 assertion R3'Size = 66: SUCCESS
-[iss_131.assertion.21] line 272 assertion VR1'Size = 64: SUCCESS
-[iss_131.assertion.22] line 273 assertion VR2'Size = 136: SUCCESS
-[iss_131.assertion.23] line 274 assertion VR3'Size = 72: SUCCESS
-[iss_131.assertion.24] line 275 assertion r'Size = 16: SUCCESS
-[iss_131.assertion.25] line 276 assertion Vr'Size = 16: SUCCESS
-[iss_131.assertion.26] line 281 assertion R4'Size = 64: FAILURE
-[iss_131.assertion.27] line 282 assertion R5'Size = 132: FAILURE
-[iss_131.assertion.28] line 283 assertion R6'Size = 80: FAILURE
-[iss_131.assertion.29] line 285 assertion VR4'Size = 64: SUCCESS
-[iss_131.assertion.30] line 286 assertion VR5'Size = 136: SUCCESS
-[iss_131.assertion.31] line 287 assertion VR6'Size = 72: SUCCESS
-[iss_131.assertion.32] line 292 assertion rNS'Size = 72: FAILURE
-[iss_131.assertion.33] line 293 assertion VrNS'Size = 72: FAILURE
-[iss_131.assertion.34] line 300 assertion V1'Size = 40: FAILURE
-[iss_131.assertion.35] line 302 assertion V2'Size = 39: SUCCESS
-[iss_131.assertion.36] line 303 assertion STV1'Size = 40: SUCCESS
-[iss_131.assertion.37] line 304 assertion SFV1'Size = 1: SUCCESS
-[iss_131.assertion.38] line 305 assertion VST'Size = 40: SUCCESS
-[iss_131.assertion.39] line 306 assertion VSF'Size = 8: SUCCESS
-[iss_131.assertion.40] line 314 assertion V3'Size = 64: FAILURE
-[iss_131.assertion.41] line 319 assertion V4'Size = 64: FAILURE
-[iss_131.assertion.42] line 321 assertion STV3'Size = 64: SUCCESS
-[iss_131.assertion.43] line 322 assertion SFV3'Size = 8: SUCCESS
-[iss_131.assertion.44] line 323 assertion VST3'Size = 64: SUCCESS
-[iss_131.assertion.45] line 324 assertion VSF3'Size = 8: SUCCESS
-[iss_131.assertion.46] line 329 assertion STV3_No_Size_Rep'Size = 64: FAILURE
-[iss_131.assertion.47] line 330 assertion SFV3_No_Size_Rep'Size = 8: FAILURE
-[iss_131.assertion.48] line 331 assertion VST3_NS'Size = 64: FAILURE
-[iss_131.assertion.49] line 332 assertion VSF3_NS'Size = 32: FAILURE
-[iss_131.assertion.50] line 335 assertion A_T'Size = 8: SUCCESS
-[iss_131.assertion.51] line 336 assertion VA'Size = 8: SUCCESS
-[iss_131.assertion.52] line 338 assertion VA (1)'Size = 2: FAILURE
-[iss_131.assertion.53] line 340 assertion VA (1)'Size = 8: SUCCESS
-[iss_131.assertion.54] line 341 assertion VA (0 .. 2)'Size = 8: SUCCESS
-[iss_131.assertion.55] line 345 assertion Vna'Component_size = 1: FAILURE
-[iss_131.assertion.56] line 346 assertion neigh_array'component_size = 1: FAILURE
-[iss_131.assertion.57] line 358 assertion Vna'Component_size = 8: SUCCESS
-[iss_131.assertion.58] line 359 assertion neigh_array'component_size = 8: SUCCESS
-[iss_131.assertion.59] line 363 assertion Vna (barbara .. margo)'Size = 16: SUCCESS
+[iss_131.assertion.1] line 162 assertion Boolean'Size = 1: SUCCESS
+[iss_131.assertion.2] line 163 assertion neighbours'Size = 2: SUCCESS
+[iss_131.assertion.3] line 164 assertion Natural'Size = 31: SUCCESS
+[iss_131.assertion.4] line 165 assertion VSI'Size = 8: SUCCESS
+[iss_131.assertion.5] line 166 assertion VOS'size = 16: SUCCESS
+[iss_131.assertion.6] line 167 assertion VSIS'size = 16: SUCCESS
+[iss_131.assertion.7] line 168 assertion neigh_array'size = 4: SUCCESS
+[iss_131.assertion.8] line 173 assertion Vna'size = 8: FAILURE
+[iss_131.assertion.9] line 174 assertion Vna'size = 32: SUCCESS
+[iss_131.assertion.10] line 178 assertion Vna (barbara)'size = 1: FAILURE
+[iss_131.assertion.11] line 179 assertion Vna (barbara)'size = 8: SUCCESS
+[iss_131.assertion.12] line 186 assertion Vna (barbara .. margo)'Size = 8: FAILURE
+[iss_131.assertion.13] line 187 assertion Vna (barbara .. margo)'Component_Size = 1: FAILURE
+[iss_131.assertion.14] line 189 assertion neigh_array_NS'size = 32: SUCCESS
+[iss_131.assertion.15] line 190 assertion VnaNS'size = 32: SUCCESS
+[iss_131.assertion.16] line 191 assertion VnaNS (barbara)'Size = 8: SUCCESS
+[iss_131.assertion.17] line 192 assertion VnaNS (barbara .. margo)'Size = 16: SUCCESS
+[iss_131.assertion.18] line 193 assertion VnaNS (barbara .. margo)'Component_Size = 8: SUCCESS
+[iss_131.assertion.19] line 195 assertion R1'Size = 64: SUCCESS
+[iss_131.assertion.20] line 196 assertion R2'Size = 132: SUCCESS
+[iss_131.assertion.21] line 197 assertion R3'Size = 66: SUCCESS
+[iss_131.assertion.22] line 198 assertion VR1'Size = 64: SUCCESS
+[iss_131.assertion.23] line 203 assertion VR2'Size = 136: FAILURE
+[iss_131.assertion.24] line 204 assertion VR2'Size = 160: SUCCESS
+[iss_131.assertion.25] line 209 assertion VR3'Size = 72: FAILURE
+[iss_131.assertion.26] line 210 assertion VR3'Size = 80: SUCCESS
+[iss_131.assertion.27] line 212 assertion r'Size = 16: SUCCESS
+[iss_131.assertion.28] line 217 assertion Vr'Size = 16: FAILURE
+[iss_131.assertion.29] line 218 assertion Vr'Size = 72: SUCCESS
+[iss_131.assertion.30] line 220 assertion R4'Size = 64: SUCCESS
+[iss_131.assertion.31] line 225 assertion R5'Size = 132: FAILURE
+[iss_131.assertion.32] line 226 assertion R5'Size = 160: SUCCESS
+[iss_131.assertion.33] line 228 assertion R6'Size = 80: SUCCESS
+[iss_131.assertion.34] line 230 assertion VR4'Size = 64: SUCCESS
+[iss_131.assertion.35] line 235 assertion VR5'Size = 132: FAILURE
+[iss_131.assertion.36] line 236 assertion VR5'Size = 160: SUCCESS
+[iss_131.assertion.37] line 241 assertion VR6'Size = 66: FAILURE
+[iss_131.assertion.38] line 242 assertion VR6'Size = 80: SUCCESS
+[iss_131.assertion.39] line 244 assertion rNS'Size = 72: SUCCESS
+[iss_131.assertion.40] line 245 assertion VrNS'Size = 72: SUCCESS
+[iss_131.assertion.41] line 252 assertion V1'Size = 40: FAILURE
+[iss_131.assertion.42] line 254 assertion V2'Size = 39: SUCCESS
+[iss_131.assertion.43] line 255 assertion STV1'Size = 40: SUCCESS
+[iss_131.assertion.44] line 256 assertion SFV1'Size = 1: SUCCESS
+[iss_131.assertion.45] line 257 assertion VST'Size = 40: SUCCESS
+[iss_131.assertion.46] line 262 assertion VSF'Size = 8: FAILURE
+[iss_131.assertion.47] line 263 assertion VSF'Size = 40: SUCCESS
+[iss_131.assertion.48] line 270 assertion V3'Size = 64: FAILURE
+[iss_131.assertion.49] line 272 assertion V4'Size = 40: SUCCESS
+[iss_131.assertion.50] line 274 assertion STV3'Size = 64: SUCCESS
+[iss_131.assertion.51] line 275 assertion SFV3'Size = 8: SUCCESS
+[iss_131.assertion.52] line 280 assertion VST3'Size = 64: FAILURE
+[iss_131.assertion.53] line 281 assertion VST3'Size = 40: SUCCESS
+[iss_131.assertion.54] line 286 assertion VSF3'Size = 8: FAILURE
+[iss_131.assertion.55] line 287 assertion VSF3'Size = 40: SUCCESS
+[iss_131.assertion.56] line 289 assertion STV3_No_Size_Rep'Size = 40: SUCCESS
+[iss_131.assertion.57] line 290 assertion SFV3_No_Size_Rep'Size = 40: SUCCESS
+[iss_131.assertion.58] line 291 assertion VST3_NS'Size = 40: SUCCESS
+[iss_131.assertion.59] line 292 assertion VSF3_NS'Size = 40: SUCCESS
+[iss_131.assertion.60] line 294 assertion A_T'Size = 8: SUCCESS
+[iss_131.assertion.61] line 295 assertion VA'Size = 8: SUCCESS
+[iss_131.assertion.62] line 299 assertion VA (1)'Size = 2: FAILURE
+[iss_131.assertion.63] line 300 assertion VA (1)'Size = 8: SUCCESS
+[iss_131.assertion.64] line 302 assertion VA (0 .. 2)'Size = 8: SUCCESS
+[iss_131.assertion.65] line 306 assertion Vna'Component_size = 1: FAILURE
+[iss_131.assertion.66] line 307 assertion neigh_array'component_size = 1: FAILURE
+[iss_131.assertion.67] line 316 assertion Vna'Component_size = 8: SUCCESS
+[iss_131.assertion.68] line 317 assertion neigh_array'component_size = 8: SUCCESS
+[iss_131.assertion.69] line 321 assertion Vna (barbara .. margo)'Size = 16: SUCCESS
 VERIFICATION FAILED

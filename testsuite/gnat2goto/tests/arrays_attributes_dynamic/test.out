@@ -1,8 +1,3 @@
-[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
-[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
-[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
-[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
-[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
 [array_consumer.assertion.1] line 7 assertion Arr'First = 1: SUCCESS
 [array_consumer.assertion.2] line 8 assertion Arr'Last = 1: FAILURE
 [array_consumer.assertion.3] line 9 assertion Arr'Length=2: SUCCESS

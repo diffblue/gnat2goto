@@ -8,8 +8,47 @@ with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
 with Follow;                use Follow;
 with Arrays;                use Arrays;
+with ASVAT.Size_Model;
 
 package body Gnat2goto_Itypes is
+
+   function Do_Anonymous_Type_Definition (E : Entity_Id) return Irep;
+
+   function Do_Itype_Anonymous_Access_Type (N : Node_Id) return Irep;
+
+   ----------------------------------
+   -- Do_Anonymous_Type_Definition --
+   ----------------------------------
+
+   function Do_Anonymous_Type_Definition (E : Entity_Id) return Irep is
+   begin
+      case Ekind (E) is
+         when E_Anonymous_Access_Type =>
+            return
+              Make_Pointer_Type
+                (Base => Do_Type_Reference (Designated_Type (E)));
+
+         when others =>
+            return Report_Unhandled_Node_Irep (E,
+                                               "Do_Anonymous_Type_Definition",
+                                               "Unknown typedef");
+      end case;
+
+   end Do_Anonymous_Type_Definition;
+
+   -------------------------------------
+   -- Do_Itype_Anonymous_Access_Type --
+   ------------------------------------
+
+   function Do_Itype_Anonymous_Access_Type (N : Node_Id) return Irep is
+      Typedef : constant Node_Id := Etype (N);
+
+      New_Type : constant Irep := Do_Anonymous_Type_Definition (Typedef);
+   begin
+      Do_Type_Declaration (New_Type, Typedef);
+      ASVAT.Size_Model.Set_Static_Size (Typedef, Pointer_Type_Width);
+      return New_Type;
+   end Do_Itype_Anonymous_Access_Type;
 
    ------------------------
    -- Do_Itype_Reference --
@@ -18,29 +57,7 @@ package body Gnat2goto_Itypes is
    procedure Do_Itype_Reference (N : Node_Id) is
       Typedef : constant Node_Id := Etype (Itype (N));
 
-      function Do_Anonymous_Type_Definition return Irep;
-
-      ----------------------------------
-      -- Do_Anonymous_Type_Definition --
-      ----------------------------------
-
-      function Do_Anonymous_Type_Definition return Irep is
-      begin
-         case Ekind (Typedef) is
-            when E_Anonymous_Access_Type =>
-               return
-                 Make_Pointer_Type
-                   (Base => Do_Type_Reference (Designated_Type (Typedef)));
-
-            when others =>
-               return Report_Unhandled_Node_Irep (N,
-                                                "Do_Anonymous_Type_Definition",
-                                                  "Unknown typedef");
-         end case;
-
-      end Do_Anonymous_Type_Definition;
-
-      New_Type : constant Irep := Do_Anonymous_Type_Definition;
+      New_Type : constant Irep := Do_Anonymous_Type_Definition (Typedef);
    begin
       Do_Type_Declaration (New_Type, Typedef);
    end Do_Itype_Reference;
@@ -84,18 +101,18 @@ package body Gnat2goto_Itypes is
       --  Possibly in the long term, since we need this anyhow, it
       --  might become the only way to get a type definition.
       return (case Ekind (N) is
-         when E_Array_Subtype => Do_Itype_Array_Subtype (N),
-         when E_Array_Type => Do_Itype_Array_Type (N),
-         when E_String_Literal_Subtype => Do_Itype_String_Literal_Subtype (N),
+         when Array_Kind => Do_Itype_Array_Subtype (N),
+--           when E_Array_Type => Do_Itype_Array_Type (N),
+--      when E_String_Literal_Subtype =>
+--                Do_Itype_String_Literal_Subtype (N),
          when E_Signed_Integer_Subtype => Do_Itype_Integer_Subtype (N),
          when E_Record_Subtype => Do_Itype_Record_Subtype (N),
          when E_Signed_Integer_Type => Do_Itype_Integer_Type (N),
          --  An Itype can be an enumeration (sub)type.
          when E_Enumeration_Subtype => Do_Itype_Enumeration_Subtype (N),
          when E_Enumeration_Type    => Do_Itype_Enumeration_Type (N),
-         when E_Floating_Point_Type => Create_Dummy_Irep,
-         when E_Anonymous_Access_Type => Make_Pointer_Type
-                (Base => Do_Type_Reference (Designated_Type (Etype (N)))),
+         when E_Floating_Point_Type => CProver_Nil,
+         when E_Anonymous_Access_Type => Do_Itype_Anonymous_Access_Type (N),
          when E_Modular_Integer_Subtype => Do_Modular_Integer_Subtype (N),
          when others => Report_Unhandled_Node_Irep
           (N,
@@ -129,9 +146,10 @@ package body Gnat2goto_Itypes is
 
    function Do_Itype_Array_Subtype (N : Node_Id) return Irep is
    begin
-      Declare_Itype (Etype (N));
-      return Make_Symbol_Type
-        (Identifier => Unique_Name (Etype (N)));
+      return
+        Do_Array_Subtype
+          (Subtype_Node => N,
+           The_Entity   => N);
    end Do_Itype_Array_Subtype;
 
    ----------------------------------
@@ -141,8 +159,7 @@ package body Gnat2goto_Itypes is
    function Do_Itype_Enumeration_Subtype (N : Entity_Id) return Irep is
    begin
       Declare_Itype (Etype (N));
-      return Make_Symbol_Type
-        (Identifier => Unique_Name (Etype (N)));
+      return Do_Subtype_Indication (Subtype_Indication (N), N);
    end Do_Itype_Enumeration_Subtype;
 
    -------------------------------
@@ -185,13 +202,17 @@ package body Gnat2goto_Itypes is
             when others =>
                Store_Symbol_Bound (Bound_Type_Symbol (
            Do_Expression (Upper_Bound))));
-
+      Width             : constant Positive :=
+        Positive (UI_To_Int (Esize (N)));
    begin
+      ASVAT.Size_Model.Set_Static_Size
+        (E          => N,
+         Model_Size => Width);
       return
         Make_Bounded_Signedbv_Type (
                        Lower_Bound => Lower_Bound_Value,
                        Upper_Bound => Upper_Bound_Value,
-                       Width       => Positive (UI_To_Int (Esize (N))));
+                       Width       => Width);
    end Do_Itype_Integer_Subtype;
 
    ------------------------------
@@ -199,12 +220,20 @@ package body Gnat2goto_Itypes is
    ------------------------------
 
    function Do_Itype_Integer_Type (N : Entity_Id) return Irep is
-     (Make_Bounded_Signedbv_Type (
-                       Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                                      Low_Bound (Scalar_Range (N))))),
-                       Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
-                                      High_Bound (Scalar_Range (N))))),
-                       Width       => Positive (UI_To_Int (Esize (N)))));
+      Width             : constant Positive :=
+        Positive (UI_To_Int (Esize (N)));
+   begin
+      ASVAT.Size_Model.Set_Static_Size
+        (E          => N,
+         Model_Size => Width);
+      return
+        Make_Bounded_Signedbv_Type
+          (Lower_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
+           Low_Bound (Scalar_Range (N))))),
+           Upper_Bound => Store_Nat_Bound (Bound_Type_Nat (Intval (
+             High_Bound (Scalar_Range (N))))),
+           Width       => Width);
+   end Do_Itype_Integer_Type;
 
    -----------------------------
    -- Do_Itype_Record_Subtype --
@@ -212,9 +241,22 @@ package body Gnat2goto_Itypes is
 
    --  Don't need to record discriminant constraints in the irep
    --  representation (yet), so just an alias for its supertype.
+   --  But, ASVAT size of the Itype needs to be recorded as the
+   --  same as its supertype.
    function Do_Itype_Record_Subtype (N : Entity_Id) return Irep is
+      Supertype : constant Entity_Id := Etype (N);
    begin
-      return Do_Type_Reference (Etype (N));
+      if ASVAT.Size_Model.Has_Size (Supertype) then
+         ASVAT.Size_Model.Set_Computed_Size
+           (N, ASVAT.Size_Model.Computed_Size (Supertype));
+      else
+         Report_Unhandled_Node_Empty
+           (N        => N,
+            Fun_Name => "Do_Itype_Record_Subtype",
+            Message  =>
+              "Supertype of Itype_Record_Subtype has no ASVAT size");
+      end if;
+      return Do_Type_Reference (Supertype);
    end Do_Itype_Record_Subtype;
 
    function Do_Modular_Integer_Subtype (N : Entity_Id) return Irep is
@@ -244,6 +286,8 @@ package body Gnat2goto_Itypes is
    begin
       pragma Assert (Kind (Followed_Mod_Type) in I_Unsignedbv_Type
                        | I_Ada_Mod_Type);
+
+      ASVAT.Size_Model.Set_Static_Size (N, Get_Width (Followed_Mod_Type));
 
       if Kind (Followed_Mod_Type) = I_Ada_Mod_Type then
          return Make_Bounded_Mod_Type (Width       =>

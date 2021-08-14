@@ -1,8 +1,8 @@
-[malloc.assertion.1] line 26 max allocation size exceeded: SUCCESS
-[malloc.assertion.2] line 31 max allocation may fail: SUCCESS
-[precondition_instance.1] file <internal> memcpy src/dst overlap: SUCCESS
-[precondition_instance.2] file <internal> memcpy source region readable: SUCCESS
-[precondition_instance.3] file <internal> memcpy destination region writeable: SUCCESS
-[enum_in.assertion.1] line 23 Ada Check assertion: SUCCESS
-[p_enum_in.assertion.1] line 19 assertion E in More_Than_Two: SUCCESS
+[enum_in.assertion.1] line 28 Ada Check assertion: SUCCESS
+[enum_in.assertion.2] line 28 assertion Number_Array (4) = Four: SUCCESS
+[enum_in.assertion.3] line 29 assertion Number_Array (2) = Two: SUCCESS
+[p_enum_in.assertion.1] line 19 assertion E > Two: SUCCESS
+[p_enum_in.assertion.2] line 20 assertion E in More_Than_Two: SUCCESS
+[p_enum_in.assertion.3] line 22 assertion E <= Two: SUCCESS
+[p_enum_in.assertion.4] line 23 assertion E not in More_Than_Two: SUCCESS
 VERIFICATION SUCCESSFUL

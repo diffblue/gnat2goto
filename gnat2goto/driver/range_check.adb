@@ -4,6 +4,9 @@ with Binary_To_Hex;         use Binary_To_Hex;
 with Follow;                use Follow;
 with Symbol_Table_Info;     use Symbol_Table_Info;
 with Tree_Walk;             use Tree_Walk;
+with Sinfo; use Sinfo;
+with Einfo; use Einfo;
+with Atree; use Atree;
 
 package body Range_Check is
 
@@ -354,16 +357,23 @@ package body Range_Check is
                                     Check_Name : String)
                                     return Irep
    is
-      Call_Args : constant Irep := Make_Argument_List;
-      Underlying_Lower_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
-      Underlying_Upper_Type : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Upper_Bound), Global_Symbol_Table);
       Source_Loc : constant Irep := Get_Source_Location (N);
+      Call_Args : constant Irep := Make_Argument_List;
+      --  The underlying lower and upper types may not be the same and
+      --  may not be the same type as the value.
+      --  Therefore use the type of the value to determine the compare type.
+      --  The funtion Make_Range_Expression deals with ensuring
+      --  All the sub-expressions of the range check are consistent.
+      Underlying_Value_Type : constant Irep :=
+        Follow_Symbol_Type (Get_Type (Value), Global_Symbol_Table);
       Compare_Type : constant Irep :=
-        (if Kind (Underlying_Lower_Type) = I_Bounded_Floatbv_Type or else
-         Kind (Underlying_Lower_Type) = I_Floatbv_Type then
-              Float64_T else Int64_T);
+        (case Kind (Underlying_Value_Type) is
+            when I_Bounded_Floatbv_Type | I_Floatbv_Type =>
+               Float64_T,
+            when I_Bounded_Unsignedbv_Type | I_Unsignedbv_Type =>
+               Uint64_T,
+            when others =>
+               Int64_T);
       Arg_Type_String : constant String := Type_To_String (Compare_Type);
       Ret_Type_String : constant String :=
           Type_To_String (Expected_Return_Type);
@@ -466,8 +476,6 @@ package body Range_Check is
          I_Type => Expected_Return_Type);
    begin
       Set_Function (Source_Loc, Get_Context_Name (N));
-      pragma Assert (Underlying_Lower_Type = Underlying_Upper_Type);
-
       Append_Argument (Call_Args,
                        Typecast_If_Necessary
                          (Expr           => Value,
@@ -543,35 +551,55 @@ package body Range_Check is
                                    Upper_Bound : Irep)
                                    return Irep
    is
+      Unbounded_Lower_Type : constant Irep :=
+        Make_Corresponding_Unbounded_Type
+          (Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table));
+      Unbounded_Upper_Type : constant Irep :=
+        Make_Corresponding_Unbounded_Type
+          (Follow_Symbol_Type (Get_Type (Upper_Bound), Global_Symbol_Table));
+      Lower_Type_Kind      : constant Irep_Kind := Kind (Unbounded_Lower_Type);
+      Upper_Type_Kind      : constant Irep_Kind := Kind (Unbounded_Upper_Type);
+
+      pragma Assert (Lower_Type_Kind = Upper_Type_Kind);
+
       --  The bounds and or the value may be enumeration types.
       --  If so, they are converted to a bitvector type.
-      --  When the enumeration is declared each literal s given the
+      --  When the enumeration is declared each literal is given the
       --  value of its position (starting from 0).
-      Bound_Type_Raw      : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Lower_Bound), Global_Symbol_Table);
-      Value_Expr_Type_Raw : constant Irep :=
-        Follow_Symbol_Type (Get_Type (Value_Expr), Global_Symbol_Table);
-
-      Bound_Type : constant Irep :=
-        (if Kind (Bound_Type_Raw) = I_C_Enum_Type then
-              Int32_T
+      Bound_Type           : constant Irep :=
+        (if Lower_Type_Kind in Class_Bitvector_Type and then
+         Get_Width (Unbounded_Upper_Type) > Get_Width (Unbounded_Lower_Type)
+         then
+            Unbounded_Upper_Type
+         elsif Lower_Type_Kind = I_C_Enum_Type then
+            Uint32_T
          else
-            Bound_Type_Raw);
+            Unbounded_Lower_Type);
+
+      Value_Expr_Type_Raw  : constant Irep :=
+        Make_Corresponding_Unbounded_Type
+          (Follow_Symbol_Type (Get_Type (Value_Expr), Global_Symbol_Table));
 
       Value_Expr_Type : constant Irep :=
         (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
-              Int32_T
+              Uint32_T
          else
             Value_Expr_Type_Raw);
 
-      Resolved_Value_Expr : constant Irep :=
+      Resolved_Value_Expr  : constant Irep :=
         (if Kind (Value_Expr_Type_Raw) = I_C_Enum_Type then
               Typecast_If_Necessary
            (Expr           => Value_Expr,
-            New_Type       => Int32_T,
+            New_Type       => Uint32_T,
             A_Symbol_Table => Global_Symbol_Table)
          else
             Value_Expr);
+
+      Resolved_Lower_Bound : constant Irep :=
+        Typecast_If_Necessary (Lower_Bound, Bound_Type, Global_Symbol_Table);
+
+      Resolved_Upper_Bound : constant Irep :=
+        Typecast_If_Necessary (Upper_Bound, Bound_Type, Global_Symbol_Table);
 
       type Adjusted_Value_And_Bounds_T is
         record
@@ -592,8 +620,8 @@ package body Range_Check is
             return (
                     Value_Expr => Typecast_If_Necessary
                       (Resolved_Value_Expr, Bound_Type, Global_Symbol_Table),
-                    Upper_Bound => Upper_Bound,
-                    Lower_Bound => Lower_Bound);
+                    Upper_Bound => Resolved_Upper_Bound,
+                    Lower_Bound => Resolved_Lower_Bound);
          else
             return (
                     Value_Expr => Resolved_Value_Expr,
@@ -637,6 +665,47 @@ package body Range_Check is
          Append_Op (R, Op_Leq);
       end return;
    end Make_Range_Expression;
+
+   ------------------------
+   -- Do_Attribute_Valid --
+   ------------------------
+
+   function Do_Attribute_Valid (N : Node_Id) return Irep is
+      Node_Type_Pre     : constant Entity_Id := Etype (N);
+      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Node_Type_Pre);
+      Node_Type         : constant Entity_Id :=
+        (if Is_Implicit_Deref then
+            Designated_Type (Node_Type_Pre)
+         else
+            Node_Type_Pre);
+      Range_Of_Type_Pre : constant Node_Id := Scalar_Range (Node_Type);
+      Range_Of_Type     : constant Node_Id :=
+        (if Nkind (Range_Of_Type_Pre) = N_Subtype_Indication then
+              Range_Expression (Range_Constraint (Range_Of_Type_Pre))
+         else
+            Range_Of_Type_Pre);
+      --  Currently the range attribute is unsupported.
+      pragma Assert (Nkind (Range_Of_Type) /= N_Attribute_Reference);
+      Lower_Bound        : constant Irep :=
+        Do_Expression (Low_Bound (Range_Of_Type));
+      Upper_Bound        : constant Irep :=
+        Do_Expression (High_Bound (Range_Of_Type));
+      Expr_Irep_Pre      : constant Irep := Do_Expression (N);
+      Expr_Irep          : constant Irep :=
+        (if Is_Implicit_Deref then
+            Make_Dereference_Expr
+           (Object          => Expr_Irep_Pre,
+            Source_Location => Get_Source_Location (N),
+            I_Type          => Do_Type_Reference (Node_Type))
+         else
+            Expr_Irep_Pre);
+
+   begin
+      return Make_Range_Expression
+        (Value_Expr  => Expr_Irep,
+         Lower_Bound => Lower_Bound,
+         Upper_Bound => Upper_Bound);
+   end Do_Attribute_Valid;
 
    -----------------------
    -- Load_Bound_In_Hex --

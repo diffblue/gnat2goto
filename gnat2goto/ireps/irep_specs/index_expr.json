@@ -1,6 +1,6 @@
 {
   "parent": "expr",
-  "id": "array",
+  "id": "index",
   "sub": [
     {"schema": "expr", "friendly_name": "array"},
     {"schema": "expr", "friendly_name": "index"}

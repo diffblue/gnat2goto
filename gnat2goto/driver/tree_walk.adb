@@ -3,12 +3,11 @@ with Nlists;                use Nlists;
 with Sem;
 with Sem_Eval;              use Sem_Eval;
 with Sem_Util;              use Sem_Util;
-with Sem_Aux;               use Sem_Aux;
 with Snames;                use Snames;
 with Stringt;               use Stringt;
 with Treepr;                use Treepr;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
+with Records;               use Records;
 with Follow;                use Follow;
 with GNAT_Utils;            use GNAT_Utils;
 with GOTO_Utils;            use GOTO_Utils;
@@ -34,23 +33,32 @@ with ASVAT.Modelling;
 with ASVAT.Pragma_Info;
 
 package body Tree_Walk is
-
-   procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep);
+   --  Used to provide a dummy block for Itype delarations
+   --  where such declarations cannot produce a block, e.g., in expressions.
+   Dummy_Block : constant Irep :=
+     Make_Code_Block (Internal_Source_Location);
 
    function Do_Aggregate_Literal (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Aggregate;
 
-   function Do_Aggregate_Literal_Record (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Aggregate,
-        Post => Kind (Do_Aggregate_Literal_Record'Result) = I_Struct_Expr;
-
-   function Do_Assignment_Statement (N  : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Assignment_Statement,
-        Post => Kind (Do_Assignment_Statement'Result) = I_Code_Assign;
+   --  A single Ada statement may result in a sequence of goto statements,
+   --  so a procedure with a code block parameter is used rather than
+   --  a funtion returning a single goto assignment statement
+   procedure Do_Assignment_Statement (Block : Irep; N : Node_Id)
+   with Pre  => Nkind (N) = N_Assignment_Statement;
 
    function Do_Call_Parameters (N : Node_Id) return Irep
    with Pre  => Nkind (N) in N_Procedure_Call_Statement | N_Function_Call,
         Post => Kind (Do_Call_Parameters'Result) = I_Argument_List;
+
+   function Do_First_Last_Length (N : Node_Id;  Attr : Attribute_Id)
+                                  return Irep
+   with Pre  => Nkind (N) = N_Attribute_Reference,
+        Post => Kind (Do_First_Last_Length'Result) in Class_Expr;
+
+   function Do_Scalar_First_Last_Length (E : Entity_Id; Attr : Attribute_Id)
+                                         return Irep
+     with Pre  => Is_Scalar_Type (E);
 
    function Do_If_Expression (N : Node_Id) return Irep
    with Pre => Nkind (N) = N_If_Expression;
@@ -87,11 +95,6 @@ package body Tree_Walk is
    function Do_Null_Expression (N : Node_Id) return Irep
      with Pre => Nkind (N) = N_Null;
 
-   function Do_Defining_Identifier (E : Entity_Id) return Irep
-   with Pre  => Nkind (E) = N_Defining_Identifier,
-        Post => Kind (Do_Defining_Identifier'Result) in
-           I_Symbol_Expr | I_Dereference_Expr;
-
    function Do_Dereference (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Explicit_Dereference,
         Post => Kind (Do_Dereference'Result) = I_Dereference_Expr;
@@ -102,10 +105,6 @@ package body Tree_Walk is
 
    procedure Do_Full_Type_Declaration (N : Node_Id)
    with Pre => Nkind (N) = N_Full_Type_Declaration;
-
-   function Do_Function_Call (N : Node_Id) return Irep
-   with Pre  => Nkind (N) = N_Function_Call,
-        Post => Kind (Do_Function_Call'Result) in Class_Expr;
 
    function Do_Handled_Sequence_Of_Statements (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Handled_Sequence_Of_Statements,
@@ -237,10 +236,6 @@ package body Tree_Walk is
 
    function Do_Range_In_Case (N : Node_Id; Symbol : Irep) return Irep;
 
-   function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep
-   with Pre  => Nkind (N) in N_Record_Definition | N_Variant,
-        Post => Kind (Do_Record_Definition'Result) = I_Struct_Type;
-
    function Do_Signed_Integer_Definition (N : Node_Id) return Irep
    with Pre  => Nkind (N) = N_Signed_Integer_Type_Definition,
         Post => Kind (Do_Signed_Integer_Definition'Result) =
@@ -303,39 +298,9 @@ package body Tree_Walk is
    --  (that is, the body being compiled).
    --  It starts with the unit Standard and finishes with GNAT_Root
 
-   function Find_Record_Variant (Variant_Part : Node_Id;
-                                 Actual_Disc : Node_Id) return Node_Id
-   with Pre  => Nkind (Variant_Part) = N_Variant_Part,
-        Post => Nkind (Find_Record_Variant'Result) = N_Variant;
-
-   function Get_Fresh_Type_Name (Actual_Type : Irep; Associated_Node : Node_Id)
-                                return Irep;
-
    function Get_Import_Convention (N : Node_Id) return String;
 
-   function Get_Variant_Union_Member_Name (N : Node_Id) return String;
-
    function Make_Integer_Constant (Val : Integer; Ty : Node_Id) return Irep;
-
-   function Make_Runtime_Check (Condition : Irep) return Irep
-   with Pre  => Kind (Get_Type (Condition)) = I_Bool_Type,
-        Post => Kind (Make_Runtime_Check'Result) =
-                I_Side_Effect_Expr_Function_Call;
-
-   --  Given an N_Variant_Part and then desired N_Variant,
-   --  creates a union selector expression like
-   --  .some_particular_value = {}
-   --  where Union_Expr points to .some_particular_value
-   --  and Struct_Expr points to {} (and empty struct expression
-   --  of the right union component type)
-   procedure Make_Variant_Literal (Variants : Node_Id;
-                                   Chosen_Var : Node_Id;
-                                   Union_Expr : out Irep;
-                                   Struct_Expr : out Irep)
-   with Pre  => Nkind (Variants) = N_Variant_Part and then
-                Nkind (Chosen_Var) = N_Variant,
-        Post => Kind (Union_Expr) = I_Union_Expr and then
-                Kind (Struct_Expr) = I_Struct_Expr;
 
    procedure Process_Declaration (N : Node_Id; Block : Irep);
 --     with Pre => Nkind (N) in N_Declaration or else
@@ -376,8 +341,6 @@ package body Tree_Walk is
    with Pre => Nkind (N) = N_Full_Type_Declaration;
    --  Common procedure for registering non-anonymous type declarations.
    --  Called by Do_Incomplete_Type_Declaration and Do_Private_Type_Declaration
-
-   procedure Remove_Entity_Substitution (E : Entity_Id);
 
    function Do_Attribute_Pos_Val (N : Node_Id) return Irep
      with Pre => (Ekind (Etype (N)) in Discrete_Kind
@@ -496,15 +459,6 @@ package body Tree_Walk is
    end Report_Unhandled_Node_Type;
 
    -----------------------------
-   -- Add_Entity_Substitution --
-   -----------------------------
-
-   procedure Add_Entity_Substitution (E : Entity_Id; Subst : Irep) is
-   begin
-      Identifier_Substitution_Map.Insert (E, Subst);
-   end Add_Entity_Substitution;
-
-   -----------------------------
    -- Append_Declare_And_Init --
    -----------------------------
 
@@ -555,7 +509,7 @@ package body Tree_Walk is
       N_Type : constant Entity_Id :=  Underlying_Type (Etype (N));
       --  TOCHECK: Parent type may be more than one step away?
    begin
-      case Ekind (N_Type) is
+      case Non_Private_Ekind (N_Type) is
          when E_Array_Type =>
             return Do_Aggregate_Literal_Array (N);
          when E_Array_Subtype =>
@@ -573,165 +527,52 @@ package body Tree_Walk is
       end case;
    end Do_Aggregate_Literal;
 
-   ---------------------------------
-   -- Do_Aggregate_Literal_Record --
-   ---------------------------------
+   ----------------------
+   -- Do_Assignment_Op --
+   ----------------------
 
-   function Do_Aggregate_Literal_Record (N : Node_Id) return Irep is
-      N_Type : constant Entity_Id := Etype (N);
-      N_Underlying_Type : constant Node_Id := Underlying_Type (N_Type);
+   procedure Do_Assignment_Op (Block       : Irep;
+                               Destination : Irep;
+                               Dest_Type   : Entity_Id;
+                               Source_Expr : Node_Id)
+   is
+      Dest_I_Type : constant Irep := Do_Type_Reference (Dest_Type);
    begin
-      --  It appears GNAT sorts the aggregate members for us into the order
-      --  discriminant (if any), common members, variant members.
-      --  However, let's check.
-      declare
-         Components   : constant Node_Id :=
-           Component_List (Type_Definition (Parent (N_Underlying_Type)));
-         Variant_Node : constant Node_Id := Variant_Part (Components);
-
-         Component_Iter : Node_Id :=
-           First_Component_Or_Discriminant (N_Underlying_Type);
-         Actual_Iter    : Node_Id := First (Component_Associations (N));
-         Struct_Expr : constant Irep := Make_Struct_Expr
-           (Source_Location => Get_Source_Location (N),
-            I_Type => Do_Type_Reference (N_Underlying_Type));
-         Non_Discriminant_Components_Seen : Int := 0;
-         Non_Discriminant_Components_Expected : constant Int :=
-           List_Length (Component_Items (Components));
-         Variant_Disc_Value : Node_Id := Types.Empty;
-
-         function Components_Match (L : Node_Id; R : Node_Id) return Boolean;
-         function Components_Match (L : Node_Id; R : Node_Id) return Boolean
-         is
-            Lrec : constant Node_Id := Original_Record_Component (L);
-            Rrec : constant Node_Id := Original_Record_Component (R);
+      if Is_Array_Type (Underlying_Type (Dest_Type)) then
+         Do_Array_Assignment_Op (Block, Destination, Dest_Type, Source_Expr);
+      else
+         declare
+            Bare_Assignor : constant Irep := Do_Expression (Source_Expr);
+            Assignor      : constant Irep :=
+              (if Do_Range_Check (Source_Expr) then
+                    Make_Range_Assert_Expr
+                 (N => Source_Expr,
+                  Value => Bare_Assignor,
+                  Bounds_Type => Dest_I_Type)
+               else
+                  Bare_Assignor);
          begin
-            return Lrec = Rrec;
-         end Components_Match;
-
-         function Expect_More_Components return Boolean;
-         function Expect_More_Components return Boolean is
-         begin
-            if Present (Component_Iter) and then
-              Ekind (Component_Iter) = E_Discriminant
-            then
-               return True;
-            end if;
-            return Non_Discriminant_Components_Seen <
-              Non_Discriminant_Components_Expected;
-         end Expect_More_Components;
-
-      begin
-
-         --  Expect discriminants and components in declared order:
-         while Expect_More_Components loop
-            if not Present (Actual_Iter) then
-               Report_Unhandled_Node_Empty (N,
-                                            "Do_Aggregate_Literal_Record",
-                                            "Actual iter not present");
-               return Struct_Expr;
-            end if;
-            if not Present (Component_Iter) then
-               Report_Unhandled_Node_Empty (N,
-                                            "Do_Aggregate_Literal_Record",
-                                            "Component iter not present");
-               return Struct_Expr;
-            end if;
-            if not Components_Match (Component_Iter,
-                                     Entity (First (Choices (Actual_Iter))))
-            then
-               Report_Unhandled_Node_Empty (N,
-                                            "Do_Aggregate_Literal_Record",
-                                            "Component actual iter mismatch");
-               return Struct_Expr;
-            end if;
-            if Nkind (Expression (Actual_Iter)) = N_Empty then
-               Report_Unhandled_Node_Empty
-                 (N,
-                  "Do_Aggregate_Literal_Record",
-                  "Actual iter expression empty node");
-               return Struct_Expr;
-            end if;
-            Append_Struct_Member (Struct_Expr,
-                                  Do_Expression (Expression (Actual_Iter)));
-            if Ekind (Component_Iter) = E_Component then
-               Non_Discriminant_Components_Seen :=
-                 Non_Discriminant_Components_Seen + 1;
-            elsif Ekind (Component_Iter) = E_Discriminant then
-               if Present (Variant_Node) and then
-                 Original_Record_Component (Component_Iter) =
-                 Entity (Name (Variant_Node))
-               then
-                  Variant_Disc_Value := Expression (Actual_Iter);
-               end if;
-            end if;
-            Next_Component_Or_Discriminant (Component_Iter);
-            Next (Actual_Iter);
-         end loop;
-
-         --  Extract variant members
-         if Present (Variant_Node) then
-            declare
-               Variant_Found : constant Node_Id :=
-                 Find_Record_Variant (Variant_Node, Variant_Disc_Value);
-               Union_Literal : Irep;
-               Variant_Substruct : Irep;
-               Substruct_Component_List : Node_Id :=
-                 First (Component_Items (Component_List (Variant_Found)));
-            begin
-               if not Present (Variant_Found) then
-                  Report_Unhandled_Node_Empty (N,
-                                               "Do_Aggregate_Literal_Record",
-                                               "Variant not present");
-                  return Struct_Expr;
-               end if;
-               --  Initialises last two parameters:
-               Make_Variant_Literal (Variant_Node, Variant_Found,
-                                     Union_Literal, Variant_Substruct);
-               --  Try to parse remaining aggregate parts according to that
-               --  subrecord.
-               while Present (Substruct_Component_List) loop
-                  if not Present (Actual_Iter) then
-                     Report_Unhandled_Node_Empty (N,
-                                                 "Do_Aggregate_Literal_Record",
-                                                  "Actual iter not present");
-                     return Struct_Expr;
-                  end if;
-
-                  if Get_Name_String
-                    (Chars (Defining_Identifier (Substruct_Component_List))) /=
-                    Get_Name_String
-                      (Chars (Entity (First (Choices (Actual_Iter)))))
-                  then
-                     Report_Unhandled_Node_Empty (N,
-                                                 "Do_Aggregate_Literal_Record",
-                                                  "Wrong defining identifier");
-                     return Struct_Expr;
-                  end if;
-                  Append_Struct_Member (
-                    Variant_Substruct,
-                    Do_Expression (Expression (Actual_Iter)));
-                  Next (Substruct_Component_List);
-                  Next (Actual_Iter);
-               end loop;
-               --  Add union literal to the outer struct:
-               Append_Struct_Member (Struct_Expr, Union_Literal);
-            end;
-
-         end if;
-         return Struct_Expr;
-      end;
-
-   end Do_Aggregate_Literal_Record;
+            Append_Op (Block,
+                       Make_Code_Assign
+                         (Lhs => Destination,
+                          Rhs => Typecast_If_Necessary
+                            (Expr => Assignor,
+                             New_Type => Dest_I_Type,
+                             A_Symbol_Table => Global_Symbol_Table),
+                          Source_Location =>
+                            Get_Source_Location (Source_Expr)));
+         end;
+      end if;
+   end Do_Assignment_Op;
 
    -----------------------------
    -- Do_Assignment_Statement --
    -----------------------------
 
-   function Do_Assignment_Statement (N : Node_Id) return Irep
+   procedure Do_Assignment_Statement (Block : Irep; N : Node_Id)
    is
    begin
-      if Ekind (Etype (Name (N))) in Array_Kind then
+      if Ekind (Underlying_Type (Etype (Name (N)))) in Array_Kind then
          declare
             Lhs_Type : constant Entity_Id := Etype (Name (N));
             --  Since the type of the LHS may be implicit, e.g.
@@ -745,38 +586,38 @@ package body Tree_Walk is
                Declare_Itype (Lhs_Type);
             end if;
          end;
-         return Do_Array_Assignment (N);
-      end if;
+         Do_Array_Assignment (Block, N);
+      else
 
-      declare
-         LHS : constant Irep := Do_Expression (Name (N));
-
-         function RHS return Irep;
-         function RHS return Irep is
-            N_RHS : constant Node_Id := Expression (N);
-            Bare_RHS : constant Irep := Do_Expression (N_RHS);
-            pragma Assert (Kind (Bare_RHS) in Class_Expr and then
-                           Kind (Get_Type (LHS)) in Class_Type);
+         declare
+            LHS : constant Irep := Do_Expression (Name (N));
+            function RHS return Irep;
+            function RHS return Irep is
+               N_RHS : constant Node_Id := Expression (N);
+               Bare_RHS : constant Irep := Do_Expression (N_RHS);
+               pragma Assert (Kind (Bare_RHS) in Class_Expr and then
+                              Kind (Get_Type (LHS)) in Class_Type);
+            begin
+               return
+                 (if Do_Range_Check (N_RHS)
+                  then Make_Range_Assert_Expr
+                    (N => N,
+                     Value => Bare_RHS,
+                     Bounds_Type => Get_Type (LHS))
+                  else Bare_RHS);
+            end RHS;
          begin
-            return
-              (if Do_Range_Check (N_RHS)
-               then
-                  Make_Range_Assert_Expr
-                 (N => N,
-                  Value => Bare_RHS,
-                  Bounds_Type => Get_Type (LHS))
-               else Bare_RHS);
-         end RHS;
-
-      begin
-         return Make_Code_Assign
-           (Lhs => LHS,
-            Rhs => Typecast_If_Necessary
-              (Expr => RHS,
-               New_Type => Get_Type (LHS),
-               A_Symbol_Table => Global_Symbol_Table),
-            Source_Location => Get_Source_Location (N));
-      end;
+            Append_Op
+              (Block,
+               Make_Code_Assign
+                 (Lhs => LHS,
+                  Rhs => Typecast_If_Necessary
+                    (Expr => RHS,
+                     New_Type => Get_Type (LHS),
+                     A_Symbol_Table => Global_Symbol_Table),
+                  Source_Location => Get_Source_Location (N)));
+         end;
+      end if;
    end Do_Assignment_Statement;
 
    ------------------------
@@ -833,60 +674,101 @@ package body Tree_Walk is
       ----------------------
 
       procedure Handle_Parameter (Formal : Entity_Id; Actual : Node_Id) is
-         Is_Out        : constant Boolean := Out_Present (Parent (Formal));
-         Formal_Type : constant Irep :=
-           Follow_Symbol_Type (Do_Type_Reference (Etype (Formal)),
+         Is_Out          : constant Boolean := Out_Present (Parent (Formal));
+         Formal_Ada_Type : constant Entity_Id :=
+           Underlying_Type (Etype (Formal));
+         Formal_Type     : constant Irep :=
+           Follow_Symbol_Type (Do_Type_Reference (Formal_Ada_Type),
                                Global_Symbol_Table);
-         Actual_Irep   : Irep;
-         Expression    : constant Irep := Do_Expression (Actual);
+         Expression      : constant Irep := Do_Expression (Actual);
+         Actual_Irep     : Irep;
       begin
-         if Is_Out and then
-           not (Kind (Get_Type (Expression)) in Class_Type)
-         then
-            Report_Unhandled_Node_Empty (Actual, "Handle_Parameter",
-                                         "Kind of actual not in class type");
-            return;
-         end if;
-         if Kind (Formal_Type) in
-           I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
-             | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
-               | I_Floatbv_Type | I_C_Enum_Type and then
-               Do_Range_Check (Actual)
-         then
-            if (Kind (Typecast_If_Necessary
-                      (Handle_Enum_Symbol_Members (Expression),
-                       Formal_Type, Global_Symbol_Table)) in Class_Expr)
-              and then
-                (Kind (Get_Type
-                       (Typecast_If_Necessary
-                        (Handle_Enum_Symbol_Members
-                         (Expression),
-                         Formal_Type, Global_Symbol_Table)))
-                 in Class_Type)
+         if Is_Array_Type (Formal_Ada_Type) then
+            declare
+               Actual_Array : constant Entity_Id :=
+                 (if Nkind (Actual) = N_Attribute_Reference then
+                      (if Get_Attribute_Id (Attribute_Name (Actual)) =
+                           Attribute_Image
+                       then
+                          Stand.Standard_String
+                       else
+                          Types.Empty)
+                  elsif Nkind (Actual) in N_Has_Entity then
+                       Entity (Actual)
+                  else
+                     Etype (Actual));
+               pragma Assert (Present (Actual_Array));
+
+               Component_Subtype : constant Entity_Id :=
+                 Component_Type (Formal_Ada_Type);
+               Component_Irep : constant Irep :=
+                 Do_Type_Reference (Component_Subtype);
+            begin
+               --  If it is an unconstrained array formal parameter
+               --  the First, Last and Length array friend variables
+               --  have to be added to the argument list.
+               if not Is_Constrained (Formal_Ada_Type) then
+                  Pass_Array_Friends (Actual_Array, Expression, Args);
+               end if;
+               --  Now handle the array parameter.  The front-end ensures that
+               --  the array is type compliant.
+               --  Arrays are always passed by reference.
+               Append_Argument
+                 (Args,
+                  Get_Array_Reference (Expression, Component_Irep));
+            end;
+         else
+            --  Formal parameter is not an array type.
+            if Is_Out and then
+              not (Kind (Get_Type (Expression)) in Class_Type)
             then
-               Actual_Irep := Wrap_Argument
-                 (Make_Range_Assert_Expr
-                    (N,
-                     Typecast_If_Necessary
-                       (Handle_Enum_Symbol_Members (Expression),
-                        Formal_Type, Global_Symbol_Table),
-                     Formal_Type), Is_Out);
-            else
                Report_Unhandled_Node_Empty
-                 (Actual,
-                  "Handle_Parameter",
-                  "Kind of Expression not valid for Range_Check");
+                 (Actual, "Handle_Parameter",
+                  "Kind of actual not in class type");
+               return;
+            end if;
+            if Kind (Formal_Type) in
+              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+                | I_Unsignedbv_Type | I_Signedbv_Type
+                  | I_Bounded_Unsignedbv_Type | I_Floatbv_Type | I_C_Enum_Type
+                  and then Do_Range_Check (Actual)
+            then
+               if (Kind (Typecast_If_Necessary
+                         (Handle_Enum_Symbol_Members (Expression),
+                          Formal_Type, Global_Symbol_Table)) in Class_Expr)
+                 and then
+                   (Kind (Get_Type
+                          (Typecast_If_Necessary
+                           (Handle_Enum_Symbol_Members
+                            (Expression),
+                            Formal_Type, Global_Symbol_Table)))
+                    in Class_Type)
+               then
+                  Actual_Irep := Wrap_Argument
+                    (Make_Range_Assert_Expr
+                       (N,
+                        Typecast_If_Necessary
+                          (Handle_Enum_Symbol_Members (Expression),
+                           Formal_Type, Global_Symbol_Table),
+                        Formal_Type), Is_Out);
+               else
+                  Report_Unhandled_Node_Empty
+                    (Actual,
+                     "Handle_Parameter",
+                     "Kind of Expression not valid for Range_Check");
+                  Actual_Irep := Wrap_Argument
+                    (Typecast_If_Necessary (Handle_Enum_Symbol_Members
+                     (Expression),
+                     Formal_Type, Global_Symbol_Table), Is_Out);
+               end if;
+            else
                Actual_Irep := Wrap_Argument
-                 (Typecast_If_Necessary (Handle_Enum_Symbol_Members
-                  (Expression),
+                 (Typecast_If_Necessary
+                    (Handle_Enum_Symbol_Members (Expression),
                   Formal_Type, Global_Symbol_Table), Is_Out);
             end if;
-         else
-            Actual_Irep := Wrap_Argument
-              (Typecast_If_Necessary (Handle_Enum_Symbol_Members (Expression),
-               Formal_Type, Global_Symbol_Table), Is_Out);
+            Append_Argument (Args, Actual_Irep);
          end if;
-         Append_Argument (Args, Actual_Irep);
       end Handle_Parameter;
 
       procedure Handle_Parameters is new
@@ -898,6 +780,51 @@ package body Tree_Walk is
       Handle_Parameters (N);
       return Args;
    end Do_Call_Parameters;
+
+   --------------------------
+   -- Do_First_Last_Length --
+   --------------------------
+
+   function Do_First_Last_Length (N : Node_Id;  Attr : Attribute_Id)
+                                  return Irep
+   is
+      Prefix_Type : constant Entity_Id := Etype (Prefix (N));
+   begin
+      if Is_Scalar_Type (Prefix_Type) then
+         --  When applied to a scalar subtype,
+         --  the attributes First, Last and Length are substituted by their
+         --  value if the range of the subtype is static.
+         --  Hence, this branch will only be executed if the subtype does
+         --  not have a static range, which, currently, is unsupported but can
+         --  be obtained ftom the front end.
+         return Do_Scalar_First_Last_Length (Prefix_Type, Attr);
+      else
+         --  It is an array.
+         return Do_Array_First_Last_Length (N, Attr);
+      end if;
+   end Do_First_Last_Length;
+
+   ---------------------------------
+   -- Do_Scalar_First_Last_Length --
+   ---------------------------------
+
+   function Do_Scalar_First_Last_Length (E : Entity_Id; Attr : Attribute_Id)
+                                         return Irep
+   is
+      E_Range   : constant Node_Id := Scalar_Range (E);
+   begin
+      return
+        (case Attr is
+            when Attribute_First =>
+               Do_Expression (Low_Bound (E_Range)),
+            when Attribute_Last =>
+               Do_Expression (High_Bound (E_Range)),
+             when others =>
+               Report_Unhandled_Node_Irep
+                 (N        => E,
+                  Fun_Name => "Do_Scalar_First_Last_Length",
+                  Message  => "Attribute is not First or Last"));
+   end Do_Scalar_First_Last_Length;
 
    ------------------------
    -- Do_If_Expression --
@@ -1227,10 +1154,31 @@ package body Tree_Walk is
    ----------------------------
 
    function Do_Defining_Identifier (E : Entity_Id) return Irep is
-      Result_Type  : constant Irep := Do_Type_Reference (Etype (E));
+      --  The Ada type of an array object may be unconstrained but
+      --  the object itself must be constrained.
+      --  For goto the constrained array object Irep type is used rather than
+      --  the possibly unconstrained Ada type.
+      --  If the array object is a formal parameter it will be represented by
+      --  a pointer to its component type.
+      Underlying   : constant Entity_Id := Underlying_Type (Etype (E));
+      Result_Type  : constant Irep :=
+        (if Is_Object (E) and then
+         Is_Array_Type (Underlying_Type (Etype (E)))
+         then
+            (if Is_Formal (E) then
+               --  Formal aray parameters are represented as a pointer
+               Make_Pointer_Type
+              (Do_Type_Reference
+                   (Component_Type (Underlying_Type (Etype (E)))))
+            else
+               Global_Symbol_Table (Intern (Unique_Name (E))).SymType)
+         else
+            Do_Type_Reference (Etype (E)));
 
+      --  Array parameters are already pointers
       Is_Out_Param : constant Boolean :=
-        Ekind (E) in E_In_Out_Parameter | E_Out_Parameter;
+        Ekind (E) in E_In_Out_Parameter | E_Out_Parameter and then
+        not Is_Array_Type (Underlying);
 
       Symbol_Type  : constant Irep :=
         (if Is_Out_Param
@@ -1268,7 +1216,8 @@ package body Tree_Walk is
 
    function Do_Derived_Type_Definition (N : Node_Id) return Irep is
       Subtype_Irep : constant Irep :=
-        Do_Subtype_Indication (Subtype_Indication (N));
+        Do_Subtype_Indication (Defining_Identifier (Parent (N)),
+                               Subtype_Indication (N));
    begin
       if Present (Record_Extension_Part (N)) then
          return Report_Unhandled_Node_Type (N, "Do_Derived_Type_Definition",
@@ -1314,6 +1263,7 @@ package body Tree_Walk is
             Val_String : constant String :=
               UI_Image (Enumeration_Pos (Member));
             Val_Name : constant String := Unique_Name (Member);
+            pragma Assert (Nkind (Member) in N_Has_Chars);
             Base_Name : constant String := Get_Name_String (Chars (Member));
             Member_Size : constant Int := UI_To_Int (Esize (Etype (Member)));
             Element : constant Irep := Make_C_Enum_Member
@@ -1500,45 +1450,74 @@ package body Tree_Walk is
          when N_Selected_Component   => return Do_Selected_Component (N);
          when N_Op                   => return Do_Operator_General (N);
          when N_Integer_Literal      => return Do_Constant (N);
-         when N_String_Literal       => return Do_String_Constant (N);
+         when N_String_Literal       => return Do_String_Literal (N);
          when N_Character_Literal    => return Do_Character_Constant (N);
          when N_Type_Conversion      => return Do_Type_Conversion (N);
          when N_Function_Call        => return Do_Function_Call (N);
          when N_Or_Else              => return Do_Or_Else (N);
          when N_Attribute_Reference  =>
             case Get_Attribute_Id (Attribute_Name (N)) is
-               when Attribute_Access => return Do_Address_Of (N);
+               when Attribute_Access =>
+                  declare
+                     Pre_Prefix      : constant Node_Id := Prefix (N);
+                     Resolved_Prefix : constant Node_Id :=
+                       (if Nkind (Pre_Prefix) = N_Explicit_Dereference then
+                             Prefix (Pre_Prefix)
+                        else
+                           Pre_Prefix);
+                     N_Type : constant Entity_Id :=
+                       Underlying_Type (Etype (Resolved_Prefix));
+                  begin
+                     if Is_Array_Type (N_Type) and then
+                       not Is_Constrained (N_Type)
+                     then
+                        --  An access to an object of an unconstrained type
+                        --  (the object itself must be constrained) is
+                        --  represented by a pointer to an array structure
+                        --  which contains the actual bounds of the object and
+                        --  a pointer to the array object.
+                        return Make_Address_Of
+                          (Make_Unconstrained_Array_Result (Resolved_Prefix));
+                     else
+                        return Do_Address_Of (N);
+                     end if;
+                  end;
                when Attribute_Address =>
                   --  Use the ASVAT.Address_Model to create the address.
                   return ASVAT.Address_Model.Do_ASVAT_Address_Of (N);
-               when Attribute_Length => return Do_Array_Length (N);
+               when Attribute_Length => return
+                  Do_First_Last_Length (N, Attribute_Length);
                when Attribute_Range  =>
                   return Report_Unhandled_Node_Irep (N, "Do_Expression",
                                                      "Range attribute");
-               when Attribute_First  =>
-                  if Is_String_Type (Etype (Prefix (N))) then
-                     return Report_Unhandled_Node_Irep
-                       (N, "Do_Expression",
-                        "First of string unsupported");
-                  else
-                     return Do_Array_First (N);
-                  end if;
-               when Attribute_Last   =>
-                  if Is_String_Type (Etype (Prefix (N))) then
-                     return Report_Unhandled_Node_Irep
-                       (N, "Do_Expression",
-                        "Last of string unsupported");
-                  else
-                     return Do_Array_Last (N);
-                  end if;
+               when Attribute_First  => return
+                    Do_First_Last_Length (N, Attribute_First);
+               when Attribute_Last   => return
+                     Do_First_Last_Length (N, Attribute_Last);
                when Attribute_Val =>
                   return Do_Attribute_Pos_Val (N);
                when Attribute_Pos =>
                   return Do_Attribute_Pos_Val (N);
                when Attribute_Pred =>
-                  return Do_Attribute_Pred_Discrete (N);
+                  if Ekind (Etype (N)) in Discrete_Kind then
+                     return Do_Attribute_Pred_Discrete (N);
+                  else
+                     return Report_Unhandled_Node_Irep
+                       (N        => N,
+                        Fun_Name => "Do_Expression",
+                        Message  =>
+                          "Pred and Succ of non-scalar subtypes unsupported");
+                  end if;
                when Attribute_Succ =>
-                  return Do_Attribute_Succ_Discrete (N);
+                  if Ekind (Etype (N)) in Discrete_Kind then
+                     return Do_Attribute_Succ_Discrete (N);
+                  else
+                     return Report_Unhandled_Node_Irep
+                       (N        => N,
+                        Fun_Name => "Do_Expression",
+                        Message  =>
+                          "Pred and Succ of non-scalar subtypes unsupported");
+                  end if;
                when Attribute_Size |
                     Attribute_Value_Size | Attribute_VADS_Size =>
                   --  S'Size and X'Size are optimised into a simple literal
@@ -1557,6 +1536,21 @@ package body Tree_Walk is
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
                      "Component_Size unsupported");
+               when Attribute_Image =>
+                  Report_Unhandled_Node_Empty
+                    (N        => N,
+                     Fun_Name => "Do_Expression",
+                     Message  => "Attribute Image is unsupported");
+                  return Make_String_Constant_Expr
+                    (Text       => "Unsupported'Image",
+                     Source_Loc => Get_Source_Location (N));
+               when Attribute_Value =>
+                  Report_Unhandled_Node_Empty
+                    (N        => N,
+                     Fun_Name => "Do_Expression",
+                     Message  => "Attribute_Value is unsupported");
+                  --  return a dummy value
+                  return Do_Expression (Type_Low_Bound (Etype (N)));
                when Attribute_Result =>
                   declare
                      Item_Name : constant String :=
@@ -1614,6 +1608,8 @@ package body Tree_Walk is
                when Attribute_Min =>
                   return Do_Attribute_Max_Min (N      => N,
                                                Is_Max => False);
+               when Attribute_Valid =>
+                  return Do_Attribute_Valid (Prefix (N));
                when others           =>
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Expression",
@@ -1796,9 +1792,20 @@ package body Tree_Walk is
 
          Do_Type_Declaration (New_Type, E);
 
-         --  Declare the implicit initial subtype too
+         --  Declare the implicit initial subtype too.
+         --  This is an Itype declared by the front-end.
+         --  The model sive of this declaration is needed.
+         --  It will be the same as the new type.
          if Etype (E) /= E then
             Do_Type_Declaration (New_Type, Etype (E));
+            if ASVAT.Size_Model.Has_Static_Size (E) then
+               ASVAT.Size_Model.Set_Static_Size
+                 (Etype (E),
+                  ASVAT.Size_Model.Static_Size (E));
+            else
+               ASVAT.Size_Model.Set_Computed_Size
+                 (Etype (E), ASVAT.Size_Model.Computed_Size (E));
+            end if;
          end if;
 
          --  A declaration of a tagged type is accepted by gnat2goto.
@@ -2048,6 +2055,7 @@ package body Tree_Walk is
    function Do_Exit_Statement (N : Node_Id) return Irep is
       Jump_Irep : Irep;
    begin
+      pragma Assert (Nkind (Name (N)) in N_Has_Chars);
       if Present (Name (N)) then
          Jump_Irep := Make_Code_Goto
            (Source_Location => Get_Source_Location (N),
@@ -2550,6 +2558,7 @@ package body Tree_Walk is
       --  if GNAT has created the loop identifier, we do not
       --  need a label because the user cannot reference it
       if not Has_Created_Identifier (N) then
+         pragma Assert (Nkind (Identifier (N)) in N_Has_Chars);
          Append_Op (Loop_Wrapper,
                     Make_Code_Label
                       (Code            => Make_Code_Skip
@@ -2841,6 +2850,7 @@ package body Tree_Walk is
               Arg_Pos = 1 and then
               Nkind (Expr) = N_Identifier
             then
+               pragma Assert (Nkind (Expr) in N_Has_Chars);
                Suppress_Scope := Chars (Expr);
             else
                Report_Unhandled_Node_Empty (N, "Do_Pragma_Suppress",
@@ -3328,6 +3338,7 @@ package body Tree_Walk is
 
       return Cond_Block;
    end Do_Pre_Condition;
+
    ---------------------------
    -- Do_Object_Declaration --
    ---------------------------
@@ -3386,379 +3397,143 @@ package body Tree_Walk is
       pragma Assert (Global_Symbol_Table.Contains (Obj_Id));
    end Do_Object_Declaration;
 
-   --------------------------------------------
-   -- Do_Object_Declaration_Full_Declaration --
-   --------------------------------------------
+   --------------------------------
+   -- Do_Object_Declaration_Full --
+   --------------------------------
 
    procedure Do_Object_Declaration_Full
      (N : Node_Id; Block : Irep) is
+      Source_Loc : constant Irep := Get_Source_Location (N);
       Defined  : constant Entity_Id := Defining_Identifier (N);
+      Defined_Type : constant Entity_Id := Etype (Defined);
       Obj_Name : constant String := Unique_Name (Defined);
-      Obj_Id   : constant Symbol_Id := Intern (Obj_Name);
-      Obj_Type : constant Irep := Do_Type_Reference (Etype (Defined));
-      --  Do_Defining-Identifier cannot be called here because
-      --  the object entity has not been entered into the symbol
-      --  table yet.
-      Id   : constant Irep :=
-        Make_Symbol_Expr
-          (Source_Location => Get_Source_Location (N),
-           I_Type          => Obj_Type,
-           Range_Check     => False,
-           Identifier      => Obj_Name);
+      Obj_Type : constant Irep := Do_Type_Reference (Defined_Type);
 
-      Decl : constant Irep := Make_Code_Decl
-        (Symbol => Id,
-         Source_Location => Get_Source_Location (N));
-      Init_Expr : Irep := Ireps.Empty;
-
-      function Has_Defaulted_Components (E : Entity_Id) return Boolean;
-      function Needs_Default_Initialisation (E : Entity_Id) return Boolean;
-      function Disc_Expr (N : Node_Id) return Node_Id;
-      function Make_Record_Default_Initialiser (E : Entity_Id;
-                                                DCs : Node_Id) return Irep;
-      function Make_Default_Initialiser (E : Entity_Id;
-                                         DCs : Node_Id) return Irep;
-
-      function Has_Defaulted_Components (E : Entity_Id) return Boolean is
-         Record_E : Entity_Id := E;
-         Record_Def : Node_Id;
-         Component_Iter : Node_Id;
-      begin
-         while Ekind (Record_E) = E_Record_Subtype loop
-            Record_E := Etype (Record_E);
-         end loop;
-         if Ekind (Record_E) /= E_Record_Type then
-            return False;
-         end if;
-         Record_Def := Type_Definition (Parent (Record_E));
-         if Nkind (Record_Def) /= N_Record_Definition and then
-           Nkind (Record_Def) /= N_Variant
-         then
-            Report_Unhandled_Node_Empty (N,
-                                         "Do_Object_Declaration",
-                                         "Record definition of wrong nkind");
-            return False;
-         end if;
-         Component_Iter :=
-           (if Present (Component_List (Record_Def)) then
-               First (Component_Items (Component_List (Record_Def)))
-            else
-               Types.Empty);
-         while Present (Component_Iter) loop
-            if Present (Expression (Component_Iter)) then
-               return True;
-            end if;
-            Next (Component_Iter);
-         end loop;
-         return False;
-      end Has_Defaulted_Components;
-
-      function Needs_Default_Initialisation (E : Entity_Id) return Boolean is
-      begin
-         return Has_Defaulted_Discriminants (E)
-           or else Has_Defaulted_Components (E)
-           or else Ekind (E) = E_Array_Subtype
-           or else (Ekind (E) = E_Private_Type
-                    and then Present (Full_View (E))
-                    and then Ekind (Full_View (E)) = E_Array_Subtype);
-      end Needs_Default_Initialisation;
-
-      function Disc_Expr (N : Node_Id) return Node_Id is
-         (if Nkind (N) = N_Discriminant_Association
-            then Expression (N)
-            else N);
-
-      function Make_Record_Default_Initialiser (E : Entity_Id;
-                                                DCs : Node_Id) return Irep is
-
-         procedure Add_Components (Components : Node_Id; Result : Irep);
-         procedure Add_Components (Components : Node_Id; Result : Irep)
-         is
-            Component_Iter : Node_Id :=
-              First (Component_Items (Components));
-            New_Expr : Irep;
-         begin
-            while Present (Component_Iter) loop
-               if Nkind (Component_Iter) /= N_Allocator
-                 and then Nkind (Component_Iter) /= N_Aspect_Specification
-                 and then Nkind (Component_Iter) /= N_Assignment_Statement
-                 and then Nkind (Component_Iter) /= N_At_Clause
-                 and then
-                 Nkind (Component_Iter) /= N_Attribute_Definition_Clause
-                 and then Nkind (Component_Iter) /= N_Case_Expression
-                 and then
-                 Nkind (Component_Iter) /= N_Case_Expression_Alternative
-                 and then Nkind (Component_Iter) /= N_Case_Statement
-                 and then Nkind (Component_Iter) /= N_Code_Statement
-                 and then Nkind (Component_Iter) /= N_Component_Association
-                 and then Nkind (Component_Iter) /= N_Component_Declaration
-                 and then Nkind (Component_Iter) /= N_Delay_Relative_Statement
-                 and then Nkind (Component_Iter) /= N_Delay_Until_Statement
-                 and then Nkind (Component_Iter) /= N_Delta_Aggregate
-                 and then Nkind (Component_Iter) /= N_Discriminant_Association
-                 and then
-                 Nkind (Component_Iter) /= N_Discriminant_Specification
-                 and then Nkind (Component_Iter) /= N_Exception_Declaration
-                 and then Nkind (Component_Iter) /= N_Expression_Function
-                 and then Nkind (Component_Iter) /= N_Expression_With_Actions
-                 and then Nkind (Component_Iter) /= N_Free_Statement
-                 and then
-                 Nkind (Component_Iter) /= N_Iterated_Component_Association
-                 and then Nkind (Component_Iter) /= N_Mod_Clause
-                 and then Nkind (Component_Iter) /= N_Modular_Type_Definition
-                 and then Nkind (Component_Iter) /= N_Number_Declaration
-                 and then Nkind (Component_Iter) /= N_Object_Declaration
-                 and then Nkind (Component_Iter) /= N_Parameter_Specification
-                 and then
-                 Nkind (Component_Iter) /= N_Pragma_Argument_Association
-                 and then Nkind (Component_Iter) /= N_Qualified_Expression
-                 and then Nkind (Component_Iter) /= N_Raise_Expression
-                 and then Nkind (Component_Iter) /= N_Raise_Statement
-                 and then Nkind (Component_Iter) /= N_Simple_Return_Statement
-                 and then Nkind (Component_Iter) /= N_Type_Conversion
-                 and then Nkind (Component_Iter) /= N_Unchecked_Expression
-                 and then Nkind (Component_Iter) /= N_Unchecked_Type_Conversion
-               then
-                  Report_Unhandled_Node_Empty (Component_Iter,
-                                             "Make_Record_Default_Initialiser",
-                                               "Wrong component iter nkind");
-                  return;
-               end if;
-               if Present (Expression (Component_Iter)) then
-                  New_Expr := Do_Expression (Expression (Component_Iter));
-               else
-                  declare
-                     Component_Type : constant Entity_Id :=
-                       Etype (Defining_Identifier (Component_Iter));
-                  begin
-                     if Ekind (Component_Type) in Aggregate_Kind then
-                        New_Expr :=
-                          Make_Default_Initialiser (Component_Type,
-                                                    Types.Empty);
-                     else
-                        New_Expr := Make_Side_Effect_Expr_Nondet
-                          (I_Type => Do_Type_Reference (Component_Type),
-                           Source_Location => Get_Source_Location (E));
-                     end if;
-                  end;
-               end if;
-               Append_Struct_Member (Result, New_Expr);
-               Next (Component_Iter);
-            end loop;
-         end Add_Components;
-
-         Record_E : constant Entity_Id := Root_Type (E);
-         Record_Def : constant Node_Id :=
-           Type_Definition (Parent (Record_E));
-         Record_Comps : constant Node_Id :=
-           Component_List (Record_Def);
-         Variant_Disc_Value : Node_Id;
-         Ret : constant Irep := Make_Struct_Expr
-           (Source_Location => Get_Source_Location (N),
-            I_Type => Do_Type_Reference (E));
-
-      --  begin processing for Make_Record_Default_Initialiser
-
-      begin
-         if Has_Discriminants (E) then
-            declare
-               Iter : Entity_Id := First_Discriminant (E);
-               Disc_Constraint_Iter : Node_Id := Types.Empty;
-               Disc_Actual : Node_Id;
-               New_Expr : Irep;
-            begin
-               if Present (DCs) then
-                  Disc_Constraint_Iter := First (Constraints (DCs));
-               end if;
-               while Present (Iter) loop
-                  if Present (DCs) then
-                     if not Present (Disc_Constraint_Iter) then
-                        Report_Unhandled_Node_Empty (N,
-                                             "Make_Record_Default_Initialiser",
-                                           "Disc constraint iter not present");
-                        return Ret;
-                     end if;
-                     Disc_Actual := Disc_Expr (Disc_Constraint_Iter);
-                     Next (Disc_Constraint_Iter);
-                  else
-                     Disc_Actual := Discriminant_Default_Value (Iter);
-                  end if;
-
-                  --  If this assignment picks a variant, save the actual
-                  --  value for later:
-                  if Present (Variant_Part (Record_Comps)) and then
-                    Entity (Name (Variant_Part (Record_Comps))) =
-                      Original_Record_Component (Iter)
-                  then
-                     Variant_Disc_Value := Disc_Actual;
-                  end if;
-
-                  if Present (Disc_Actual) then
-                     New_Expr := Do_Expression (Disc_Actual);
-                  else
-                     --  Default initialize to 0
-                     New_Expr := Make_Constant_Expr
-                       (Source_Location => Get_Source_Location (E),
-                        I_Type          =>
-                          Do_Type_Reference (Etype (Iter)),
-                        Range_Check     => False,
-                        Value           => "0");
-                  end if;
-                  Append_Struct_Member (Ret, New_Expr);
-                  --  Substitute uses of the discriminant in the record
-                  --  initialiser for its actual value:
-                  Add_Entity_Substitution (Original_Record_Component (Iter),
-                                           New_Expr);
-                  Next_Discriminant (Iter);
-               end loop;
-            end;
-         end if;
-
-         --  Next defaulted components:
-         Add_Components (Record_Comps, Ret);
-
-         --  Now the variant part:
-         if Present (Variant_Part (Record_Comps)) then
-            --  Should have found the variant discriminant's
-            --  actual value earlier:
-            if not Present (Variant_Disc_Value) then
-               Report_Unhandled_Node_Empty (N,
-                                            "Make_Record_Default_Initialiser",
-                                        "Variant disc value iter not present");
-               return Ret;
-            end if;
-            declare
-               Var_Part : constant Node_Id := Variant_Part (Record_Comps);
-               Variant : constant Node_Id :=
-                 Find_Record_Variant (Var_Part, Variant_Disc_Value);
-               Union_Expr : Irep;
-               Substruct_Expr : Irep;
-            begin
-               if not Anonymous_Type_Map.Contains (Variant) then
-                  Report_Unhandled_Node_Empty (Variant,
-                                             "Make_Record_Default_Initialiser",
-                                               "Variant not in type map");
-                  return Ret;
-               end if;
-               --  Initialises the last two arguments:
-               Make_Variant_Literal (Var_Part, Variant,
-                                     Union_Expr, Substruct_Expr);
-               --  Populate substructure:
-               Add_Components (Component_List (Variant), Substruct_Expr);
-               --  Add union initialiser to outer struct:
-               Append_Struct_Member (Ret, Substruct_Expr);
-            end;
-         end if;
-
-         --  Remove discriminant substitutions:
-         if Has_Discriminants (E) then
-            declare
-               Iter : Entity_Id := First_Discriminant (E);
-            begin
-               while Present (Iter) loop
-                  Remove_Entity_Substitution
-                    (Original_Record_Component (Iter));
-                  Next_Discriminant (Iter);
-               end loop;
-            end;
-         end if;
-
-         return Ret;
-
-      end Make_Record_Default_Initialiser;
-
-      function Make_Default_Initialiser (E : Entity_Id;
-                                         DCs : Node_Id) return Irep
-      is
-      begin
-         if Ekind (E) in Array_Kind then
-            return Make_Array_Default_Initialiser (E);
-         elsif Ekind (E) in Record_Kind then
-            return Make_Record_Default_Initialiser (E, DCs);
-         elsif Ekind (E) in Private_Kind and then Present (Full_View (E))
-           and then Ekind (Full_View (E)) in Array_Kind
-         then
-            return Make_Array_Default_Initialiser (Full_View (E));
-         else
-            return Report_Unhandled_Node_Irep (E, "Make_Default_Initialiser",
-                                                 "Unknown Ekind");
-         end if;
-      end Make_Default_Initialiser;
-
-      procedure Update_Value (Key : Symbol_Id; Element : in out Symbol);
-      procedure Update_Value (Key : Symbol_Id; Element : in out Symbol) is
-      begin
-         pragma Assert (Unintern (Key) = Unintern (Obj_Id));
-         Element.Value := Init_Expr;
-      end Update_Value;
-
-      --  Begin processing for Do_Object_Declaration_Full_Declaration
+      --  Begin processing for Do_Object_Declaration_Full
    begin
-      Append_Op (Block, Decl);
-
-      if Has_Init_Expression (N) or Present (Expression (N)) then
-         if Kind (Obj_Type) in
-           I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
-             | I_Unsignedbv_Type | I_Signedbv_Type | I_Bounded_Unsignedbv_Type
-               | I_Floatbv_Type | I_C_Enum_Type and then
-               Nkind (Expression (N)) in N_Subexpr and then
-               Do_Range_Check (Expression (N))
-         then
-            if (Kind (Do_Expression (Expression (N))) in Class_Expr) and then
-              (Kind (Get_Type (Do_Expression (Expression (N))))
-               in Class_Type)
-            then
-               Init_Expr := Make_Range_Assert_Expr
-                 (N,
-                  Do_Expression (Expression (N)),
-                  Obj_Type);
-            else
-               Report_Unhandled_Node_Empty
-                 (Expression (N),
-                  "Do_Object_Declaration_Full",
-                  "Kind of Expression(N) not valid for Range_Check");
-               Init_Expr := Do_Expression (Expression (N));
-            end if;
-         else
-            Init_Expr := Do_Expression (Expression (N));
-         end if;
-      elsif Needs_Default_Initialisation (Etype (Defined)) or
-        (Present (Object_Definition (N)) and then
-         Nkind (Object_Definition (N)) = N_Subtype_Indication)
-      then
+      if Is_Array_Type (Defined_Type) then
+         Do_Array_Object_Declaration
+           (Block       => Block,
+            Dec_Node    => N,
+            Target_Type => Defined_Type,
+            Array_Name  => Obj_Name,
+            Init_Expr   => Expression (N));
+      elsif Is_Record_Type (Defined_Type) then
+         Do_Record_Object_Declaration
+           (Block       => Block,
+            Dec_Node    => N,
+            Target_Type => Defined_Type,
+            Record_Name => Obj_Name,
+            Init_Expr   => Expression (N));
+      else
          declare
-            Defn : constant Node_Id := Object_Definition (N);
-            Discriminant_Constraint : constant Node_Id :=
-              (if Nkind (Defn) = N_Subtype_Indication
-                 then Constraint (Defn) else Types.Empty);
+            --  Check for if initialization is required.
+            Init_Expr_Pre : constant Irep :=
+              (if Has_Init_Expression (N) or Present (Expression (N)) then
+                  Do_Expression (Expression (N))
+               else
+                  Ireps.Empty);
+
+            --  Do_Defining-Identifier cannot be called here because
+            --  the object entity has not been entered into the symbol
+            --  table yet.
+            Id   : constant Irep :=
+              Make_Symbol_Expr
+                (Source_Location => Get_Source_Location (N),
+                 I_Type          => Obj_Type,
+                 Range_Check     => False,
+                 Identifier      => Obj_Name);
+
+            Needs_Range_Check  : constant Boolean :=
+              Init_Expr_Pre /= Ireps.Empty and then
+              Kind (Obj_Type) in
+              I_Bounded_Signedbv_Type | I_Bounded_Floatbv_Type | I_Symbol_Type
+                | I_Unsignedbv_Type | I_Signedbv_Type
+                  | I_Bounded_Unsignedbv_Type | I_Floatbv_Type
+                    | I_C_Enum_Type
+                    and then
+                      Nkind (Expression (N)) in N_Subexpr and then
+                      Do_Range_Check (Expression (N));
+
+            Expr_In_Type_Class : constant Boolean :=
+              Needs_Range_Check and then
+              Kind (Init_Expr_Pre) in Class_Expr and then
+              Kind (Get_Type (Init_Expr_Pre)) in Class_Type;
+
+            Init_Expr_Irep     : constant Irep :=
+              (if Needs_Range_Check and Expr_In_Type_Class then
+                  Make_Range_Assert_Expr (N, Init_Expr_Pre, Obj_Type)
+               else
+                  Init_Expr_Pre);
          begin
-            Init_Expr :=
-              Make_Default_Initialiser (Etype (Defined),
-                                        Discriminant_Constraint);
+            Do_Plain_Object_Declaration
+              (Block       => Block,
+               Object_Sym  => Id,
+               Object_Name => Obj_Name,
+               Object_Def  => Defined,
+               Init_Expr_Irep => Init_Expr_Irep);
+
+            --  Assign the initialization, if any.
+            if Init_Expr_Irep /= Ireps.Empty then
+               --  First check that any required range check is valid.
+               if Needs_Range_Check and not Expr_In_Type_Class then
+                  Report_Unhandled_Node_Empty
+                    (Expression (N),
+                     "Do_Object_Declaration_Full",
+                     "Kind of Expression(N) not valid for Range_Check");
+               end if;
+
+               Append_Op (Block, Make_Code_Assign
+                          (Lhs => Id,
+                           Rhs =>
+                             Typecast_If_Necessary
+                               (Init_Expr_Irep, Get_Type (Id),
+                                Global_Symbol_Table),
+                           Source_Location => Source_Loc));
+            end if;
          end;
       end if;
-
-      pragma Assert (Get_Identifier (Id) = Unintern (Obj_Id));
-      if not Global_Symbol_Table.Contains (Obj_Id)
-      then
-         New_Object_Symbol_Entry (Object_Name       => Obj_Id,
-                                  Object_Type       => Obj_Type,
-                                  Object_Init_Value => Init_Expr,
-                                  A_Symbol_Table    => Global_Symbol_Table);
-      elsif Init_Expr /= Ireps.Empty then
-         Global_Symbol_Table.Update_Element
-           (Position => Global_Symbol_Table.Find (Obj_Id),
-            Process  => Update_Value'Access);
-      end if;
-
-      if Init_Expr /= Ireps.Empty then
-         Append_Op (Block, Make_Code_Assign (Lhs => Id,
-                Rhs => Typecast_If_Necessary (Init_Expr, Get_Type (Id),
-                                              Global_Symbol_Table),
-                                             Source_Location =>
-                                               Get_Source_Location (N)));
-      end if;
    end Do_Object_Declaration_Full;
+
+   ---------------------------------
+   -- Do_Plain_Object_Declaration --
+   ---------------------------------
+
+   procedure Do_Plain_Object_Declaration (Block          : Irep;
+                                          Object_Sym     : Irep;
+                                          Object_Name    : String;
+                                          Object_Def     : Entity_Id;
+                                          Init_Expr_Irep : Irep)
+   is
+      Object_Id   : constant Symbol_Id := Intern (Object_Name);
+      Object_Type : constant Entity_Id := Etype (Object_Def);
+      Decl      : constant Irep :=
+        Make_Code_Decl
+          (Symbol          => Object_Sym,
+           Source_Location => Get_Source_Location (Object_Sym));
+   begin
+      if not Global_Symbol_Table.Contains (Object_Id) then
+         Append_Op (Block, Decl);
+         New_Object_Symbol_Entry
+           (Object_Name       => Object_Id,
+            Object_Type       => Get_Type (Object_Sym),
+            Object_Init_Value => Init_Expr_Irep,
+            A_Symbol_Table    => Global_Symbol_Table);
+         --  The model size of the object has to be recorded if it has
+         --  not already been set by an array object declaration.
+         if not ASVAT.Size_Model.Has_Size (Object_Def) then
+            ASVAT.Size_Model.Set_Size_From_Entity (Object_Def, Object_Type);
+         end if;
+
+      elsif Init_Expr_Irep /= Ireps.Empty then
+         declare
+            Obj_Symbol : Symbol := Global_Symbol_Table (Object_Id);
+         begin
+            Obj_Symbol.Value := Init_Expr_Irep;
+            Global_Symbol_Table.Replace (Object_Id, Obj_Symbol);
+         end;
+      end if;
+   end Do_Plain_Object_Declaration;
 
    -------------------------
    --     Do_Op_Not       --
@@ -4136,8 +3911,7 @@ package body Tree_Walk is
       if Nkind (N) = N_Op_Abs then
          return Do_Op_Abs (N);
       elsif Nkind (N) = N_Op_Concat then
-         return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
-                                            "Concat unsupported");
+         return Do_Array_Concatination (N);
       elsif Nkind (N) = N_Op_Not then
          declare
             Ret_Type : constant Irep := Do_Type_Reference (Etype (N));
@@ -4174,6 +3948,16 @@ package body Tree_Walk is
          then
             return Report_Unhandled_Node_Irep (N, "Do_Operator_General",
                                                "Wrong node kind");
+         end if;
+         if Nkind (N) in N_Op_Eq | N_Op_Ne and then
+           Is_Array_Type (Underlying_Type (Etype (N)))
+         then
+            --  Array equality probably has to be handled by a goto
+            --  function call similar to that used for aggregate expressions.
+            Report_Unhandled_Node_Empty
+              (N        => N,
+               Fun_Name => "Do_Operator_General",
+               Message  => "Array equality currently unsupported");
          end if;
          return Do_Operator_Simple (N);
       end if;
@@ -4295,24 +4079,65 @@ package body Tree_Walk is
               when N_Op_Lt => Make_Op_Lt'Access,
               when others => Make_Unsupported_Op'Access);
 
-         LHS : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
-                                           Global_Symbol_Table);
-         RHS : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
-                                           Global_Symbol_Table);
+         LHS_Raw : constant Irep := Cast_Enum (Do_Expression (Left_Opnd (N)),
+                                               Global_Symbol_Table);
+         RHS_Raw : constant Irep := Cast_Enum (Do_Expression (Right_Opnd (N)),
+                                               Global_Symbol_Table);
 
-         --  Guard against LHS not having a type
-         Tgt : constant Irep :=
-           (if Kind (Get_Type (LHS)) in Class_Type then
-                 Get_Type (LHS)
+         --  For All basic operators the LHS and RHS I_Types
+         --  should be the same.
+         --  An Irep operand may be a pointer type, e.g., if it is
+         --  an indexed component, so the I_Type should be obtained
+         --  from the Ada type
+         LHS_Type_Pre_1 : constant Irep :=
+           Do_Type_Reference (Etype (Left_Opnd (N)));
+         RHS_Type_Pre_1 : constant Irep :=
+           Do_Type_Reference (Etype (Right_Opnd (N)));
+
+         LHS_Type_Pre_2 : constant Irep :=
+           (if Kind (Follow_Symbol_Type (LHS_Type_Pre_1, Global_Symbol_Table))
+            = I_C_Enum_Type
+            then
+                 Uint32_T
             else
-               Ret_Type);
+               LHS_Type_Pre_1);
+
+         RHS_Type_Pre_2 : constant Irep :=
+           (if Kind (Follow_Symbol_Type (RHS_Type_Pre_1, Global_Symbol_Table))
+            = I_C_Enum_Type then
+                 Uint32_T
+            else
+               RHS_Type_Pre_1);
+
+         --  If one of the operands is a literal the I_Types might
+         --  not be the same
+         LHS_Type_Unbounded : constant Irep :=
+           Make_Corresponding_Unbounded_Type (LHS_Type_Pre_2);
+         RHS_Type_Unbounded : constant Irep :=
+           Make_Corresponding_Unbounded_Type (RHS_Type_Pre_2);
+
+         --  The width may not be the same.
+         Tgt_Type           : constant Irep :=
+           (if Kind (LHS_Type_Unbounded) in Class_Bitvector_Type and then
+            Kind (RHS_Type_Unbounded) in Class_Bitvector_Type and then
+            Get_Width (RHS_Type_Unbounded) > Get_Width (LHS_Type_Unbounded)
+            then
+               RHS_Type_Unbounded
+            else
+               LHS_Type_Unbounded);
+
+         LHS                : constant Irep :=
+           Typecast_If_Necessary
+             (LHS_Raw, Tgt_Type, Global_Symbol_Table);
+         RHS                : constant Irep :=
+           Typecast_If_Necessary
+             (RHS_Raw, Tgt_Type, Global_Symbol_Table);
 
          --  Start of processing for Do_Operator_Simple
 
          Unchecked_Result : constant Irep := Make_Binary_Operation
               (Lhs => LHS,
-               Rhs => Typecast_If_Necessary
-                 (RHS, Tgt, Global_Symbol_Table),
+               Rhs => RHS,
                I_Type => Ret_Type,
                Overflow_Check => Do_Overflow_Check (N),
                Source_Location => Get_Source_Location (N));
@@ -4697,9 +4522,11 @@ package body Tree_Walk is
       begin
          if Get_Attribute_Id (Attribute_Name (Bound_Node)) =  Attribute_First
          then
-            return Bound_Type_Symbol (Do_Array_First (Bound_Node));
+            return Bound_Type_Symbol
+              (Do_Array_First_Last_Length (Bound_Node, Attribute_First));
          else
-            return Bound_Type_Symbol (Do_Array_Last (Bound_Node));
+            return Bound_Type_Symbol
+              (Do_Array_First_Last_Length (Bound_Node, Attribute_Last));
          end if;
       end Get_Array_Attr_Bound_Symbol;
 
@@ -4783,10 +4610,11 @@ package body Tree_Walk is
          Upper_Bound_Value :=
            Store_Symbol_Bound (Get_Array_Attr_Bound_Symbol (Upper_Bound));
       else
-         return Report_Unhandled_Node_Type
+         Report_Unhandled_Node_Empty
            (Lower_Bound,
             "Do_Range_Constraint",
             "only static ranges are supported");
+         return Make_Signedbv_Type (32);
       end if;
 
       declare
@@ -4807,341 +4635,6 @@ package body Tree_Walk is
                Upper_Bound => Upper_Bound_Value));
       end;
    end Do_Range_Constraint;
-
-   --------------------------
-   -- Do_Record_Definition --
-   --------------------------
-
-   function Do_Record_Definition (N : Node_Id; Discs : List_Id) return Irep is
-
-      Components : constant Irep := Make_Struct_Union_Components;
-      Disc_Iter : Node_Id := First (Discs);
-
-      procedure Add_Record_Component (Comp_Name : String;
-                                      Comp_Type_Node : Node_Id;
-                                      Comp_Node : Node_Id;
-                                      Add_To_List : Irep := Components);
-      procedure Add_Record_Component_Raw (Comp_Name : String;
-                                          Comp_Type : Irep;
-                                          Comp_Node : Node_Id;
-                                          Add_To_List : Irep := Components);
-      procedure Do_Record_Component (Comp : Node_Id);
-      procedure Do_Variant_Struct (Var : Node_Id; Union_Components : Irep);
-
-      --------------------------
-      -- Add_Record_Component --
-      --------------------------
-
-      procedure Add_Record_Component (Comp_Name : String;
-                                      Comp_Type_Node : Node_Id;
-                                      Comp_Node : Node_Id;
-                                      Add_To_List : Irep := Components) is
-      begin
-         Declare_Itype (Comp_Type_Node);
-         Add_Record_Component_Raw (Comp_Name,
-                                   Do_Type_Reference (Comp_Type_Node),
-                                   Comp_Node,
-                                   Add_To_List);
-      end Add_Record_Component;
-
-      ------------------------------
-      -- Add_Record_Component_Raw --
-      ------------------------------
-
-      procedure Add_Record_Component_Raw (Comp_Name : String;
-                                          Comp_Type : Irep;
-                                          Comp_Node : Node_Id;
-                                          Add_To_List : Irep := Components) is
-         Comp_Irep : constant Irep :=
-           Make_Struct_Component (Comp_Name, Comp_Type);
-      begin
-         Set_Source_Location (Comp_Irep, Get_Source_Location (Comp_Node));
-         Append_Component (Add_To_List, Comp_Irep);
-      end Add_Record_Component_Raw;
-
-      -------------------------
-      -- Do_Record_Component --
-      -------------------------
-
-      procedure Do_Record_Component (Comp : Node_Id) is
-         Comp_Name : Unbounded_String;
-      begin
-         if Nkind (Comp) /= N_Component_Declaration
-           and then Nkind (Comp) /= N_Defining_Program_Unit_Name
-           and then Nkind (Comp) /= N_Discriminant_Specification
-           and then Nkind (Comp) /= N_Entry_Body
-           and then Nkind (Comp) /= N_Entry_Declaration
-           and then Nkind (Comp) /= N_Entry_Index_Specification
-           and then Nkind (Comp) /= N_Exception_Declaration
-           and then Nkind (Comp) /= N_Exception_Renaming_Declaration
-           and then Nkind (Comp) /= N_Formal_Object_Declaration
-           and then Nkind (Comp) /= N_Formal_Package_Declaration
-           and then Nkind (Comp) /= N_Formal_Type_Declaration
-           and then Nkind (Comp) /= N_Full_Type_Declaration
-           and then Nkind (Comp) /= N_Implicit_Label_Declaration
-           and then Nkind (Comp) /= N_Incomplete_Type_Declaration
-           and then Nkind (Comp) /= N_Iterated_Component_Association
-           and then Nkind (Comp) /= N_Iterator_Specification
-           and then Nkind (Comp) /= N_Loop_Parameter_Specification
-           and then Nkind (Comp) /= N_Number_Declaration
-           and then Nkind (Comp) /= N_Object_Declaration
-           and then Nkind (Comp) /= N_Object_Renaming_Declaration
-           and then Nkind (Comp) /= N_Package_Body_Stub
-           and then Nkind (Comp) /= N_Parameter_Specification
-           and then Nkind (Comp) /= N_Private_Extension_Declaration
-           and then Nkind (Comp) /= N_Private_Type_Declaration
-           and then Nkind (Comp) /= N_Protected_Body
-           and then Nkind (Comp) /= N_Protected_Body_Stub
-           and then Nkind (Comp) /= N_Protected_Type_Declaration
-           and then Nkind (Comp) /= N_Single_Protected_Declaration
-           and then Nkind (Comp) /= N_Single_Task_Declaration
-           and then Nkind (Comp) /= N_Subtype_Declaration
-           and then Nkind (Comp) /= N_Task_Body
-           and then Nkind (Comp) /= N_Task_Body_Stub
-           and then Nkind (Comp) /= N_Task_Type_Declaration
-         then
-            Report_Unhandled_Node_Empty (Comp, "Do_Record_Component",
-                                         "Wrong component nkind");
-            return;
-         end if;
-         Comp_Name := To_Unbounded_String (Unique_Name (Defining_Identifier
-                                                          (Comp)));
-         Add_Record_Component (To_String (Comp_Name),
-                               Etype (Defining_Identifier (Comp)),
-                               Comp);
-      end Do_Record_Component;
-
-      -----------------------
-      -- Do_Variant_Struct --
-      -----------------------
-
-      procedure Do_Variant_Struct (Var : Node_Id; Union_Components : Irep) is
-         Struct_Type : constant Irep :=
-           Do_Record_Definition (Var, List_Id (Types.Empty));
-         Type_Symbol : constant Irep := Get_Fresh_Type_Name (Struct_Type, Var);
-         Choice_Iter : constant Node_Id := First (Discrete_Choices (Var));
-         Variant_Name : constant String :=
-           Get_Variant_Union_Member_Name (Choice_Iter);
-      begin
-         Set_Tag (Struct_Type, Get_Identifier (Type_Symbol));
-         Add_Record_Component_Raw (Variant_Name,
-                                   Type_Symbol,
-                                   Var,
-                                   Union_Components);
-      end Do_Variant_Struct;
-
-      --  Local variables
-      Component_Iter : Node_Id :=
-        (if Present (Component_List (N)) then
-            First (Component_Items (Component_List (N)))
-            else
-               Types.Empty);
-      Variants_Node  : constant Node_Id :=
-        (if Present (Component_List (N)) then
-            Variant_Part (Component_List (N))
-         else
-            Types.Empty);
-
-   --  Start of processing for Do_Record_Definition
-
-   begin
-
-      --  Create fields for any discriminants:
-      --  This order (discriminant, common fields, variant fields)
-      --  seems to match GNAT's record-literal ordering (apparently
-      --  regardless of source ordering).
-      while Present (Disc_Iter) loop
-         Add_Record_Component (Unique_Name (Defining_Identifier (Disc_Iter)),
-                               Etype (Discriminant_Type (Disc_Iter)),
-                               Disc_Iter);
-         Next (Disc_Iter);
-      end loop;
-
-      --  Add regular fields
-      while Present (Component_Iter) loop
-         Do_Record_Component (Component_Iter);
-         Next (Component_Iter);
-      end loop;
-
-      --  Add union of variants if applicable
-      if Present (Variants_Node) then
-         --  Create a field for the discriminant,
-         --  plus a union of variant alternatives.
-         declare
-            Variant_Iter : Node_Id := First (Variants (Variants_Node));
-            Union_Components : constant Irep :=
-              Make_Struct_Union_Components;
-            Union_Irep : constant Irep := Make_Union_Type
-              (Tag => "Filled out further down with get_fresh_type_name",
-               Components => Union_Components);
-         begin
-            while Present (Variant_Iter) loop
-               Do_Variant_Struct (Variant_Iter, Union_Components);
-               Next (Variant_Iter);
-            end loop;
-            Set_Components (Union_Irep, Union_Components);
-            declare
-               Union_Symbol : constant Irep :=
-                 Get_Fresh_Type_Name (Union_Irep, Variants_Node);
-            begin
-               Set_Tag (Union_Irep, Get_Identifier (Union_Symbol));
-               Add_Record_Component_Raw (
-                 "_variants", Union_Symbol, Variants_Node);
-            end;
-         end;
-      end if;
-
-      return Make_Struct_Type
-        (Tag => "This will be filled in later by Do_Type_Declaration",
-         Components => Components);
-   end Do_Record_Definition;
-
-   ---------------------------
-   -- Do_Selected_Component --
-   ---------------------------
-
-   function Do_Selected_Component (N : Node_Id) return Irep is
-      --  The prefix to a selected component may be an access to an
-      --  record object which must be implicitly dereferenced.
-      The_Prefix        : constant Node_Id := Prefix (N);
-      Prefix_Etype      : constant Node_Id := Etype (The_Prefix);
-      Prefix_Irep       : constant Irep := Do_Expression (The_Prefix);
-      Is_Implicit_Deref : constant Boolean := Is_Access_Type (Prefix_Etype);
-      Resolved_Type     : constant Irep :=
-        (if Is_Implicit_Deref then
-            Do_Type_Reference (Designated_Type (Prefix_Etype))
-         else
-            Do_Type_Reference (Prefix_Etype));
-      Root            : constant Irep :=
-        (if Is_Implicit_Deref then
-            Make_Dereference_Expr
-           (I_Type => Resolved_Type,
-            Object => Prefix_Irep,
-            Source_Location => Get_Source_Location (N))
-         else
-            Prefix_Irep);
-
-      --  Where required the prefix has been implicitly dereferenced.
-      Component      : constant Entity_Id := Entity (Selector_Name (N));
-
-      --  Example:
-      --  struct Foo { int a; };
-      --  struct Foo bar;
-      --  bar.a = 5;
-      --
-      --  The Unique_Name of the struct-component in declaration is Foo__a. But
-      --  when parsing the assignment the component is that of the entity bar,
-      --  thus it's unique-name is bar__a: which is not present in Foo. That's
-      --  why we have to use the component of the original-record to get the
-      --  right name.
-      Orig_Component : constant Entity_Id :=
-        Original_Record_Component (Component);
-      Component_Type : constant Irep := Do_Type_Reference (Etype (Component));
-      Component_Name : constant String := Unique_Name (Orig_Component);
-      Source_Location : constant Irep := Get_Source_Location (N);
-   begin
-      if Do_Discriminant_Check (N) then
-         --  ??? Can this even happen
-         if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
-         then
-            return Report_Unhandled_Node_Irep
-              (N,
-               "Do_Selected_Component",
-               "Parent not full type declaration");
-         end if;
-
-         declare
-            Record_Type : constant Node_Id := Type_Definition
-              (Parent (Etype (Prefix (N))));
-            Variant_Spec : constant Node_Id := Variant_Part
-              (Component_List (Record_Type));
-
-            function Find_Variant_Containing_Component return Node_Id;
-            function Find_Variant_Containing_Component return Node_Id
-            is
-               Variant_Iter : Node_Id := First
-                 (Variants (Variant_Part (Component_List (Record_Type))));
-            begin
-               while Present (Variant_Iter) loop
-                  declare
-                     Item_Iter : Node_Id :=
-                       First (Component_Items (Component_List (Variant_Iter)));
-                  begin
-                     while Present (Item_Iter) loop
-                        if Defining_Identifier (Item_Iter) = Component then
-                           return Variant_Iter;
-                        end if;
-                        Next (Item_Iter);
-                     end loop;
-                  end;
-                  Next (Variant_Iter);
-               end loop;
-               --  XXX this was previously an "unsupported feature",
-               --     not sure if/how this could ever happen
-               pragma Assert
-                 (False,
-                  "A component not being present in any " &
-                    "of the record variants shouldn't ever happen");
-               return Variant_Iter;
-            end Find_Variant_Containing_Component;
-
-            Variant_Containing_Component : constant Node_Id :=
-              Find_Variant_Containing_Component;
-
-            Variant_Containing_Component_Constraint : constant Node_Id :=
-              First (Discrete_Choices (Variant_Containing_Component));
-
-            --  Emit a runtime check to see if we're actually accessing
-            --  a component of the active variant
-            Disc_Selector : constant Irep := Make_Member_Expr
-              (Compound => Root,
-               Component_Name => Unique_Name (Entity (Name (Variant_Spec))),
-               I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
-               Source_Location => Source_Location);
-            Disc_Check : constant Irep := Make_Op_Eq
-              (Lhs => Disc_Selector,
-               Rhs => Do_Expression (Variant_Containing_Component_Constraint),
-               I_Type => CProver_Bool_T,
-               Source_Location => Source_Location);
-            Correct_Variant_Check : constant Irep :=
-              Make_Runtime_Check (Disc_Check);
-
-            --  Create the actual member access by interposing a union access:
-            --  The actual access for member X of the Y == Z variant will look
-            --  like (_check(Base.Disc == Z), Base._variants.Z.X)
-
-            Union_Selector : constant Irep := Make_Member_Expr
-              (I_Type => Anonymous_Type_Map (Variant_Spec),
-               Compound => Root,
-               Component_Name => "_variants",
-               Source_Location => Source_Location);
-
-            Substruct_Selector : constant Irep := Make_Member_Expr
-              (I_Type => Anonymous_Type_Map (Variant_Containing_Component),
-               Compound => Union_Selector,
-               Component_Name => Get_Variant_Union_Member_Name
-                 (Variant_Containing_Component_Constraint),
-               Source_Location => Source_Location);
-
-            Component_Selector : constant Irep := Make_Member_Expr
-              (I_Type => Component_Type,
-               Compound => Substruct_Selector,
-               Component_Name => Component_Name,
-               Source_Location => Source_Location);
-         begin
-            return Make_Op_Comma
-              (Lhs => Correct_Variant_Check,
-               Rhs => Component_Selector,
-               Source_Location => Source_Location);
-         end;
-      else
-         return Make_Member_Expr
-           (I_Type => Component_Type,
-            Compound => Root,
-            Component_Name => Component_Name,
-            Source_Location => Source_Location);
-      end if;
-   end Do_Selected_Component;
 
    ----------------------------------
    -- Do_Signed_Integer_Definition --
@@ -5219,7 +4712,8 @@ package body Tree_Walk is
             Return_Entity : constant Entity_Id := Return_Statement_Entity (N);
             Applies_To    : constant Node_Id :=
               Return_Applies_To (Return_Entity);
-            Return_Type   : constant Entity_Id := Etype (Applies_To);
+            Return_Type   : constant Entity_Id :=
+              Underlying_Type (Etype (Applies_To));
             Return_I_Type : constant Irep := Do_Type_Reference (Return_Type);
             pragma Assert (Nkind (Applies_To) in N_Defining_Identifier |
                                                  N_Defining_Operator_Symbol,
@@ -5234,19 +4728,30 @@ package body Tree_Walk is
                  Range_Check     => False,
                  Identifier      => Result_Name);
          begin
-            Global_Symbol_Table (Intern (Result_Name)).Value :=
-              Result_Var;
-            Append_Op (Block,
-                       Make_Code_Assign
-                         (Rhs             => Typecast_If_Necessary
-                            (Expr           => Do_Expression (Return_Expr),
-                             New_Type       => Return_I_Type,
-                             A_Symbol_Table => Global_Symbol_Table),
-                          Lhs             => Result_Var,
-                          Source_Location => Location,
-                          I_Type          => Return_I_Type,
-                          Range_Check     => False));
-            Return_Value := Result_Var;
+            --  The result variable is declared when the subprogram
+            --  specification is processed
+            if Is_Array_Type (Return_Type) and then
+              Kind (Return_I_Type) = I_Struct_Tag_Type and then
+              not Is_Bounded_Array (Do_Expression (Return_Expr))
+            then
+               --  It is an unconstrained array result type
+               Build_Unconstrained_Array_Result
+                 (Block       => Block,
+                  Result_Var  => Result_Var,
+                  Return_Expr => Return_Expr);
+               Return_Value := Result_Var;
+            else
+               Do_Assignment_Op
+                 (Block       => Block,
+                  Destination => Result_Var,
+                  Dest_Type   => Return_Type,
+                  Source_Expr => Return_Expr);
+               Return_Value  := Typecast_If_Necessary
+                 (Expr           => Result_Var,
+                  New_Type       => Return_I_Type,
+                  A_Symbol_Table => Global_Symbol_Table);
+            end if;
+            Global_Symbol_Table (Intern (Result_Name)).Value := Return_Value;
          end;
       end if;
       if ASVAT.Pragma_Info.Has_Post_Condition (Spec) then
@@ -5273,11 +4778,22 @@ package body Tree_Walk is
       Function_Name : constant String := "__CPROVER_Ada_Raise_Exception";
 
       Exception_Id_String : constant Irep :=
-        Make_String_Constant_Expr
-          (Text       => Unique_Name (Entity (Name (N))),
-           Source_Loc => Source_Loc);
+        (if Present (Name (N)) then
+            Make_String_Constant_Expr
+           (Text       => Unique_Name (Entity (Name (N))),
+            Source_Loc => Source_Loc)
+         else
+            Make_String_Constant_Expr
+           (Text       => "_no_name__",
+            Source_Loc => Source_Loc));
       Exception_Comment : constant Irep :=
-        (if Present (Expression (N)) then Do_String_Constant (Expression (N))
+        (if Present (Expression (N)) then
+           (if Nkind (Expression (N)) = N_String_Literal then
+                 Do_String_Constant (Expression (N))
+            else
+               Make_String_Constant_Expr
+              (Text       => "_unsupported_text_expression__",
+               Source_Loc => Source_Loc))
          else Make_String_Constant_Expr (Text       => "",
                                          Source_Loc => Source_Loc));
       Exception_Call_Arguments : constant Irep := Make_Argument_List;
@@ -5418,6 +4934,7 @@ package body Tree_Walk is
       ASVAT_Model : constant ASVAT.Modelling.Model_Sorts :=
         ASVAT.Modelling.Get_Model_Sort (E);
    begin
+      pragma Assert (Nkind (E) in N_Entity);
       pragma Assert (Ekind (E) in Subprogram_Kind);
       Register_Subprogram_Specification (Specification (N));
 
@@ -5748,34 +5265,72 @@ package body Tree_Walk is
                  (if Is_Access_Param then
                      Etype (Subtype_Mark (Param_Sort))
                   else
-                     Etype (Parameter_Type (Param_Iter)));
-
-               Param_Type_Base : constant Irep :=
-                 Do_Type_Reference (Param_Ada_Type);
-
-               --  If the formal parameter is mode out or in out,
-               --  or is an access parameter, it is made into a pointer
-               Param_Type : constant Irep :=
-                 (if Is_Out or Is_Access_Param then
-                     Make_Pointer_Type (Param_Type_Base)
-                  else Param_Type_Base);
-               Param_Irep : constant Irep := Make_Code_Parameter
-                 (Source_Location => Get_Source_Location (Param_Iter),
-                  I_Type => Param_Type,
-                  Identifier => Param_Name,
-                  Base_Name => Param_Name,
-                  This => False,
-                  Default_Value => Ireps.Empty);
-
-               Param_Id   : constant Symbol_Id := Intern (Param_Name);
+                     Underlying_Type (Etype (Parameter_Type (Param_Iter))));
             begin
-               Append_Parameter (Param_List, Param_Irep);
-               if not Global_Symbol_Table.Contains (Param_Id) then
-                  New_Parameter_Symbol_Entry
-                    (Name_Id        => Intern (Param_Name),
-                     BaseName       => Param_Name,
-                  Symbol_Type    => Param_Type,
-                     A_Symbol_Table => Global_Symbol_Table);
+               if Is_Array_Type (Param_Ada_Type) then
+                  declare
+                     Component_Subtype : constant Node_Id :=
+                       Get_Non_Array_Component_Type (Param_Ada_Type);
+
+                     Component_Irep : constant Irep :=
+                       Do_Type_Reference (Component_Subtype);
+
+                     Ptr_To_Component : constant Irep :=
+                       Make_Pointer_Type
+                         (I_Subtype => Component_Irep,
+                          Width     => Pointer_Type_Width);
+
+                     --  Array parameters are represented as pointers to
+                     --  their component type (which could be an array).
+                     --  Multidimensional arrays are represented as a single
+                     --  dimensional array.
+
+                     Array_Param_Irep : constant Irep := Make_Code_Parameter
+                       (Source_Location => Get_Source_Location (Param_Iter),
+                        I_Type => Ptr_To_Component,
+                        Identifier => Param_Name,
+                        Base_Name => Param_Name,
+                        This => False,
+                        Default_Value => Ireps.Empty);
+                  begin
+                     if not Is_Constrained (Param_Ada_Type) then
+                        Add_Array_Friends
+                          (Param_Name, Param_Ada_Type, Param_List);
+                     end if;
+                     Append_Parameter (Param_List, Array_Param_Irep);
+                     New_Parameter_Symbol_Entry
+                       (Name_Id        => Intern (Param_Name),
+                        BaseName       => Param_Name,
+                        Symbol_Type    => Ptr_To_Component,
+                        A_Symbol_Table => Global_Symbol_Table);
+                  end;
+               else
+                  declare
+                     Param_Type_Base : constant Irep :=
+                       Do_Type_Reference (Param_Ada_Type);
+
+                     --  If the formal parameter is mode out or in out,
+                     --  or is an access parameter, it is made into a pointer
+                     Param_Type : constant Irep :=
+                       (if Is_Out or Is_Access_Param then
+                           Make_Pointer_Type (Param_Type_Base)
+                        else Param_Type_Base);
+
+                     Param_Irep : constant Irep := Make_Code_Parameter
+                       (Source_Location => Get_Source_Location (Param_Iter),
+                        I_Type => Param_Type,
+                        Identifier => Param_Name,
+                        Base_Name => Param_Name,
+                        This => False,
+                        Default_Value => Ireps.Empty);
+                  begin
+                     Append_Parameter (Param_List, Param_Irep);
+                     New_Parameter_Symbol_Entry
+                       (Name_Id        => Intern (Param_Name),
+                        BaseName       => Param_Name,
+                        Symbol_Type    => Param_Type,
+                        A_Symbol_Table => Global_Symbol_Table);
+                  end;
                end if;
                Next (Param_Iter);
             end;
@@ -5812,8 +5367,14 @@ package body Tree_Walk is
    ----------------------------
 
    procedure Do_Subtype_Declaration (N : Node_Id) is
-      New_Type : constant Irep := Do_Subtype_Indication
-        (Subtype_Indication (N));
+      Subtype_Entity : constant Entity_Id := Defining_Identifier (N);
+      New_Type       : constant Irep :=
+        (if Is_Array_Type (Subtype_Entity) then
+              Do_Array_Subtype
+           (Subtype_Node => N,
+            The_Entity   => Subtype_Entity)
+         else
+            Do_Subtype_Indication (Subtype_Entity, Subtype_Indication (N)));
    begin
       Do_Type_Declaration (New_Type, Defining_Identifier (N));
    end Do_Subtype_Declaration;
@@ -5822,33 +5383,47 @@ package body Tree_Walk is
    -- Do_Subtype_Indication --
    ---------------------------
 
-   function Do_Subtype_Indication (N : Node_Id) return Irep
+   function Do_Subtype_Indication (Subtype_Entity : Entity_Id;
+                                   N : Node_Id) return Irep
    is
+      Subtype_Def_Id : constant Entity_Id := Subtype_Entity;
+      --             Defining_Identifier (Parent (N));
+
       Underlying : Irep;
       Constr : Node_Id;
    begin
       case Nkind (N) is
          when N_Subtype_Indication =>
-            Underlying := Do_Type_Reference (Etype (Subtype_Mark (N)));
-            Constr := Constraint (N);
-            if Present (Constr) then
-               case Nkind (Constr) is
-               when N_Range_Constraint =>
-                  return Do_Range_Constraint (Constr, Underlying);
-               when N_Index_Or_Discriminant_Constraint =>
-                  return
-                    Do_Index_Or_Discriminant_Constraint (Constr, Underlying);
-               when others =>
-                  return
-                    Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
-                                                "Unknown expression kind");
-               end case;
-            else
-               return Underlying;
-            end if;
+            declare
+               Sub_Type : constant Entity_Id :=
+                 Etype (Subtype_Mark (N));
+            begin
+               ASVAT.Size_Model.Set_Size_From_Entity
+                 (Subtype_Def_Id, Sub_Type);
+
+               Underlying := Do_Type_Reference (Sub_Type);
+               Constr := Constraint (N);
+               if Present (Constr) then
+                  case Nkind (Constr) is
+                  when N_Range_Constraint =>
+                     return Do_Range_Constraint (Constr, Underlying);
+                  when N_Index_Or_Discriminant_Constraint =>
+                     return
+                       Do_Index_Or_Discriminant_Constraint
+                         (Constr, Underlying);
+                  when others =>
+                     return
+                       Report_Unhandled_Node_Irep (N, "Do_Subtype_Indication",
+                                                   "Unknown expression kind");
+                  end case;
+               else
+                  return Underlying;
+               end if;
+            end;
          when N_Identifier |
               N_Expanded_Name =>
             --  subtype indications w/o constraint are given only as identifier
+            ASVAT.Size_Model.Set_Size_From_Entity (Subtype_Def_Id, Etype (N));
             Underlying := Do_Type_Reference (Etype (N));
             return Underlying;
          when others =>
@@ -5862,23 +5437,38 @@ package body Tree_Walk is
    ------------------------
 
    function Do_Type_Conversion (N : Node_Id) return Irep is
-      To_Convert : constant Irep := Do_Expression (Expression (N));
-      New_Type   : constant Irep := Do_Type_Reference (Etype (N));
-      pragma Assert (Kind (To_Convert) in Class_Expr and then
-                     Kind (New_Type) in Class_Type);
-      Maybe_Checked_Op : constant Irep :=
-        (if Do_Range_Check (Expression (N))
-         then
-            Make_Range_Assert_Expr
-           (N => N,
-            Value => To_Convert,
-            Bounds_Type => New_Type)
-         else To_Convert);
+      Convert_Expr : constant Node_Id := Expression (N);
    begin
-      return Make_Op_Typecast
-        (Op0 => Maybe_Checked_Op,
-         I_Type => New_Type,
-         Source_Location => Get_Source_Location (N));
+      if Nkind (Convert_Expr) = N_Slice then
+         --  Type conversion of a slice does not currently work if
+         --  the bounds of the target array and the array underlying
+         --  the slice are not identical.
+         --  Hopefully this is not a commonly used feature.
+         --  If it is required it probably wil have to be implemented
+         --  by copying to a temporary array.
+         return Report_Unhandled_Node_Irep
+           (N,
+            "Do_Type_Conversion",
+            "Type conversion of a slice is currently unsupported");
+      end if;
+
+      declare
+         To_Convert : constant Irep := Do_Expression (Convert_Expr);
+         New_Type   : constant Irep := Do_Type_Reference (Etype (N));
+         --  Presently onl scalar types are range checked.
+         Maybe_Checked_Op : constant Irep :=
+           (if Is_Scalar_Type (Etype (N)) and Do_Range_Check (Expression (N))
+            then Make_Range_Assert_Expr
+              (N => N,
+               Value => To_Convert,
+               Bounds_Type => New_Type)
+            else To_Convert);
+      begin
+         return Make_Op_Typecast
+           (Op0 => Maybe_Checked_Op,
+            I_Type => New_Type,
+            Source_Location => Get_Source_Location (N));
+      end;
    end Do_Type_Conversion;
 
    -------------------------
@@ -5903,7 +5493,10 @@ package body Tree_Walk is
                              (I_Subtype => Make_Unsignedbv_Type (8),
                               Width     => Pointer_Type_Width)));
    begin
-      if Kind (New_Type) = I_Struct_Type then
+      if Kind (New_Type) = I_Struct_Type and then
+        --  A Bounded_Array already has a tag set
+        not Is_Bounded_Array (New_Type)
+      then
          Set_Tag (New_Type, New_Type_Name);
       end if;
       if not Symbol_Maps.Contains (Global_Symbol_Table, New_Type_Name_Id) then
@@ -5926,7 +5519,7 @@ package body Tree_Walk is
       end if;
       case Nkind (N) is
          when N_Record_Definition =>
-            return Do_Record_Definition (N, Discs);
+            return Do_Record_Type_Definition (N, Discs);
          when N_Signed_Integer_Type_Definition =>
             return Do_Signed_Integer_Definition (N);
          when N_Derived_Type_Definition =>
@@ -5961,6 +5554,7 @@ package body Tree_Walk is
       --  The type might be private or incomplete.
       --  The underlying type is required.
       Type_Entity : constant Entity_Id := Underlying_Type (E);
+      pragma Assert (Nkind (Type_Entity) in N_Entity);
       Type_Name   : constant String := Unique_Name
         (if Ekind (Type_Entity) = E_Access_Subtype then
               Etype (Type_Entity) else Type_Entity);
@@ -5970,6 +5564,7 @@ package body Tree_Walk is
       --  because the type might be an gnat Itype which has not been entered
       --  into the symbol table yet.
       Type_Irep : Irep;
+      Type_Kind : Irep_Kind;
       use Symbol_Maps;
       In_Table    : Cursor;
    begin
@@ -5982,14 +5577,23 @@ package body Tree_Walk is
       In_Table := Find (Global_Symbol_Table, Type_Id);
       if In_Table /= No_Element then
          Type_Irep := Element (In_Table).SymType;
+         Type_Kind := Kind (Type_Irep);
 
-         if Kind (Type_Irep) not in Class_Type then
+         if Type_Kind not in Class_Type then
             return Report_Unhandled_Node_Type
               (E, "Do_Type_Reference",
                "Expected I_Type found " &
-                 Irep_Kind'Image (Kind (Type_Irep)));
+                 Irep_Kind'Image (Type_Kind));
          else
-            return Type_Irep;
+            return
+              (if Type_Kind = I_Struct_Type then
+               --  I_Struct_Types should not appear in the goto code.
+               --  The coresponding I_Struct_Tag_Type should be used.
+                  Make_Struct_Tag_Type (Type_Name)
+               elsif Type_Kind = I_Union_Type then
+                  Make_Union_Tag_Type (Type_Name)
+               else
+                  Type_Irep);
          end if;
       end if;
       --
@@ -6100,60 +5704,6 @@ package body Tree_Walk is
 
    end Do_Withed_Unit_Spec;
 
-   -------------------------
-   -- Find_Record_Variant --
-   -------------------------
-
-   --  Tries to find an N_Variant that applies when discriminant == Actual_Disc
-   function Find_Record_Variant (Variant_Part : Node_Id;
-                                 Actual_Disc : Node_Id) return Node_Id
-   is
-      Variant_Iter : Node_Id := First (Variants (Variant_Part));
-   begin
-      while Present (Variant_Iter) loop
-         declare
-            Choice_Iter : Node_Id :=
-              First (Discrete_Choices (Variant_Iter));
-         begin
-            while Present (Choice_Iter) loop
-               if Entity (Choice_Iter) = Entity (Actual_Disc) then
-                  return Variant_Iter;
-               end if;
-               Next (Choice_Iter);
-            end loop;
-            Next (Variant_Iter);
-         end;
-      end loop;
-      --  Not found?
-      return Types.Empty;
-   end Find_Record_Variant;
-
-   -------------------------
-   -- Get_Fresh_Type_Name --
-   -------------------------
-
-   function Get_Fresh_Type_Name (Actual_Type : Irep;
-                                 Associated_Node : Node_Id) return Irep
-   is
-      Number_Str_Raw : constant String :=
-        Integer'Image (Anonymous_Type_Counter);
-      Number_Str : constant String :=
-        Number_Str_Raw (2 .. Number_Str_Raw'Last);
-      Fresh_Name : constant String := "__anonymous_type_" & Number_Str;
-      Fresh_Symbol_Type : constant Irep := Make_Symbol_Type
-        (Identifier => Fresh_Name);
-   begin
-      Anonymous_Type_Counter := Anonymous_Type_Counter + 1;
-
-      New_Type_Symbol_Entry (Type_Name      => Intern (Fresh_Name),
-                             Type_Of_Type   => Actual_Type,
-                             A_Symbol_Table => Global_Symbol_Table);
-
-      Anonymous_Type_Map.Insert (Associated_Node, Fresh_Symbol_Type);
-
-      return Fresh_Symbol_Type;
-   end Get_Fresh_Type_Name;
-
    ---------------------------
    -- Get_Import_Convention --
    ---------------------------
@@ -6173,6 +5723,7 @@ package body Tree_Walk is
       --  the first parameter.
       Conv_Assoc : constant Node_Id :=
         First (Pragma_Argument_Associations (N));
+      pragma Assert (Nkind (Expression (Conv_Assoc)) in N_Has_Chars);
       Conv_Name  : constant Name_Id := Chars (Conv_Assoc);
       Convention : constant String  := Get_Name_String
         (Chars (Expression (Conv_Assoc)));
@@ -6182,23 +5733,6 @@ package body Tree_Walk is
                      Get_Name_String (Conv_Name) = "convention");
       return Convention;
    end Get_Import_Convention;
-
-   -----------------------------------
-   -- Get_Variant_Union_Member_Name --
-   -----------------------------------
-
-   function Get_Variant_Union_Member_Name (N : Node_Id) return String
-   is
-      Constraint_Iter : Node_Id := N;
-      Variant_Name : Unbounded_String;
-   begin
-      while Present (Constraint_Iter) loop
-         Append (Variant_Name,
-                 "_" & Get_Name_String (Chars (Constraint_Iter)));
-         Next (Constraint_Iter);
-      end loop;
-      return To_String (Variant_Name);
-   end Get_Variant_Union_Member_Name;
 
    ---------------------------
    -- Make_Integer_Constant --
@@ -6305,27 +5839,6 @@ package body Tree_Walk is
        IsType => True,
        others => <>);
 
-   ----------------------------
-   --  Make_Variant_Literal  --
-   ----------------------------
-
-   procedure Make_Variant_Literal (Variants : Node_Id;
-                                   Chosen_Var : Node_Id;
-                                   Union_Expr : out Irep;
-                                   Struct_Expr : out Irep) is
-      Variant_Union_Name : constant String :=
-        Get_Variant_Union_Member_Name (First (Discrete_Choices (Chosen_Var)));
-   begin
-      Struct_Expr := Make_Struct_Expr
-        (I_Type => Anonymous_Type_Map.Element (Chosen_Var),
-         Source_Location => 0);
-      Union_Expr := Make_Union_Expr
-        (I_Type          => Anonymous_Type_Map.Element (Variants),
-         Component_Name  => Variant_Union_Name,
-         Source_Location => 0,
-         Op0             => Struct_Expr);
-   end Make_Variant_Literal;
-
    --------------------------
    -- Process_Declaration --
    --------------------------
@@ -6337,7 +5850,7 @@ package body Tree_Walk is
            (if Nkind (N) in N_Has_Chars then
                  Get_Name_String (Chars (N))
             else
-            "");
+               "___no_name");
       begin
          case Nkind (N) is
             when N_Enumeration_Representation_Clause =>
@@ -6741,6 +6254,8 @@ package body Tree_Walk is
                     (N, "Process_Pragma_Declaration",
                      "pragma Import: Multi-language analysis unsupported");
                end if;
+               --  ToDo: we should check if the import is applied to a
+               --  deferred constant and, if it is, set its value to nondet.
             end;
 
          when Name_Elaborate =>
@@ -6882,6 +6397,7 @@ package body Tree_Walk is
                      else
                         Types.Empty);
 
+                  pragma Assert (Nkind (First_Expr) in N_Has_Chars);
                   Anno_Id : constant String :=
                     (if Present (First_Expr) and then
                      Nkind (First_Expr) = N_Identifier
@@ -7039,7 +6555,7 @@ package body Tree_Walk is
             null;
 
          when N_Assignment_Statement =>
-            Append_Op (Block, Do_Assignment_Statement (N));
+            Do_Assignment_Statement (Block, N);
 
          when N_Exit_Statement =>
             Append_Op (Block, Do_Exit_Statement (N));
@@ -7200,6 +6716,10 @@ package body Tree_Walk is
       --  use an unsignedbv of width w
       if Mod_Max = Power_Of_Two and Ada_Type_Size = Mod_Max_Binary_Logarithm
       then
+         ASVAT.Size_Model.Set_Static_Size
+           (E          => E,
+            Model_Size => Mod_Max_Binary_Logarithm);
+
          return Make_Unsignedbv_Type (Width => Mod_Max_Binary_Logarithm);
       end if;
 
@@ -7258,11 +6778,6 @@ package body Tree_Walk is
       end if;
 
    end Register_Type_Declaration;
-
-   procedure Remove_Entity_Substitution (E : Entity_Id) is
-   begin
-      Identifier_Substitution_Map.Delete (E);
-   end Remove_Entity_Substitution;
 
    function "<" (Left, Right : Array_Dup_Key) return Boolean is
    begin
@@ -7344,4 +6859,21 @@ package body Tree_Walk is
         (I_Type => Pointer_Type,
          Source_Location => Get_Source_Location (N));
    end Do_Null_Expression;
+
+   function Make_Resolved_I_Type (E : Entity_Id) return Irep is
+      I_Type_Pre : constant Irep := Do_Type_Reference (E);
+      I_Type     : constant Irep :=
+        (if Is_Scalar_Type (E) then
+             (if Kind (Follow_Symbol_Type
+              (I_Type_Pre, Global_Symbol_Table)) = I_C_Enum_Type
+              then
+                 Make_Unsignedbv_Type (ASVAT.Size_Model.Static_Size (E))
+              else
+                 I_Type_Pre)
+         else
+            I_Type_Pre);
+   begin
+      return I_Type;
+   end Make_Resolved_I_Type;
+
 end Tree_Walk;

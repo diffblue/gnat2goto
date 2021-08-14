@@ -1,5 +1,6 @@
 with Uintp; use Uintp;
 with Types; use Types;
+with Ada.Text_IO; use Ada.Text_IO;
 
 --  Known Bugs:
 
@@ -255,7 +256,15 @@ package body Ureal_To_Binary is
          end if;
 
          if Exponent < 0 then
-            raise Negative_Exponent;
+            --  An exception should not be raised here as real literals
+            --  are permitted to have negative exponents.
+            --  For now report an unsupported feature.
+            Put_Line ("----------At: Convert_Ureal_To_Binary_IEEE----------");
+            Put_Line
+              ("----------Negative exponents are unsupported.----------");
+            Put_Line ("----------");
+            UR_Write (Number);
+            Put_Line ("----------");
          end if;
 
          while Power > 0 loop

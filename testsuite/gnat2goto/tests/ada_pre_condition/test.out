@@ -4,6 +4,7 @@ pre_condition.adb:46:04: warning: variable "Bool_2" is read but never assigned
 
 [assertion.1] file pre_condition.adb line 6 Ada Check assertion: FAILURE
 [double.assertion.1] line 11 Ada Check assertion: SUCCESS
+[double.assertion.2] line 11 Ada Check assertion: SUCCESS
 [pre_condition.assertion.1] line 53 assertion I = 16: SUCCESS
 [pre_condition.assertion.2] line 58 assertion False: SUCCESS
 [pre_condition.assertion.3] line 64 assertion J = 9: SUCCESS
@@ -12,5 +13,4 @@ pre_condition.adb:46:04: warning: variable "Bool_2" is read but never assigned
 [pre_condition.assertion.6] line 78 assertion K = 9: SUCCESS
 [pre_condition.assertion.7] line 79 assertion False: FAILURE
 [pre_condition.assertion.8] line 84 assertion False: SUCCESS
-[triple.assertion.1] line 20 Ada Check assertion: SUCCESS
 VERIFICATION FAILED

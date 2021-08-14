@@ -9,6 +9,16 @@ Error message: Unknown expression kind
 Nkind: N_Extension_Aggregate
 --
 Occurs: 1 times
+Calling function: Add_Record_Component
+Error message: Unconstrained array (sub)type components are unsupported
+Nkind: N_Component_Declaration
+--
+Occurs: 1 times
+Calling function: Computed_Size
+Error message: Entity does not have ASVAT model size
+Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
 Calling function: Do_Record_Component
 Error message: Wrong component nkind
 Nkind: N_Pragma
