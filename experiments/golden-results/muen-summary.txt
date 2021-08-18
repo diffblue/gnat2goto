@@ -18,7 +18,7 @@ Calling function: Process_Declaration
 Error message: Record representation clauses are unsupported
 Nkind: N_Record_Representation_Clause
 --
-Occurs: 237 times
+Occurs: 247 times
 Calling function: Computed_Size
 Error message: Entity does not have ASVAT model size
 Nkind: N_Defining_Identifier
