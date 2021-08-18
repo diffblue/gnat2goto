@@ -641,6 +641,11 @@ package body Records is
                                          Comp_Node,
                                          Add_To_List);
 
+               --  Register the record component size in the ASVAT size model.
+               Set_Size_From_Entity
+                 (Target => Defining_Identifier (Comp_Node),
+                  Source => Comp_Type_Node);
+
                ASVAT.Size_Model.Accumumulate_Size
                  (Is_Static     => Is_Static,
                   Accum_Static  => Static_Size,

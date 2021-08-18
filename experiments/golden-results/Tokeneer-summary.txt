@@ -28,7 +28,7 @@ Calling function: Process_Declaration
 Error message: Enumeration representation clauses are unsupported
 Nkind: N_Enumeration_Representation_Clause
 --
-Occurs: 62 times
+Occurs: 65 times
 Calling function: Computed_Size
 Error message: Entity does not have ASVAT model size
 Nkind: N_Defining_Identifier
