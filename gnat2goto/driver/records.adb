@@ -11,6 +11,8 @@ with Tree_Walk;             use Tree_Walk;
 with Arrays;                use Arrays;
 with ASVAT.Size_Model;      use ASVAT.Size_Model;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Text_IO; use Ada.Text_IO;
+with Treepr; use Treepr;
 package body Records is
 
    --   Used for error recovery when a component is an unsupported array type.
@@ -870,10 +872,14 @@ package body Records is
       Component_Type      : constant Irep := Do_Type_Reference (Comp_Etype);
       Component_Name      : constant String := Unique_Name (Orig_Component);
       Source_Location     : constant Irep := Get_Source_Location (N);
+      Prefix_Base_Type    : constant Entity_Id :=
+        Implementation_Base_Type (Etype (Prefix (N)));
    begin
       if Do_Discriminant_Check (N) then
-         --  ??? Can this even happen
-         if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
+         Put_Line ("Needs discriminant check");
+         Print_Node_Subtree (Etype (Prefix (N)));
+         Print_Node_Subtree (Component);
+         if Nkind (Parent (Prefix_Base_Type)) /= N_Full_Type_Declaration
          then
             return Report_Unhandled_Node_Irep
               (N,
@@ -883,7 +889,7 @@ package body Records is
 
          declare
             Record_Type : constant Node_Id := Type_Definition
-              (Parent (Etype (Prefix (N))));
+              (Parent (Prefix_Base_Type));
             Variant_Spec : constant Node_Id := Variant_Part
               (Component_List (Record_Type));
 
@@ -900,7 +906,8 @@ package body Records is
                        First (Component_Items (Component_List (Variant_Iter)));
                   begin
                      while Present (Item_Iter) loop
-                        if Defining_Identifier (Item_Iter) = Component then
+                        if Defining_Identifier (Item_Iter) = Orig_Component
+                        then
                            return Variant_Iter;
                         end if;
                         Next (Item_Iter);
