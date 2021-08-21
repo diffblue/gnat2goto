@@ -39,6 +39,7 @@ with Arrays;                use Arrays;
 with Gather_Irep_Symbols;
 
 with GNATCOLL.JSON;         use GNATCOLL.JSON;
+with GNATCOLL.JSON.File;
 
 with Sinfo;                 use Sinfo;
 with Namet;                 use Namet;
@@ -687,9 +688,14 @@ package body Driver is
 
       Sanitise_Type_Declarations (Global_Symbol_Table,
                                   Sanitised_Symbol_Table);
-      Put_Line (Sym_Tab_File,
-                SymbolTable2Json (Sanitised_Symbol_Table)
-                  .Write (Compact_JSON));
+      --  Print out the symbol table in JSON format.
+      declare
+         JSON_Symbol_Table : constant JSON_Value :=
+           SymbolTable2Json (Sanitised_Symbol_Table);
+      begin
+         GNATCOLL.JSON.File.Write
+           (Sym_Tab_File, JSON_Symbol_Table, Compact_JSON);
+      end;
       Close (Sym_Tab_File);
 
    end Translate_Compilation_Unit;
