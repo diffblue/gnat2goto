@@ -7,12 +7,30 @@ N_Attribute_Definition_Clause "storage_size" (Node_Id=4390) (source,analyzed)
  Name = N_Identifier "big_string_ptr" (Node_Id=4387)
  Expression = N_Integer_Literal (Node_Id=4391)
  Entity = N_Defining_Identifier "big_string_ptr" (Entity_Id=4376)
-----------At: Process_Declaration----------
-----------Unknown declaration kind----------
-N_Validate_Unchecked_Conversion (Node_Id=5480) (analyzed)
- Sloc = 49458  s-stalib.ads:76:4
- Source_Type = N_Defining_Identifier "address" (Entity_Id=3768)
- Target_Type = N_Defining_Identifier "big_string_ptr" (Entity_Id=4376)
+----------At: Validate_Value----------
+----------I_POINTER_TYPE objects not supported----------
+N_Defining_Identifier "to_ptrR" (Entity_Id=5359)
+ Parent = N_Function_Specification (Node_Id=5367)
+ Sloc = 49467  s-stalib.ads:76:13
+ Chars = "to_ptrR" (Name_Id=300001855)
+ Next_Entity = N_Defining_Identifier "unchecked_conversion" (Entity_Id=5447)
+ Scope = N_Defining_Identifier "to_ptrGP4411" (Entity_Id=5454)
+ Ekind = E_Function
+ Etype = N_Defining_Identifier "target" (Entity_Id=5414)
+ Mechanism = 0 (Uint = 600032768)
+ First_Entity = N_Defining_Identifier "s" (Entity_Id=5378)
+ Last_Entity = N_Defining_Identifier "s" (Entity_Id=5378)
+ Scope_Depth_Value = Default
+ Default_Expressions_Processed = True
+ Has_Qualified_Name = True
+ Is_Frozen = True
+ Is_Generic_Instance = True
+ Is_Inlined_Always = True
+ Is_Intrinsic_Subprogram = True
+ Is_Preelaborated = True
+ Is_Public = True
+ Needs_Debug_Info = True
+ SPARK_Pragma_Inherited = True
 ----------At: Process_Pragma_Declaration----------
 ----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=4814) (source,analyzed)
@@ -92,5 +110,6 @@ N_Pragma (Node_Id=3239) (source,analyzed)
  Pragma_Argument_Associations = List (List_Id=-99999846)
  Pragma_Identifier = N_Identifier "stream_convert" (Node_Id=3240)
 
+[assertion.1] file <internal> Ada Check assertion: SUCCESS
+[assertion.2] file <internal> Ada Check assertion: SUCCESS
 VERIFICATION SUCCESSFUL
-
