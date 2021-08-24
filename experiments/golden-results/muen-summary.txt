@@ -139,11 +139,6 @@ Error message: Unsupported pragma: Check
 Nkind: N_Pragma
 --
 Occurs: 17 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
-Occurs: 17 times
 Calling function: Update_Array_From_Aggregate
 Error message: Aggregates with non-scalar components are unsupported
 Nkind: N_Aggregate
@@ -183,6 +178,11 @@ Calling function: Process_Statement
 Error message: Unknown expression kind
 Nkind: N_Attribute_Reference
 --
+Occurs: 9 times
+Calling function: Validate_Value
+Error message: I_ARRAY_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
 Occurs: 8 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: refined_post
@@ -202,6 +202,11 @@ Occurs: 5 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
 Nkind: N_Allocator
+--
+Occurs: 5 times
+Calling function: Validate_Value
+Error message: I_POINTER_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 4 times
 Calling function: Array_Assignment_Op
@@ -258,6 +263,11 @@ Calling function: Do_In
 Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
 --
+Occurs: 2 times
+Calling function: Validate_Value
+Error message: I_BOOL_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
 Occurs: 1 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_INPUT unsupported
@@ -269,9 +279,24 @@ Error message: Supertype of Itype_Record_Subtype has no ASVAT size
 Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
+Calling function: Get_Type_Size
+Error message: Type iobm__io_ports__Tio_bitmap_typeB has no valid size
+Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
+Calling function: Get_Type_Size
+Error message: Type msrbm__msrs__Tmsr_bitmap_typeB has no valid size
+Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
 Calling function: Process_Statement
 Error message: Extended return statement
 Nkind: N_Extended_Return_Statement
+--
+Occurs: 1 times
+Calling function: Validate_Value
+Error message: I_ADA_MOD_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 291 times
 Redacted compiler error message:

@@ -105,7 +105,7 @@ with Sinfo;                   use Sinfo;
 package ASVAT.Modelling is
    type Model_Sorts is
      (Not_A_Model, Nondet_Function, In_Type_Function,
-      Nondet_Vars, Nondet_In_Type_Vars, Represents);
+      Nondet_Vars, Nondet_In_Type_Vars, Represents, Unchecked_Conversion);
    subtype Valid_Model is Model_Sorts range
      Nondet_Function .. Model_Sorts'Last;
 

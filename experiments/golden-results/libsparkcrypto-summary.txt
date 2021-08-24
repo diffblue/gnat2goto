@@ -23,11 +23,6 @@ Calling function: Do_Expression
 Error message: Quantified
 Nkind: N_Quantified_Expression
 --
-Occurs: 6 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
 Occurs: 4 times
 Calling function: Do_Op_Expon
 Error message: Exponentiation unhandled for non mod types at the moment
@@ -52,6 +47,11 @@ Occurs: 2 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_LOOP_ENTRY unsupported
 Nkind: N_Attribute_Reference
+--
+Occurs: 2 times
+Calling function: Validate_Value
+Error message: I_ARRAY_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
 Calling function: Assign_Array
