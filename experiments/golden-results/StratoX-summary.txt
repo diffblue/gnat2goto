@@ -33,7 +33,7 @@ Calling function: Do_Type_Reference
 Error message: Expected I_Type found I_NIL
 Nkind: N_Defining_Identifier
 --
-Occurs: 146 times
+Occurs: 147 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
@@ -159,14 +159,14 @@ Error message: Extended return statement
 Nkind: N_Extended_Return_Statement
 --
 Occurs: 19 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Obsolescent
-Nkind: N_Pragma
---
-Occurs: 18 times
 Calling function: Do_Array_Concatination
 Error message: Array concatitination operator currenly unsupported
 Nkind: N_Op_Concat
+--
+Occurs: 19 times
+Calling function: Process_Pragma_Declaration
+Error message: Unsupported pragma: Obsolescent
+Nkind: N_Pragma
 --
 Occurs: 18 times
 Calling function: Do_Expression
@@ -369,6 +369,11 @@ Error message: Unknown Ekind E_ACCESS_SUBTYPE
 Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
+Calling function: Do_Pragma
+Error message: Unsupported pragma: Unreferenced
+Nkind: N_Pragma
+--
+Occurs: 2 times
 Calling function: Do_Type_Reference
 Error message: Unexpected node kind N_PROTECTED_TYPE_DECLARATION
 Nkind: N_Protected_Type_Declaration
@@ -559,11 +564,6 @@ Error message: Wrong node kind
 Nkind: N_Op_Plus
 --
 Occurs: 1 times
-Calling function: Do_Pragma
-Error message: Unsupported pragma: Unreferenced
-Nkind: N_Pragma
---
-Occurs: 1 times
 Calling function: Do_Type_Definition
 Error message: Type of symbol stm32__spi__spi_port not found
 Nkind: 
@@ -582,6 +582,11 @@ Occurs: 1 times
 Calling function: Follow_Symbol_Type
 Error message: Type of symbol stm32__spi__spi_port not found
 Nkind: [build.sh]
+--
+Occurs: 1 times
+Calling function: Get_Dimension_Bounds
+Error message: Unhandled node sort
+Nkind: N_Defining_Operator_Symbol
 --
 Occurs: 1 times
 Calling function: Get_Variant_Union_Member_Name
@@ -2180,11 +2185,6 @@ Error detected at REDACTED
 --
 Occurs: 1 times
 +===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from arrays-low_level.ads:289|
-Error detected at REDACTED
---
-Occurs: 1 times
-+===========================GNAT BUG DETECTED==============================+
 | GNU Ada (ada2goto) Assert_Failure failed precondition from goto_utils.ads:152|
 Error detected at REDACTED
 --
@@ -2306,4 +2306,9 @@ raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed precondition from ireps.ads:157
 Occurs: 2 times
 <========================>
 raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : sinfo.adb:3098
+
+--
+Occurs: 1 times
+<========================>
+raised SYSTEM.ASSERTIONS.ASSERT_FAILURE : failed postcondition from records.adb:24
 
