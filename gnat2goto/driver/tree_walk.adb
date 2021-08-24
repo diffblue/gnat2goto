@@ -6044,6 +6044,11 @@ package body Tree_Walk is
             --  the declaritve section but is used on a statement.
             null;
 
+         when N_Validate_Unchecked_Conversion =>
+            --  All conversions are validated in ASVAT.Modelling
+            --  This declaraion node can safely be ignored.
+            null;
+
          -- Not sure the nex two should be here --
          when N_Itype_Reference =>
             Do_Itype_Reference (N);
