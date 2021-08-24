@@ -13,11 +13,6 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 395 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
 Occurs: 281 times
 Calling function: Do_Record_Component
 Error message: Wrong component nkind
@@ -37,6 +32,11 @@ Occurs: 146 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Check
 Nkind: N_Pragma
+--
+Occurs: 141 times
+Calling function: Validate_Value
+Error message: I_ARRAY_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 122 times
 Calling function: Process_Pragma_Declaration
@@ -102,6 +102,16 @@ Occurs: 58 times
 Calling function: Get_Bound
 Error message: Unsupported range type
 Nkind: N_Type_Conversion
+--
+Occurs: 52 times
+Calling function: Validate_Value
+Error message: I_POINTER_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
+Occurs: 45 times
+Calling function: Validate_Value
+Error message: I_BOOL_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 34 times
 Calling function: Do_Type_Definition
@@ -218,6 +228,11 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: contract_cases
 Nkind: N_Pragma
 --
+Occurs: 9 times
+Calling function: Validate_Value
+Error message: I_ADA_MOD_TYPE objects not supported
+Nkind: N_Defining_Identifier
+--
 Occurs: 8 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_SCALING unsupported
@@ -324,6 +339,11 @@ Error message: function media_reader__write_block not in symbol table
 Nkind: N_Function_Call
 --
 Occurs: 3 times
+Calling function: Get_Type_Size
+Error message: Type standard__string has no valid size
+Nkind: N_Defining_Identifier
+--
+Occurs: 3 times
 Calling function: Process_Catination
 Error message: Unconstrained array expressions in concatinations are unsupported
 Nkind: N_If_Expression
@@ -347,6 +367,11 @@ Occurs: 3 times
 Calling function: Update_Array_From_Aggregate
 Error message: Multi-dimensional aggregates unsupported
 Nkind: N_Aggregate
+--
+Occurs: 3 times
+Calling function: Validate_Value
+Error message: I_UNION_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
 Calling function: Do_Expression
@@ -372,6 +397,11 @@ Occurs: 2 times
 Calling function: Do_Type_Reference
 Error message: Unexpected node kind N_PROTECTED_TYPE_DECLARATION
 Nkind: N_Protected_Type_Declaration
+--
+Occurs: 2 times
+Calling function: Get_Type_Size
+Error message: Type standard__duration has no valid size
+Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
 Calling function: Process_Declaration
@@ -584,6 +614,11 @@ Error message: Type of symbol stm32__spi__spi_port not found
 Nkind: [build.sh]
 --
 Occurs: 1 times
+Calling function: Get_Type_Size
+Error message: Type ada__real_time__Ttime_spanB has no valid size
+Nkind: N_Defining_Identifier
+--
+Occurs: 1 times
 Calling function: Get_Variant_Union_Member_Name
 Error message: Unexpected constraint node
 Nkind: N_Range
@@ -632,6 +667,11 @@ Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: Unsupported pragma: Machine Attribute naked
 Nkind: N_Pragma
+--
+Occurs: 1 times
+Calling function: Validate_Value
+Error message: I_NIL_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 290 times
 Redacted compiler error message:
