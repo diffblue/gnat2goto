@@ -128,7 +128,7 @@ package body ASVAT.Address_Model is
                        I_Pointer_Type
                      and then Unique_Name (Function_Type) = "system__address",
                      "The function To_Address must have a single in mode " &
-                       "parameter of an  type");
+                       "parameter of an access type");
 
       declare
          Source_Location : constant Irep := Get_Source_Location (E);

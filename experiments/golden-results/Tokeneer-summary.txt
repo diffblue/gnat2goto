@@ -103,15 +103,15 @@ Calling function: Process_Declaration
 Error message: Representation clause unsupported: write
 Nkind: N_Attribute_Definition_Clause
 --
-Occurs: 17 times
-Calling function: Process_Declaration
-Error message: Unknown declaration kind
-Nkind: N_Validate_Unchecked_Conversion
---
 Occurs: 13 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: storage_size
 Nkind: N_Attribute_Definition_Clause
+--
+Occurs: 13 times
+Calling function: Validate_Value
+Error message: I_POINTER_TYPE objects not supported
+Nkind: N_Defining_Identifier
 --
 Occurs: 12 times
 Calling function: Add_Record_Component
