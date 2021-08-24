@@ -760,11 +760,13 @@ package body ASVAT.Modelling is
          end if;
       elsif Kind (Followed_Type) = I_Struct_Tag_Type then
          declare
+            Base_I_Type : constant Irep :=
+              Get_Base_I_Type (Followed_Type, Global_Symbol_Table);
             Comp_List : Irep_List;
             Current_Element : List_Cursor;
             Return_Irep : Irep;
          begin
-            Comp_List := Get_Component (Get_Components (Followed_Type));
+            Comp_List := Get_Component (Get_Components (Base_I_Type));
             Current_Element := List_First (Comp_List);
             Return_Irep :=
               Validate_Value (N, List_Element (Comp_List,
