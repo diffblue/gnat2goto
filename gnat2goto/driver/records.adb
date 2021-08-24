@@ -11,8 +11,6 @@ with Tree_Walk;             use Tree_Walk;
 with Arrays;                use Arrays;
 with ASVAT.Size_Model;      use ASVAT.Size_Model;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Text_IO; use Ada.Text_IO;
-with Treepr; use Treepr;
 package body Records is
 
    --   Used for error recovery when a component is an unsupported array type.
@@ -876,9 +874,6 @@ package body Records is
         Implementation_Base_Type (Etype (Prefix (N)));
    begin
       if Do_Discriminant_Check (N) then
-         Put_Line ("Needs discriminant check");
-         Print_Node_Subtree (Etype (Prefix (N)));
-         Print_Node_Subtree (Component);
          if Nkind (Parent (Prefix_Base_Type)) /= N_Full_Type_Declaration
          then
             return Report_Unhandled_Node_Irep
@@ -932,18 +927,20 @@ package body Records is
 
             --  Emit a runtime check to see if we're actually accessing
             --  a component of the active variant
-            Disc_Selector : constant Irep := Make_Member_Expr
-              (Compound => Root,
-               Component_Name => Unique_Name (Entity (Name (Variant_Spec))),
-               I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
-               Source_Location => Source_Location);
-            Disc_Check : constant Irep := Make_Op_Eq
-              (Lhs => Disc_Selector,
-               Rhs => Do_Expression (Variant_Containing_Component_Constraint),
-               I_Type => CProver_Bool_T,
-               Source_Location => Source_Location);
-            Correct_Variant_Check : constant Irep :=
-              Make_Runtime_Check (Disc_Check);
+--              Disc_Selector : constant Irep := Make_Member_Expr
+--                (Compound => Root,
+--                 Component_Name =>
+--              Unique_Name (Entity (Name (Variant_Spec))),
+--                 I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
+--                 Source_Location => Source_Location);
+--              Disc_Check : constant Irep := Make_Op_Eq
+--                (Lhs => Disc_Selector,
+--                 Rhs => Do_Expression
+--                (Variant_Containing_Component_Constraint),
+--                 I_Type => CProver_Bool_T,
+--                 Source_Location => Source_Location);
+--              Correct_Variant_Check : constant Irep :=
+--                Make_Runtime_Check (Disc_Check);
 
             --  Create the actual member access by interposing a union access:
             --  The actual access for member X of the Y == Z variant will look
@@ -968,10 +965,11 @@ package body Records is
                Component_Name => Component_Name,
                Source_Location => Source_Location);
          begin
-            return Make_Op_Comma
-              (Lhs => Correct_Variant_Check,
-               Rhs => Component_Selector,
-               Source_Location => Source_Location);
+--              return Make_Op_Comma
+--                (Lhs => Correct_Variant_Check,
+--                 Rhs => Component_Selector,
+--                 Source_Location => Source_Location);
+            return Component_Selector;
          end;
       else
          return Make_Member_Expr
