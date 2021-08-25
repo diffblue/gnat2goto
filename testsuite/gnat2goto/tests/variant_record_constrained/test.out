@@ -1,0 +1,34 @@
+Error from cbmc variant_record:
+--- begin invariant violation report ---
+Invariant check failed
+File: ../util/std_types.h:304 function: to_struct_type
+Condition: can_cast_type<struct_typet>(type)
+Reason: Precondition
+Backtrace:
+cbmc(+0x2505fd) [0x55ef08cf55fd]
+cbmc(+0x250b5f) [0x55ef08cf5b5f]
+cbmc(+0x17d95c) [0x55ef08c2295c]
+cbmc(+0x6354c6) [0x55ef090da4c6]
+cbmc(+0x6349ea) [0x55ef090d99ea]
+cbmc(+0x632b55) [0x55ef090d7b55]
+cbmc(+0x5f4cd9) [0x55ef09099cd9]
+cbmc(+0x65becb) [0x55ef09100ecb]
+cbmc(+0x65c293) [0x55ef09101293]
+cbmc(+0x4ec90d) [0x55ef08f9190d]
+cbmc(+0x65c2ce) [0x55ef091012ce]
+cbmc(+0x65c4f0) [0x55ef091014f0]
+cbmc(+0x65d03a) [0x55ef0910203a]
+cbmc(+0x4cb286) [0x55ef08f70286]
+cbmc(+0x4cae1b) [0x55ef08f6fe1b]
+cbmc(+0x2f31f2) [0x55ef08d981f2]
+cbmc(+0x2ee475) [0x55ef08d93475]
+cbmc(+0x171ebb) [0x55ef08c16ebb]
+cbmc(+0x163de1) [0x55ef08c08de1]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xeb) [0x7fa6506ea09b]
+cbmc(+0x17281a) [0x55ef08c1781a]
+
+
+--- end invariant violation report ---
+
+ERROR code  -6 returned by cbmc when processing variant_record
+

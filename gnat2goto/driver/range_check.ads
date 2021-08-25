@@ -32,6 +32,11 @@ package Range_Check is
        | I_C_Enum_Type,
        Post => Kind (Get_Bound_Of_Bounded_Type'Result) in Class_Expr;
 
+--     function Make_Discriminant_Assert_Expr (N : Node_Id; Value : Irep;
+--                                      ;
+--                                      Expected_Return_Type : Irep;
+--                                      Check_Name : String)
+--                                      return Irep;
    function Make_Div_Zero_Assert_Expr (N : Node_Id;
                                        Value : Irep;
                                        Divisor : Irep) return Irep;

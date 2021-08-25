@@ -870,10 +870,11 @@ package body Records is
       Component_Type      : constant Irep := Do_Type_Reference (Comp_Etype);
       Component_Name      : constant String := Unique_Name (Orig_Component);
       Source_Location     : constant Irep := Get_Source_Location (N);
+      Prefix_Base_Type    : constant Entity_Id :=
+        Implementation_Base_Type (Etype (Prefix (N)));
    begin
       if Do_Discriminant_Check (N) then
-         --  ??? Can this even happen
-         if Nkind (Parent (Etype (Prefix (N)))) /= N_Full_Type_Declaration
+         if Nkind (Parent (Prefix_Base_Type)) /= N_Full_Type_Declaration
          then
             return Report_Unhandled_Node_Irep
               (N,
@@ -883,7 +884,7 @@ package body Records is
 
          declare
             Record_Type : constant Node_Id := Type_Definition
-              (Parent (Etype (Prefix (N))));
+              (Parent (Prefix_Base_Type));
             Variant_Spec : constant Node_Id := Variant_Part
               (Component_List (Record_Type));
 
@@ -900,7 +901,8 @@ package body Records is
                        First (Component_Items (Component_List (Variant_Iter)));
                   begin
                      while Present (Item_Iter) loop
-                        if Defining_Identifier (Item_Iter) = Component then
+                        if Defining_Identifier (Item_Iter) = Orig_Component
+                        then
                            return Variant_Iter;
                         end if;
                         Next (Item_Iter);
@@ -925,18 +927,20 @@ package body Records is
 
             --  Emit a runtime check to see if we're actually accessing
             --  a component of the active variant
-            Disc_Selector : constant Irep := Make_Member_Expr
-              (Compound => Root,
-               Component_Name => Unique_Name (Entity (Name (Variant_Spec))),
-               I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
-               Source_Location => Source_Location);
-            Disc_Check : constant Irep := Make_Op_Eq
-              (Lhs => Disc_Selector,
-               Rhs => Do_Expression (Variant_Containing_Component_Constraint),
-               I_Type => CProver_Bool_T,
-               Source_Location => Source_Location);
-            Correct_Variant_Check : constant Irep :=
-              Make_Runtime_Check (Disc_Check);
+--              Disc_Selector : constant Irep := Make_Member_Expr
+--                (Compound => Root,
+--                 Component_Name =>
+--              Unique_Name (Entity (Name (Variant_Spec))),
+--                 I_Type => Do_Type_Reference (Etype (Name (Variant_Spec))),
+--                 Source_Location => Source_Location);
+--              Disc_Check : constant Irep := Make_Op_Eq
+--                (Lhs => Disc_Selector,
+--                 Rhs => Do_Expression
+--                (Variant_Containing_Component_Constraint),
+--                 I_Type => CProver_Bool_T,
+--                 Source_Location => Source_Location);
+--              Correct_Variant_Check : constant Irep :=
+--                Make_Runtime_Check (Disc_Check);
 
             --  Create the actual member access by interposing a union access:
             --  The actual access for member X of the Y == Z variant will look
@@ -961,10 +965,11 @@ package body Records is
                Component_Name => Component_Name,
                Source_Location => Source_Location);
          begin
-            return Make_Op_Comma
-              (Lhs => Correct_Variant_Check,
-               Rhs => Component_Selector,
-               Source_Location => Source_Location);
+--              return Make_Op_Comma
+--                (Lhs => Correct_Variant_Check,
+--                 Rhs => Component_Selector,
+--                 Source_Location => Source_Location);
+            return Component_Selector;
          end;
       else
          return Make_Member_Expr
