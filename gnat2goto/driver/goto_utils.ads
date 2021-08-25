@@ -44,6 +44,8 @@ package GOTO_Utils is
    Synthetic_Variable_Counter : Positive := 1;
 
    function Fresh_Var_Name (Infix : String) return String;
+   function Fresh_Var_Name_Local (Infix : String; Source_Location : Irep)
+                                 return String;
    function Fresh_Var_Symbol_Expr (Ty : Irep; Infix : String) return Irep;
 
    function Make_Pointer_Type (Base : Irep) return Irep;
