@@ -268,6 +268,21 @@ package body GOTO_Utils is
       return "__" & Infix & Binder_Number_Str;
    end Fresh_Var_Name;
 
+   --------------------------
+   -- Fresh_Var_Name_Local --
+   --------------------------
+
+   function Fresh_Var_Name_Local (Infix : String; Source_Location : Irep)
+                                 return String is
+   begin
+      --  Rather than use a counter which is sensitive to include order
+      --  we use the full source location information
+      return "__" & Infix &
+        "_" & Get_File (Source_Location) &
+        "_" & Get_Line (Source_Location) &
+        "_" & Get_Column (Source_Location);
+   end Fresh_Var_Name_Local;
+
    ---------------------------
    -- Fresh_Var_Symbol_Expr --
    ---------------------------

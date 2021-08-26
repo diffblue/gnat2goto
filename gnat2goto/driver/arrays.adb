@@ -1111,7 +1111,7 @@ package body Arrays is
         Is_OK_Static_Range (Aggregate_Bounds (N));
       Aggregate_Subtype : constant Entity_Id := Etype (N);
       New_Name          : constant String :=
-        Fresh_Var_Name (Get_File (Source_Location) & "aggregate_");
+        Fresh_Var_Name_Local ("aggregate", Source_Location);
       Aggregate_Obj     : constant String := New_Name & "_obj";
       Aggregate_Func    : constant String := New_Name & "_fun";
 --        Aggregate_Loop    : constant String := New_Name & "_loop";
@@ -1264,7 +1264,7 @@ package body Arrays is
            Size      => Str_Lit_Size_Irep);
 
       New_Name          : constant String :=
-        Fresh_Var_Name (Get_File (Source_Location) & "string_");
+        Fresh_Var_Name_Local ("string", Source_Location);
       String_Obj        : constant String := New_Name & "_obj";
       String_Func       : constant String := New_Name & "_fun";
       Obj_Irep          : constant Irep := Make_Symbol_Expr
@@ -2103,7 +2103,7 @@ package body Arrays is
          Index : Node_Id := First_Index (Array_Type);
 
          New_Name         : constant String :=
-           Fresh_Var_Name ("array_result_");
+           Fresh_Var_Name_Local ("array_result", Source_Loc);
          Array_Result_Obj : constant Irep :=
            Fresh_Var_Symbol_Expr (Array_I_Type, New_Name & "_obj");
          Array_Result_Fun : constant String := New_Name & "_fun";
