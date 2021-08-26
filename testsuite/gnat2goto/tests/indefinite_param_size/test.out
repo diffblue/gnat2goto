@@ -1,0 +1,23 @@
+Standard_Output from gnat2goto indef_param_size:
+----------At: Do_Attribute_Size----------
+----------Size attribute applied to indefinite type is implementation defined----------
+N_Identifier "s1" (Node_Id=2274) (source,analyzed)
+ Parent = N_Attribute_Reference (Node_Id=2415)
+ Sloc = 8264  indef_param_size.adb:3:19
+ Chars = "s1" (Name_Id=300001449)
+ Etype = N_Defining_Identifier "string" (Entity_Id=121s)
+ Entity = N_Defining_Identifier "s1" (Entity_Id=2252)
+ Associated_Node = N_Defining_Identifier "s1" (Entity_Id=2252)
+----------At: Do_Attribute_Size----------
+----------Size attribute applied to indefinite type is implementation defined----------
+N_Identifier "s2" (Node_Id=2283) (source,analyzed)
+ Parent = N_Attribute_Reference (Node_Id=2425)
+ Sloc = 8297  indef_param_size.adb:4:19
+ Chars = "s2" (Name_Id=300001450)
+ Etype = N_Defining_Identifier "string" (Entity_Id=121s)
+ Entity = N_Defining_Identifier "s2" (Entity_Id=2259)
+ Associated_Node = N_Defining_Identifier "s2" (Entity_Id=2259)
+
+[indef_param_size.assertion.1] line 3 assertion S1'Size = 16: FAILURE
+[indef_param_size.assertion.2] line 4 assertion S2'Size = 0: SUCCESS
+VERIFICATION FAILED
