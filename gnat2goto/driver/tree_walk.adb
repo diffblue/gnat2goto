@@ -5336,8 +5336,16 @@ package body Tree_Walk is
                if Is_Definite_Subtype (Param_Ada_Type) then
                   --  If the parameter is a definite subtype,
                   --  record the size of the parameter.
-                  ASVAT.Size_Model.Set_Size_From_Entity
-                    (Defining_Identifier (Param_Iter), Param_Ada_Type);
+                  if ASVAT.Size_Model.Has_Size (Param_Ada_Type) then
+                     --  The existence of the size is checked here
+                     --  because any declaration of an unsuppored type
+                     --  will not have an ASVAT size.
+                     --  An unsupported feature message will have been reported
+                     --  at the declaration.  The check prevents further
+                     --  unecessary reports due to the unsupported declaration.
+                     ASVAT.Size_Model.Set_Size_From_Entity
+                       (Defining_Identifier (Param_Iter), Param_Ada_Type);
+                  end if;
                end if;
                Next (Param_Iter);
             end;
