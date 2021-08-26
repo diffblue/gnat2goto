@@ -1,0 +1,8 @@
+[check_message.assertion.1] line 8 Ada Check assertion: SUCCESS
+[check_message.assertion.7] line 8 Ada Check assertion: SUCCESS
+[check_message.assertion.2] line 10 assertion Oldest'Size = 32: SUCCESS
+[check_message.assertion.3] line 11 assertion M.Header'Size = 80: SUCCESS
+[check_message.assertion.4] line 12 assertion M'Size = 88: SUCCESS
+[check_message.assertion.5] line 13 assertion Content_Size = 8: SUCCESS
+[check_message.assertion.6] line 15 assertion Newest'Size = 64: FAILURE
+VERIFICATION FAILED

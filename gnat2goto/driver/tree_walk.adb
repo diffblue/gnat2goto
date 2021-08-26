@@ -31,6 +31,7 @@ with ASVAT.Address_Model;    use type
 with ASVAT.Size_Model;
 with ASVAT.Modelling;
 with ASVAT.Pragma_Info;
+with Sem_Aux; use Sem_Aux;
 
 package body Tree_Walk is
    --  Used to provide a dummy block for Itype delarations
@@ -5331,6 +5332,20 @@ package body Tree_Walk is
                         Symbol_Type    => Param_Type,
                         A_Symbol_Table => Global_Symbol_Table);
                   end;
+               end if;
+               if Is_Definite_Subtype (Param_Ada_Type) then
+                  --  If the parameter is a definite subtype,
+                  --  record the size of the parameter.
+                  if ASVAT.Size_Model.Has_Size (Param_Ada_Type) then
+                     --  The existence of the size is checked here
+                     --  because any declaration of an unsuppored type
+                     --  will not have an ASVAT size.
+                     --  An unsupported feature message will have been reported
+                     --  at the declaration.  The check prevents further
+                     --  unecessary reports due to the unsupported declaration.
+                     ASVAT.Size_Model.Set_Size_From_Entity
+                       (Defining_Identifier (Param_Iter), Param_Ada_Type);
+                  end if;
                end if;
                Next (Param_Iter);
             end;
