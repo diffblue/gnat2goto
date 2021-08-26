@@ -346,7 +346,7 @@ package body ASVAT.Size_Model is
          else
             Report_Unhandled_Node_Empty
               (The_Prefix,
-               "Do_Attribute_Size",
+               "Do_VADS_Size",
                "The size of the composite is not known " &
                  "by the front-end. Use a size " &
                  "representation clause on its declaration");
@@ -476,7 +476,7 @@ package body ASVAT.Size_Model is
             end if;
          end;
       else
-         --  The prefix is not a type reference so use the ASVAT model
+         --  The prefix is not an entity so use the ASVAT model
          --  size of the underlying type.
          if Has_Size (Prefix_Etype) then
             The_Size := Computed_Size (Prefix_Etype);
@@ -502,7 +502,7 @@ package body ASVAT.Size_Model is
       elsif The_Size = Ireps.Empty then
                   Report_Unhandled_Node_Empty
               (The_Prefix,
-                  "Do_Attribute_Size",
+                  "Do_Vanilla_Size",
                   "The size of the composite is not known " &
                     "by the front-end. Use a size " &
                     "representation clause on its declaration");
