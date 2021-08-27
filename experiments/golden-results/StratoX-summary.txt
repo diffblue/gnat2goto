@@ -274,6 +274,16 @@ Error message: Unknown expression kind
 Nkind: N_Unchecked_Type_Conversion
 --
 Occurs: 6 times
+Calling function: Do_Function_Call
+Error message: Called function is not in symbol table
+Nkind: N_Function_Call
+--
+Occurs: 6 times
+Calling function: Get_Type_Size
+Error message: Type has Unknown size
+Nkind: N_Defining_Identifier
+--
+Occurs: 6 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
@@ -329,19 +339,9 @@ Error message: ATTRIBUTE_TAG unsupported
 Nkind: N_Attribute_Reference
 --
 Occurs: 3 times
-Calling function: Do_Function_Call
-Error message: function media_reader__read_block not in symbol table
-Nkind: N_Function_Call
---
-Occurs: 3 times
-Calling function: Do_Function_Call
-Error message: function media_reader__write_block not in symbol table
-Nkind: N_Function_Call
---
-Occurs: 3 times
-Calling function: Get_Type_Size
-Error message: Type standard__string has no valid size
-Nkind: N_Defining_Identifier
+Calling function: Follow_Symbol_Type
+Error message: Type of symbol not found
+Nkind: [build.sh]
 --
 Occurs: 3 times
 Calling function: Process_Catination
@@ -402,11 +402,6 @@ Occurs: 2 times
 Calling function: Do_Type_Reference
 Error message: Unexpected node kind N_PROTECTED_TYPE_DECLARATION
 Nkind: N_Protected_Type_Declaration
---
-Occurs: 2 times
-Calling function: Get_Type_Size
-Error message: Type standard__duration has no valid size
-Nkind: N_Defining_Identifier
 --
 Occurs: 2 times
 Calling function: Process_Declaration
@@ -595,33 +590,13 @@ Nkind: N_Op_Plus
 --
 Occurs: 1 times
 Calling function: Do_Type_Definition
-Error message: Type of symbol stm32__spi__spi_port not found
+Error message: Type of symbol not found
 Nkind: 
---
-Occurs: 1 times
-Calling function: Follow_Symbol_Type
-Error message: Type of symbol logqueue__queue not found
-Nkind: [build.sh]
---
-Occurs: 1 times
-Calling function: Follow_Symbol_Type
-Error message: Type of symbol stm32__rng__interrupts__receiverT not found
-Nkind: [build.sh]
---
-Occurs: 1 times
-Calling function: Follow_Symbol_Type
-Error message: Type of symbol stm32__spi__spi_port not found
-Nkind: [build.sh]
 --
 Occurs: 1 times
 Calling function: Get_Dimension_Bounds
 Error message: Unhandled node sort
 Nkind: N_Defining_Operator_Symbol
---
-Occurs: 1 times
-Calling function: Get_Type_Size
-Error message: Type ada__real_time__Ttime_spanB has no valid size
-Nkind: N_Defining_Identifier
 --
 Occurs: 1 times
 Calling function: Get_Variant_Union_Member_Name
