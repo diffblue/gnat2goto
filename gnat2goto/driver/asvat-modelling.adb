@@ -493,20 +493,10 @@ package body ASVAT.Modelling is
               Typecast_If_Necessary (Computed_Size (N),
                                      CProver_Size_T, Global_Symbol_Table);
          else
-            declare
-               Type_Name : constant String :=
-                 (if Nkind (N) in N_Entity then
-                       " " & Unique_Name (N) & " "
-                  else
-                     "");
-            begin
-               Report_Unhandled_Node_Empty
-                 (N, "Get_Type_Size",
-                  "Type" & Type_Name & "has no valid size");
-               return Typecast_If_Necessary
-                 (Get_Int32_T_Zero,
-                  CProver_Size_T, Global_Symbol_Table);
-            end;
+            Report_Unhandled_Node_Empty
+                 (N, "Get_Type_Size", "Type has Unknown size");
+            return Typecast_If_Necessary
+              (Get_Int32_T_Zero, CProver_Size_T, Global_Symbol_Table);
          end if;
       end Get_Type_Size;
 

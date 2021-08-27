@@ -264,6 +264,11 @@ Error message: gnat2goto currently only supports one mebership_choice
 Nkind: N_In
 --
 Occurs: 2 times
+Calling function: Get_Type_Size
+Error message: Type has Unknown size
+Nkind: N_Defining_Identifier
+--
+Occurs: 2 times
 Calling function: Validate_Value
 Error message: I_BOOL_TYPE objects not supported
 Nkind: N_Defining_Identifier
@@ -276,16 +281,6 @@ Nkind: N_Attribute_Reference
 Occurs: 1 times
 Calling function: Do_Itype_Record_Subtype
 Error message: Supertype of Itype_Record_Subtype has no ASVAT size
-Nkind: N_Defining_Identifier
---
-Occurs: 1 times
-Calling function: Get_Type_Size
-Error message: Type iobm__io_ports__Tio_bitmap_typeB has no valid size
-Nkind: N_Defining_Identifier
---
-Occurs: 1 times
-Calling function: Get_Type_Size
-Error message: Type msrbm__msrs__Tmsr_bitmap_typeB has no valid size
 Nkind: N_Defining_Identifier
 --
 Occurs: 1 times

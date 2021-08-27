@@ -255,7 +255,7 @@ Nkind:
 --
 Occurs: 1 times
 Calling function: Get_Type_Size
-Error message: Type standard__string has no valid size
+Error message: Type has Unknown size
 Nkind: N_Defining_Identifier
 --
 Occurs: 1 times

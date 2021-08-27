@@ -14,9 +14,7 @@ package body Follow is
             else
                Put_Line ("----------At: Follow_Symbol_Type----------");
                Put_Line
-                 ("----------Type of symbol " &
-                    Get_Identifier (Next) &
-                    " not found----------");
+                 ("----------Type of symbol not found----------");
                Next := 0;
             end if;
          end;
