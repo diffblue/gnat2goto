@@ -1945,7 +1945,7 @@ package body Tree_Walk is
                   --  the function symbol.
                   return Report_Unhandled_Node_Irep
                     (N, "Do_Function_Call",
-                     "Body of renamed function is not in symbol table");
+                     "Renamed function is not in symbol table");
                end if;
             end;
          else
@@ -1953,7 +1953,7 @@ package body Tree_Walk is
             --  TODO: handle RTS functions in a sane way
             return Report_Unhandled_Node_Irep
               (N, "Do_Function_Call",
-               "function called function is not in symbol table");
+               "Called function is not in symbol table");
          end if;
       end;
    end Do_Function_Call;
@@ -4492,7 +4492,7 @@ package body Tree_Walk is
                return Report_Unhandled_Node_Irep
                  (N        => N,
                   Fun_Name => "Do_Procedure_Call_Statement",
-                  Message  => "Renamed procedure " & Function_Name &
+                  Message  => "Renamed procedure" &
                     " is not in the symbol table");
             end if;
          end;
