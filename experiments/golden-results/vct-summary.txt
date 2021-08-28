@@ -15,7 +15,7 @@ Nkind: N_Attribute_Reference
 --
 Occurs: 152 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: export_procedure
+Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
 Occurs: 134 times
@@ -367,11 +367,6 @@ Occurs: 3 times
 Calling function: Make_Range_Assert_Expr
 Error message: Kind of Value not in class type
 Nkind: N_Function_Call
---
-Occurs: 3 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: stream_convert
-Nkind: N_Pragma
 --
 Occurs: 2 times
 Calling function: Convert_Ureal_To_Binary_IEEE

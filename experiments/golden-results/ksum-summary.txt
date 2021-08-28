@@ -45,11 +45,6 @@ Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: stream_convert
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --

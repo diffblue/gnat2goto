@@ -3,11 +3,6 @@ Calling function: Process_Declaration
 Error message: Record representation clauses are unsupported
 Nkind: N_Record_Representation_Clause
 --
-Occurs: 2043 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: volatile_full_access
-Nkind: N_Pragma
---
 Occurs: 491 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
@@ -30,18 +25,13 @@ Nkind: N_Defining_Identifier
 --
 Occurs: 147 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
+Error message: Pragma Check unsupported in declarations
 Nkind: N_Pragma
 --
 Occurs: 141 times
 Calling function: Validate_Value
 Error message: I_ARRAY_TYPE objects not supported
 Nkind: N_Defining_Identifier
---
-Occurs: 122 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: ghost
-Nkind: N_Pragma
 --
 Occurs: 105 times
 Calling function: Process_Pragma_Declaration
@@ -67,11 +57,6 @@ Occurs: 101 times
 Calling function: Do_Type_Definition
 Error message: Wrong Nkind or wrong discs
 Nkind: N_Derived_Type_Definition
---
-Occurs: 83 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: volatile_function
-Nkind: N_Pragma
 --
 Occurs: 79 times
 Calling function: Process_Declaration
@@ -173,11 +158,6 @@ Calling function: Do_Array_Concatination
 Error message: Array concatitination operator currenly unsupported
 Nkind: N_Op_Concat
 --
-Occurs: 19 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Obsolescent
-Nkind: N_Pragma
---
 Occurs: 18 times
 Calling function: Do_Expression
 Error message: Quantified
@@ -222,11 +202,6 @@ Occurs: 9 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_ASM_INPUT unsupported
 Nkind: N_Attribute_Reference
---
-Occurs: 9 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: contract_cases
-Nkind: N_Pragma
 --
 Occurs: 9 times
 Calling function: Validate_Value
@@ -302,11 +277,6 @@ Occurs: 4 times
 Calling function: Make_Range_Assert_Expr
 Error message: Kind of Bounds_Type not supported
 Nkind: N_Assignment_Statement
---
-Occurs: 4 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Refine
-Nkind: N_Pragma
 --
 Occurs: 3 times
 Calling function: Calculate_Concat_Length
@@ -392,11 +362,6 @@ Occurs: 2 times
 Calling function: Do_Itype_Definition
 Error message: Unknown Ekind E_ACCESS_SUBTYPE
 Nkind: N_Defining_Identifier
---
-Occurs: 2 times
-Calling function: Do_Pragma
-Error message: Unsupported pragma: Unreferenced
-Nkind: N_Pragma
 --
 Occurs: 2 times
 Calling function: Do_Type_Reference
@@ -642,31 +607,6 @@ Occurs: 1 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: compile_time_error
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: default_initial_condition
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: linker_section
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Async readers
-Nkind: N_Pragma
---
-Occurs: 1 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Effective writes
-Nkind: N_Pragma
 --
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration

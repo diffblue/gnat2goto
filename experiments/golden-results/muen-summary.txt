@@ -23,12 +23,7 @@ Calling function: Computed_Size
 Error message: Entity does not have ASVAT model size
 Nkind: N_Defining_Identifier
 --
-Occurs: 160 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: volatile_function
-Nkind: N_Pragma
---
-Occurs: 147 times
+Occurs: 210 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
 Nkind: N_Pragma
@@ -37,16 +32,6 @@ Occurs: 138 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
---
-Occurs: 80 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Refine
-Nkind: N_Pragma
---
-Occurs: 63 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: export_procedure
-Nkind: N_Pragma
 --
 Occurs: 55 times
 Calling function: Process_Declaration
@@ -73,11 +58,6 @@ Calling function: Add_Record_Component
 Error message: Unconstrained array (sub)type components are unsupported
 Nkind: N_Component_Declaration
 --
-Occurs: 42 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: stream_convert
-Nkind: N_Pragma
---
 Occurs: 37 times
 Calling function: Do_Expression
 Error message: Unknown expression kind
@@ -103,25 +83,10 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: part_of
 Nkind: N_Pragma
 --
-Occurs: 25 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: async_writers
-Nkind: N_Pragma
---
-Occurs: 24 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: ghost
-Nkind: N_Pragma
---
 Occurs: 22 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_MOD unsupported
 Nkind: N_Attribute_Reference
---
-Occurs: 21 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Async readers
-Nkind: N_Pragma
 --
 Occurs: 20 times
 Calling function: Process_Declaration
@@ -135,7 +100,7 @@ Nkind: N_Quantified_Expression
 --
 Occurs: 19 times
 Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Check
+Error message: Pragma Check unsupported in declarations
 Nkind: N_Pragma
 --
 Occurs: 17 times
@@ -183,11 +148,6 @@ Calling function: Validate_Value
 Error message: I_ARRAY_TYPE objects not supported
 Nkind: N_Defining_Identifier
 --
-Occurs: 8 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: refined_post
-Nkind: N_Pragma
---
 Occurs: 7 times
 Calling function: Do_Array_Assignment_Op
 Error message: Assignment expression cannot be unconstrained
@@ -227,11 +187,6 @@ Occurs: 3 times
 Calling function: Do_Object_Declaration_Full
 Error message: Kind of Expression(N) not valid for Range_Check
 Nkind: N_Attribute_Reference
---
-Occurs: 3 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Effective writes
-Nkind: N_Pragma
 --
 Occurs: 3 times
 Calling function: Process_Statement
