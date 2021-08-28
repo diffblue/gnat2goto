@@ -68,12 +68,6 @@ N_Pragma (Node_Id=4854) (source,analyzed)
  Pragma_Argument_Associations = List (List_Id=-99999633)
  Pragma_Identifier = N_Identifier "export" (Node_Id=4855)
 ----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: stream_convert----------
-N_Pragma (Node_Id=2768) (source,analyzed)
- Sloc = 24151  a-except.ads:171:4
- Pragma_Argument_Associations = List (List_Id=-99999909)
- Pragma_Identifier = N_Identifier "stream_convert" (Node_Id=2769)
-----------At: Process_Pragma_Declaration----------
 ----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=2837) (source,analyzed)
  Sloc = 25066  a-except.ads:190:4
@@ -103,12 +97,6 @@ N_Pragma (Node_Id=3193) (source,analyzed)
  Sloc = 31430  a-except.ads:327:4
  Pragma_Argument_Associations = List (List_Id=-99999853)
  Pragma_Identifier = N_Identifier "export" (Node_Id=3194)
-----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: stream_convert----------
-N_Pragma (Node_Id=3239) (source,analyzed)
- Sloc = 31957  a-except.ads:336:4
- Pragma_Argument_Associations = List (List_Id=-99999846)
- Pragma_Identifier = N_Identifier "stream_convert" (Node_Id=3240)
 
 [assertion.1] file <internal> Ada Check assertion: SUCCESS
 [assertion.2] file <internal> Ada Check assertion: SUCCESS
