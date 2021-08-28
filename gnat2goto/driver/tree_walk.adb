@@ -2983,14 +2983,16 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
                                          "Unsupported pragma: Atomic");
          when Name_Volatile |
+              Name_Volatile_Full_Access |
               Name_Volatile_Components =>
-            --  For a volatile object all reads and updates of the object as a
-            --  whole are performed directly to memory. In sequential execution
-            --  they may be modified by the environment. Effectively, they need
-            --  to be modelled as non-deterministic input in every state. It
-            --  changes the semantics wrt to thread interleavings.
+        --  For a volatile object all reads and updates of the object as a
+        --  whole are performed directly to memory. In sequential execution
+        --  they may be modified by the environment. Effectively, they need
+        --  to be modelled as non-deterministic input in every state. It
+        --  changes the semantics wrt to thread interleavings.
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                         "Unsupported pragma: Volatile");
+                                         "Unsupported pragma in statements" &
+                                         ": Volatile");
          when Name_Attach_Handler =>
             --  The expression in the Attach_Handler pragma as evaluated at
             --  object creation time specifies an interrupt. As part of the
@@ -3078,8 +3080,8 @@ package body Tree_Walk is
             Report_Unhandled_Node_Empty (N, "Do_Pragma",
                                 "Unsupported pragma: Task Dispatching Policy");
          when Name_Unreferenced =>
-            Report_Unhandled_Node_Empty (N, "Do_Pragma",
-                                "Unsupported pragma: Unreferenced");
+            --  Control of front-end warnings. Not used by ASVAt -> Ignored
+            null;
          when Name_All_Calls_Remote |
               Name_Remote_Call_Interface =>
             --  Library unit pragma; used by the distributed systems annex
@@ -3112,13 +3114,22 @@ package body Tree_Walk is
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
-              Name_Compile_Time_Warning |
-            --  Used to issue a compile time warning from the compiler
+              Name_Compile_Time_Warning | Name_Compile_Time_Error |
+            --  Used to issue a compile time warning or erors from the compiler
             --  front-end.  The warning will be issued by the front-end but has
             --  no affect on the AST.  It can be ignored safely by gnat2goto.
+              Name_Component_Alignment |
+            --  ASVAT does not model memory layout. -> Ignored
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
+              Name_Favor_Top_Level |
+            --  This pragma is an efficiency hint to the compiler.
+            --  Not used by ASVAt. -> Ignore
+              Name_Finalize_Storage_Only |
+            --  This pragma allows the compiler not to emit a Finalize
+            --  call for objects defined at the library level.
+            --  An optimisation not used by ASVAT. -> Ignore
               Name_Inline |
             --  Indicates that inline expansion is desired for all calls to
             --  that entity. -> Ignored
@@ -3145,9 +3156,17 @@ package body Tree_Walk is
             --  Specifies that the program text which follows the pragma should
             --  start on a new page (if the compiler is currently producing a
             --  listing). -> Ignored
+              Name_Obsolescent |
+            --  Documentation and warning control - not used by ASVAT.
+            --  -> Ignored
               Name_Optimize |
             --  Gives advice to the implementation as to whether time or space
             --  is the primary optimization criterion. -> Ignored
+              Name_Ordered |
+            --  Used for documentation and with the option for the front-end
+            --  to print a warning if code depends on ordering of an
+            --  enumeration except if this pragma is associated with the
+            --  enumeration. -> Ignored
               Name_Pack |
             --  Specifies that storage minimization should be the main
             --  criterion when selecting the representation of a composite
@@ -3161,13 +3180,21 @@ package body Tree_Walk is
               Name_Storage_Size |
             --  Specifies the amount of storage to be reserved for the
             --  execution of a task. -> Ignored
+              Name_Stream_Convert |
+            --  This pragma provides an efficient way of providing
+            --  user-defined stream attributes.
+            --  Streams are modelled in ASVAT externally to gnat2goto.
+            --  -> Ignored
               Name_Unsuppress |
             --  enables or disables a set of compiler warnings based on
             --  template
             --  these come from the frontend, so they're not really relevant to
             --  what we're doing here -> Ignored
-              Name_Warnings =>
+              Name_Warnings |
             --  Voids the supressing request. -> Ignored
+              Name_Weak_External =>
+            --  Provides information to the linker.  Not used by ASVAT.
+            --  Ignored ->
             null;
          when others =>
             declare
@@ -6195,11 +6222,12 @@ package body Tree_Walk is
             end;
          when Name_Refined_State |
               Name_Refined_Global |
-              Name_Refined_Depends =>
+              Name_Refined_Depends |
+              Name_Refined_Post =>
             --  We are not supporting refinement at this point
-            --  Using it would (probably) require modification to CBMC
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Refine");
+            --  Using it would (probably) require modification to CBMC.
+            --  Ignored.
+            null;
          when Name_Global =>
             --  Global is used in SPARK 2014 to allow modular analysis.  It
             --  is not required and can be safely ignored when performing
@@ -6230,6 +6258,7 @@ package body Tree_Walk is
             --  not the values themselves. -> Ignored
             null;
          when Name_Volatile |
+              Name_Volatile_Full_Access |
               Name_Volatile_Components =>
             --  For a volatile object all reads and updates of the object as a
             --  whole are performed directly to memory. In sequential execution
@@ -6237,6 +6266,11 @@ package body Tree_Walk is
             --  to be modelled as non-deterministic input in every state. It
             --  changes the semantics wrt to thread interleavings.
             Handle_Pragma_Volatile (N);
+         when Name_Volatile_Function =>
+            --  ASVAT always models function calls that appear in the source
+            --  code as side-effect function calls.  This will capture the
+            --  effect of a volatile function. -> Ignore
+            null;
          when Name_Attach_Handler =>
             --  The expression in the Attach_Handler pragma as evaluated at
             --  object creation time specifies an interrupt. As part of the
@@ -6277,7 +6311,12 @@ package body Tree_Walk is
                --  ToDo: we should check if the import is applied to a
                --  deferred constant and, if it is, set its value to nondet.
             end;
-
+         when Name_Import_Function | Name_Import_Procedure |
+              Name_Import_Object | Name_Import_Value |
+              Name_Import_Valued_Procedure =>
+            Report_Unhandled_Node_Empty
+              (N, "Process_Pragma_Declaration",
+               "pragma Import: Multi-language analysis unsupported");
          when Name_Elaborate =>
             --  Specifies that the body of the named library unit is elaborated
             --  before the current library_item. We will support packages.
@@ -6347,7 +6386,9 @@ package body Tree_Walk is
             --  access type. Resource allocation problem must be detected.
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
                                    "Known but unsupported pragma: Controlled");
-         when Name_Export =>
+         when Name_Export | Name_Export_Procedure | Name_Export_Function |
+              Name_Export_Object | Name_Export_Value |
+              Name_Export_Valued_Procedure =>
             --  Used to export an Ada entity to a foreign language, thus
             --  allowing an Ada subprogram to be called from a foreign
             --  language, or an Ada object to be accessed from a foreign
@@ -6358,13 +6399,8 @@ package body Tree_Walk is
             Handle_Pragma_Machine_Attribute (N);
          when Name_Check =>
             Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Check");
-         when Name_Effective_Writes =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                       "Unsupported pragma: Effective writes");
-         when Name_Async_Readers =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Async readers");
+                                         "Pragma Check unsupported " &
+                                           "in declarations");
          when Name_No_Return =>
             --  Can be detected when processing the function body
             null;
@@ -6397,9 +6433,6 @@ package body Tree_Walk is
                      "Unsupported pragma: Suppress initialization");
                end if;
             end;
-         when Name_Obsolescent =>
-            Report_Unhandled_Node_Empty (N, "Process_Pragma_Declaration",
-                                         "Unsupported pragma: Obsolescent");
          when Name_Annotate =>
             --  Annotate ASVAT is only supported as an aspect
             if not From_Aspect_Specification (N) then
@@ -6439,13 +6472,21 @@ package body Tree_Walk is
             --  Control the pragma Assert according to the policy identifier
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
-              Name_Compile_Time_Warning |
-            --  Used to issue a compile time warning from the compiler
+              Name_Compile_Time_Warning | Name_Compile_Time_Error |
+            --  Used to issue a compile time warning or error from the compiler
             --  front-end.  The warning will be issued by the front-end but has
             --  no affect on the AST.  It can be ignored safely by gnat2goto.
+              Name_Component_Alignment |
+            --  ASVAT does not model memory layout. -> Ignored
               Name_Discard_Names |
             --  Used to request a reduction in storage used for the names of
             --  certain entities. -> Ignored
+              Name_Favor_Top_Level |
+            --  This pragma is an efficiency hint to the compiler.
+            --  Not used by ASVAt. -> Ignore
+              Name_Ghost |
+            --  Ghost entities are treated as real entities by ASVAT.
+            --  -> Ignored
               Name_Initializes |
             --  Used to indicate that variables have been initialized by
             --  elaboration for SPARK flow analysis. -> Ignored
@@ -6454,7 +6495,7 @@ package body Tree_Walk is
             --  available at the point(s) during program execution
             --  corresponding to the position of the pragma in the compilation
             --  unit. -> Ignored
-              Name_Linker_Options |
+              Name_Linker_Options | Name_Linker_Section |
             --  Used to specify the system linker parameters needed when a
             --  given compilation unit is included in a partition. We want to
             --  know that code manipulates the linking.Name_Linker_Options =>
@@ -6474,9 +6515,17 @@ package body Tree_Walk is
             --  Specifies that the program text which follows the pragma should
             --  start on a new page (if the compiler is currently producing a
             --  listing). -> Ignored
+              Name_Obsolescent |
+            --  Documentation and warning control - not used by ASVAT.
+            --  -> Ignored
               Name_Optimize |
             --  Gives advice to the implementation as to whether time or space
             --  is the primary optimization criterion. -> Ignored
+              Name_Ordered |
+            --  Used for documentation and with the option for the front-end
+            --  to print a warning if code depends on ordering of an
+            --  enumeration except if this pragma is associated with the
+            --  enumeration. -> Ignored
               Name_Pack |
             --  Specifies that storage minimization should be the main
             --  criterion when selecting the representation of a composite
@@ -6508,6 +6557,11 @@ package body Tree_Walk is
             --  If a library unit is preelaborated, then its declaration, if
             --  any, and body, if any, are elaborated prior to all
             --  non-preelaborated library_item s of the partition. -> Ignored
+              Name_Stream_Convert |
+            --  This pragma provides an efficient way of providing
+            --  user-defined stream attributes.
+            --  Streams are modelled in ASVAT externally to gnat2goto.
+            --  -> Ignored
               Name_Suppress |
             --  Suppressing is effectively also ignored (elaborated as example)
               Name_SPARK_Mode |
@@ -6523,7 +6577,16 @@ package body Tree_Walk is
             --  Same as the above preelaborations.
               Name_Warnings |
             --  Ignoring pragma warnings means that all warnings are on.
+              Name_Weak_External |
+            --  Provides information to the linker.  Not used by ASVAT.
+            --  Ignored ->
               Name_Abstract_State |
+              Name_Async_Readers |
+              Name_Async_Writers |
+              Name_Effective_Reads |
+              Name_Effective_Writes |
+              Name_Default_Initial_Condition |
+              Name_Contract_Cases |
               Name_Ada_05 |
               Name_Ada_2012 |
               Name_Elaborate_Body |
