@@ -3115,7 +3115,7 @@ package body Tree_Walk is
             --  which can be Check, Ignore, or implementation-defined.
             --  Ignore means that assertions are ignored at run-time -> Ignored
               Name_Compile_Time_Warning | Name_Compile_Time_Error |
-            --  Used to issue a compile time warning or erors from the compiler
+            --  Used to issue a compile time warning or error from the compiler
             --  front-end.  The warning will be issued by the front-end but has
             --  no affect on the AST.  It can be ignored safely by gnat2goto.
               Name_Component_Alignment |
@@ -3125,7 +3125,7 @@ package body Tree_Walk is
             --  certain entities. -> Ignored
               Name_Favor_Top_Level |
             --  This pragma is an efficiency hint to the compiler.
-            --  Not used by ASVAt. -> Ignore
+            --  Not used by ASVAT. -> Ignore
               Name_Finalize_Storage_Only |
             --  This pragma allows the compiler not to emit a Finalize
             --  call for objects defined at the library level.
@@ -6483,7 +6483,7 @@ package body Tree_Walk is
             --  certain entities. -> Ignored
               Name_Favor_Top_Level |
             --  This pragma is an efficiency hint to the compiler.
-            --  Not used by ASVAt. -> Ignore
+            --  Not used by ASVAT. -> Ignore
               Name_Ghost |
             --  Ghost entities are treated as real entities by ASVAT.
             --  -> Ignored
