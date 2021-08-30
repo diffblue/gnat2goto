@@ -10,14 +10,14 @@ N_In (Node_Id=2514) (analyzed)
  Etype = N_Defining_Identifier "boolean" (Entity_Id=16s)
  Alternatives = List (List_Id=-99999951)
 ----------At: Process_Pragma_Declaration----------
-----------Unsupported pragma: Check----------
+----------Pragma Check unsupported in declarations----------
 N_Pragma (Node_Id=2572) (analyzed)
  Sloc = 8498  bar.adb:8:4
  Pragma_Argument_Associations = List (List_Id=-99999948)
  Pragma_Identifier = N_Identifier "check" (Node_Id=2571)
  Is_Checked = True
 ----------At: Process_Pragma_Declaration----------
-----------Unsupported pragma: Check----------
+----------Pragma Check unsupported in declarations----------
 N_Pragma (Node_Id=2581) (analyzed)
  Sloc = 8524  bar.adb:9:4
  Pragma_Argument_Associations = List (List_Id=-99999946)
@@ -36,7 +36,7 @@ N_In (Node_Id=2486) (analyzed)
  Etype = N_Defining_Identifier "boolean" (Entity_Id=16s)
  Alternatives = List (List_Id=-99999958)
 ----------At: Process_Pragma_Declaration----------
-----------Unsupported pragma: Check----------
+----------Pragma Check unsupported in declarations----------
 N_Pragma (Node_Id=2536) (analyzed)
  Sloc = 8483  foo.adb:9:4
  Pragma_Argument_Associations = List (List_Id=-99999956)
