@@ -5867,14 +5867,23 @@ package body Tree_Walk is
       begin
          case Nkind (N) is
             when N_Enumeration_Representation_Clause =>
-               Report_Unhandled_Node_Empty
-                 (N, "Process_Declaration",
-                  "Enumeration representation clauses are unsupported");
+               --  An Enumeration_Representation_Clause is used by the
+               --  front-end to assign valeues to the literals of an
+               --  enumeration.  The position number ('Pos) of the literals
+               --  is not changed, which is what gnat2goto uses.
+               --  The representation value, if one is assigned by an
+               --  Enumeration_Representation_Clause is available from the
+               --  front-end should gnat2goto need to use it in the future.
+               --  The node can be safely ignored.
                return;
             when N_Record_Representation_Clause =>
-               Report_Unhandled_Node_Empty
-                 (N, "Process_Declaration",
-                  "Record representation clauses are unsupported");
+               --  A Record_Representation_Clause may be handled by the
+               --  front-end but may also require processing by the back-end.
+               --  The back-end, gnat2goto does not model memory layout and
+               --  so does not use Record_Representation_Clauses.
+               --  Such nodes can be ignored by the current version of
+               --  gnat2goto.  If, in the future, some form of memory layout
+               --  model is considered this node may then have to be processed.
                return;
             when N_At_Clause =>
                Report_Unhandled_Node_Empty
@@ -5888,9 +5897,9 @@ package body Tree_Walk is
          --  First check if it is an address clause which gnat2goto does not
          --  currently handle
          if Attr_Id = "address" then
-            Report_Unhandled_Node_Empty
-              (N, "Process_Declaration",
-               "Address representation clauses are not currently supported");
+            --  ASVAT does not model physical memory and this value is not
+            --  currently used by ASVAT.
+            --  Nothing to be done.
             return;
          elsif Attr_Id = "size" or Attr_Id = "value_size" then
             --  The size is recorded in the ASVAT extra information
@@ -5919,6 +5928,11 @@ package body Tree_Walk is
             return;
          elsif Attr_Id = "alignment" then
             --  ASVAT does not model alignment of objects in memory.
+            --  Nothing to be done.
+            return;
+         elsif Attr_Id = "storage_size" then
+            --  Allocates memory for a task.
+            --  ASVAT does not support tasking or model memory use.
             --  Nothing to be done.
             return;
          end if;

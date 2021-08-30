@@ -5,6 +5,7 @@ with GOTO_Utils;          use GOTO_Utils;
 with Tree_Walk;           use Tree_Walk;
 with Follow;              use Follow;
 with ASVAT.Size_Model;    use ASVAT.Size_Model;
+with Sem_Util; use Sem_Util;
 package body Aggregates is
 
    -------------------------------
@@ -549,7 +550,11 @@ package body Aggregates is
             "Update_Array_From_Aggregate",
             "Multi-dimensional aggregates unsupported");
       elsif not (Is_Scalar_Type (Component_Type (Aggregate_Subtype)) or else
-                 Is_Access_Type (Component_Type (Aggregate_Subtype)))
+                 Is_Access_Type (Component_Type (Aggregate_Subtype)) or else
+                 Unique_Name
+                   (Base_Type
+                      (Etype (Component_Type (Aggregate_Subtype)))) =
+                           "system__address")
       then
          Report_Unhandled_Node_Empty
            (Agg,
