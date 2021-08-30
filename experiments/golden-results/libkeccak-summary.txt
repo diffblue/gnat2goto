@@ -84,11 +84,6 @@ Error message: Wrong component nkind
 Nkind: N_Pragma
 --
 Occurs: 31 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: storage_size
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 31 times
 Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: finalize_storage_only
 Nkind: N_Pragma
@@ -97,11 +92,6 @@ Occurs: 30 times
 Calling function: Do_Object_Declaration
 Error message: Record definition of wrong nkind
 Nkind: N_Object_Declaration
---
-Occurs: 30 times
-Calling function: Process_Declaration
-Error message: Enumeration representation clauses are unsupported
-Nkind: N_Enumeration_Representation_Clause
 --
 Occurs: 29 times
 Calling function: Do_In

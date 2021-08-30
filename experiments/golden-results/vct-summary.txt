@@ -33,11 +33,6 @@ Calling function: Do_Object_Declaration
 Error message: Record definition of wrong nkind
 Nkind: N_Object_Declaration
 --
-Occurs: 114 times
-Calling function: Process_Declaration
-Error message: Enumeration representation clauses are unsupported
-Nkind: N_Enumeration_Representation_Clause
---
 Occurs: 76 times
 Calling function: Do_Derived_Type_Definition
 Error message: record extension unsupported
@@ -77,11 +72,6 @@ Occurs: 8 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_COPY_SIGN unsupported
 Nkind: N_Attribute_Reference
---
-Occurs: 6 times
-Calling function: Process_Declaration
-Error message: Record representation clauses are unsupported
-Nkind: N_Record_Representation_Clause
 --
 Occurs: 3 times
 Calling function: Add_Record_Component

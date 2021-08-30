@@ -30,11 +30,6 @@ Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 1 times
 Calling function: Process_Declaration
-Error message: Representation clause unsupported: storage_size
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 1 times
-Calling function: Process_Declaration
 Error message: Representation clause unsupported: write
 Nkind: N_Attribute_Definition_Clause
 --
