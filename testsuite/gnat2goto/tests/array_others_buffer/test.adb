@@ -1,4 +1,4 @@
---  Test based on StratoX s-bbcppr.adb code to detect unsupported function
+--  Test based on StratoX s-bbcppr.adb
 with System; use System;
 procedure Test is
 
@@ -23,5 +23,10 @@ begin
    Initialize_Context (Buff, Addr);
 
    pragma Assert (Buff (8) = Null_Address);
- 
+   pragma Assert (Buff (0) = Null_Address);
+   pragma Assert (Buff (100) = Null_Address);
+   pragma Assert (Buff (50) = Null_Address);
+   --  The next assertion should fail
+   pragma Assert (Buff (99) /= Null_Address);
+
 end Test;

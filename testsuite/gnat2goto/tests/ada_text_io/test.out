@@ -16,12 +16,6 @@ N_Attribute_Definition_Clause "write" (Node_Id=4903) (source,analyzed)
  Expression = N_Identifier "write_sea" (Node_Id=4904)
  Entity = N_Defining_Identifier "stream_element_arraySW" (Entity_Id=10906)
  Next_Rep_Item = N_Attribute_Definition_Clause "read" (Node_Id=4897)
-----------At: Process_Declaration----------
-----------Enumeration representation clauses are unsupported----------
-N_Enumeration_Representation_Clause (Node_Id=8648) (source,analyzed)
- Sloc = 89849  s-crtl.ads:73:4
- Identifier = N_Identifier "filename_encoding" (Node_Id=8647)
- Array_Aggregate = N_Aggregate (Node_Id=8650)
 ----------At: Process_Pragma_Declaration----------
 ----------pragma Import: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=8762) (source,analyzed)
@@ -274,12 +268,6 @@ N_Pragma (Node_Id=10186) (source,analyzed)
  Sloc = 95027  s-crtl.ads:239:4
  Pragma_Argument_Associations = List (List_Id=-99999096)
  Pragma_Identifier = N_Identifier "import" (Node_Id=10187)
-----------At: Process_Declaration----------
-----------Enumeration representation clauses are unsupported----------
-N_Enumeration_Representation_Clause (Node_Id=8153) (source,analyzed)
- Sloc = 78771  i-cstrea.ads:231:4
- Identifier = N_Identifier "content_encoding" (Node_Id=8152)
- Array_Aggregate = N_Aggregate (Node_Id=8155)
 ----------At: Process_Pragma_Declaration----------
 ----------pragma Import: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=8273) (source,analyzed)
@@ -414,12 +402,6 @@ N_Derived_Type_Definition (Node_Id=5813) (source)
  Abstract_Present = True
  Subtype_Indication = N_Expanded_Name "root_stream_type" (Node_Id=5818)
  Record_Extension_Part = N_Record_Definition (Node_Id=5819)
-----------At: Process_Declaration----------
-----------Enumeration representation clauses are unsupported----------
-N_Enumeration_Representation_Clause (Node_Id=2359) (source,analyzed)
- Sloc = 19893  a-textio.ads:59:4
- Identifier = N_Identifier "file_mode" (Node_Id=2358)
- Array_Aggregate = N_Aggregate (Node_Id=2361)
 ----------At: Process_Pragma_Declaration----------
 ----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=4070) (source,analyzed)
