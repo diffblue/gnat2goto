@@ -1,0 +1,10 @@
+Standard_Error from gnat2goto test:
+test.adb:25:19: warning: "Buff" may be null
+
+[test.assertion.1] line 25 Ada Check assertion: SUCCESS
+[test.assertion.2] line 25 assertion Buff (8) = Null_Address: SUCCESS
+[test.assertion.3] line 26 assertion Buff (0) = Null_Address: SUCCESS
+[test.assertion.4] line 27 assertion Buff (100) = Null_Address: SUCCESS
+[test.assertion.5] line 28 assertion Buff (50) = Null_Address: SUCCESS
+[test.assertion.6] line 30 assertion Buff (99) /= Null_Address: FAILURE
+VERIFICATION FAILED

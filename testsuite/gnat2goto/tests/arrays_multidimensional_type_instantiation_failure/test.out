@@ -1,0 +1,4 @@
+Standard_Error from gnat2goto arrays_multidimensional_type_instantiation_failure:
+arrays_multidimensional_type_instantiation_failure.adb:3:04: warning: variable "AA1_One" is never read and never assigned
+
+VERIFICATION SUCCESSFUL

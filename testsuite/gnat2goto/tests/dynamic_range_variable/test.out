@@ -1,0 +1,14 @@
+Standard_Output from gnat2goto dynamic_range_variable:
+----------At: Do_Range_Constraint----------
+----------only static ranges are supported----------
+N_Integer_Literal (Node_Id=2285) (source,analyzed)
+ Parent = N_Range (Node_Id=2286)
+ Sloc = 8370  dynamic_range_variable.adb:4:58
+ Is_Static_Expression = True
+ Etype = N_Defining_Identifier "Tstatic_range_typeB" (Entity_Id=2312)
+ Intval = 1 (Uint = 600032769)
+
+[dynamic_range_variable.assertion.3] line 5 Ada Check assertion: SUCCESS
+[dynamic_range_variable.assertion.1] line 7 Ada Check assertion: SUCCESS
+[dynamic_range_variable.assertion.2] line 8 assertion Var = 40: SUCCESS
+VERIFICATION SUCCESSFUL

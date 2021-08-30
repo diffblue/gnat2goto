@@ -1,0 +1,13 @@
+Standard_Output from gnat2goto arrays:
+----------At: Update_Array_From_Aggregate----------
+----------Multi-dimensional aggregates unsupported----------
+N_Aggregate (Node_Id=2414) (source,analyzed)
+ Parent = N_Object_Declaration (Node_Id=2409)
+ Sloc = 9124  arrays.adb:21:31
+ Etype = N_Defining_Identifier "T19b" (Entity_Id=2790)
+ Expressions = List (List_Id=-99999960)
+ Aggregate_Bounds = N_Range (Node_Id=2774)
+
+[arrays.assertion.1] line 29 Ada Check assertion: SUCCESS
+[arrays.assertion.2] line 33 assertion Array_Attribs = 10 + 20 + 11: SUCCESS
+VERIFICATION SUCCESSFUL
