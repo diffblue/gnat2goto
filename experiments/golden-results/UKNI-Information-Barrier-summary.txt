@@ -1,8 +1,3 @@
-Occurs: 42 times
-Calling function: Process_Declaration
-Error message: Address representation clauses are not currently supported
-Nkind: N_Attribute_Definition_Clause
---
 Occurs: 1 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
