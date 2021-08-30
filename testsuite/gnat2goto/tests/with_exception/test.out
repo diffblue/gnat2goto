@@ -1,12 +1,4 @@
 Standard_Output from gnat2goto with_exception:
-----------At: Process_Declaration----------
-----------Representation clause unsupported: storage_size----------
-N_Attribute_Definition_Clause "storage_size" (Node_Id=4390) (source,analyzed)
- Sloc = 49117  s-stalib.ads:70:4
- Chars = "storage_size" (Name_Id=300000901)
- Name = N_Identifier "big_string_ptr" (Node_Id=4387)
- Expression = N_Integer_Literal (Node_Id=4391)
- Entity = N_Defining_Identifier "big_string_ptr" (Entity_Id=4376)
 ----------At: Validate_Value----------
 ----------I_POINTER_TYPE objects not supported----------
 N_Defining_Identifier "to_ptrR" (Entity_Id=5359)

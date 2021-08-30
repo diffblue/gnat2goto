@@ -1,1 +1,1 @@
-ALL XFAIL gnat2goto fails with abstract type declaration unsupported
+ALL XFAIL cbmc fails with SUPPORT FUNCTION GENERATION ERROR

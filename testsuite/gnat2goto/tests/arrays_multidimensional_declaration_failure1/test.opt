@@ -1,1 +1,0 @@
-ALL XFAIL GNU Ada (ada2goto) Assert_Failure failed postcondition from arrays.ads
