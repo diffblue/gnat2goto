@@ -421,25 +421,25 @@ N_Enumeration_Representation_Clause (Node_Id=2359) (source,analyzed)
  Identifier = N_Identifier "file_mode" (Node_Id=2358)
  Array_Aggregate = N_Aggregate (Node_Id=2361)
 ----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: export_procedure----------
+----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=4070) (source,analyzed)
  Sloc = 27957  a-textio.ads:309:4
  Pragma_Argument_Associations = List (List_Id=-99999736)
  Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4071)
 ----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: export_procedure----------
+----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=4081) (source,analyzed)
  Sloc = 28064  a-textio.ads:313:4
  Pragma_Argument_Associations = List (List_Id=-99999735)
  Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4082)
 ----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: export_procedure----------
+----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=4092) (source,analyzed)
  Sloc = 28172  a-textio.ads:317:4
  Pragma_Argument_Associations = List (List_Id=-99999734)
  Pragma_Identifier = N_Identifier "export_procedure" (Node_Id=4093)
 ----------At: Process_Pragma_Declaration----------
-----------Unknown pragma: export_procedure----------
+----------pragma Export: Multi-language analysis unsupported----------
 N_Pragma (Node_Id=4106) (source,analyzed)
  Sloc = 28335  a-textio.ads:322:4
  Pragma_Argument_Associations = List (List_Id=-99999733)

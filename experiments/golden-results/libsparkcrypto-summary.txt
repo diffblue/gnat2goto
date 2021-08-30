@@ -3,11 +3,6 @@ Calling function: Process_Pragma_Declaration
 Error message: Unknown pragma: depends
 Nkind: N_Pragma
 --
-Occurs: 104 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: ghost
-Nkind: N_Pragma
---
 Occurs: 68 times
 Calling function: Do_Expression
 Error message: ATTRIBUTE_UNRESTRICTED_ACCESS unsupported

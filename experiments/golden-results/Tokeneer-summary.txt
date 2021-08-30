@@ -3,14 +3,9 @@ Calling function: Process_Pragma_Declaration
 Error message: pragma Import: Multi-language analysis unsupported
 Nkind: N_Pragma
 --
-Occurs: 143 times
+Occurs: 248 times
 Calling function: Process_Pragma_Declaration
 Error message: pragma Export: Multi-language analysis unsupported
-Nkind: N_Pragma
---
-Occurs: 105 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: export_procedure
 Nkind: N_Pragma
 --
 Occurs: 97 times
@@ -72,11 +67,6 @@ Occurs: 27 times
 Calling function: Process_Catination
 Error message: Unconstrained array expressions in concatinations are unsupported
 Nkind: N_Function_Call
---
-Occurs: 26 times
-Calling function: Process_Pragma_Declaration
-Error message: Unknown pragma: stream_convert
-Nkind: N_Pragma
 --
 Occurs: 21 times
 Calling function: Get_Dimension_Bounds
@@ -142,11 +132,6 @@ Occurs: 9 times
 Calling function: Process_Declaration
 Error message: Unknown declaration kind
 Nkind: N_Private_Extension_Declaration
---
-Occurs: 9 times
-Calling function: Process_Pragma_Declaration
-Error message: Unsupported pragma: Obsolescent
-Nkind: N_Pragma
 --
 Occurs: 8 times
 Calling function: Make_Constrained_Array_From_Initialization
