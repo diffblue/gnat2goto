@@ -1,0 +1,4 @@
+Standard_Error from gnat2goto arrays_multidimensional_declaration_failure2:
+arrays_multidimensional_declaration_failure2.adb:3:04: warning: variable "AA" is never read and never assigned
+
+VERIFICATION SUCCESSFUL

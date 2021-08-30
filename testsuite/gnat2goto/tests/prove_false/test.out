@@ -1,0 +1,6 @@
+[prove_false.assertion.1] line 52 assertion Val_T (V) = 0: SUCCESS
+[prove_false.assertion.2] line 54 assertion Val_T (V) = 1: SUCCESS
+[prove_false.assertion.3] line 56 assertion Val_T (V) = 7: FAILURE
+[prove_false.assertion.4] line 57 assertion Val_T (V) = 3: SUCCESS
+[set_t.assertion.1] line 45 Ada Check assertion: SUCCESS
+VERIFICATION FAILED

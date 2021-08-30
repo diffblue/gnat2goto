@@ -1,0 +1,14 @@
+Standard_Output from gnat2goto arrays_multidimensional_declaration_failure1:
+----------At: Update_Array_From_Aggregate----------
+----------Multi-dimensional aggregates unsupported----------
+N_Aggregate (Node_Id=2300) (source,analyzed)
+ Parent = N_Object_Declaration (Node_Id=2280)
+ Sloc = 8528  arrays_multidimensional_declaration_failure1.adb:7:70
+ Etype = N_Defining_Identifier "T3b" (Entity_Id=2393)
+ Expressions = List (List_Id=-99999979)
+ Aggregate_Bounds = N_Range (Node_Id=2377)
+
+Standard_Error from gnat2goto arrays_multidimensional_declaration_failure1:
+arrays_multidimensional_declaration_failure1.adb:4:04: warning: variable "AA1" is never read and never assigned
+
+VERIFICATION SUCCESSFUL

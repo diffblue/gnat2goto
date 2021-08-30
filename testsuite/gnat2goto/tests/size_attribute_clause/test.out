@@ -1,0 +1,4 @@
+[check_size.assertion.1] line 30 assertion Integer (Var_T_1) + Integer (Var_T_2) = 70: SUCCESS
+[check_size.assertion.2] line 34 assertion Var_Size_1 + Var_Size_2 = 30: SUCCESS
+[check_size.assertion.3] line 37 assertion Var_U8 + 1 = 0: SUCCESS
+VERIFICATION SUCCESSFUL
