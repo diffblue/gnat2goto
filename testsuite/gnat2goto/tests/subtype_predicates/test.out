@@ -1,0 +1,53 @@
+Standard_Output from gnat2goto bar:
+----------At: Do_In----------
+----------gnat2goto currently only supports one mebership_choice----------
+N_In (Node_Id=2514) (analyzed)
+ Rewritten: original node = N_In (Node_Id=2558)
+ Parent = N_Simple_Return_Statement (Node_Id=2533)
+ Sloc = 8390  bar.adb:4:38
+ Left_Opnd = N_Identifier "I1b" (Node_Id=2556)
+ Right_Opnd = <empty>
+ Etype = N_Defining_Identifier "boolean" (Entity_Id=16s)
+ Alternatives = List (List_Id=-99999951)
+----------At: Process_Pragma_Declaration----------
+----------Pragma Check unsupported in declarations----------
+N_Pragma (Node_Id=2572) (analyzed)
+ Sloc = 8498  bar.adb:8:4
+ Pragma_Argument_Associations = List (List_Id=-99999948)
+ Pragma_Identifier = N_Identifier "check" (Node_Id=2571)
+ Is_Checked = True
+----------At: Process_Pragma_Declaration----------
+----------Pragma Check unsupported in declarations----------
+N_Pragma (Node_Id=2581) (analyzed)
+ Sloc = 8524  bar.adb:9:4
+ Pragma_Argument_Associations = List (List_Id=-99999946)
+ Pragma_Identifier = N_Identifier "check" (Node_Id=2580)
+ Is_Checked = True
+
+Standard_Output from gnat2goto foo:
+----------At: Do_In----------
+----------gnat2goto currently only supports one mebership_choice----------
+N_In (Node_Id=2486) (analyzed)
+ Rewritten: original node = N_Op_Eq "Oeq" (Node_Id=2524)
+ Parent = N_Simple_Return_Statement (Node_Id=2505)
+ Sloc = 8395  foo.adb:5:40
+ Left_Opnd = N_Identifier "I1b" (Node_Id=2522)
+ Right_Opnd = <empty>
+ Etype = N_Defining_Identifier "boolean" (Entity_Id=16s)
+ Alternatives = List (List_Id=-99999958)
+----------At: Process_Pragma_Declaration----------
+----------Pragma Check unsupported in declarations----------
+N_Pragma (Node_Id=2536) (analyzed)
+ Sloc = 8483  foo.adb:9:4
+ Pragma_Argument_Associations = List (List_Id=-99999956)
+ Pragma_Identifier = N_Identifier "check" (Node_Id=2535)
+ Is_Checked = True
+
+Error from cbmc foo:
+function '__CPROVER__start' in module '' is shadowed by a definition in module ''
+function '__CPROVER_initialize' in module '' is shadowed by a definition in module ''
+
+[bar.assertion.1] line 15 assertion Result: SUCCESS
+[bar.assertion.2] line 18 assertion not Result: SUCCESS
+[foo.assertion.1] line 15 assertion Result: SUCCESS
+VERIFICATION SUCCESSFUL

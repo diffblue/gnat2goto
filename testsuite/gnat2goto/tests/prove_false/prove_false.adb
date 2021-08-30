@@ -1,11 +1,6 @@
 procedure Prove_False is
 
-   --  This test case demonstrates the current cbmc failure when
-   --  analyzing this code.
-   --  Firstly it ignores a nil type and fails with invariant violation
-   --  "Unimplemented"
-
-      type T;
+       type T;
 
       MaxNameLength : constant := 16;
 

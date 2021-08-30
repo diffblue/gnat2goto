@@ -1,7 +1,9 @@
 
 procedure Arrays is
-   type Arr1 is array (Positive) of Integer;
-   type Arr2 is array (Integer) of Integer;
+  -- Can't really realise these, since their fixed range is too large:
+  -- Their declaration cause gnat2goto to crash with an range eror
+--   type Arr1 is array (Positive) of Integer;
+--   type Arr2 is array (Integer) of Integer;
    subtype Range1 is Integer range 10 .. 20;
    type Arr3 is array (Range1) of Integer;
    type Arr4 is array (Integer range 30 .. 32) of Integer;
@@ -28,4 +30,5 @@ begin
    -- Actual3 (13 .. 15) := 200 & (300, 400);
    Actual3 (13 .. 16) := Actual3 (11 .. 12) & Actual3 (15 .. 16);
    Array_Attribs := Actual3'First + Actual3'Last + Actual3'Length;
+   pragma Assert (Array_Attribs = 10 + 20 + 11);
 end Arrays;

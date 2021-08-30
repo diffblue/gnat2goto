@@ -18,11 +18,6 @@ Calling function: Do_Expression
 Error message: Attribute_Value is unsupported
 Nkind: N_Attribute_Reference
 --
-Occurs: 79 times
-Calling function: Process_Declaration
-Error message: Enumeration representation clauses are unsupported
-Nkind: N_Enumeration_Representation_Clause
---
 Occurs: 65 times
 Calling function: Computed_Size
 Error message: Entity does not have ASVAT model size
@@ -91,11 +86,6 @@ Nkind: N_Attribute_Definition_Clause
 Occurs: 20 times
 Calling function: Process_Declaration
 Error message: Representation clause unsupported: write
-Nkind: N_Attribute_Definition_Clause
---
-Occurs: 13 times
-Calling function: Process_Declaration
-Error message: Representation clause unsupported: storage_size
 Nkind: N_Attribute_Definition_Clause
 --
 Occurs: 13 times
