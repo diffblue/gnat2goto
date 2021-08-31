@@ -1525,6 +1525,12 @@ package body Arrays.Low_Level is
                                       I_Type     : Irep;
                                       Location   : Irep) return Irep
    is
+      Raw_Array_I_Type   : constant Irep := Get_Type (The_Array);
+      Deref_Array_I_Type : constant Irep :=
+        (if Kind (Raw_Array_I_Type) = I_Dereference_Expr then
+              Get_Subtype (Raw_Array_I_Type)
+         else
+            Raw_Array_I_Type);
       Arr_Sort : constant Array_Sort := Get_Array_Sort (The_Array);
       --  If the array components represent an enumeration they are
       --  modelled as an unsigned bit vector within the array.  An element
@@ -1548,7 +1554,7 @@ package body Arrays.Low_Level is
                when An_I_Array =>
                   Get_Subtype (Get_Type (The_Array)),
                when A_Pointer_To_Elem =>
-                  Get_Subtype (The_Array),
+                  Get_Subtype (Deref_Array_I_Type),
                when A_Bounded | A_Pointer_To_Bounded =>
                   Get_Subtype (Get_Pointer_To_Array (The_Array, Max_Enum)),
                when Unexpected =>
