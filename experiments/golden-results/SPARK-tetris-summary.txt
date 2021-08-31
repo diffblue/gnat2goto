@@ -1,3 +1,18 @@
+Occurs: 26 times
+Calling function: Do_Expression
+Error message: Quantified
+Nkind: N_Quantified_Expression
+--
+Occurs: 10 times
+Calling function: Do_Case_Expression
+Error message: Case kind not in class expr or alt expr not in class type
+Nkind: N_Case_Expression
+--
+Occurs: 5 times
+Calling function: Do_Expression
+Error message: ATTRIBUTE_UPDATE unsupported
+Nkind: N_Attribute_Reference
+--
 Occurs: 5 times
 Calling function: Update_Array_From_Aggregate
 Error message: Aggregates with non-scalar components are unsupported
@@ -17,8 +32,3 @@ Occurs: 1 times
 Redacted compiler error message:
 ghost entity cannot appear in this context
 Raw compiler error message:
---
-Occurs: 5 times
-+===========================GNAT BUG DETECTED==============================+
-| GNU Ada (ada2goto) Assert_Failure failed precondition from ireps.ads:1571|
-Error detected at REDACTED
